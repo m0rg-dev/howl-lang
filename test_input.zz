@@ -1,0 +1,8 @@
+class A {
+    i32 field1;
+    i32 field2;
+}
+
+fn main() {
+    return 42;
+}

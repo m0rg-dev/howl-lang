@@ -1,0 +1,49 @@
+// [ type = <class a>; vtable = [method -> *method, another_method -> *another_method]; field ]
+class a {
+    i32 field;
+
+    fn method(i32 arg) -> i32 (FooException) {
+        if arg == 0 {
+            throw FooException(); // syntax? is FooException an object - new FooException()?
+        }
+        self.field = arg;
+        return arg;
+    }
+
+    fn another_method() {
+        // ...
+    }
+}
+
+// [ type = <class b>; vtable = [method -> *b::method, another_method -> *a::another_method]; field; sub_field ]
+class b extends a {
+    i32 sub_field;
+
+    override fn method(i32 arg) -> i32 (Exception) {
+        // ...
+    }
+}
+
+fn main() (FooException) {
+    let obj_a: a = new a;    // type annotation will eventually be optional
+    // do I want to try to do Rust-style memory management or just normal GC?
+      // actually lifetime analysis might not be all that hard. we just need to look at
+      // each object whenever it enters or leaves a scope and take the appropriate action
+      // i.e. "conservation of objects" across scopes / calls
+
+    // no exception handling on this call
+    a.method(1);
+
+    try {
+        // "trap call" marked in the stack frame - exception unwinding will stop here
+        a.method(0);
+    } catch(FooException) {
+        // ...
+    }
+}
+
+// generics and type inference probably comes later
+class g<T> {
+    T field;
+}
+
