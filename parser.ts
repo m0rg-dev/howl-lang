@@ -1,5 +1,7 @@
 import * as fs from 'fs';
 import { Program } from './ast/Program';
+import { Lexer } from './lexer';
+import { TokenType } from './TokenType';
 
 export function why_not(e: string): boolean {
     console.error(e);
@@ -7,8 +9,14 @@ export function why_not(e: string): boolean {
 }
 
 const source = fs.readFileSync(process.argv[2]).toString();
-const c = new Program(source, 0);
-console.error(c.accept());
 
-console.error(c.pretty_print());
-console.log(c.synthesize());
+const lexer = new Lexer(source);
+for (const tok of lexer.tokenize()) {
+    if(tok.type == TokenType.Name) {
+        console.log(`Name(${tok['name']})`);
+    } else if(tok.type == TokenType.NumericLiteral) {
+        console.log(`NumericLiteral(${tok['value']})`);
+    } else {
+        console.log(`${TokenType[tok.type]}`);
+    }
+}

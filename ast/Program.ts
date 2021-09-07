@@ -13,29 +13,33 @@ export class Program extends ParsedUnit implements Synthesizable {
     accept(): ParseResult {
         while (this.mark <= this.source.length) {
             const tok = this.next_token();
+            let err: ParseResult;
             console.error(tok);
-            if(tok.type == TokenType.Class) {
-                const c = new Class(this.source, this.mark);
-                const err = c.accept();
-                if(!err.ok) {
-                    return err;
-                }
-                this.accepted(c);
-                this.classdefs.push(c);
-                this.parts.push(c);
-            } else if(tok.type == TokenType.Function) {
-                const func = new FunctionDefinition(this.source, this.mark);
-                const err = func.accept();
-                if(!err.ok) {
-                    return err
-                }
-                this.accepted(func);
-                this.funcdefs.push(func);
-                this.parts.push(func);
-            } else if(tok.type == TokenType.EOF) {
-                return ParseResult.Ok();
-            } else {
-                return ParseResult.Fail(this, "Expected a function or class definition");
+            switch(tok.type) {
+                case TokenType.Class:
+                    const c = new Class(this.source, this.mark);
+                    err = c.accept();
+                    if(!err.ok) {
+                        return err;
+                    }
+                    this.accepted(c);
+                    this.classdefs.push(c);
+                    this.parts.push(c);
+                    break;
+                case TokenType.Function:
+                    const func = new FunctionDefinition(this.source, this.mark);
+                    err = func.accept();
+                    if(!err.ok) {
+                        return err
+                    }
+                    this.accepted(func);
+                    this.funcdefs.push(func);
+                    this.parts.push(func);
+                    break;
+                case TokenType.EOF:
+                    return ParseResult.Ok();
+                default:
+                    return ParseResult.Fail(this, "Expected a function or class definition");
             }
         }
         return ParseResult.Fail(this, "Premature end of file");

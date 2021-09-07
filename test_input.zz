@@ -4,5 +4,5 @@ class A {
 }
 
 fn main() {
-    return ;
+    return 42;
 }
