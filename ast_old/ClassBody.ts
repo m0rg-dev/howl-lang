@@ -1,5 +1,5 @@
 import { why_not } from '../parser';
-import { TokenType } from "../TokenType";
+import { TokenType } from "../lexer/TokenType";
 import { FieldDeclaration } from "./FieldDeclaration";
 import { ParsedUnit } from "./ParsedUnit";
 import { ParseResult } from './ParseResult';

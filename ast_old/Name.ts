@@ -1,6 +1,6 @@
 import { why_not } from '../parser';
-import { NameToken } from "./NameToken";
-import { TokenType } from "../TokenType";
+import { NameToken } from "../lexer/NameToken";
+import { TokenType } from "../lexer/TokenType";
 import { Terminal } from './Terminal';
 
 export class Name extends Terminal {

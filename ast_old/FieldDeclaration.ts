@@ -1,5 +1,5 @@
 import { why_not } from '../parser';
-import { TokenType } from "../TokenType";
+import { TokenType } from "../lexer/TokenType";
 import { BaseType } from './BaseType';
 import { Name } from './Name';
 import { ParsedUnit } from './ParsedUnit';

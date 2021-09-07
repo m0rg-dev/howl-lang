@@ -1,6 +1,6 @@
 import { why_not } from '../parser';
-import { NumericLiteralToken } from "./NumericLiteralToken";
-import { TokenType } from "../TokenType";
+import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
+import { TokenType } from "../lexer/TokenType";
 import { Terminal } from './Terminal';
 
 export class NumericLiteral extends Terminal {

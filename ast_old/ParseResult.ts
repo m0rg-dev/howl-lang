@@ -1,4 +1,4 @@
-import { TokenType } from "../TokenType";
+import { TokenType } from "../lexer/TokenType";
 import { Terminal } from "./Terminal";
 
 export class ParseResult {

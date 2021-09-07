@@ -1,9 +1,7 @@
-import { why_not } from "../parser";
-import { TokenType } from "../TokenType";
+import { TokenType } from "../lexer/TokenType";
 import { ParsedUnit } from "./ParsedUnit";
 import { ParseResult } from "./ParseResult";
 import { Terminal } from "./Terminal";
-import { Token } from "./Token";
 
 export class FunctionArguments extends ParsedUnit {
     accept(): ParseResult {

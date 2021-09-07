@@ -1,6 +1,6 @@
 import { Synthesizable } from "../generator";
 import { why_not } from "../parser";
-import { TokenType } from "../TokenType";
+import { TokenType } from "../lexer/TokenType";
 import { ParsedUnit } from "./ParsedUnit";
 import { ParseResult } from "./ParseResult";
 import { ReturnStatement } from "./ReturnStatement";

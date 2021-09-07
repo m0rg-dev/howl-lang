@@ -1,5 +1,5 @@
 import { why_not } from '../parser';
-import { TokenType } from "../TokenType";
+import { TokenType } from "../lexer/TokenType";
 import { Terminal } from './Terminal';
 
 export class BaseType extends Terminal {

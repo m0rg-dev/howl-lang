@@ -1,5 +1,5 @@
 import { Synthesizable } from "../generator";
-import { TokenType } from "../TokenType";
+import { TokenType } from "../lexer/TokenType";
 import { ParsedUnit } from "./ParsedUnit";
 import { ParseResult } from "./ParseResult";
 import { Statement } from "./Statement";
