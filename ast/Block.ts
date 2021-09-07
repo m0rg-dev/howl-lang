@@ -5,7 +5,7 @@ import { ParsedUnit } from "./ParsedUnit";
 import { Statement } from "./Statement";
 import { Terminal } from "./Terminal";
 
-export class FunctionBody extends ParsedUnit implements Synthesizable {
+export class Block extends ParsedUnit implements Synthesizable {
     statements: Statement[] = [];
 
     accept(): boolean {
