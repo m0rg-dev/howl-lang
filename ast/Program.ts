@@ -4,33 +4,41 @@ import { TokenType } from "../TokenType";
 import { Class } from "./Class";
 import { FunctionDefinition } from "./FunctionDefinition";
 import { ParsedUnit } from "./ParsedUnit";
+import { ParseResult } from "./ParseResult";
 
 export class Program extends ParsedUnit implements Synthesizable {
     classdefs: Class[] = [];
     funcdefs: FunctionDefinition[] = [];
 
-    accept(): boolean {
+    accept(): ParseResult {
         while (this.mark <= this.source.length) {
-            let c = new Class(this.source, this.mark);
-            let func = new FunctionDefinition(this.source, this.mark);
-            if (c.accept()) {
+            const tok = this.next_token();
+            console.error(tok);
+            if(tok.type == TokenType.Class) {
+                const c = new Class(this.source, this.mark);
+                const err = c.accept();
+                if(!err.ok) {
+                    return err;
+                }
                 this.accepted(c);
                 this.classdefs.push(c);
                 this.parts.push(c);
-            } else if (func.accept()) {
+            } else if(tok.type == TokenType.Function) {
+                const func = new FunctionDefinition(this.source, this.mark);
+                const err = func.accept();
+                if(!err.ok) {
+                    return err
+                }
                 this.accepted(func);
                 this.funcdefs.push(func);
                 this.parts.push(func);
+            } else if(tok.type == TokenType.EOF) {
+                return ParseResult.Ok();
             } else {
-                let tok = this.next_token();
-                if (tok.type == TokenType.EOF) {
-                    console.error("Reached end of input successfully.");
-                    break;
-                }
-                return why_not("Expected a function or class definition");
+                return ParseResult.Fail(this, "Expected a function or class definition");
             }
         }
-        return true;
+        return ParseResult.Fail(this, "Premature end of file");
     }
 
     synthesize(): string {

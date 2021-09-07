@@ -2,14 +2,16 @@ import { why_not } from '../parser';
 import { TokenType } from "../TokenType";
 import { FieldDeclaration } from "./FieldDeclaration";
 import { ParsedUnit } from "./ParsedUnit";
+import { ParseResult } from './ParseResult';
 import { Terminal } from "./Terminal";
 
 export class ClassBody extends ParsedUnit {
     fields: FieldDeclaration[];
 
-    accept(): boolean {
+    accept(): ParseResult {
         const open = new Terminal(this.source, this.mark);
-        if (!open.accept_token(TokenType.OpenBrace)) return why_not("Expected opening brace");
+        if (!open.accept_token(TokenType.OpenBrace))
+            return ParseResult.WrongToken(this, TokenType.OpenBrace);
         this.accepted(open);
 
         const fields: FieldDeclaration[] = [];
@@ -21,7 +23,8 @@ export class ClassBody extends ParsedUnit {
                 break;
             } else {
                 const f = new FieldDeclaration(this.source, this.mark);
-                if (!f.accept()) return why_not("Expected field declaration or closing brace");
+                const err = f.accept();
+                if(!err.ok) return err.append(ParseResult.Fail(this, "Expected field declaration or closing brace"));
                 this.accepted(f);
                 fields.push(f);
             }
@@ -30,7 +33,7 @@ export class ClassBody extends ParsedUnit {
         this.fields = fields;
 
         this.parts.push(open, ...fields, close);
-        return true;
+        return ParseResult.Ok();
     }
 
     pretty_print(depth = 0): string {

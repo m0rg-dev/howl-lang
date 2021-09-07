@@ -5,29 +5,33 @@ import { ClassBody } from "./ClassBody";
 import { ParsedUnit } from "./ParsedUnit";
 import { Terminal } from "./Terminal";
 import { Name } from "./Name";
+import { ParseResult } from "./ParseResult";
 
 export class Class extends ParsedUnit implements Synthesizable {
     name: string;
     body: ClassBody;
 
-    accept(): boolean {
+    accept(): ParseResult {
         const keyword = new Terminal(this.source, this.mark);
-        if (!keyword.accept_token(TokenType.Class)) return why_not("Expected keyword: class");
+        if (!keyword.accept_token(TokenType.Class))
+            return ParseResult.WrongToken(this, TokenType.Class);
         this.accepted(keyword);
 
         const name = new Name(this.source, this.mark);
-        if (!name.accept()) return why_not("Expected class name");
+        if (!name.accept())
+            return ParseResult.WrongToken(this, TokenType.Name);
         this.accepted(name);
 
         const body = new ClassBody(this.source, this.mark);
-        if (!body.accept()) return why_not("Expected class body");
+        const err = body.accept();
+        if (!err.ok) return err.append(ParseResult.Fail(this, "Expected class body"));
         this.accepted(body);
 
         this.name = name.name;
         this.body = body;
 
         this.parts.push(keyword, name, body);
-        return true;
+        return ParseResult.Ok();
     }
 
     pretty_print(depth = 0): string {

@@ -1,18 +1,18 @@
 import { Synthesizable } from "../generator";
-import { why_not } from "../parser";
 import { TokenType } from "../TokenType";
 import { ParsedUnit } from "./ParsedUnit";
+import { ParseResult } from "./ParseResult";
 import { Statement } from "./Statement";
 import { Terminal } from "./Terminal";
 
 export class Block extends ParsedUnit implements Synthesizable {
     statements: Statement[] = [];
 
-    accept(): boolean {
+    accept(): ParseResult {
         const open = new Terminal(this.source, this.mark);
-        if (!open.accept_token(TokenType.OpenBrace)) return why_not("Expected opening brace");
+        if (!open.accept_token(TokenType.OpenBrace))
+            return ParseResult.WrongToken(this, TokenType.OpenBrace);
         this.accepted(open);
-
 
         const statements: Statement[] = [];
         let close: Terminal;
@@ -23,7 +23,8 @@ export class Block extends ParsedUnit implements Synthesizable {
                 break;
             } else {
                 const s = new Statement(this.source, this.mark);
-                if (!s.accept()) return why_not("Expected statement or closing brace");
+                const err = s.accept();
+                if(!err.ok) return err.append(ParseResult.Fail(this, "Expected statement or closing brace"));
                 this.accepted(s);
                 statements.push(s);
             }
@@ -32,7 +33,7 @@ export class Block extends ParsedUnit implements Synthesizable {
         this.statements = statements;
 
         this.parts.push(open, close);
-        return true;
+        return ParseResult.Ok();
     }
 
     synthesize(): string {

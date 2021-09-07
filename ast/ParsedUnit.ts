@@ -1,3 +1,4 @@
+import { ParseResult } from './ParseResult';
 import { Terminal } from './Terminal';
 
 export abstract class ParsedUnit extends Terminal {
@@ -8,7 +9,7 @@ export abstract class ParsedUnit extends Terminal {
         this.parts = [];
     }
 
-    abstract accept(): boolean;
+    abstract accept(): ParseResult;
 
     pretty_print(depth = 0): string {
         let parts: string[] = [];

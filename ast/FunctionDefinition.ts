@@ -6,27 +6,30 @@ import { Block } from "./Block";
 import { Name } from "./Name";
 import { ParsedUnit } from "./ParsedUnit";
 import { Terminal } from "./Terminal";
+import { ParseResult } from "./ParseResult";
 
 export class FunctionDefinition extends ParsedUnit implements Synthesizable {
     name: string;
     args: FunctionArguments;
     body: Block;
 
-    accept(): boolean {
+    accept(): ParseResult {
         const keyword = new Terminal(this.source, this.mark);
-        if (!keyword.accept_token(TokenType.Function)) return why_not("Expected keyword: fn");
+        if (!keyword.accept_token(TokenType.Function)) return ParseResult.WrongToken(this, TokenType.Function);
         this.accepted(keyword);
 
         const name = new Name(this.source, this.mark);
-        if (!name.accept()) return why_not("Expected function name");
+        if (!name.accept()) return ParseResult.WrongToken(this, TokenType.Name);
         this.accepted(name);
 
         const args = new FunctionArguments(this.source, this.mark);
-        if (!args.accept()) return why_not("Expected function arguments");
+        let err = args.accept()
+        if (!err.ok) return err.append(ParseResult.Fail(this, "Expected function arguments"));
         this.accepted(args);
 
         const body = new Block(this.source, this.mark);
-        if (!body.accept()) return why_not("Expected function body");
+        err = body.accept();
+        if (!err.ok) return err.append(ParseResult.Fail(this, "Expected function body"));
         this.accepted(body);
 
         this.name = name.name;
@@ -34,7 +37,7 @@ export class FunctionDefinition extends ParsedUnit implements Synthesizable {
         this.body = body;
 
         this.parts.push(keyword, name, args, body);
-        return true;
+        return ParseResult.Ok();
     }
 
     synthesize(): string {
