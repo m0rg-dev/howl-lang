@@ -10,8 +10,6 @@ export enum TokenType {
     CloseParen,
     Semicolon,
 
-    Int32,
-
     Name,
     NumericLiteral,
 

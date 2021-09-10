@@ -3,6 +3,11 @@ class A {
     i32 field2;
 }
 
+class B {
+    i32 field1;
+    i32 field3;
+}
+
 fn main() {
-    return 42;
+    ret i32 42;
 }
