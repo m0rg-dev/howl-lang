@@ -1,13 +1,35 @@
-class A {
-    i32 field1;
-    i32 field2;
+fn i32 puts(_rawptr_i8 s) proto
+fn _rawptr_i8 malloc(i32 size) proto
+
+class String {
+    _rawptr_i8 buffer;
+    i32 length;
+
+    fn void construct(String self, i32 length) {
+        self.buffer = malloc(length);
+        self.length = length;
+        __asm__ ret void;
+    }
+
+    fn void print(String self) {
+        puts(self.buffer);
+        __asm__ ret void;
+    }
+
+    fn void setCharacter(String self, i32 pos, i8 char) {
+        // no array indexing yet...
+        __asm__ %1 = getelementptr %String, %String* %self, i64 0, i32 0;
+        __asm__ %2 = load i8*, i8** %1;
+        __asm__ %3 = getelementptr i8, i8* %2, i32 %pos;
+        __asm__ store i8 %char, i8* %3;
+        __asm__ ret void;
+    }
 }
 
-class B {
-    i32 field1;
-    i32 field3;
-}
-
-fn main() {
-    ret i32 42;
+fn i32 main() {
+    __asm__ %s = alloca %String;
+    __asm__ call void @__String_construct(%String* %s, i32 1);
+    __asm__ call void @__String_setCharacter(%String* %s, i32 0, i8 65);
+    __asm__ call void @__String_print(%String* %s);
+    __asm__ ret i32 0;
 }

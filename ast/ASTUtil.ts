@@ -1,5 +1,7 @@
 import { LexerHandle } from "../lexer";
 import { TokenType } from "../lexer/TokenType";
+import { Class } from "./Class";
+import { FunctionDefinition } from "./FunctionDefinition";
 
 export function RecognizeBlock(handle: LexerHandle): boolean {
     if(!handle.rolling) return false;
@@ -18,10 +20,13 @@ export function RecognizeBlock(handle: LexerHandle): boolean {
                 if(stack.pop() != TokenType.OpenBrace) return false;
                 break;
             case TokenType.CloseParen:
-                if(stack.pop() != TokenType.CloseBrace) return false;
+                if(stack.pop() != TokenType.OpenParen) return false;
                 break;
         }
         if(stack.length == 0) return true;
     }
 }
 
+export function Mangle(method: FunctionDefinition, cl: Class) {
+    method.signature.name = `__${cl.name}_${method.signature.name}`;
+}

@@ -35,6 +35,20 @@ export function ErrorEOF(handle: LexerHandle): ParseError {
     };
 }
 
+export function ErrorBadType(handle: LexerHandle, type: string): ParseError {
+    return {
+        location: handle.lookahead().start,
+        description: `Unknown type ${type}`
+    };
+}
+
+export function ErrorExpressionFailed(handle: LexerHandle): ParseError {
+    return {
+        location: handle.lookahead().start,
+        description: `Expression failed to parse completely`
+    }
+}
+
 export abstract class ASTElement implements Synthesizable {
     synthesize(): string {
         throw new Error(`Method not implemented (${this.constructor.name}).`);

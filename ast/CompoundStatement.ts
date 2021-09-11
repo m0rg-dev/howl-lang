@@ -1,11 +1,24 @@
+import { Type } from "../generator/TypeRegistry";
 import { LexerHandle } from "../lexer";
 import { TokenType } from "../lexer/TokenType";
+import { AsmStatement } from "./AsmStatement";
 import { ASTElement, ErrorBadToken, ErrorEOF, Ok, ParseResult, Segment } from "./ASTElement";
 import { RecognizeBlock } from "./ASTUtil";
+import { Scope } from "./Scope";
 import { SimpleStatement } from "./SimpleStatement";
 
 export class CompoundStatement extends ASTElement {
     lines: ASTElement[] = [];
+    parent: Scope;
+
+    constructor(parent: Scope) {
+        super();
+        this.parent = parent;
+    }
+
+    lookup_symbol(symbol: string): Type {
+        return this.parent.lookup_symbol(symbol);
+    }
 
     bracket(handle: LexerHandle): LexerHandle {
         const sub = handle.clone();
@@ -21,18 +34,22 @@ export class CompoundStatement extends ASTElement {
         const segments: Segment[] = [];
         while (handle.lookahead() && handle.lookahead().type != TokenType.CloseBrace) {
             if (handle.lookahead().type == TokenType.OpenBrace) {
-                const statement = new CompoundStatement();
+                const statement = new CompoundStatement(this);
                 segments.push({ handle: statement.bracket(handle), ast: statement });
             } else if (handle.lookahead().type == TokenType.EOF) {
                 return { ok: false, errors: [ErrorEOF(handle)] };
+            } else if (handle.lookahead().type == TokenType.AsmLiteral) {
+                const statement = new AsmStatement();
+                segments.push({ handle: statement.bracket(handle), ast: statement });
             } else {
-                const statement = new SimpleStatement();
+                const statement = new SimpleStatement(this);
                 segments.push({ handle: statement.bracket(handle), ast: statement });
             }
         }
 
         if (handle.lookahead().type != TokenType.CloseBrace) return { ok: false, errors: [ErrorBadToken(handle, TokenType.CloseBrace)] };
-
+        handle.consume();
+        
         const rc = Ok();
         for (const segment of segments) {
             console.error(`=> Source segment: <<<${segment.handle}>>>`);

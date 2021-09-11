@@ -1,3 +1,5 @@
+import { AsmLiteralToken } from "./lexer/AsmLiteralToken";
+import { CommentToken } from "./lexer/CommentToken";
 import { NameToken } from "./lexer/NameToken";
 import { NumericLiteralToken } from "./lexer/NumericLiteralToken";
 import { Token } from "./lexer/Token";
@@ -7,6 +9,7 @@ const KEYWORD_TABLE = {
     "class": TokenType.Class,
     "fn": TokenType.Function,
     "return": TokenType.Return,
+    "proto": TokenType.Proto,
 }
 
 const PUNCTUATION_TABLE = {
@@ -15,6 +18,9 @@ const PUNCTUATION_TABLE = {
     "(": TokenType.OpenParen,
     ")": TokenType.CloseParen,
     ";": TokenType.Semicolon,
+    ",": TokenType.Comma,
+    ".": TokenType.Period,
+    "=": TokenType.Equals,
 }
 
 export class Lexer {
@@ -28,20 +34,39 @@ export class Lexer {
         let tok: Token;
         do {
             tok = this.next_token();
-            this.token_stream.push(tok);
+            if (!tok) {
+                throw new Error(`your token sucks! ${this.source_location(this.token_stream[this.token_stream.length - 1].start)}`)
+            }
+            if (tok.type != TokenType.Comment) {
+                this.token_stream.push(tok);
+            }
             this.mark += tok.length;
         } while (tok.type != TokenType.EOF);
     }
 
+    source_location(offset: number): string {
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < offset; i++) {
+            if (this.source.charAt(i) == "\n") {
+                line++;
+                column = 1;
+            } else {
+                column++;
+            }
+        }
+        return `${line}:${column}`;
+    }
+
     private match_keyword(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^(class|fn|return)\s+/s);
+        const m = this.source.substr(this.mark).match(/^(class|fn|return|proto)\s+/s);
         if (!m) return undefined;
 
         return { type: KEYWORD_TABLE[m[1]], length: m[0].length, start: this.mark };
     }
 
     private match_punctuation(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^([{};()])\s*/s);
+        const m = this.source.substr(this.mark).match(/^([{};(),.=])\s*/s);
         if (!m) return undefined;
 
         return { type: PUNCTUATION_TABLE[m[1]], length: m[0].length, start: this.mark };
@@ -61,10 +86,27 @@ export class Lexer {
         return { type: TokenType.NumericLiteral, value: Number.parseInt(m[1]), length: m[0].length, start: this.mark };
     }
 
+    private match_asm_literal(): AsmLiteralToken | undefined {
+        const m = this.source.substr(this.mark).match(/^__asm__ ([^;]*)/s);
+        if (!m) return undefined;
+
+        return { type: TokenType.AsmLiteral, source: m[1], length: m[0].length, start: this.mark };
+    }
+
+    private match_comment(): CommentToken | undefined {
+        const m = this.source.substr(this.mark).match(/^\s*\/\/[^\n]*\n\s*/s);
+        if (!m) return undefined;
+
+        return { type: TokenType.Comment, length: m[0].length, start: this.mark };
+    }
+
     private next_token(): Token | undefined {
         if (this.mark >= this.source.length) {
             return { type: TokenType.EOF, length: 0, start: this.mark };
         }
+
+        const comment = this.match_comment();
+        if (comment) return comment;
 
         const keyword = this.match_keyword();
         if (keyword) return keyword;
@@ -72,23 +114,14 @@ export class Lexer {
         const punctuation = this.match_punctuation();
         if (punctuation) return punctuation;
 
+        const asm = this.match_asm_literal();
+        if (asm) return asm;
+
         const name = this.match_name();
         if (name) return name;
 
         const numeric = this.match_numeric();
         if (numeric) return numeric;
-    }
-
-    tokenize(): Token[] {
-        const rc: Token[] = [];
-        let tok: Token;
-        do {
-            tok = this.next_token();
-            rc.push(tok);
-            this.mark += tok.length;
-        } while (tok.type != TokenType.EOF);
-
-        return rc;
     }
 
     handle(): LexerHandle {
@@ -167,9 +200,13 @@ export class LexerHandle {
 
     consume_through(...tokens: TokenType[]) {
         tokens.push(TokenType.EOF);
-        while(this.lookahead() && tokens.every(x => this.lookahead().type != x))
+        while (this.lookahead() && tokens.every(x => this.lookahead().type != x))
             this.consume();
-        if(this.lookahead().type != TokenType.EOF) this.consume();
+        if (this.lookahead().type != TokenType.EOF) this.consume();
+    }
+
+    rollback() {
+        if (this.mark > 0) this.mark--;
     }
 
     compare(other: LexerHandle): number {

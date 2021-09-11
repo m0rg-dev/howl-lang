@@ -1,17 +1,41 @@
 import { LexerHandle } from "../lexer";
 import { NameToken } from "../lexer/NameToken";
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, ErrorBadToken, Ok, ParseResult } from "./ASTElement";
-import { RecognizeBlock } from "./ASTUtil";
+import { ASTElement, ErrorBadToken, Ok, ParseResult, Segment } from "./ASTElement";
+import { Mangle, RecognizeBlock } from "./ASTUtil";
+import { FunctionDefinition } from "./FunctionDefinition";
+import { TypedItem } from "./TypedItem";
+import { ClassRegistry, ClassType, PointerType, Type, TypeRegistry } from "../generator/TypeRegistry";
+import { Scope } from "./Scope";
 
-export type ClassField = {
-    type: string;
+export class Class extends ASTElement implements Scope {
     name: string;
-}
+    fields: TypedItem[] = [];
+    methods: FunctionDefinition[] = [];
+    parent: Scope;
 
-export class Class extends ASTElement {
-    name: string;
-    fields: ClassField[] = [];
+    constructor(parent: Scope) {
+        super();
+        this.parent = parent;
+    }
+
+    lookup_symbol(symbol: string): Type {
+        return this.parent.lookup_symbol(symbol);
+    }
+
+    lookup_field(name: string): Type {
+        for(const field of this.fields) {
+            if(field.name == name) return field.type;
+        }
+        return undefined;
+    }
+
+    field_index(name: string): number {
+        for(const index in this.fields) {
+            if(this.fields[index].name == name) return Number.parseInt(index);
+        }
+        return -1;
+    }
 
     bracket(handle: LexerHandle): LexerHandle {
         const sub = handle.clone();
@@ -33,31 +57,51 @@ export class Class extends ASTElement {
 
         if (handle.lookahead().type != TokenType.OpenBrace) return { ok: false, errors: [ErrorBadToken(handle, TokenType.OpenBrace)] };
         handle.consume();
-        
+
         this.name = name.name;
+        TypeRegistry.set(this.name, new PointerType(new ClassType(this.name)));
 
         while (handle.lookahead() && handle.lookahead().type != TokenType.CloseBrace) {
-            if (handle.match(TokenType.Name, TokenType.Name, TokenType.Semicolon)) {
-                const type = (handle.consume() as NameToken);
-                const name = (handle.consume() as NameToken);
-                handle.consume();
-
-                this.fields.push({ type: type.name, name: name.name });
-            } else {
-                return { ok: false, errors: [ErrorBadToken(handle, TokenType.Name)] };
+            switch (handle.lookahead().type) {
+                case TokenType.Name:
+                    const field = new TypedItem();
+                    const rc = field.parse(handle);
+                    if (rc.ok) {
+                        this.fields.push(field);
+                    } else {
+                        return rc;
+                    }
+                    if (handle.lookahead().type == TokenType.Semicolon) {
+                        handle.consume();
+                    } else {
+                        return { ok: false, errors: [ErrorBadToken(handle, TokenType.Semicolon)] };
+                    }
+                    break;
+                case TokenType.Function:
+                    const func = new FunctionDefinition(this);
+                    const rc2 = func.parse(handle);
+                    if(rc2.ok) {
+                        Mangle(func, this);
+                        this.methods.push(func);
+                    } else {
+                        return rc2;
+                    }
+                    break;
             }
+            // TODO this is kind of a hack
+            ClassRegistry.set(this.name, this);
         }
-        
-        if (handle.lookahead().type != TokenType.CloseBrace) return { ok: false, errors: [ErrorBadToken(handle, TokenType.CloseBrace)] };
 
+        if (handle.lookahead().type != TokenType.CloseBrace) return { ok: false, errors: [ErrorBadToken(handle, TokenType.CloseBrace)] };
         return Ok();
     }
 
     synthesize(): string {
         return [
             `%${this.name} = type {`,
-            ...this.fields.map((x, y) => `    ${x.type}${y == this.fields.length - 1 ? " ": ","}        ;; ${x.name}`),
-            `}`
+            ...this.fields.map((x, y) => `    ${x.type.to_ir()}${y == this.fields.length - 1 ? " " : ","}        ;; ${x.name}`),
+            `}\n`,
+            ...this.methods.map(x => x.synthesize() + "\n"),
         ].join("\n");
     }
 }

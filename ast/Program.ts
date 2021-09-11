@@ -4,9 +4,16 @@ import { ASTElement, ParseResult, Ok, Segment, ErrorBadToken } from "./ASTElemen
 import { Class } from "./Class";
 import { FunctionDefinition } from "./FunctionDefinition";
 import * as util from 'util';
+import { Scope } from "./Scope";
+import { Type } from "../generator/TypeRegistry";
 
-export class Program extends ASTElement {
+export class Program extends ASTElement implements Scope {
     contents: ASTElement[] = [];
+    functions: Map<string, FunctionDefinition> = new Map();
+
+    lookup_symbol(name: string): Type {
+        return this.functions.get(name).signature.type;
+    }
 
     bracket(_: LexerHandle): LexerHandle {
         throw new Error("don't call this please");
@@ -18,11 +25,11 @@ export class Program extends ASTElement {
         outer: while (handle.lookahead()) {
             switch (handle.lookahead().type) {
                 case TokenType.Class:
-                    const cl = new Class();
+                    const cl = new Class(this);
                     segments.push({ handle: cl.bracket(handle), ast: cl });
                     break;
                 case TokenType.Function:
-                    const func = new FunctionDefinition();
+                    const func = new FunctionDefinition(this);
                     segments.push({ handle: func.bracket(handle), ast: func });
                     break;
                 case TokenType.EOF:
@@ -45,6 +52,11 @@ export class Program extends ASTElement {
             }
             console.error(util.inspect(segment.ast, { depth: null }));
             this.contents.push(segment.ast);
+
+            if(segment.ast.constructor.name == "FunctionDefinition") {
+                this.functions.set((segment.ast as FunctionDefinition).signature.name,
+                    (segment.ast as FunctionDefinition));
+            }
         }
 
         return rc;
