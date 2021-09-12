@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { Scope } from "../ast/Scope";
-import { ClassRegistry, ClassType, FunctionType, StaticFunctionRegistry, Type, TypeRegistry } from "../generator/TypeRegistry";
+import { ClassRegistry, ClassType, FunctionType, PointerType, StaticFunctionRegistry, Type, TypeRegistry } from "../generator/TypeRegistry";
 import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
@@ -145,6 +145,26 @@ export class FieldReferenceExpression extends Expression {
     }
 }
 
+export class StaticReferenceExpression extends Expression {
+    sub: ClassType;
+    field: string;
+    index: number;
+    type: Type;
+
+    constructor(sub: ClassType, field: string, type: Type) {
+        super();
+        this.sub = sub;
+        this.field = field;
+        this.type = type;
+
+        const cl = ClassRegistry.get(sub.get_name());
+        this.index = cl.lookup_static(field).i;
+    }
+    valueType = () => this.type;
+    toString = () => `StaticReference<${this.type.to_readable()}(${this.sub.get_name()}, ${this.field} [${this.index}])`;
+    inferTypes = () => { };
+}
+
 export class AssignmentExpression extends Expression {
     lhs: VariableExpression | FieldReferenceExpression;
     rhs: Expression;
@@ -167,17 +187,17 @@ export class AssignmentExpression extends Expression {
 
 export class FunctionCallExpression extends Expression {
     rhs: Expression;
-    type: FunctionType;
+    type: PointerType;
     args: Expression[];
 
-    constructor(rhs: Expression, type: FunctionType, args: Expression[]) {
+    constructor(rhs: Expression, type: PointerType, args: Expression[]) {
         super();
         this.rhs = rhs;
         this.type = type;
         this.args = args;
     }
 
-    valueType = () => this.type.return_type();
+    valueType = () => (this.type.get_sub() as FunctionType).return_type();
     toString = () => `FunctionCall<${this.valueType().to_readable()}>(${this.rhs.toString()}, (${this.args.map(x => x.toString()).join(", ")}))`;
     inferTypes = () => {
         InferSubField(this.rhs, (n: Expression) => this.rhs = n);
@@ -274,26 +294,49 @@ const rules: ProductionRule[] = [
             const rhs = input[0];
             const rest = input.slice(2, input.length - 1);
             const args: Expression[] = [];
-            const type = rhs.valueType();
-            if (!(type instanceof FunctionType)) return undefined;
+            let type = rhs.valueType();
+            let function_type: FunctionType;
+            if (type instanceof PointerType) {
+                if (!(type.get_sub() instanceof FunctionType)) return undefined;
+                function_type = type.get_sub() as FunctionType;
+            } else if (type instanceof FunctionType) {
+                function_type = type;
+            } else {
+                return undefined;
+            }
             let arg_index = 0;
             for (const exp of rest) {
                 // TODO is this correct? I *think* so based on the match invariants, but it's sketchy
                 if (isExpression(exp)) {
-                    args.push(new SpecifyExpression(exp, type.type_of_argument(arg_index)));
+                    args.push(new SpecifyExpression(exp, function_type.type_of_argument(arg_index)));
                     arg_index++;
                 }
             }
             if (input[0] instanceof StaticFunctionReferenceExpression) {
-                return [new StaticFunctionCallExpression(input[0].name, type, args)];
+                return [new StaticFunctionCallExpression(input[0].name, (type as FunctionType), args)];
             } else {
-                return [new FunctionCallExpression(rhs, type, args)];
+                return [new FunctionCallExpression(rhs, (type as PointerType), args)];
+            }
+        }
+    },
+    {
+        name: "StaticReference",
+        match: InOrder(Lvalue(), Literal("Period"), Literal("Name")),
+        replace: (input: [VariableExpression | FieldReferenceExpression, Token, NameToken]) => {
+            const type = input[0].type;
+            if (type instanceof ClassType) {
+                console.error(`    #### ${type.get_name()} ${input[2].name}`);
+                const subtype = ClassRegistry.get(type.get_name()).lookup_static(input[2].name);
+                if (!subtype) return undefined;
+                return [new StaticReferenceExpression(type, input[2].name, subtype.t)];
+            } else {
+                return undefined;
             }
         }
     },
     {
         name: "FieldReference",
-        match: InOrder(First(Literal("FieldReferenceExpression"), Literal("VariableExpression")), Literal("Period"), Literal("Name")),
+        match: InOrder(Lvalue(), Literal("Period"), Literal("Name")),
         replace: (input: [VariableExpression | FieldReferenceExpression, Token, NameToken]) => {
             let type = input[0].type;
             if (type instanceof ClassType) {
@@ -418,7 +461,7 @@ function Rest(): Matcher {
 // ---
 
 function Lvalue(): Matcher {
-    return First(Literal("FieldReferenceExpression"), Literal("VariableExpression"));
+    return First(Literal("FieldReferenceExpression"), Literal("StaticReferenceExpression"), Literal("VariableExpression"));
 }
 
 function Rvalue(): Matcher {

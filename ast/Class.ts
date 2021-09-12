@@ -1,7 +1,7 @@
 import { LexerHandle } from "../lexer";
 import { NameToken } from "../lexer/NameToken";
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, ErrorBadToken, Ok, ParseResult, Segment } from "./ASTElement";
+import { ASTElement, ErrorBadToken, Ok, ParseResult } from "./ASTElement";
 import { Mangle, RecognizeBlock } from "./ASTUtil";
 import { FunctionDefinition } from "./FunctionDefinition";
 import { TypedItem } from "./TypedItem";
@@ -11,7 +11,8 @@ import { Scope } from "./Scope";
 export class Class extends ASTElement implements Scope {
     name: string;
     fields: TypedItem[] = [];
-    methods: FunctionDefinition[] = [];
+    statics: TypedItem[] = [];
+    methods: Map<string, FunctionDefinition> = new Map();
     parent: Scope;
 
     constructor(parent: Scope) {
@@ -29,18 +30,22 @@ export class Class extends ASTElement implements Scope {
     current_return = () => undefined;
 
     lookup_field(name: string): Type {
-        for(const field of this.fields) {
-            if(field.name == name) return field.type;
+        for (const field of this.fields) {
+            if (field.name == name) return field.type;
         }
-        for(const method of this.methods) {
-            if(method.signature.name == name) return method.signature.type;
+        return undefined;
+    }
+
+    lookup_static(name: string): { t: Type, i: number } {
+        for (const i in this.statics) {
+            if (this.statics[i].name == name) return { t: this.statics[i].type, i: Number.parseInt(i) };
         }
         return undefined;
     }
 
     field_index(name: string): number {
-        for(const index in this.fields) {
-            if(this.fields[index].name == name) return Number.parseInt(index);
+        for (const index in this.fields) {
+            if (this.fields[index].name == name) return Number.parseInt(index);
         }
         return -1;
     }
@@ -88,9 +93,13 @@ export class Class extends ASTElement implements Scope {
                 case TokenType.Function:
                     const func = new FunctionDefinition(this);
                     const rc2 = func.parse(handle);
-                    if(rc2.ok) {
+                    if (rc2.ok) {
                         Mangle(func, this);
-                        this.methods.push(func);
+                        this.methods.set(func.signature.name, func);
+                        const sig = new TypedItem();
+                        sig.name = func.signature.name;
+                        sig.type = new PointerType(func.signature.type);
+                        this.statics.push(sig);
                     } else {
                         return rc2;
                     }
@@ -109,7 +118,7 @@ export class Class extends ASTElement implements Scope {
             `%${this.name} = type {`,
             ...this.fields.map((x, y) => `    ${x.type.to_ir()}${y == this.fields.length - 1 ? " " : ","}        ;; ${x.name}`),
             `}\n`,
-            ...this.methods.map(x => x.synthesize() + "\n"),
+            //...this.methods.map(x => x.synthesize() + "\n"),
         ].join("\n");
     }
 }

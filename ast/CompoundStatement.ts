@@ -67,7 +67,7 @@ export class CompoundStatement extends ASTElement implements Scope {
         
         const rc = Ok();
         for (const segment of segments) {
-            console.error(`=> Source segment: <<<${segment.handle}>>>`);
+            console.error(`=> Source segment: <<<\x1b[32m${segment.handle.toString().trim()}\x1b[0m>>>`);
             let rc2 = segment.ast.parse(segment.handle);
             if (!rc2.ok) {
                 rc.ok = false;

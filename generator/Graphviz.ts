@@ -5,13 +5,13 @@ import { CompoundStatement } from "../ast/CompoundStatement";
 import { FunctionDefinition } from "../ast/FunctionDefinition";
 import { Program } from "../ast/Program";
 import { SimpleStatement } from "../ast/SimpleStatement";
-import { AssignmentExpression, Expression, FieldReferenceExpression, FunctionCallExpression, LocalDefinitionExpression, NumericLiteralExpression, ReturnExpression, SpecifyExpression, StaticFunctionCallExpression, VariableExpression, VoidExpression } from "../expression/ExpressionParser";
+import { AssignmentExpression, Expression, FieldReferenceExpression, FunctionCallExpression, LocalDefinitionExpression, NumericLiteralExpression, ReturnExpression, SpecifyExpression, StaticFunctionCallExpression, StaticReferenceExpression, VariableExpression, VoidExpression } from "../expression/ExpressionParser";
 
 export function PrintTree(node: ASTElement, parent?: ASTElement): void {
     if (node instanceof Program) {
         console.log(mrecord(node.guid, [
             { name: "type", label: "Program" },
-            { name: "module", label: `module ${node.module_name}`},
+            { name: "module", label: `module ${node.module_name}` },
             ...node.contents.map(x => { return { name: x.guid, label: x.constructor.name } })
         ]));
         node.contents.map(x => console.log(`    n${node.guid}:n${x.guid} -> n${x.guid}`));
@@ -20,13 +20,21 @@ export function PrintTree(node: ASTElement, parent?: ASTElement): void {
         console.log(mrecord(node.guid, [
             { name: "cname", label: `class ${node.name}` },
             ...node.fields.map(x => { return { name: x.guid, label: x.to_readable() } }),
-            ...node.methods.map(x => { return { name: x.guid, label: x.signature.to_readable() } }),
         ]));
-        node.methods.map(x => console.log(`    n${node.guid}:n${x.guid} -> n${x.guid}`));
-        node.methods.map(x => PrintTree(x, this));
+        if (node.statics.length) {
+            console.log(`    n${node.guid} -> n${node.guid}_static:ntype`);
+            console.log(mrecord(node.guid + "_static", [
+                { name: "type", label: `stable for ${node.name}` },
+                ...node.statics.map((x, y) => { return { name: x.name, label: `${y}: ${x.name}<${x.type.to_readable()}>` } })
+            ]));
+            for (const [name, method] of node.methods) {
+                PrintTree(method);
+                console.log(`    n${node.guid}_static:n${name} -> n${method.guid}`);
+            }
+        }
     } else if (node instanceof FunctionDefinition) {
         const entries = [
-            { name: "type", label: `${node.is_static ? "static ": ""}${node.signature.to_readable()}` },
+            { name: "type", label: `${node.is_static ? "static " : ""}${node.signature.to_readable()}` },
             ...node.args.map(x => { return { name: x.guid, label: "Argument: " + x.to_readable() } }),
         ];
         if (node.body) {
@@ -80,6 +88,9 @@ export function PrintExpression(node: Expression) {
         entries.push({ name: "field", label: '\\"' + node.field + '\\"' });
         console.log(`    n${node.guid}:nsub -> n${node.sub.guid}:nexpression`);
         PrintExpression(node.sub);
+    } else if (node instanceof StaticReferenceExpression) {
+        entries.push({ name: "sub", label: node.sub.get_name() });
+        entries.push({ name: "field", label: `\\"${node.field}\\" [${node.index}]` });
     } else if (node instanceof VariableExpression) {
         entries.push({ name: "name", label: '\\"' + node.name + '\\"' });
     } else if (node instanceof LocalDefinitionExpression) {
@@ -95,7 +106,7 @@ export function PrintExpression(node: Expression) {
         }
     } else if (node instanceof StaticFunctionCallExpression) {
         entries.push({ name: "function", label: `function<${node.type.to_readable()}>` });
-        entries.push({ name: "name", label: node.name});
+        entries.push({ name: "name", label: node.name });
         for (const arg_idx in node.args) {
             entries.push({ name: `arg${arg_idx}`, label: `argument ${arg_idx}` });
             console.log(`    n${node.guid}:narg${arg_idx} -> n${node.args[arg_idx].guid}:nexpression`);
@@ -109,7 +120,7 @@ export function PrintExpression(node: Expression) {
     } else if (node instanceof ReturnExpression) {
         console.log(`    n${node.guid} -> n${node.sub.guid}`);
         PrintExpression(node.sub);
-    } else if(node instanceof VoidExpression) {
+    } else if (node instanceof VoidExpression) {
     } else {
         console.error(`  (tried to graphviz unknown expression type ${node.constructor.name})`);
     }
