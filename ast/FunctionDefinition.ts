@@ -10,7 +10,9 @@ import { Scope } from "./Scope";
 
 export class FunctionDefinition extends ASTElement implements Scope {
     signature: TypedItem;
+    mangled_name: string;
     args: TypedItem[] = [];
+    locals: TypedItem[] = [];
     body: CompoundStatement;
     parent: Scope;
 
@@ -23,7 +25,18 @@ export class FunctionDefinition extends ASTElement implements Scope {
         for(const item of this.args) {
             if(item.name == symbol) return item.type;
         }
+        for(const item of this.locals) {
+            if(item.name == symbol) return item.type;
+        }
         return this.parent.lookup_symbol(symbol);
+    }
+
+    register_local(name: string, type: Type) {
+        const item = new TypedItem();
+        item.name = name;
+        item.type = type;
+        this.locals.push(item);
+        console.error(`RegisterLocal (FunctionDefinition) ${name} ${type.to_ir()}`);
     }
 
     bracket(handle: LexerHandle): LexerHandle {
@@ -38,7 +51,7 @@ export class FunctionDefinition extends ASTElement implements Scope {
         if (sub.lookahead().type == TokenType.OpenBrace) {
             RecognizeBlock(sub);
         } else {
-            sub.expect(TokenType.Proto);
+            sub.expect(TokenType.Semicolon);
         }
 
         return handle.bracket(0, handle.compare(sub));
@@ -83,11 +96,11 @@ export class FunctionDefinition extends ASTElement implements Scope {
         if (handle.lookahead().type == TokenType.OpenBrace) {
             this.body = new CompoundStatement(this);
             return this.body.parse(handle);
-        } else if (handle.lookahead().type == TokenType.Proto) {
+        } else if (handle.lookahead().type == TokenType.Semicolon) {
             handle.consume();
             return Ok();
         } else {
-            return { ok: false, errors: [ErrorBadToken(handle, TokenType.OpenBrace, TokenType.Proto)] };
+            return { ok: false, errors: [ErrorBadToken(handle, TokenType.OpenBrace, TokenType.Semicolon)] };
         }
     }
 
@@ -95,12 +108,16 @@ export class FunctionDefinition extends ASTElement implements Scope {
         reset();
         if (this.body) {
             return [
-                `define ${(this.signature.type as FunctionType).return_type().to_ir()} @${this.signature.name}(${this.args.map(x => `${x.type.to_ir()} %${x.name}`).join(", ")}) {`,
+                `define ${(this.signature.type as FunctionType).return_type().to_ir()} @${this.ir_name()}(${this.args.map(x => `${x.type.to_ir()} %${x.name}`).join(", ")}) {`,
                 this.body.synthesize(),
                 `}`
             ].join("\n");
         } else {
-            return `declare ${(this.signature.type as FunctionType).return_type().to_ir()} @${this.signature.name}(${this.args.map(x => `${x.type.to_ir()}`).join(", ")})`;
+            return `declare ${(this.signature.type as FunctionType).return_type().to_ir()} @${this.ir_name()}(${this.args.map(x => `${x.type.to_ir()}`).join(", ")})`;
         }
+    }
+
+    ir_name(): string {
+        return this.mangled_name || this.signature.name;
     }
 }

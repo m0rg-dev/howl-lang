@@ -28,5 +28,5 @@ export function RecognizeBlock(handle: LexerHandle): boolean {
 }
 
 export function Mangle(method: FunctionDefinition, cl: Class) {
-    method.signature.name = `__${cl.name}_${method.signature.name}`;
+    method.mangled_name = `__${cl.name}_${method.signature.name}`;
 }

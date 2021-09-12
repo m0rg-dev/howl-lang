@@ -23,9 +23,16 @@ export class Class extends ASTElement implements Scope {
         return this.parent.lookup_symbol(symbol);
     }
 
+    register_local(name: string, type: Type) {
+        this.parent.register_local(name, type);
+    }
+
     lookup_field(name: string): Type {
         for(const field of this.fields) {
             if(field.name == name) return field.type;
+        }
+        for(const method of this.methods) {
+            if(method.signature.name == name) return method.signature.type;
         }
         return undefined;
     }

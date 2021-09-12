@@ -3,7 +3,8 @@ export enum TokenType {
     Class,
     Function,
     Return,
-    Proto,
+    New,
+    Let,
 
     OpenBrace,
     CloseBrace,

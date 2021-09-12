@@ -1,5 +1,5 @@
-fn i32 puts(_rawptr_i8 s) proto
-fn _rawptr_i8 malloc(i32 size) proto
+fn i32 puts(_rawptr_i8 s);
+fn _rawptr_i8 malloc(i32 size);
 
 class String {
     _rawptr_i8 buffer;
@@ -27,9 +27,16 @@ class String {
 }
 
 fn i32 main() {
-    __asm__ %s = alloca %String;
-    __asm__ call void @__String_construct(%String* %s, i32 1);
-    __asm__ call void @__String_setCharacter(%String* %s, i32 0, i8 65);
-    __asm__ call void @__String_print(%String* %s);
+    let s String;
+    // s = new String;
+    s.construct(s, 1);
+    // __String_construct(s, 1);
+    // __String_setCharacter(s, 0, 65);
+    // __String_print(s);
+
+    // __asm__ %s = alloca %String;
+    // __asm__ call void @__String_construct(%String* %s, i32 1);
+    // __asm__ call void @__String_setCharacter(%String* %s, i32 0, i8 65);
+    // __asm__ call void @__String_print(%String* %s);
     __asm__ ret i32 0;
 }

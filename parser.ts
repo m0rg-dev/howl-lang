@@ -23,5 +23,4 @@ for (const tok of lexer.token_stream) {
 
 const p = new Program();
 console.error(p.parse(lexer.handle()));
-console.error(p);
 console.log(p.synthesize());

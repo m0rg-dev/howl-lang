@@ -9,7 +9,8 @@ const KEYWORD_TABLE = {
     "class": TokenType.Class,
     "fn": TokenType.Function,
     "return": TokenType.Return,
-    "proto": TokenType.Proto,
+    "new": TokenType.New,
+    "let": TokenType.Let,
 }
 
 const PUNCTUATION_TABLE = {
@@ -59,7 +60,7 @@ export class Lexer {
     }
 
     private match_keyword(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^(class|fn|return|proto)\s+/s);
+        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let)\s+/s);
         if (!m) return undefined;
 
         return { type: KEYWORD_TABLE[m[1]], length: m[0].length, start: this.mark };

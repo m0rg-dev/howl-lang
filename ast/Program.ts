@@ -12,7 +12,11 @@ export class Program extends ASTElement implements Scope {
     functions: Map<string, FunctionDefinition> = new Map();
 
     lookup_symbol(name: string): Type {
-        return this.functions.get(name).signature.type;
+        return this.functions.get(name)?.signature.type;
+    }
+
+    register_local(name: string, type: Type) {
+        throw new Error("don't call this please");
     }
 
     bracket(_: LexerHandle): LexerHandle {
@@ -50,7 +54,7 @@ export class Program extends ASTElement implements Scope {
                 rc.ok = false;
                 rc.errors.push(...rc2.errors);
             }
-            console.error(util.inspect(segment.ast, { depth: null }));
+            // console.error(util.inspect(segment.ast, { depth: null }));
             this.contents.push(segment.ast);
 
             if(segment.ast.constructor.name == "FunctionDefinition") {

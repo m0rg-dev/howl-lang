@@ -3,6 +3,7 @@ import { count } from "../generator/Synthesizable";
 import { ClassRegistry, ClassType, FunctionType, PointerType, Type, TypeRegistry } from "../generator/TypeRegistry";
 import { LexerHandle } from "../lexer";
 import { NameToken } from "../lexer/NameToken";
+import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { ASTElement, ErrorBadType, ErrorExpressionFailed, Ok, ParseError, ParseResult } from "./ASTElement";
@@ -33,19 +34,28 @@ export class SimpleStatement extends ASTElement {
         }
 
         const parts = tokens.map(x => new ExpressionToken(x));
+        console.error(";; " + parts.map(x => x.toString()).join(", "));
 
         for (const rule of PRODUCTION_RULES) {
             rule.apply(handle, this.parent, parts);
+            console.error(";; " + parts.map(x => x.toString()).join(", "));
         }
 
         this.statement_text = ";; " + parts.map(x => x.toString()).join(", ");
 
-        if (parts.length > 1) {
+        if (parts.length != 1) {
             // TODO 
             return { ok: false, errors: [ErrorExpressionFailed(handle)] };
         }
 
         this.expression = parts[0];
+
+        switch (this.expression.what()) {
+            case ExpressionPartType.LocalVariableDefinition:
+                this.parent.register_local((this.expression as LocalVariableDefinition).name,
+                    (this.expression as LocalVariableDefinition).type);
+                break;
+        }
 
         return Ok();
     }
@@ -66,6 +76,9 @@ export class SimpleStatement extends ASTElement {
                 let exp = this.expression.as_value();
                 s += exp.code;
                 break;
+            case ExpressionPartType.LocalVariableDefinition:
+                s += new AllocaStatement((this.expression as LocalVariableDefinition).type, "%" + (this.expression as LocalVariableDefinition).name).synthesize();
+                break;
         }
         return ";; " + this.expression.toString() + "\n" + s + "\n";
     }
@@ -74,8 +87,11 @@ export class SimpleStatement extends ASTElement {
 enum ExpressionPartType {
     ExpressionToken,
     PossiblyQualifiedName,
+    NewObject,
     FunctionCall,
-    Assignment
+    Assignment,
+    LocalVariableDefinition,
+    NumericLiteral
 };
 
 abstract class ExpressionPart {
@@ -176,6 +192,28 @@ class PossiblyQualifiedName extends ExpressionPart {
     }
 }
 
+class NewObject extends ExpressionPart {
+    type: ClassType;
+
+    constructor(type: ClassType) {
+        super();
+        this.type = type;
+    }
+
+    what(): ExpressionPartType { return ExpressionPartType.NewObject; }
+    get_type(): { type: Type, error: ParseError } {
+        return { type: new PointerType(this.type), error: undefined };
+    }
+    toString(): string {
+        return `NewObject<${this.type.to_ir()}>`;
+    }
+
+    as_value(): { code: string, type: Type, var: string } {
+        const rc = `%${count()}`;
+        return { code: `    ;; new ${this.type.to_ir()}\n` + new AllocaStatement(this.type, rc).synthesize(), type: this.type, var: rc };
+    }
+}
+
 class FunctionCall extends ExpressionPart {
     name: string;
     signature: FunctionType;
@@ -231,6 +269,48 @@ class Assignment extends ExpressionPart {
     }
 }
 
+class LocalVariableDefinition extends ExpressionPart {
+    name: string;
+    type: Type;
+
+    constructor(name: string, type: Type) {
+        super();
+        this.name = name;
+        this.type = type;
+    }
+
+    what(): ExpressionPartType { return ExpressionPartType.LocalVariableDefinition; }
+    get_type(): { type: Type, error: ParseError } { return { type: TypeRegistry.get("void"), error: undefined } };
+    toString(): string {
+        return `LocalVariableDefinition<${this.type.to_ir()}>(${this.name})`;
+    }
+}
+
+class NumericLiteral extends ExpressionPart {
+    value: number;
+    type: Type;
+
+    constructor(value: number, type: Type) {
+        super();
+        this.value = value;
+        this.type = type;
+    }
+
+    what(): ExpressionPartType { return ExpressionPartType.NumericLiteral; }
+    get_type(): { type: Type, error: ParseError } { return { type: this.type, error: undefined } };
+    toString(): string {
+        return `NumericLiteral<${this.type.to_ir()}>(${this.value})`;
+    }
+
+    as_value(): { code: string, type: Type, var: string } {
+        let rc = `%${count()}`;
+        let s = "";
+        s += new AllocaStatement(this.type, rc).synthesize();
+        s += new StoreStatement(new PointerType(this.type), this.value.toString(), rc).synthesize();
+        return { code: s, type: this.type, var: rc };
+    }
+}
+
 abstract class ProductionRule {
     abstract apply(handle: LexerHandle, scope: Scope, parts: ExpressionPart[]): void;
 }
@@ -257,18 +337,33 @@ class QualifiedNameRule extends ProductionRule {
     }
 }
 
+class NewObjectRule extends ProductionRule {
+    apply(handle: LexerHandle, scope: Scope, parts: ExpressionPart[]) {
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i].what() == ExpressionPartType.ExpressionToken
+                && (parts[i] as ExpressionToken).token.type == TokenType.New
+                && parts[i + 1].what() == ExpressionPartType.PossiblyQualifiedName) {
+                parts.splice(i, 3, new NewObject((
+                    TypeRegistry.get((parts[i + 1] as PossiblyQualifiedName).parts.join(".")) as PointerType).get_sub() as ClassType));
+            }
+        }
+    }
+}
+
 class FunctionCallRule extends ProductionRule {
     apply(handle: LexerHandle, scope: Scope, parts: ExpressionPart[]) {
         for (let i = 0; i < parts.length; i++) {
             if (parts[i].what() == ExpressionPartType.PossiblyQualifiedName
                 && (parts[i] as PossiblyQualifiedName).get_type().type instanceof FunctionType) {
-                if (!(parts[i + 1].what() == ExpressionPartType.ExpressionToken
+                if (!(parts[i + 1]?.what() == ExpressionPartType.ExpressionToken
                     && (parts[i + 1] as ExpressionToken).token.type == TokenType.OpenParen)) continue;
                 const args: ExpressionPart[] = [];
                 let j = i + 2;
                 while (j < parts.length && !(parts[j].what() == ExpressionPartType.ExpressionToken
                     && (parts[j] as ExpressionToken).token.type == TokenType.CloseParen)) {
-                    args.push(parts[j]);
+                    if (!(parts[j].what() == ExpressionPartType.ExpressionToken && (parts[j] as ExpressionToken).token.type == TokenType.Comma)) {
+                        args.push(parts[j]);
+                    }
                     j++;
                 }
                 parts.splice(i, j - i + 1, new FunctionCall((parts[i] as PossiblyQualifiedName).parts.join("."), (parts[i] as PossiblyQualifiedName).get_type().type as FunctionType, args));
@@ -279,7 +374,7 @@ class FunctionCallRule extends ProductionRule {
 
 class AssignmentRule extends ProductionRule {
     apply(handle: LexerHandle, scope: Scope, parts: ExpressionPart[]) {
-        for (let i = 0; i < parts.length; i++) {
+        for (let i = 0; i < parts.length - 2; i++) {
             if (parts[i].what() == ExpressionPartType.PossiblyQualifiedName
                 && parts[i + 1].what() == ExpressionPartType.ExpressionToken
                 && (parts[i + 1] as ExpressionToken).token.type == TokenType.Equals) {
@@ -289,8 +384,35 @@ class AssignmentRule extends ProductionRule {
     }
 }
 
+class LocalDefRule extends ProductionRule {
+    apply(handle: LexerHandle, scope: Scope, parts: ExpressionPart[]) {
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i].what() == ExpressionPartType.ExpressionToken
+                && (parts[i] as ExpressionToken).token.type == TokenType.Let
+                && parts[i + 1].what() == ExpressionPartType.PossiblyQualifiedName
+                && parts[i + 2].what() == ExpressionPartType.PossiblyQualifiedName) {
+                parts.splice(i, 3, new LocalVariableDefinition((parts[i + 1] as PossiblyQualifiedName).parts.join("."), TypeRegistry.get((parts[i + 2] as PossiblyQualifiedName).parts.join("."))));
+            }
+        }
+    }
+}
+
+class NumericLiteralRule extends ProductionRule {
+    apply(handle: LexerHandle, scope: Scope, parts: ExpressionPart[]) {
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i].what() == ExpressionPartType.ExpressionToken
+                && (parts[i] as ExpressionToken).token.type == TokenType.NumericLiteral) {
+                parts.splice(i, 1, new NumericLiteral(((parts[i] as ExpressionToken).token as NumericLiteralToken).value, TypeRegistry.get("i32")));
+            }
+        }
+    }
+}
+
 const PRODUCTION_RULES: ProductionRule[] = [
+    new NumericLiteralRule(),
     new QualifiedNameRule(),
+    new NewObjectRule(),
     new FunctionCallRule(),
-    new AssignmentRule()
+    new AssignmentRule(),
+    new LocalDefRule(),
 ];

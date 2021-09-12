@@ -7,7 +7,7 @@ import { RecognizeBlock } from "./ASTUtil";
 import { Scope } from "./Scope";
 import { SimpleStatement } from "./SimpleStatement";
 
-export class CompoundStatement extends ASTElement {
+export class CompoundStatement extends ASTElement implements Scope {
     lines: ASTElement[] = [];
     parent: Scope;
 
@@ -18,6 +18,11 @@ export class CompoundStatement extends ASTElement {
 
     lookup_symbol(symbol: string): Type {
         return this.parent.lookup_symbol(symbol);
+    }
+
+    register_local(name: string, type: Type) {
+        console.error(`RegisterLocal (CompoundStatement) ${name} ${type.to_ir()}`);
+        this.parent.register_local(name, type);
     }
 
     bracket(handle: LexerHandle): LexerHandle {
