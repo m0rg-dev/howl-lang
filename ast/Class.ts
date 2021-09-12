@@ -26,6 +26,7 @@ export class Class extends ASTElement implements Scope {
     register_local(name: string, type: Type) {
         this.parent.register_local(name, type);
     }
+    current_return = () => undefined;
 
     lookup_field(name: string): Type {
         for(const field of this.fields) {

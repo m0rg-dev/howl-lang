@@ -39,6 +39,8 @@ export class FunctionDefinition extends ASTElement implements Scope {
         console.error(`RegisterLocal (FunctionDefinition) ${name} ${type.to_ir()}`);
     }
 
+    current_return = () => (this.signature.type as FunctionType).return_type();
+
     bracket(handle: LexerHandle): LexerHandle {
         const sub = handle.clone();
         sub.expect(TokenType.Function);

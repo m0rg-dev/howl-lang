@@ -5,7 +5,7 @@ import { CompoundStatement } from "../ast/CompoundStatement";
 import { FunctionDefinition } from "../ast/FunctionDefinition";
 import { Program } from "../ast/Program";
 import { SimpleStatement } from "../ast/SimpleStatement";
-import { AssignmentExpression, Expression, FieldReferenceExpression, FunctionCallExpression, LocalDefinitionExpression, NumericLiteralExpression, SpecifyExpression, VariableExpression } from "../expression/ExpressionParser";
+import { AssignmentExpression, Expression, FieldReferenceExpression, FunctionCallExpression, LocalDefinitionExpression, NumericLiteralExpression, ReturnExpression, SpecifyExpression, VariableExpression, VoidExpression } from "../expression/ExpressionParser";
 
 export function PrintTree(node: ASTElement, parent?: ASTElement): void {
     if (node instanceof Program) {
@@ -97,6 +97,10 @@ export function PrintExpression(node: Expression) {
     } else if (node instanceof SpecifyExpression) {
         console.log(`    n${node.guid} -> n${node.sub.guid}`);
         PrintExpression(node.sub);
+    } else if (node instanceof ReturnExpression) {
+        console.log(`    n${node.guid} -> n${node.sub.guid}`);
+        PrintExpression(node.sub);
+    } else if(node instanceof VoidExpression) {
     } else {
         console.error(`  (tried to graphviz unknown expression type ${node.constructor.name})`);
     }

@@ -60,7 +60,7 @@ export class Lexer {
     }
 
     private match_keyword(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let)\s+/s);
+        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
         return { type: KEYWORD_TABLE[m[1]], length: m[0].length, start: this.mark };

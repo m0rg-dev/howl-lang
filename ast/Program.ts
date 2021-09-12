@@ -18,6 +18,8 @@ export class Program extends ASTElement implements Scope {
         throw new Error("don't call this please");
     }
 
+    current_return = () => undefined;
+
     bracket(_: LexerHandle): LexerHandle {
         throw new Error("don't call this please");
     }

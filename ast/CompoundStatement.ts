@@ -25,6 +25,8 @@ export class CompoundStatement extends ASTElement implements Scope {
         this.parent.register_local(name, type);
     }
 
+    current_return = () => this.parent.current_return();
+
     bracket(handle: LexerHandle): LexerHandle {
         const sub = handle.clone();
         sub.check(TokenType.OpenBrace);

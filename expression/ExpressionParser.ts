@@ -198,6 +198,27 @@ export class SpecifyExpression extends Expression {
     }
 }
 
+export class ReturnExpression extends Expression {
+    sub: Expression;
+
+    constructor(sub: Expression) {
+        super();
+        this.sub = sub;
+    }
+
+    valueType = () => TypeRegistry.get("void");
+    toString = () => `Return(${this.sub.toString()})`;
+    inferTypes = () => {
+        InferSubField(this.sub, (n: Expression) => this.sub = n);
+    }
+}
+
+export class VoidExpression extends Expression {
+    valueType = () => TypeRegistry.get("void");
+    toString = () => `Void`;
+    inferTypes = () => {};
+}
+
 type ProductionRule = {
     name: string,
     match: Matcher,
@@ -275,6 +296,22 @@ const rules: ProductionRule[] = [
         replace: (input: [FieldReferenceExpression | VariableExpression, Token, Expression]) => [
             new AssignmentExpression(input[0], new SpecifyExpression(input[2], input[0].valueType()))
         ]
+    },
+    {
+        name: "ReturnValue",
+        match: InOrder(Literal("Return"), Rvalue()),
+        replace: (input: [Token, Expression], scope: Scope) => [
+            new ReturnExpression(new SpecifyExpression(input[1], scope.current_return()))
+        ]
+    },
+    {
+        name: "ReturnVoid",
+        match: Literal("Return"),
+        replace: (input: [Token], scope: Scope) => {
+            console.error(`current_return = ${scope.current_return().to_readable()}`);
+            if(scope.current_return().to_readable() != "void") return undefined;
+            return [new ReturnExpression(new VoidExpression())];
+        }
     }
 ];
 
@@ -338,6 +375,12 @@ function Invert(what: Matcher): Matcher {
         const rc = what(stream);
         return { matched: !rc.matched, length: rc.length };
     }
+}
+
+function Rest(): Matcher {
+    return (stream: (Token | Expression)[]) => {
+        return { matched: true, length: stream.length }
+    };
 }
 
 // ---
