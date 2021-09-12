@@ -110,7 +110,8 @@ export class FunctionDefinition extends ASTElement implements Scope {
         reset();
         if (this.body) {
             return [
-                `define ${(this.signature.type as FunctionType).return_type().to_ir()} @${this.ir_name()}(${this.args.map(x => `${x.type.to_ir()} %${x.name}`).join(", ")}) {`,
+                `define ${(this.signature.type as FunctionType).return_type().to_ir()} @${this.ir_name()}(${this.args.map(x => `${x.type.to_ir()} %__arg_${x.name}`).join(", ")}) {`,
+                ...this.args.map(x => `    %${x.name} = alloca ${x.type.to_ir()}\n    store ${x.type.to_ir()} %__arg_${x.name}, ${x.type.to_ir()}* %${x.name}`),
                 this.body.synthesize(),
                 `}`
             ].join("\n");

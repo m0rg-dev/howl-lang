@@ -34,10 +34,20 @@ export class FunctionCallExpression extends Expression {
         const fptr = `%${count()}`;
         s += `    ${fptr} = load ${this.rhs.valueType().to_ir()}, ${this.rhs.valueType().to_ir()}* ${rhs.location}\n`;
         const arg_loads = args.map(x => `%${count()}`);
-        for(const idx in this.args) {
+        for (const idx in this.args) {
             s += `    ${arg_loads[idx]} = load ${this.args[idx].valueType().to_ir()}, ${this.args[idx].valueType().to_ir()}* ${args[idx].location}\n`;
         }
-        s += `    call ${this.valueType().to_ir()} ${fptr}(${this.args.map((x, y) => `${x.valueType().to_ir()} ${arg_loads[y]}`).join(", ")})`;
-        return { code: s, location: "%INVALID" };
+
+        if (this.valueType().to_ir() == 'void') {
+            s += `    call ${this.valueType().to_ir()} ${fptr}(${this.args.map((x, y) => `${x.valueType().to_ir()} ${arg_loads[y]}`).join(", ")})`;
+            return { code: s, location: "%INVALID" };
+        } else {
+            const rc_ptr = `%${count()}`
+            const rc = `%${count()}`;
+            s += `    ${rc_ptr} = alloca ${this.valueType().to_ir()}\n`;
+            s += `    ${rc} = call ${this.valueType().to_ir()} ${fptr}(${this.args.map((x, y) => `${x.valueType().to_ir()} ${arg_loads[y]}`).join(", ")})\n`;
+            s += `    store ${this.valueType().to_ir()} ${rc}, ${this.valueType().to_ir()}* ${rc_ptr}`;
+            return { code: s, location: rc_ptr };
+        }
     }
 }

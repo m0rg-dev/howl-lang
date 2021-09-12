@@ -4,21 +4,17 @@ class Foo {
     i32 value;
 
     fn i32 get_value(Foo self) {
-        // return self.value;
-        // return 0;
-        __asm__ ret i32 0;
+        return self.value;
     }
 
     fn void set_value(Foo self, i32 v) {
         self.value = v;
-        // return;
-        __asm__ ret void;
+        return;
     }
 }
 
-fn static void main() {
+fn static i32 main() {
     let obj Foo;
-    obj.set_value(obj, 2);
-    //return;
-    __asm__ ret void;
+    obj.set_value(obj, 42);
+    return obj.get_value(obj);
 }

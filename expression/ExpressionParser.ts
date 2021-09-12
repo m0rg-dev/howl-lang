@@ -4,12 +4,14 @@ import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
+import { AssignmentExpression } from "./AssignmentExpression";
 import { DereferenceExpression } from "./DereferenceExpression";
 import { Expression } from "./Expression";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
 import { FunctionCallExpression } from "./FunctionCallExpression";
 import { LocalDefinitionExpression } from "./LocalDefinitionExpression";
 import { NumericLiteralExpression } from "./NumericLiteralExpression";
+import { ReturnExpression } from "./ReturnExpression";
 import { VariableExpression } from "./VariableExpression";
 
 export function parseExpression(input_stream: Token[], scope: Scope): Expression {
@@ -62,26 +64,6 @@ export class StaticFunctionReferenceExpression extends VariableExpression {
     toString = () => `StaticFunctionReference<${this.type.to_readable()}(${this.name})`;
 }
 
-export class AssignmentExpression extends Expression {
-    lhs: VariableExpression | FieldReferenceExpression;
-    rhs: Expression;
-
-    constructor(lhs: VariableExpression | FieldReferenceExpression, rhs: Expression) {
-        super();
-        this.lhs = lhs;
-        this.rhs = rhs;
-    }
-
-    valueType = () => TypeRegistry.get("void");
-    toString(): string {
-        return `Assignment(${this.lhs.toString()} = ${this.rhs.toString()})`;
-    }
-    inferTypes = () => {
-        InferSubField(this.lhs, (n: VariableExpression | FieldReferenceExpression) => this.lhs = n);
-        InferSubField(this.rhs, (n: Expression) => this.rhs = n);
-    }
-}
-
 export class StaticFunctionCallExpression extends Expression {
     name: string;
     type: FunctionType;
@@ -112,21 +94,6 @@ export class SpecifyExpression extends Expression {
 
     valueType = () => this.type;
     toString = () => `Specify<${this.type.to_readable()}>(${this.sub.toString()})`;
-    inferTypes = () => {
-        InferSubField(this.sub, (n: Expression) => this.sub = n);
-    }
-}
-
-export class ReturnExpression extends Expression {
-    sub: Expression;
-
-    constructor(sub: Expression) {
-        super();
-        this.sub = sub;
-    }
-
-    valueType = () => TypeRegistry.get("void");
-    toString = () => `Return(${this.sub.toString()})`;
     inferTypes = () => {
         InferSubField(this.sub, (n: Expression) => this.sub = n);
     }
@@ -201,8 +168,10 @@ const rules: ProductionRule[] = [
         match: InOrder(Lvalue(), Literal("Period"), Literal("Name")),
         replace: (input: [VariableExpression | FieldReferenceExpression, Token, NameToken]) => {
             const type = input[0].type;
-            if (type instanceof ClassType) {
-                const stable = ClassRegistry.get(`__${type.get_name()}_static`);
+            if (type instanceof PointerType
+                && type.get_sub() instanceof ClassType) {
+                const class_type = type.get_sub() as ClassType;
+                const stable = ClassRegistry.get(`__${class_type.get_name()}_static`);
                 if (!stable) return undefined;
 
                 const subtype = stable.lookup_field(input[2].name);
@@ -210,7 +179,7 @@ const rules: ProductionRule[] = [
                 return [
                     new FieldReferenceExpression(
                         new DereferenceExpression(
-                            new FieldReferenceExpression(input[0], "__stable", new PointerType(new ClassType(`__${type.get_name()}_static`))),
+                            new FieldReferenceExpression(new DereferenceExpression(input[0]), "__stable", new PointerType(new ClassType(`__${class_type.get_name()}_static`))),
                         ),
                         input[2].name,
                         subtype.type
@@ -225,11 +194,22 @@ const rules: ProductionRule[] = [
         name: "FieldReference",
         match: InOrder(Lvalue(), Literal("Period"), Literal("Name")),
         replace: (input: [VariableExpression | FieldReferenceExpression, Token, NameToken]) => {
-            let type = input[0].type;
+            const type = input[0].type;
             if (type instanceof ClassType) {
-                type = ClassRegistry.get(type.get_name()).lookup_field(input[2].name).type;
+                const field_type = ClassRegistry.get(type.get_name()).lookup_field(input[2].name).type;
+                return [new FieldReferenceExpression(input[0], input[2].name, field_type)];
+            } else if (type instanceof PointerType
+                && type.get_sub() instanceof ClassType) {
+                const class_type = type.get_sub() as ClassType;
+                const class_obj = ClassRegistry.get(class_type.get_name());
+                const field_type = class_obj.lookup_field(input[2].name)?.type;
+                if (!field_type) {
+                    throw new Error(`Couldn't get field ${input[2].name} on (dereferenced) ${class_obj.name}`);
+                }
+                return [new FieldReferenceExpression(new DereferenceExpression(input[0]), input[2].name, field_type)];
+            } else {
+                return undefined;
             }
-            return [new FieldReferenceExpression(input[0], input[2].name, type)];
         }
     },
     {

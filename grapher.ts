@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { Program } from './ast/Program';
+import { PrintTree } from './generator/Graphviz';
 import { Lexer } from './lexer';
 import { TokenType } from './lexer/TokenType';
 
@@ -15,9 +16,9 @@ const source = fs.readFileSync(process.argv[2]).toString();
 
 const lexer = new Lexer(source);
 for (const tok of lexer.token_stream) {
-    if(tok.type == TokenType.Name) {
+    if (tok.type == TokenType.Name) {
         console.error(`${tok.start} ${tok.length} Name(${tok['name']})`);
-    } else if(tok.type == TokenType.NumericLiteral) {
+    } else if (tok.type == TokenType.NumericLiteral) {
         console.error(`${tok.start} ${tok.length} NumericLiteral(${tok['value']})`);
     } else {
         console.error(`${tok.start} ${tok.length} ${TokenType[tok.type]}`);
@@ -26,4 +27,8 @@ for (const tok of lexer.token_stream) {
 
 const p = new Program();
 console.error(p.parse(lexer.handle()));
-console.log(p.synthesize());
+
+console.log("digraph {");
+console.log("    rankdir=LR;");
+PrintTree(p);
+console.log("}");
