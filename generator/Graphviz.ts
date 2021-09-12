@@ -9,14 +9,14 @@ import { AssignmentExpression, Expression, FieldReferenceExpression, FunctionCal
 
 export function PrintTree(node: ASTElement, parent?: ASTElement): void {
     if (node instanceof Program) {
-        console.log(mkrecord(node.guid, [
+        console.log(mrecord(node.guid, [
             { name: "type", label: "Program" },
             ...node.contents.map(x => { return { name: x.guid, label: x.constructor.name } })
         ]));
         node.contents.map(x => console.log(`    n${node.guid}:n${x.guid} -> n${x.guid}`));
         node.contents.map(x => PrintTree(x, this));
     } else if (node instanceof Class) {
-        console.log(mkrecord(node.guid, [
+        console.log(mrecord(node.guid, [
             { name: "cname", label: node.name },
             ...node.fields.map(x => { return { name: x.guid, label: x.to_readable() } }),
             ...node.methods.map(x => { return { name: x.guid, label: x.signature.to_readable() } }),
@@ -34,9 +34,9 @@ export function PrintTree(node: ASTElement, parent?: ASTElement): void {
             console.log(`    n${node.guid}:nbody->n${node.body.guid}:ntype`);
             PrintTree(node.body, this);
         }
-        console.log(mkrecord(node.guid, entries));
+        console.log(mrecord(node.guid, entries));
     } else if (node instanceof CompoundStatement) {
-        console.log(mkrecord(node.guid, [
+        console.log(mrecord(node.guid, [
             { name: "type", label: "CompoundStatement" },
             ...node.lines.map(x => { return { name: x.guid, label: x.constructor.name } })
         ]));
@@ -49,15 +49,15 @@ export function PrintTree(node: ASTElement, parent?: ASTElement): void {
             ];
             PrintExpression(node.expression);
             console.log(`    n${node.guid} -> n${node.expression.guid}:nexpression`);
-            console.log(mkrecord(node.guid, entries));
+            console.log(mrecord(node.guid, entries));
         } else {
-            console.log(mkrecord(node.guid, [
+            console.log(mrecord(node.guid, [
                 { name: "statement_text", label: node.statement_text },
                 { name: "expression", label: "<nonterminal>" }
             ]));
         }
     } else if (node instanceof AsmStatement) {
-        console.log(mkrecord(node.guid, [{ name: "statement_text", label: node.statement_text }]))
+        console.log(mrecord(node.guid, [{ name: "statement_text", label: node.statement_text }]))
     } else {
         console.error(`  (tried to graphviz unknown type ${node.constructor.name})`);
     }
@@ -101,7 +101,7 @@ export function PrintExpression(node: Expression) {
         console.error(`  (tried to graphviz unknown expression type ${node.constructor.name})`);
     }
 
-    console.log(mkrecord(node.guid, entries));
+    console.log(record(node.guid, entries));
 }
 
 function mklabel(entries: { name: string, label: string }[]): string {
@@ -111,6 +111,10 @@ function mklabel(entries: { name: string, label: string }[]): string {
         .replaceAll("|", "&#124;")}`).join(" | ");
 }
 
-function mkrecord(name: string, entries: { name: string, label: string }[]): string {
+function mrecord(name: string, entries: { name: string, label: string }[]): string {
     return `    n${name} [shape=Mrecord label="${mklabel(entries)}"];\n`;
+}
+
+function record(name: string, entries: { name: string, label: string }[]): string {
+    return `    n${name} [shape=record label="${mklabel(entries)}"];\n`;
 }
