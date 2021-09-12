@@ -5,7 +5,14 @@ import { CompoundStatement } from "../ast/CompoundStatement";
 import { FunctionDefinition } from "../ast/FunctionDefinition";
 import { Program } from "../ast/Program";
 import { SimpleStatement } from "../ast/SimpleStatement";
-import { AssignmentExpression, DereferenceExpression, Expression, FieldReferenceExpression, FunctionCallExpression, LocalDefinitionExpression, NumericLiteralExpression, ReturnExpression, SpecifyExpression, StaticFunctionCallExpression, VariableExpression, VoidExpression } from "../expression/ExpressionParser";
+import { AssignmentExpression, ReturnExpression, SpecifyExpression, StaticFunctionCallExpression, VoidExpression } from "../expression/ExpressionParser";
+import { VariableExpression } from "../expression/VariableExpression";
+import { DereferenceExpression } from "../expression/DereferenceExpression";
+import { LocalDefinitionExpression } from "../expression/LocalDefinitionExpression";
+import { FieldReferenceExpression } from "../expression/FieldReferenceExpression";
+import { Expression } from "../expression/Expression";
+import { NumericLiteralExpression } from "../expression/NumericLiteralExpression";
+import { FunctionCallExpression } from "../expression/FunctionCallExpression";
 import { ClassRegistry, ClassType, PointerType } from "./TypeRegistry";
 
 export function PrintTree(node: ASTElement, parent?: ASTElement): void {

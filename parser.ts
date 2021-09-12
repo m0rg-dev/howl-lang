@@ -24,9 +24,11 @@ for (const tok of lexer.token_stream) {
 
 const p = new Program();
 console.error(p.parse(lexer.handle()));
-/* console.log(p.synthesize()); */
+console.log(p.synthesize());
 
+/*
 console.log("digraph {");
 console.log("    rankdir=LR;");
 PrintTree(p);
 console.log("}");
+*/

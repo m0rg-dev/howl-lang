@@ -11,9 +11,9 @@ import { Scope } from "./Scope";
 export class Class extends ASTElement implements Scope {
     name: string;
     fields: TypedItem[] = [];
-    statics: TypedItem[] = [];
     methods: Map<string, FunctionDefinition> = new Map();
     parent: Scope;
+    stable: Class;
 
     constructor(parent: Scope) {
         super();
@@ -32,13 +32,6 @@ export class Class extends ASTElement implements Scope {
     lookup_field(name: string): TypedItem {
         for (const field of this.fields) {
             if (field.name == name) return field;
-        }
-        return undefined;
-    }
-
-    lookup_static(name: string): { t: Type, i: number } {
-        for (const i in this.statics) {
-            if (this.statics[i].name == name) return { t: this.statics[i].type, i: Number.parseInt(i) };
         }
         return undefined;
     }
@@ -73,11 +66,11 @@ export class Class extends ASTElement implements Scope {
 
         this.name = name.name;
 
-        const stable = new Class(this);
-        stable.name = `__${this.name}_static`;
-        ClassRegistry.set(stable.name, stable);
-        const stable_type = new ClassType(stable.name);
-        TypeRegistry.set(stable.name, stable_type);
+        this.stable = new Class(this);
+        this.stable.name = `__${this.name}_static`;
+        ClassRegistry.set(this.stable.name, this.stable);
+        const stable_type = new ClassType(this.stable.name);
+        TypeRegistry.set(this.stable.name, stable_type);
         this.fields.push(TypedItem.build('__stable', new PointerType(stable_type)));
 
         TypeRegistry.set(this.name, new ClassType(this.name));
@@ -107,9 +100,8 @@ export class Class extends ASTElement implements Scope {
                         const sig = new TypedItem();
                         sig.name = func.signature.name;
                         sig.type = new PointerType(func.signature.type);
-                        this.statics.push(sig);
 
-                        stable.fields.push(sig);
+                        this.stable.fields.push(sig);
                     } else {
                         return rc2;
                     }
@@ -124,11 +116,23 @@ export class Class extends ASTElement implements Scope {
     }
 
     synthesize(): string {
-        return [
-            `%${this.name} = type {`,
+        const lines: string[] = [];
+        if (this.stable) {
+            lines.push(this.stable.synthesize());
+            lines.push(`@__${this.name}_stable = constant %${this.stable.name} {`);
+            lines.push(this.stable.fields.map((field =>
+                `    ${field.type.to_ir()} @__${this.name}_${field.name}`
+            )).join(",\n"));
+            lines.push("}\n");
+        }
+
+        lines.push(`%${this.name} = type {`,
             ...this.fields.map((x, y) => `    ${x.type.to_ir()}${y == this.fields.length - 1 ? " " : ","}        ;; ${x.name}`),
-            `}\n`,
-            //...this.methods.map(x => x.synthesize() + "\n"),
-        ].join("\n");
+            `}\n`);
+        lines.push(...Array.from(this.methods.entries()).map((entry: [string, FunctionDefinition]): string => {
+            return entry[1].synthesize();
+        }));
+
+        return lines.join("\n");
     }
 }

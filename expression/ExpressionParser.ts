@@ -1,10 +1,16 @@
-import { randomUUID } from "crypto";
 import { Scope } from "../ast/Scope";
 import { ClassRegistry, ClassType, FunctionType, PointerType, StaticFunctionRegistry, Type, TypeRegistry } from "../generator/TypeRegistry";
 import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
+import { DereferenceExpression } from "./DereferenceExpression";
+import { Expression } from "./Expression";
+import { FieldReferenceExpression } from "./FieldReferenceExpression";
+import { FunctionCallExpression } from "./FunctionCallExpression";
+import { LocalDefinitionExpression } from "./LocalDefinitionExpression";
+import { NumericLiteralExpression } from "./NumericLiteralExpression";
+import { VariableExpression } from "./VariableExpression";
 
 export function parseExpression(input_stream: Token[], scope: Scope): Expression {
     console.error("Entered expression parser.");
@@ -40,23 +46,11 @@ export function parseExpression(input_stream: Token[], scope: Scope): Expression
     return undefined;
 }
 
-export abstract class Expression {
-    guid: string;
-    constructor() {
-        this.guid = randomUUID().replace(/-/g, "_");
-    }
-
-    abstract toString(): string;
-    abstract valueType(): Type;
-    isExpression(): boolean { return true; }
-    abstract inferTypes(): void;
-}
-
 function isExpression(obj: Object): obj is Expression {
     return "isExpression" in obj;
 }
 
-interface Specifiable {
+export interface Specifiable {
     specify(target: Type): Expression
 }
 
@@ -64,85 +58,8 @@ function isSpecifiable(obj: Object): obj is Specifiable {
     return "specify" in obj;
 }
 
-export class NumericLiteralExpression extends Expression implements Specifiable {
-    value: number;
-    type: Type;
-
-    constructor(value: number) {
-        super();
-        this.value = value;
-        this.type = new ProviderType([
-            TypeRegistry.get("i8"),
-            TypeRegistry.get("i32"),
-        ]);
-    }
-
-    valueType = () => this.type;
-    toString = () => `NumericLiteral<${this.valueType().to_readable()}>(${this.value})`;
-    specify(target: Type): Expression {
-        // TODO check target in this.type
-        const rc = new NumericLiteralExpression(this.value);
-        rc.type = target;
-        return rc;
-    }
-    inferTypes = () => { };
-}
-
-export class LocalDefinitionExpression extends Expression {
-    name: string;
-    type: Type;
-
-    constructor(name: string, type: Type) {
-        super();
-        this.name = name;
-        this.type = type;
-    }
-
-    valueType = () => this.type;
-    toString = () => `LocalDefinition<${this.type.to_readable()}>(${this.name})`;
-    inferTypes = () => { };
-}
-
-export class VariableExpression extends Expression {
-    name: string;
-    type: Type;
-
-    constructor(name: string, type: Type) {
-        super();
-        this.name = name;
-        this.type = type;
-    }
-
-    valueType = () => this.type;
-    toString(): string {
-        return `Variable<${this.type.to_readable()}>(${this.name})`;
-    }
-    inferTypes = () => { };
-}
-
 export class StaticFunctionReferenceExpression extends VariableExpression {
     toString = () => `StaticFunctionReference<${this.type.to_readable()}(${this.name})`;
-}
-
-export class FieldReferenceExpression extends Expression {
-    sub: Expression;
-    field: string;
-    type: Type;
-
-    constructor(sub: Expression, field: string, type: Type) {
-        super();
-        this.sub = sub;
-        this.field = field;
-        this.type = type;
-    }
-
-    valueType = () => this.type;
-    toString(): string {
-        return `FieldReference<${this.type.to_readable()}>(${this.sub.toString()}, ${this.field})`;
-    }
-    inferTypes = () => {
-        InferSubField(this.sub, (n) => this.sub = n);
-    }
 }
 
 export class AssignmentExpression extends Expression {
@@ -162,26 +79,6 @@ export class AssignmentExpression extends Expression {
     inferTypes = () => {
         InferSubField(this.lhs, (n: VariableExpression | FieldReferenceExpression) => this.lhs = n);
         InferSubField(this.rhs, (n: Expression) => this.rhs = n);
-    }
-}
-
-export class FunctionCallExpression extends Expression {
-    rhs: Expression;
-    type: PointerType;
-    args: Expression[];
-
-    constructor(rhs: Expression, type: PointerType, args: Expression[]) {
-        super();
-        this.rhs = rhs;
-        this.type = type;
-        this.args = args;
-    }
-
-    valueType = () => (this.type.get_sub() as FunctionType).return_type();
-    toString = () => `FunctionCall<${this.valueType().to_readable()}>(${this.rhs.toString()}, (${this.args.map(x => x.toString()).join(", ")}))`;
-    inferTypes = () => {
-        InferSubField(this.rhs, (n: Expression) => this.rhs = n);
-        this.args.map((x, i) => InferSubField(x, (n: Expression) => this.args[i] = n));
     }
 }
 
@@ -239,21 +136,6 @@ export class VoidExpression extends Expression {
     valueType = () => TypeRegistry.get("void");
     toString = () => `Void`;
     inferTypes = () => { };
-}
-
-export class DereferenceExpression extends Expression {
-    sub: Expression;
-
-    constructor(sub: Expression) {
-        super();
-        this.sub = sub;
-    }
-
-    valueType = () => (this.sub.valueType() as PointerType).get_sub();
-    toString = () => `Dereference<${this.valueType().to_readable()}>(${this.sub.toString()})`;
-    inferTypes = () => {
-        InferSubField(this.sub, (n: Expression) => this.sub = n);
-    }
 }
 
 type ProductionRule = {
@@ -328,7 +210,7 @@ const rules: ProductionRule[] = [
                 return [
                     new FieldReferenceExpression(
                         new DereferenceExpression(
-                            new FieldReferenceExpression(input[0], "__static", new PointerType(new ClassType(`__${type.get_name()}_static`))),
+                            new FieldReferenceExpression(input[0], "__stable", new PointerType(new ClassType(`__${type.get_name()}_static`))),
                         ),
                         input[2].name,
                         subtype.type
@@ -488,7 +370,7 @@ function Concrete(what: Matcher): Matcher {
     }
 }
 
-class ProviderType implements Type {
+export class ProviderType implements Type {
     subtypes: Type[];
 
     constructor(subtypes: Type[]) {
@@ -500,7 +382,7 @@ class ProviderType implements Type {
     is_concrete = () => false;
 }
 
-function InferSubField(e: Expression, replace: (n: Expression) => void) {
+export function InferSubField(e: Expression, replace: (n: Expression) => void) {
     if (e instanceof SpecifyExpression) {
         const sub_type = e.sub.valueType();
         if (sub_type.to_readable() == e.valueType().to_readable()) {

@@ -1,4 +1,6 @@
-import { Expression, LocalDefinitionExpression, parseExpression } from "../expression/ExpressionParser";
+import { parseExpression } from "../expression/ExpressionParser";
+import { LocalDefinitionExpression } from "../expression/LocalDefinitionExpression";
+import { Expression } from "../expression/Expression";
 import { LexerHandle } from "../lexer";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
@@ -25,7 +27,7 @@ export class SimpleStatement extends ASTElement {
     parse(handle: LexerHandle): ParseResult {
         const tokens: Token[] = [];
 
-        this.statement_text = handle.toString();
+        this.statement_text = handle.toString().trim();
 
         while (handle.lookahead().type != TokenType.Semicolon) {
             tokens.push(handle.consume());
@@ -40,6 +42,6 @@ export class SimpleStatement extends ASTElement {
     }
 
     synthesize(): string {
-        return "";
+        return `;; ${this.statement_text}\n    ${this.expression.synthesize().code}\n`;
     }
 }
