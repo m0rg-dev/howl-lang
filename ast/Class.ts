@@ -66,7 +66,7 @@ export class Class extends ASTElement implements Scope {
         handle.consume();
 
         this.name = name.name;
-        TypeRegistry.set(this.name, new PointerType(new ClassType(this.name)));
+        TypeRegistry.set(this.name, new ClassType(this.name));
 
         while (handle.lookahead() && handle.lookahead().type != TokenType.CloseBrace) {
             switch (handle.lookahead().type) {

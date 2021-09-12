@@ -3,6 +3,7 @@ import { Class } from "../ast/Class";
 export interface Type {
     to_ir(): string;
     to_readable(): string;
+    is_concrete(): boolean;
 };
 
 export class BaseType implements Type {
@@ -11,6 +12,7 @@ export class BaseType implements Type {
     constructor(t: string) { this.t = t; }
     to_ir(): string { return this.t; }
     to_readable(): string { return this.t; }
+    is_concrete = () => true;
 }
 
 export class PointerType implements Type {
@@ -20,6 +22,7 @@ export class PointerType implements Type {
     to_ir(): string { return this.sub.to_ir() + "*"; }
     get_sub(): Type { return this.sub; }
     to_readable(): string { return this.sub.to_readable() + "*"; }
+    is_concrete = () => true;
 }
 
 export class FunctionType implements Type {
@@ -42,6 +45,8 @@ export class FunctionType implements Type {
     to_readable(): string {
         return this.ret.to_readable() + "(" + this.args.map(x => x.to_readable()).join(", ") + ")";
     }
+    is_concrete = () => true;
+    type_of_argument = (index: number) => this.args[index];
 }
 
 export class ClassType implements Type {
@@ -60,6 +65,7 @@ export class ClassType implements Type {
     to_readable(): string {
         return this.name;
     }
+    is_concrete = () => true;
 }
 
 export const TypeRegistry: Map<string, Type> = new Map();

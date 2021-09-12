@@ -1,0 +1,5 @@
+fn i32 main() {
+    let i i32;
+    i = 2;
+    __asm__ ret i32 0;
+}

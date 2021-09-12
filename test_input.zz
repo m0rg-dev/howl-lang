@@ -30,6 +30,8 @@ fn i32 main() {
     let s String;
     // s = new String;
     s.construct(s, 1);
+    s.setCharacter(s, 0, 65);
+    s.print(s);
     // __String_construct(s, 1);
     // __String_setCharacter(s, 0, 65);
     // __String_print(s);
