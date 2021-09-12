@@ -5,10 +5,12 @@ import { Class } from "./Class";
 import { FunctionDefinition } from "./FunctionDefinition";
 import { Scope } from "./Scope";
 import { Type } from "../generator/TypeRegistry";
+import { NameToken } from "../lexer/NameToken";
 
 export class Program extends ASTElement implements Scope {
     contents: ASTElement[] = [];
     functions: Map<string, FunctionDefinition> = new Map();
+    module_name: string;
 
     lookup_symbol(name: string): Type {
         return this.functions.get(name)?.signature.type;
@@ -27,6 +29,13 @@ export class Program extends ASTElement implements Scope {
     parse(handle: LexerHandle): ParseResult {
         const rc = Ok();
         const segments: Segment[] = [];
+        if (!(handle.lookahead().type == TokenType.Module)) return { ok: false, errors: [ErrorBadToken(handle, TokenType.Module)] };
+        handle.consume();
+        if (!(handle.lookahead().type == TokenType.Name)) return { ok: false, errors: [ErrorBadToken(handle, TokenType.Name)] };
+        const pkg = handle.consume();
+        this.module_name = (pkg as NameToken).name;
+        if (!(handle.lookahead().type == TokenType.Semicolon)) return { ok: false, errors: [ErrorBadToken(handle, TokenType.Semicolon)] };
+        handle.consume();
         outer: while (handle.lookahead()) {
             switch (handle.lookahead().type) {
                 case TokenType.Class:
@@ -58,7 +67,7 @@ export class Program extends ASTElement implements Scope {
             // console.error(util.inspect(segment.ast, { depth: null }));
             this.contents.push(segment.ast);
 
-            if(segment.ast.constructor.name == "FunctionDefinition") {
+            if (segment.ast.constructor.name == "FunctionDefinition") {
                 this.functions.set((segment.ast as FunctionDefinition).signature.name,
                     (segment.ast as FunctionDefinition));
             }

@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { Scope } from "../ast/Scope";
-import { ClassRegistry, ClassType, FunctionType, Type, TypeRegistry } from "../generator/TypeRegistry";
+import { ClassRegistry, ClassType, FunctionType, StaticFunctionRegistry, Type, TypeRegistry } from "../generator/TypeRegistry";
 import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
@@ -120,6 +120,10 @@ export class VariableExpression extends Expression {
     inferTypes = () => { };
 }
 
+export class StaticFunctionReferenceExpression extends VariableExpression {
+    toString = () => `StaticFunctionReference<${this.type.to_readable()}(${this.name})`;
+}
+
 export class FieldReferenceExpression extends Expression {
     sub: Expression;
     field: string;
@@ -181,6 +185,24 @@ export class FunctionCallExpression extends Expression {
     }
 }
 
+export class StaticFunctionCallExpression extends Expression {
+    name: string;
+    type: FunctionType;
+    args: Expression[];
+
+    constructor(name: string, type: FunctionType, args: Expression[]) {
+        super();
+        this.name = name;
+        this.type = type;
+        this.args = args;
+    }
+    valueType = () => this.type.return_type();
+    toString = () => `StaticFunctionCall<${this.valueType().to_readable()}>(${this.name}, (${this.args.map(x => x.toString()).join(", ")}))`;
+    inferTypes = () => {
+        this.args.map((x, i) => InferSubField(x, (n: Expression) => this.args[i] = n));
+    }
+}
+
 export class SpecifyExpression extends Expression {
     sub: Expression;
     type: Type;
@@ -216,7 +238,7 @@ export class ReturnExpression extends Expression {
 export class VoidExpression extends Expression {
     valueType = () => TypeRegistry.get("void");
     toString = () => `Void`;
-    inferTypes = () => {};
+    inferTypes = () => { };
 }
 
 type ProductionRule = {
@@ -262,7 +284,11 @@ const rules: ProductionRule[] = [
                     arg_index++;
                 }
             }
-            return [new FunctionCallExpression(rhs, type, args)];
+            if (input[0] instanceof StaticFunctionReferenceExpression) {
+                return [new StaticFunctionCallExpression(input[0].name, type, args)];
+            } else {
+                return [new FunctionCallExpression(rhs, type, args)];
+            }
         }
     },
     {
@@ -280,10 +306,16 @@ const rules: ProductionRule[] = [
         name: "Variable",
         match: Literal("Name"),
         replace: (input: [NameToken], scope: Scope) => {
-            if (scope.lookup_symbol(input[0].name)) {
+            const sym = scope.lookup_symbol(input[0].name);
+            if (sym instanceof FunctionType && StaticFunctionRegistry.has(input[0].name)) {
+                return [new StaticFunctionReferenceExpression(
+                    input[0].name,
+                    sym
+                )];
+            } else if (sym) {
                 return [new VariableExpression(
                     input[0].name,
-                    scope.lookup_symbol(input[0].name)
+                    sym
                 )];
             } else {
                 return undefined;
@@ -309,7 +341,7 @@ const rules: ProductionRule[] = [
         match: Literal("Return"),
         replace: (input: [Token], scope: Scope) => {
             console.error(`current_return = ${scope.current_return().to_readable()}`);
-            if(scope.current_return().to_readable() != "void") return undefined;
+            if (scope.current_return().to_readable() != "void") return undefined;
             return [new ReturnExpression(new VoidExpression())];
         }
     }
@@ -390,7 +422,11 @@ function Lvalue(): Matcher {
 }
 
 function Rvalue(): Matcher {
-    return First(Lvalue(), Literal("NumericLiteralExpression"), Literal("FunctionCallExpression"));
+    return First(Lvalue(),
+        Literal("NumericLiteralExpression"),
+        Literal("FunctionCallExpression"),
+        Literal("StaticFunctionReferenceExpression"),
+        Literal("StaticFunctionCallExpression"));
 }
 
 function Concrete(what: Matcher): Matcher {

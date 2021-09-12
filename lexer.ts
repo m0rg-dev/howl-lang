@@ -11,6 +11,8 @@ const KEYWORD_TABLE = {
     "return": TokenType.Return,
     "new": TokenType.New,
     "let": TokenType.Let,
+    "module": TokenType.Module,
+    "static": TokenType.Static,
 }
 
 const PUNCTUATION_TABLE = {
@@ -60,7 +62,7 @@ export class Lexer {
     }
 
     private match_keyword(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
+        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|module|static)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
         return { type: KEYWORD_TABLE[m[1]], length: m[0].length, start: this.mark };

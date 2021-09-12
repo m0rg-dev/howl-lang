@@ -1,4 +1,5 @@
 import { Class } from "../ast/Class";
+import { FunctionDefinition } from "../ast/FunctionDefinition";
 
 export interface Type {
     to_ir(): string;
@@ -76,3 +77,4 @@ TypeRegistry.set("i64", new BaseType("i64"));
 TypeRegistry.set("void", new BaseType("void"));
 
 export const ClassRegistry: Map<string, Class> = new Map();
+export const StaticFunctionRegistry: Map<string, FunctionDefinition> = new Map();

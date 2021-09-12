@@ -1,5 +1,7 @@
-fn i32 puts(_rawptr_i8 s);
-fn _rawptr_i8 malloc(i32 size);
+module TestInput;
+
+fn static i32 puts(_rawptr_i8 s);
+fn static _rawptr_i8 malloc(i32 size);
 
 class String {
     _rawptr_i8 buffer;
@@ -17,28 +19,14 @@ class String {
     }
 
     fn void setCharacter(String self, i32 pos, i8 char) {
-        // no array indexing yet...
-        __asm__ %1 = getelementptr %String, %String* %self, i64 0, i32 0;
-        __asm__ %2 = load i8*, i8** %1;
-        __asm__ %3 = getelementptr i8, i8* %2, i32 %pos;
-        __asm__ store i8 %char, i8* %3;
         return;
     }
 }
 
-fn i32 main() {
+fn static i32 main() {
     let s String;
-    // s = new String;
     s.construct(s, 1);
     s.setCharacter(s, 0, 65);
     s.print(s);
-    // __String_construct(s, 1);
-    // __String_setCharacter(s, 0, 65);
-    // __String_print(s);
-
-    // __asm__ %s = alloca %String;
-    // __asm__ call void @__String_construct(%String* %s, i32 1);
-    // __asm__ call void @__String_setCharacter(%String* %s, i32 0, i8 65);
-    // __asm__ call void @__String_print(%String* %s);
-   return 0;
+    return 0;
 }

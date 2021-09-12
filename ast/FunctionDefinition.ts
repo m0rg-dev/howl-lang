@@ -4,15 +4,15 @@ import { ASTElement, ErrorBadToken, ErrorBadType, Ok, ParseResult, Segment } fro
 import { RecognizeBlock } from "./ASTUtil";
 import { CompoundStatement } from "./CompoundStatement";
 import { TypedItem } from "./TypedItem";
-import { FunctionType, Type, TypeRegistry } from "../generator/TypeRegistry";
+import { StaticFunctionRegistry, FunctionType, Type, TypeRegistry } from "../generator/TypeRegistry";
 import { reset } from "../generator/Synthesizable";
 import { Scope } from "./Scope";
 
 export class FunctionDefinition extends ASTElement implements Scope {
     signature: TypedItem;
+    is_static = false;
     mangled_name: string;
     args: TypedItem[] = [];
-    locals: TypedItem[] = [];
     body: CompoundStatement;
     parent: Scope;
 
@@ -22,21 +22,14 @@ export class FunctionDefinition extends ASTElement implements Scope {
     }
 
     lookup_symbol(symbol: string): Type {
-        for(const item of this.args) {
-            if(item.name == symbol) return item.type;
-        }
-        for(const item of this.locals) {
-            if(item.name == symbol) return item.type;
+        for (const item of this.args) {
+            if (item.name == symbol) return item.type;
         }
         return this.parent.lookup_symbol(symbol);
     }
 
     register_local(name: string, type: Type) {
-        const item = new TypedItem();
-        item.name = name;
-        item.type = type;
-        this.locals.push(item);
-        console.error(`RegisterLocal (FunctionDefinition) ${name} ${type.to_ir()}`);
+        this.parent.register_local(name, type);
     }
 
     current_return = () => (this.signature.type as FunctionType).return_type();
@@ -44,6 +37,7 @@ export class FunctionDefinition extends ASTElement implements Scope {
     bracket(handle: LexerHandle): LexerHandle {
         const sub = handle.clone();
         sub.expect(TokenType.Function);
+        if (sub.lookahead().type == TokenType.Static) sub.consume();
         sub.consume_through(TokenType.OpenParen);
         sub.rollback();
 
@@ -62,6 +56,10 @@ export class FunctionDefinition extends ASTElement implements Scope {
     parse(handle: LexerHandle): ParseResult {
         if (handle.lookahead().type != TokenType.Function) throw new Error("COMPILER BUG");
         handle.consume();
+        if (handle.lookahead().type == TokenType.Static) {
+            this.is_static = true;
+            handle.consume();
+        }
 
         const signature = new TypedItem();
         const rc = signature.parse(handle);
@@ -94,7 +92,9 @@ export class FunctionDefinition extends ASTElement implements Scope {
 
         // TODO this is kind of a hack
         signature.type = new FunctionType(signature.type, this.args.map(x => x.type));
-
+        if(this.is_static) {
+            StaticFunctionRegistry.set(this.signature.name, this);
+        }
         if (handle.lookahead().type == TokenType.OpenBrace) {
             this.body = new CompoundStatement(this);
             return this.body.parse(handle);

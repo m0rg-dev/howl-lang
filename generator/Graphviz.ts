@@ -5,19 +5,20 @@ import { CompoundStatement } from "../ast/CompoundStatement";
 import { FunctionDefinition } from "../ast/FunctionDefinition";
 import { Program } from "../ast/Program";
 import { SimpleStatement } from "../ast/SimpleStatement";
-import { AssignmentExpression, Expression, FieldReferenceExpression, FunctionCallExpression, LocalDefinitionExpression, NumericLiteralExpression, ReturnExpression, SpecifyExpression, VariableExpression, VoidExpression } from "../expression/ExpressionParser";
+import { AssignmentExpression, Expression, FieldReferenceExpression, FunctionCallExpression, LocalDefinitionExpression, NumericLiteralExpression, ReturnExpression, SpecifyExpression, StaticFunctionCallExpression, VariableExpression, VoidExpression } from "../expression/ExpressionParser";
 
 export function PrintTree(node: ASTElement, parent?: ASTElement): void {
     if (node instanceof Program) {
         console.log(mrecord(node.guid, [
             { name: "type", label: "Program" },
+            { name: "module", label: `module ${node.module_name}`},
             ...node.contents.map(x => { return { name: x.guid, label: x.constructor.name } })
         ]));
         node.contents.map(x => console.log(`    n${node.guid}:n${x.guid} -> n${x.guid}`));
         node.contents.map(x => PrintTree(x, this));
     } else if (node instanceof Class) {
         console.log(mrecord(node.guid, [
-            { name: "cname", label: node.name },
+            { name: "cname", label: `class ${node.name}` },
             ...node.fields.map(x => { return { name: x.guid, label: x.to_readable() } }),
             ...node.methods.map(x => { return { name: x.guid, label: x.signature.to_readable() } }),
         ]));
@@ -25,9 +26,8 @@ export function PrintTree(node: ASTElement, parent?: ASTElement): void {
         node.methods.map(x => PrintTree(x, this));
     } else if (node instanceof FunctionDefinition) {
         const entries = [
-            { name: "type", label: `${node.signature.to_readable()}` },
+            { name: "type", label: `${node.is_static ? "static ": ""}${node.signature.to_readable()}` },
             ...node.args.map(x => { return { name: x.guid, label: "Argument: " + x.to_readable() } }),
-            ...node.locals.map(x => { return { name: x.guid, label: "Local: " + x.to_readable() } }),
         ];
         if (node.body) {
             entries.push({ name: "body", label: "CompoundStatement" });
@@ -38,6 +38,7 @@ export function PrintTree(node: ASTElement, parent?: ASTElement): void {
     } else if (node instanceof CompoundStatement) {
         console.log(mrecord(node.guid, [
             { name: "type", label: "CompoundStatement" },
+            ...node.locals.map(x => { return { name: x.guid, label: "Local: " + x.to_readable() } }),
             ...node.lines.map(x => { return { name: x.guid, label: x.constructor.name } })
         ]));
         node.lines.map(x => PrintTree(x, this));
@@ -87,6 +88,14 @@ export function PrintExpression(node: Expression) {
         entries.push({ name: "function", label: `function<${node.type.to_readable()}>` });
         console.log(`    n${node.guid}:nfunction -> n${node.rhs.guid}:nexpression`);
         PrintExpression(node.rhs);
+        for (const arg_idx in node.args) {
+            entries.push({ name: `arg${arg_idx}`, label: `argument ${arg_idx}` });
+            console.log(`    n${node.guid}:narg${arg_idx} -> n${node.args[arg_idx].guid}:nexpression`);
+            PrintExpression(node.args[arg_idx]);
+        }
+    } else if (node instanceof StaticFunctionCallExpression) {
+        entries.push({ name: "function", label: `function<${node.type.to_readable()}>` });
+        entries.push({ name: "name", label: node.name});
         for (const arg_idx in node.args) {
             entries.push({ name: `arg${arg_idx}`, label: `argument ${arg_idx}` });
             console.log(`    n${node.guid}:narg${arg_idx} -> n${node.args[arg_idx].guid}:nexpression`);

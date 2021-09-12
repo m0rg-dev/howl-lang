@@ -6,10 +6,12 @@ import { ASTElement, ErrorBadToken, ErrorEOF, Ok, ParseResult, Segment } from ".
 import { RecognizeBlock } from "./ASTUtil";
 import { Scope } from "./Scope";
 import { SimpleStatement } from "./SimpleStatement";
+import { TypedItem } from "./TypedItem";
 
 export class CompoundStatement extends ASTElement implements Scope {
     lines: ASTElement[] = [];
     parent: Scope;
+    locals: TypedItem[] = [];
 
     constructor(parent: Scope) {
         super();
@@ -17,12 +19,18 @@ export class CompoundStatement extends ASTElement implements Scope {
     }
 
     lookup_symbol(symbol: string): Type {
+        for(const item of this.locals) {
+            if(item.name == symbol) return item.type;
+        }
         return this.parent.lookup_symbol(symbol);
     }
 
     register_local(name: string, type: Type) {
+        const item = new TypedItem();
+        item.name = name;
+        item.type = type;
+        this.locals.push(item);
         console.error(`RegisterLocal (CompoundStatement) ${name} ${type.to_ir()}`);
-        this.parent.register_local(name, type);
     }
 
     current_return = () => this.parent.current_return();

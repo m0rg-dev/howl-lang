@@ -5,6 +5,8 @@ export enum TokenType {
     Return,
     New,
     Let,
+    Module,
+    Static,
 
     OpenBrace,
     CloseBrace,
