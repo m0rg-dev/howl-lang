@@ -145,26 +145,6 @@ export class FieldReferenceExpression extends Expression {
     }
 }
 
-export class StaticReferenceExpression extends Expression {
-    sub: ClassType;
-    field: string;
-    index: number;
-    type: Type;
-
-    constructor(sub: ClassType, field: string, type: Type) {
-        super();
-        this.sub = sub;
-        this.field = field;
-        this.type = type;
-
-        const cl = ClassRegistry.get(sub.get_name());
-        this.index = cl.lookup_static(field).i;
-    }
-    valueType = () => this.type;
-    toString = () => `StaticReference<${this.type.to_readable()}(${this.sub.get_name()}, ${this.field} [${this.index}])`;
-    inferTypes = () => { };
-}
-
 export class AssignmentExpression extends Expression {
     lhs: VariableExpression | FieldReferenceExpression;
     rhs: Expression;
@@ -261,6 +241,21 @@ export class VoidExpression extends Expression {
     inferTypes = () => { };
 }
 
+export class DereferenceExpression extends Expression {
+    sub: Expression;
+
+    constructor(sub: Expression) {
+        super();
+        this.sub = sub;
+    }
+
+    valueType = () => (this.sub.valueType() as PointerType).get_sub();
+    toString = () => `Dereference<${this.valueType().to_readable()}>(${this.sub.toString()})`;
+    inferTypes = () => {
+        InferSubField(this.sub, (n: Expression) => this.sub = n);
+    }
+}
+
 type ProductionRule = {
     name: string,
     match: Matcher,
@@ -320,15 +315,25 @@ const rules: ProductionRule[] = [
         }
     },
     {
-        name: "StaticReference",
+        name: "MethodReference",
         match: InOrder(Lvalue(), Literal("Period"), Literal("Name")),
         replace: (input: [VariableExpression | FieldReferenceExpression, Token, NameToken]) => {
             const type = input[0].type;
             if (type instanceof ClassType) {
-                console.error(`    #### ${type.get_name()} ${input[2].name}`);
-                const subtype = ClassRegistry.get(type.get_name()).lookup_static(input[2].name);
+                const stable = ClassRegistry.get(`__${type.get_name()}_static`);
+                if (!stable) return undefined;
+
+                const subtype = stable.lookup_field(input[2].name);
                 if (!subtype) return undefined;
-                return [new StaticReferenceExpression(type, input[2].name, subtype.t)];
+                return [
+                    new FieldReferenceExpression(
+                        new DereferenceExpression(
+                            new FieldReferenceExpression(input[0], "__static", new PointerType(new ClassType(`__${type.get_name()}_static`))),
+                        ),
+                        input[2].name,
+                        subtype.type
+                    )
+                ];
             } else {
                 return undefined;
             }
@@ -340,7 +345,7 @@ const rules: ProductionRule[] = [
         replace: (input: [VariableExpression | FieldReferenceExpression, Token, NameToken]) => {
             let type = input[0].type;
             if (type instanceof ClassType) {
-                type = ClassRegistry.get(type.get_name()).lookup_field(input[2].name);
+                type = ClassRegistry.get(type.get_name()).lookup_field(input[2].name).type;
             }
             return [new FieldReferenceExpression(input[0], input[2].name, type)];
         }

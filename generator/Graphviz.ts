@@ -5,7 +5,8 @@ import { CompoundStatement } from "../ast/CompoundStatement";
 import { FunctionDefinition } from "../ast/FunctionDefinition";
 import { Program } from "../ast/Program";
 import { SimpleStatement } from "../ast/SimpleStatement";
-import { AssignmentExpression, Expression, FieldReferenceExpression, FunctionCallExpression, LocalDefinitionExpression, NumericLiteralExpression, ReturnExpression, SpecifyExpression, StaticFunctionCallExpression, StaticReferenceExpression, VariableExpression, VoidExpression } from "../expression/ExpressionParser";
+import { AssignmentExpression, DereferenceExpression, Expression, FieldReferenceExpression, FunctionCallExpression, LocalDefinitionExpression, NumericLiteralExpression, ReturnExpression, SpecifyExpression, StaticFunctionCallExpression, VariableExpression, VoidExpression } from "../expression/ExpressionParser";
+import { ClassRegistry, ClassType, PointerType } from "./TypeRegistry";
 
 export function PrintTree(node: ASTElement, parent?: ASTElement): void {
     if (node instanceof Program) {
@@ -21,15 +22,16 @@ export function PrintTree(node: ASTElement, parent?: ASTElement): void {
             { name: "cname", label: `class ${node.name}` },
             ...node.fields.map(x => { return { name: x.guid, label: x.to_readable() } }),
         ]));
-        if (node.statics.length) {
-            console.log(`    n${node.guid} -> n${node.guid}_static:ntype`);
-            console.log(mrecord(node.guid + "_static", [
-                { name: "type", label: `stable for ${node.name}` },
-                ...node.statics.map((x, y) => { return { name: x.name, label: `${y}: ${x.name}<${x.type.to_readable()}>` } })
-            ]));
+
+        const stableptr = node.lookup_field('__stable')?.type;
+        if (stableptr && stableptr instanceof PointerType) {
+            const stable_type = stableptr.get_sub() as ClassType;
+            const stable = ClassRegistry.get(stable_type.get_name());
+            PrintTree(stable);
+            console.log(`    n${node.guid}:n${node.lookup_field('__stable').guid} -> n${stable.guid}:ncname`);
             for (const [name, method] of node.methods) {
                 PrintTree(method);
-                console.log(`    n${node.guid}_static:n${name} -> n${method.guid}`);
+                console.log(`    n${stable.guid}:n${stable.lookup_field(name).guid} -> n${method.guid}`);
             }
         }
     } else if (node instanceof FunctionDefinition) {
@@ -88,9 +90,6 @@ export function PrintExpression(node: Expression) {
         entries.push({ name: "field", label: '\\"' + node.field + '\\"' });
         console.log(`    n${node.guid}:nsub -> n${node.sub.guid}:nexpression`);
         PrintExpression(node.sub);
-    } else if (node instanceof StaticReferenceExpression) {
-        entries.push({ name: "sub", label: node.sub.get_name() });
-        entries.push({ name: "field", label: `\\"${node.field}\\" [${node.index}]` });
     } else if (node instanceof VariableExpression) {
         entries.push({ name: "name", label: '\\"' + node.name + '\\"' });
     } else if (node instanceof LocalDefinitionExpression) {
@@ -119,6 +118,10 @@ export function PrintExpression(node: Expression) {
         PrintExpression(node.sub);
     } else if (node instanceof ReturnExpression) {
         console.log(`    n${node.guid} -> n${node.sub.guid}`);
+        PrintExpression(node.sub);
+    } else if (node instanceof DereferenceExpression) {
+        entries.push({ name: "sub", label: "source" });
+        console.log(`    n${node.guid}:nsub -> n${node.sub.guid}`);
         PrintExpression(node.sub);
     } else if (node instanceof VoidExpression) {
     } else {

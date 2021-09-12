@@ -8,6 +8,13 @@ export class TypedItem extends ASTElement {
     type: Type;
     name: string;
 
+    static build(name: string, type: Type): TypedItem {
+        const rc = new TypedItem();
+        rc.type = type;
+        rc.name = name;
+        return rc;
+    }
+
     bracket(handle: LexerHandle): LexerHandle {
         const sub = handle.clone();
         sub.expect(TokenType.Name);

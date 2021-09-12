@@ -1,5 +1,16 @@
-fn i32 main() {
-    let i i32;
-    i = 2;
-    __asm__ ret i32 0;
+module Test2;
+
+class Foo {
+    i32 value;
+
+    fn void set_value(Foo self, i32 v) {
+        self.value = v;
+        return;
+    }
+}
+
+fn static i32 main() {
+    let obj Foo;
+    obj.set_value(obj, 2);
+    return 0;
 }

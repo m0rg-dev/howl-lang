@@ -29,9 +29,9 @@ export class Class extends ASTElement implements Scope {
     }
     current_return = () => undefined;
 
-    lookup_field(name: string): Type {
+    lookup_field(name: string): TypedItem {
         for (const field of this.fields) {
-            if (field.name == name) return field.type;
+            if (field.name == name) return field;
         }
         return undefined;
     }
@@ -72,6 +72,14 @@ export class Class extends ASTElement implements Scope {
         handle.consume();
 
         this.name = name.name;
+
+        const stable = new Class(this);
+        stable.name = `__${this.name}_static`;
+        ClassRegistry.set(stable.name, stable);
+        const stable_type = new ClassType(stable.name);
+        TypeRegistry.set(stable.name, stable_type);
+        this.fields.push(TypedItem.build('__stable', new PointerType(stable_type)));
+
         TypeRegistry.set(this.name, new ClassType(this.name));
 
         while (handle.lookahead() && handle.lookahead().type != TokenType.CloseBrace) {
@@ -100,6 +108,8 @@ export class Class extends ASTElement implements Scope {
                         sig.name = func.signature.name;
                         sig.type = new PointerType(func.signature.type);
                         this.statics.push(sig);
+
+                        stable.fields.push(sig);
                     } else {
                         return rc2;
                     }
