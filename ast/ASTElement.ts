@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { Synthesizable } from "../generator/Synthesizable";
 import { LexerHandle } from "../lexer";
 import { TokenType } from "../lexer/TokenType";
@@ -50,9 +51,14 @@ export function ErrorExpressionFailed(handle: LexerHandle): ParseError {
 }
 
 export abstract class ASTElement implements Synthesizable {
+    guid: string;
+    constructor() {
+        this.guid = randomUUID().replace(/-/g, "_");
+    }
     synthesize(): string {
         throw new Error(`Method not implemented (${this.constructor.name}).`);
     }
     abstract bracket(handle: LexerHandle): LexerHandle;
     abstract parse(handle: LexerHandle): ParseResult;
 }
+

@@ -35,4 +35,8 @@ export class TypedItem extends ASTElement {
     synthesize(): string {
         throw new Error("TypedItems cannot be synthesized directly.");
     }
+
+    to_readable(): string {
+        return `${this.name}<${this.type.to_readable()}>`;
+    }
 }

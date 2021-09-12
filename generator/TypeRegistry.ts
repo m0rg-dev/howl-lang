@@ -2,6 +2,7 @@ import { Class } from "../ast/Class";
 
 export interface Type {
     to_ir(): string;
+    to_readable(): string;
 };
 
 export class BaseType implements Type {
@@ -9,6 +10,7 @@ export class BaseType implements Type {
 
     constructor(t: string) { this.t = t; }
     to_ir(): string { return this.t; }
+    to_readable(): string { return this.t; }
 }
 
 export class PointerType implements Type {
@@ -17,6 +19,7 @@ export class PointerType implements Type {
     constructor(sub: Type) { this.sub = sub; }
     to_ir(): string { return this.sub.to_ir() + "*"; }
     get_sub(): Type { return this.sub; }
+    to_readable(): string { return this.sub.to_readable() + "*"; }
 }
 
 export class FunctionType implements Type {
@@ -35,6 +38,10 @@ export class FunctionType implements Type {
     return_type(): Type {
         return this.ret;
     }
+
+    to_readable(): string {
+        return this.ret.to_readable() + "(" + this.args.map(x => x.to_readable()).join(", ") + ")";
+    }
 }
 
 export class ClassType implements Type {
@@ -47,6 +54,10 @@ export class ClassType implements Type {
     to_ir(): string { return "%" + this.name; }
 
     get_name(): string {
+        return this.name;
+    }
+
+    to_readable(): string {
         return this.name;
     }
 }

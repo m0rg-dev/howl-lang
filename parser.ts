@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { Program } from './ast/Program';
+import { PrintTree } from './generator/Graphviz';
 import { Lexer } from './lexer';
 import { TokenType } from './lexer/TokenType';
 
@@ -23,4 +24,9 @@ for (const tok of lexer.token_stream) {
 
 const p = new Program();
 console.error(p.parse(lexer.handle()));
-console.log(p.synthesize());
+/* console.log(p.synthesize()); */
+
+console.log("digraph {");
+console.log("    rankdir=LR;");
+PrintTree(p);
+console.log("}");

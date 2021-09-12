@@ -3,7 +3,6 @@ import { TokenType } from "../lexer/TokenType";
 import { ASTElement, ParseResult, Ok, Segment, ErrorBadToken } from "./ASTElement";
 import { Class } from "./Class";
 import { FunctionDefinition } from "./FunctionDefinition";
-import * as util from 'util';
 import { Scope } from "./Scope";
 import { Type } from "../generator/TypeRegistry";
 

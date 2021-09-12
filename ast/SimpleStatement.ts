@@ -29,6 +29,8 @@ export class SimpleStatement extends ASTElement {
     parse(handle: LexerHandle): ParseResult {
         const tokens: Token[] = [];
 
+        this.statement_text = handle.toString();
+
         while (handle.lookahead().type != TokenType.Semicolon) {
             tokens.push(handle.consume());
         }
@@ -41,7 +43,7 @@ export class SimpleStatement extends ASTElement {
             console.error(";; " + parts.map(x => x.toString()).join(", "));
         }
 
-        this.statement_text = ";; " + parts.map(x => x.toString()).join(", ");
+        //this.statement_text = ";; " + parts.map(x => x.toString()).join(", ");
 
         if (parts.length != 1) {
             // TODO 
