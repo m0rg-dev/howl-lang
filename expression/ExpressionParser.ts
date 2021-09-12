@@ -14,13 +14,12 @@ export function parseExpression(input_stream: Token[], scope: Scope): Expression
     let did_match = false;
     outer: do {
         did_match = false;
-        let ptr = 0;
-        for (ptr = 0; ptr < stream.length; ptr++) {
-            inner: for (const rule of rules) {
+        for (const rule of rules) {
+            let ptr = 0;
+            inner: for (ptr = 0; ptr < stream.length; ptr++) {
                 const m = rule.match(stream.slice(ptr));
                 if (m.matched) {
                     console.error(`Applied rule ${rule.name}`);
-                    console.error(`\x1b[1m  Stream:\x1b[0m [${stream.map(x => x['start'] ? TokenType[x['type']] : x.toString()).join(", ")}]`);
                     const repl = rule.replace(stream.slice(ptr, ptr + m.length), scope);
                     if (!repl) continue inner;
                     did_match = true;
@@ -238,11 +237,7 @@ const rules: ProductionRule[] = [
             for (const exp of rest) {
                 // TODO is this correct? I *think* so based on the match invariants, but it's sketchy
                 if (isExpression(exp)) {
-                    if (isSpecifiable(exp)) {
-                        args.push(new SpecifyExpression(exp, type.type_of_argument(arg_index)));
-                    } else {
-                        args.push(exp);
-                    }
+                    args.push(new SpecifyExpression(exp, type.type_of_argument(arg_index)));
                     arg_index++;
                 }
             }
@@ -277,34 +272,9 @@ const rules: ProductionRule[] = [
     {
         name: "AssignmentL",
         match: InOrder(Concrete(Lvalue()), Literal("Equals"), Rvalue()),
-        replace: (input: [FieldReferenceExpression | VariableExpression, Token, Expression]) => {
-            if (isSpecifiable(input[2])) {
-                return [new AssignmentExpression(input[0], new SpecifyExpression(input[2], input[0].valueType()))];
-            } else {
-                return [new AssignmentExpression(input[0], input[2])];
-            }
-        }
-    },
-    {
-        name: "SpecifyElision",
-        match: Literal("SpecifyExpression"),
-        replace: (input: [SpecifyExpression]) => {
-            if (input[0].sub.valueType().to_readable() == input[0].valueType().to_readable()) {
-                return [input[0].sub];
-            } else {
-                // TODO: error
-                return input;
-            }
-        }
-    },
-    {
-        name: "Specification",
-        match: Literal("SpecifyExpression"),
-        replace: (input: [SpecifyExpression]) => {
-            console.error(`<SPECIFICATION ${input[0]}>`);
-            if (!isSpecifiable(input[0].sub)) return undefined;
-            return [input[0].sub.specify(input[0].type)];
-        }
+        replace: (input: [FieldReferenceExpression | VariableExpression, Token, Expression]) => [
+            new AssignmentExpression(input[0], new SpecifyExpression(input[2], input[0].valueType()))
+        ]
     }
 ];
 
@@ -377,7 +347,7 @@ function Lvalue(): Matcher {
 }
 
 function Rvalue(): Matcher {
-    return First(Lvalue(), Literal("NumericLiteralExpression"));
+    return First(Lvalue(), Literal("NumericLiteralExpression"), Literal("FunctionCallExpression"));
 }
 
 function Concrete(what: Matcher): Matcher {
