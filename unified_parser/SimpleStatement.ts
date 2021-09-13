@@ -1,7 +1,7 @@
-import { ASTElement, TokenStream } from "./ASTElement";
+import { ASTElement, TokenStream, VoidElement } from "./ASTElement";
 import { AssignmentExpression, UnaryReturnExpression } from "./Parser";
 
-export class SimpleStatement extends ASTElement {
+export class SimpleStatement extends VoidElement {
     source: TokenStream;
     constructor(source: TokenStream) {
         super();
@@ -10,7 +10,7 @@ export class SimpleStatement extends ASTElement {
     toString = () => `SimpleStatement`;
 }
 
-export class AssignmentStatement extends ASTElement {
+export class AssignmentStatement extends VoidElement {
     expression: AssignmentExpression;
     constructor(expression: AssignmentExpression) {
         super();
@@ -20,7 +20,7 @@ export class AssignmentStatement extends ASTElement {
     toString = () => `AssignmentStatement`;
 }
 
-export class UnaryReturnStatement extends ASTElement {
+export class UnaryReturnStatement extends VoidElement {
     expression: UnaryReturnExpression;
     constructor(expression: UnaryReturnExpression) {
         super();

@@ -1,12 +1,12 @@
 import * as fs from 'fs';
-import { PrintAST, PrintExpression } from './generator/Graphviz';
+import { PrintAST } from './generator/Graphviz';
 import { Lexer } from './lexer';
 import { TokenType } from './lexer/TokenType';
 
-import { install } from 'source-map-support';
 import { Parse } from './unified_parser/Parser';
-import { ASTElement } from './unified_parser/ASTElement';
-import { AddSelfToMethodCalls, ApplyToAll, ExtractClassTypes, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, ReplaceTypes, SpecifyFieldReferences, SpecifyMethodReferences, SpecifyStatements } from './unified_parser/Transformer';
+import { AddSelfToMethodCalls, ApplyToAll, ExtractClassTypes, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, ReplaceTypes, SpecifyClassFields, SpecifyFieldReferences, SpecifyFunctionCalls, SpecifyMethodReferences, SpecifyStatements } from './unified_parser/Transformer';
+
+import { install } from 'source-map-support';
 install();
 
 export function why_not(e: string): boolean {
@@ -40,6 +40,7 @@ console.log("}");
 const stream = Parse(lexer.token_stream);
 ApplyToAll(stream, ExtractClassTypes);
 ApplyToAll(stream, ReplaceTypes);
+ApplyToAll(stream, SpecifyClassFields);
 ApplyToAll(stream, SpecifyStatements);
 ApplyToAll(stream, GenerateScopes);
 ApplyToAll(stream, PropagateLocalDefinitions);
@@ -47,5 +48,7 @@ ApplyToAll(stream, ReferenceLocals);
 ApplyToAll(stream, SpecifyMethodReferences);
 ApplyToAll(stream, SpecifyFieldReferences);
 ApplyToAll(stream, AddSelfToMethodCalls);
+ApplyToAll(stream, SpecifyFunctionCalls);
 
 console.log(PrintAST(stream));
+console.error("Done.");

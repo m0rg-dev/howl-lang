@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
-import { TypeObject } from "../registry/TypeRegistry";
 import { ASTElement } from "./ASTElement";
+import { TypeObject } from "./TypeObject";
 
 export class Scope {
     guid: string;

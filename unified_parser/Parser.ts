@@ -1,16 +1,16 @@
-import { TypeRegistry } from "../generator/TypeRegistry";
 import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { TypeObject } from "../registry/TypeRegistry";
-import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
-import { Any, Assert, End, First, InOrder, Invert, Literal, Matcher, Optional, Star } from "./Matcher";
-import { Scope } from "./Scope";
+import { init_types } from "../registry/TypeRegistry";
+import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
+import { Assert, First, InOrder, Invert, Literal, Matcher, Optional, Star } from "./Matcher";
 import { SimpleStatement } from "./SimpleStatement";
-import { NumericLiteralExpression } from "./TypedElement";
+import { FieldReferenceExpression, FunctionCallExpression, NumericLiteralExpression } from "./TypedElement";
+import { TypeObject } from "./TypeObject";
 
 export function Parse(token_stream: Token[]): (Token | ASTElement)[] {
+    init_types();
     let stream = ApplyPass(token_stream, FindTopLevelConstructs);
 
     return stream;
@@ -56,7 +56,7 @@ type Pass = {
     rules: ProductionRule[]
 }
 
-export class ParseError extends ASTElement {
+export class ParseError extends VoidElement {
     description: string;
     constructor(description: string) {
         super();
@@ -64,10 +64,9 @@ export class ParseError extends ASTElement {
     }
 
     toString = () => `ParseError: ${this.description}`;
-    valueType = () => TypeRegistry.get("void");
 }
 
-export class ModuleConstruct extends ASTElement {
+export class ModuleConstruct extends VoidElement {
     name: string;
     constructor(name: string) {
         super();
@@ -76,7 +75,7 @@ export class ModuleConstruct extends ASTElement {
     toString = () => `Module(${this.name})`;
 }
 
-export class PartialClassConstruct extends ASTElement {
+export class PartialClassConstruct extends VoidElement {
     name: string;
     source: TokenStream;
     constructor(name: string, source: TokenStream) {
@@ -92,7 +91,7 @@ export class PartialClassConstruct extends ASTElement {
             if (item instanceof ClassField) {
                 rc.fields.push(item);
             } else if (item instanceof FunctionConstruct) {
-                item.args.unshift(new ArgumentDefinition("self", new TypeLiteral(this.name)));
+                item.args.unshift(new ArgumentDefinition("self", new UnresolvedTypeLiteral(this.name)));
                 rc.methods.push(item);
             }
         }
@@ -114,7 +113,7 @@ export class PartialFunctionConstruct extends ASTElement {
     parse(): FunctionConstruct | ParseError {
         const rc = new FunctionConstruct(this.name);
         const body = ApplyPass(this.source, ParseFunctionBody);
-        if (body[0] instanceof TypeLiteral) rc.returnType = body[0];
+        if (body[0] instanceof UnresolvedTypeLiteral) rc.return_type_literal = body[0];
         if (body[1] instanceof ArgumentList) rc.args = body[1].args;
         if (body[2] instanceof CompoundStatement) rc.body = body[2];
         return rc;
@@ -123,7 +122,7 @@ export class PartialFunctionConstruct extends ASTElement {
     toString = () => `PartialFunction(${this.name})`;
 }
 
-export class TypeLiteral extends ASTElement {
+export class UnresolvedTypeLiteral extends ASTElement {
     name: string;
     constructor(name: string) {
         super();
@@ -132,18 +131,26 @@ export class TypeLiteral extends ASTElement {
     toString = () => `Type(${this.name})`;
 }
 
-export class ClassField extends ASTElement {
-    name: string;
-    type: TypeLiteral;
-    constructor(name: string, type: TypeLiteral) {
-        super();
-        this.name = name;
-        this.type = type;
+export class TypeLiteral extends ASTElement {
+    constructor(type: TypeObject) {
+        super(type);
     }
-    toString = () => `ClassField<${this.type.toString()}>(${this.name})`;
+
+    toString = () => `!!TL!! ${this.value_type.toString()}`;
 }
 
-export class ClassConstruct extends ASTElement {
+export class ClassField extends ASTElement {
+    name: string;
+    type_literal: UnresolvedTypeLiteral | TypeLiteral;
+    constructor(name: string, type: UnresolvedTypeLiteral) {
+        super();
+        this.name = name;
+        this.type_literal = type;
+    }
+    toString = () => `ClassField<${this.type_literal.toString()}>(${this.name})`;
+}
+
+export class ClassConstruct extends VoidElement {
     name: string;
     fields: ClassField[] = [];
     methods: FunctionConstruct[] = [];
@@ -154,28 +161,28 @@ export class ClassConstruct extends ASTElement {
     toString = () => `Class(${this.name})`;
 }
 
-export class FunctionConstruct extends ASTElement {
+export class FunctionConstruct extends VoidElement {
     name: string;
-    returnType: TypeLiteral | TypeObject;
-    args: ArgumentDefinition[];
+    return_type_literal: UnresolvedTypeLiteral | TypeLiteral;
+    args: ArgumentDefinition[] = [];
     body?: CompoundStatement;
     constructor(name: string) {
         super();
         this.name = name;
     }
 
-    toString = () => `Function<${this.returnType?.toString()}>(${this.name})`;
+    toString = () => `Function<${this.return_type_literal?.value_type.toString()}>(${this.name})`;
 }
 
 export class ArgumentDefinition extends ASTElement {
     name: string;
-    type: TypeLiteral | TypeObject;
-    constructor(name: string, type: TypeLiteral) {
+    type_literal: UnresolvedTypeLiteral | TypeLiteral;
+    constructor(name: string, type: UnresolvedTypeLiteral) {
         super();
         this.name = name;
-        this.type = type;
+        this.type_literal = type;
     }
-    toString = () => `ArgumentDefinition<${this.type.toString()}>(${this.name})`;
+    toString = () => `ArgumentDefinition<${this.type_literal.toString()}>(${this.name})`;
 }
 
 export class ArgumentList extends ASTElement {
@@ -187,7 +194,7 @@ export class ArgumentList extends ASTElement {
     toString = () => `ArgumentList`;
 }
 
-export class CompoundStatement extends ASTElement {
+export class CompoundStatement extends VoidElement {
     substatements: ASTElement[];
     source: TokenStream;
     constructor(source: TokenStream) {
@@ -218,17 +225,6 @@ export class CompoundStatement extends ASTElement {
     toString = () => `CompoundStatement`;
 }
 
-export class UntypedFieldReferenceExpression extends ASTElement {
-    source: ASTElement;
-    field: string;
-    constructor(source: ASTElement, field: string) {
-        super();
-        this.source = source;
-        this.field = field;
-    }
-    toString = () => `${this.source.toString()}.${this.field}`;
-}
-
 export class PartialFieldReference extends ASTElement {
     field: string;
     constructor(field: string) {
@@ -247,7 +243,7 @@ export class NameExpression extends ASTElement {
     toString = () => `'${this.name}`;
 }
 
-export class AssignmentExpression extends ASTElement {
+export class AssignmentExpression extends VoidElement {
     lhs: ASTElement;
     rhs: ASTElement;
     constructor(lhs: ASTElement, rhs: ASTElement) {
@@ -259,21 +255,7 @@ export class AssignmentExpression extends ASTElement {
     toString = () => `${this.lhs.toString()} = ${this.rhs.toString()}`;
 }
 
-export class FunctionCallExpression extends ASTElement {
-    source: ASTElement;
-    args: ASTElement[];
-    self_added = false;
-
-    constructor(source: ASTElement, args: ASTElement[]) {
-        super();
-        this.source = source;
-        this.args = args;
-    }
-
-    toString = () => `${this.source.toString()}(${this.args.map(x => x.toString()).join(", ")})`;
-}
-
-export class UnaryReturnExpression extends ASTElement {
+export class UnaryReturnExpression extends VoidElement {
     source: ASTElement;
 
     constructor(source: ASTElement) {
@@ -284,24 +266,24 @@ export class UnaryReturnExpression extends ASTElement {
     toString = () => `return ${this.source.toString()}`;
 }
 
-export class NullaryReturnExpression extends ASTElement {
+export class NullaryReturnExpression extends VoidElement {
     toString = () => `return void`;
 }
 
-export class LocalDefinition extends ASTElement {
+export class LocalDefinition extends VoidElement {
     name: NameExpression;
-    type: ASTElement;
+    type_literal: UnresolvedTypeLiteral | TypeLiteral;
 
-    constructor(name: NameExpression, type: ASTElement) {
+    constructor(name: NameExpression, type: UnresolvedTypeLiteral | TypeLiteral) {
         super();
         this.name = name;
-        this.type = type;
+        this.type_literal = type;
     }
 
-    toString = () => `let ${this.name.toString()} ${this.type.toString()}`
+    toString = () => `let ${this.name.toString()} ${this.type_literal.toString()}`
 }
 
-export class ElidedElement extends ASTElement {
+export class ElidedElement extends VoidElement {
     toString = () => "<elided>";
 }
 
@@ -366,7 +348,7 @@ const ParseClassBody: Pass = {
             replace: (input: TokenStream) => {
                 const name = (input[input.length - 2] as NameToken).name;
                 const type = ApplyPass(input.slice(0, input.length - 2), ParseType)[0];
-                if (!(type instanceof TypeLiteral)) return undefined;
+                if (!(type instanceof UnresolvedTypeLiteral)) return undefined;
                 return [new ClassField(name, type)];
             }
         },
@@ -388,7 +370,7 @@ const ParseFunctionBody: Pass = {
             match: InOrder(Type(), Literal("Name"), Assert(Literal("OpenParen"))),
             replace: (input: TokenStream) => {
                 const type = ApplyPass(input.slice(0, input.length - 1), ParseType)[0];
-                if (!(type instanceof TypeLiteral)) return undefined;
+                if (!(type instanceof UnresolvedTypeLiteral)) return undefined;
                 return [type];
             },
             startOnly: true
@@ -396,7 +378,7 @@ const ParseFunctionBody: Pass = {
         {
             name: "MatchArgumentList",
             match: InOrder(
-                Literal("TypeLiteral"),
+                Literal("UnresolvedTypeLiteral"),
                 Literal("OpenParen"),
                 Optional(
                     InOrder(
@@ -407,7 +389,7 @@ const ParseFunctionBody: Pass = {
                 ),
                 Star(Type()),
                 Literal("CloseParen")),
-            replace: (input: [TypeLiteral, ...TokenStream]) => {
+            replace: (input: [UnresolvedTypeLiteral, ...TokenStream]) => {
                 const args = ApplyPass(input.slice(2, input.length - 1), {
                     name: "ConvertArguments",
                     rules: [
@@ -416,7 +398,7 @@ const ParseFunctionBody: Pass = {
                             match: InOrder(Type(), Literal("Name"), Optional(Literal("Comma"))),
                             replace: (input: TokenStream) => {
                                 const [type, name] = ApplyPass(input, ParseType);
-                                if (!(type instanceof TypeLiteral)) return undefined;
+                                if (!(type instanceof UnresolvedTypeLiteral)) return undefined;
                                 if (!(name['type'] == TokenType.Name)) return undefined;
                                 return [new ArgumentDefinition(name['name'], type)];
                             }
@@ -429,8 +411,8 @@ const ParseFunctionBody: Pass = {
         },
         {
             name: "MatchFunctionBody",
-            match: InOrder(Literal("TypeLiteral"), Literal("ArgumentList"), Assert(Literal("OpenBrace")), Braces()),
-            replace: (input: [TypeLiteral, ArgumentList, ...TokenStream]) => [input[0], input[1], new CompoundStatement(input.slice(2)).parse()],
+            match: InOrder(Literal("UnresolvedTypeLiteral"), Literal("ArgumentList"), Assert(Literal("OpenBrace")), Braces()),
+            replace: (input: [UnresolvedTypeLiteral, ArgumentList, ...TokenStream]) => [input[0], input[1], new CompoundStatement(input.slice(2)).parse()],
             startOnly: true
         },
     ]
@@ -443,7 +425,7 @@ const ParseType: Pass = {
             name: "Simple",
             match: Literal("Name"),
             replace: (input: [NameToken]) => {
-                return [new TypeLiteral(input[0].name)];
+                return [new UnresolvedTypeLiteral(input[0].name)];
             },
             startOnly: true
         }
@@ -471,7 +453,7 @@ const ExpressionPass: Pass = {
         {
             name: "FieldReference2",
             match: InOrder(MatchElement(), Literal("PartialFieldReference")),
-            replace: (input: [ASTElement, PartialFieldReference]) => [new UntypedFieldReferenceExpression(input[0], input[1].field)]
+            replace: (input: [ASTElement, PartialFieldReference]) => [new FieldReferenceExpression(input[0], input[1].field)]
         },
         {
             name: "FunctionCall",

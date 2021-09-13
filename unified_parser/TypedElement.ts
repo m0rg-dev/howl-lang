@@ -1,22 +1,9 @@
-import { CustomTypeObject, FunctionType, TypeObject, TypeRegistry } from "../registry/TypeRegistry";
+import { TypeRegistry } from "../registry/TypeRegistry";
+import { CustomTypeObject, FunctionType, TypeObject } from "./TypeObject";
 import { ASTElement } from "./ASTElement";
 import { ClassConstruct } from "./Parser";
 
-
-export abstract class TypedElement extends ASTElement {
-    type: TypeObject;
-    constructor(type: TypeObject) {
-        super();
-        this.type = type;
-    }
-    isTypedElement = () => true;
-}
-
-export function isTypedElement(x: Object): x is TypedElement {
-    return "isTypedElement" in x;
-}
-
-export class VariableReferenceExpression extends TypedElement {
+export class VariableReferenceExpression extends ASTElement {
     name: string;
 
     constructor(type: TypeObject, name: string) {
@@ -27,7 +14,7 @@ export class VariableReferenceExpression extends TypedElement {
     toString = () => `local ${this.name}`;
 }
 
-export class NumericLiteralExpression extends TypedElement {
+export class NumericLiteralExpression extends ASTElement {
     value: number;
     constructor(value: number) {
         super(TypeRegistry.get("_numeric_constant"));
@@ -36,16 +23,18 @@ export class NumericLiteralExpression extends TypedElement {
     toString = () => `#${this.value}`;
 }
 
-export class TypedFieldReferenceExpression extends TypedElement {
-    source: TypedElement;
+export class FieldReferenceExpression extends ASTElement {
+    source: ASTElement;
     field: string;
 
-    constructor(source: TypedElement, field: string) {
+    constructor(source: ASTElement, field: string) {
         super(undefined);
-        if (!(source.type instanceof CustomTypeObject
-            && source.type.source instanceof ClassConstruct)) throw new Error(`Can't take fields on ${source}`);
-        this.type = source.type.source.fields.find(x => x.name == field)?.type;
-        if (!this.type) throw new Error(`Can't find field ${field} on ${source}`);
+        /*
+        if (!(source.value_type instanceof CustomTypeObject
+            && source.value_type.source instanceof ClassConstruct)) throw new Error(`Can't take fields on ${source}<${source.value_type}>`);
+        this.value_type = source.value_type.source.fields.find(x => x.name == field)?.value_type;
+        if (!this.value_type) throw new Error(`Can't find field ${field} on ${source}`);
+        */
         this.source = source;
         this.field = field;
     }
@@ -53,20 +42,34 @@ export class TypedFieldReferenceExpression extends TypedElement {
     toString = () => `${this.source.toString()}.${this.field}`
 }
 
-export class MethodReferenceExpression extends TypedElement {
-    source: TypedElement;
+export class MethodReferenceExpression extends ASTElement {
+    source: ASTElement;
     method: string;
 
-    constructor(source: TypedElement, method: string) {
+    constructor(source: ASTElement, method: string) {
         super(undefined);
-        if (!(source.type instanceof CustomTypeObject
-            && source.type.source instanceof ClassConstruct)) throw new Error(`Can't take fields on ${source}`);
-        const method_obj = source.type.source.methods.find(x => x.name == method);
-        this.type = new FunctionType(method_obj.returnType, method_obj.args.map(x => x.type));
-        if (!this.type) throw new Error(`Can't find method ${method} on ${source}`);
+        if (!(source.value_type instanceof CustomTypeObject
+            && source.value_type.source instanceof ClassConstruct)) throw new Error(`Can't take fields on ${source}`);
+        const method_obj = source.value_type.source.methods.find(x => x.name == method);
+        this.value_type = new FunctionType(method_obj.return_type_literal.value_type, method_obj.args.map(x => x.type_literal.value_type));
+        if (!this.value_type) throw new Error(`Can't find method ${method} on ${source}`);
         this.source = source;
         this.method = method;
     }
 
     toString = () => `${this.source.toString()}->${this.method}`
+}
+
+export class FunctionCallExpression extends ASTElement {
+    source: ASTElement;
+    args: ASTElement[];
+    self_added = false;
+
+    constructor(source: ASTElement, args: ASTElement[]) {
+        super((source.value_type as FunctionType).rc);
+        this.source = source;
+        this.args = args;
+    }
+
+    toString = () => `${this.source.toString()}(${this.args.map(x => x.toString()).join(", ")})`;
 }

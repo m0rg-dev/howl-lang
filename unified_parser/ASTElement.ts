@@ -1,14 +1,18 @@
 import { randomUUID } from "crypto";
 import { Token } from "../lexer/Token";
+import { TypeRegistry } from "../registry/TypeRegistry";
 import { Scope } from "./Scope";
 import { Transformer } from "./Transformer";
+import { TypeObject } from "./TypeObject";
 
 export type TokenStream = (Token | ASTElement)[];
 
 export abstract class ASTElement {
     guid: string;
-    constructor() {
+    constructor(type?: TypeObject) {
         this.guid = randomUUID().replace(/-/g, "_");
+        if (type) this.value_type = type;
+        else this.value_type = TypeRegistry.get("_unknown");
     }
     abstract toString(): string;
     isAstElement(): boolean { return true; }
@@ -34,8 +38,15 @@ export abstract class ASTElement {
 
     scope: Scope = new Scope();
     hasOwnScope = false;
+    value_type: TypeObject;
 }
 
 export function isAstElement(obj: Object): obj is ASTElement {
     return "isAstElement" in obj;
+}
+
+export abstract class VoidElement extends ASTElement {
+    constructor() {
+        super(TypeRegistry.get("void"));
+    }
 }

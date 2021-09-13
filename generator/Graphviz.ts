@@ -1,8 +1,8 @@
-import { FunctionType } from "../registry/TypeRegistry";
+import { FunctionType } from "../unified_parser/TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
-import { ClassConstruct, CompoundStatement, FunctionCallExpression, FunctionConstruct, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
+import { ClassConstruct, CompoundStatement, FunctionConstruct, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
 import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "../unified_parser/SimpleStatement";
-import { isTypedElement, MethodReferenceExpression, TypedFieldReferenceExpression } from "../unified_parser/TypedElement";
+import { FunctionCallExpression, MethodReferenceExpression, FieldReferenceExpression } from "../unified_parser/TypedElement";
 
 export function PrintAST(stream: TokenStream): string {
     let s = "digraph{\n    rankdir=LR;";
@@ -21,9 +21,7 @@ export function PrintExpression(node: ASTElement): string {
         { name: "own_text", label: `"${node}"` },
     ];
 
-    if (isTypedElement(node)) {
-        entries.push({ name: "type", label: `type: ${node.type}` });
-    }
+    entries.push({ name: "type", label: `type: ${node.value_type}` });
 
     if (node.scope && node.hasOwnScope) {
         entries.push({ name: "scope", label: "scope" });
@@ -42,14 +40,14 @@ export function PrintExpression(node: ASTElement): string {
     }
 
     if (node instanceof ClassConstruct) {
-        node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.type.toString()}>` }));
+        node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.value_type.toString()}>` }));
         node.methods.forEach(x => {
-            entries.push({ name: x.name, label: `${x.name}<${x.returnType.toString()}>(${x.args.map(x => `${x.name}<${x.type.toString()}>`).join(", ")})` });
+            entries.push({ name: x.name, label: `${x.name}<${x.return_type_literal.value_type.toString()}>(${x.args.map(x => `${x.name}<${x.type_literal.value_type.toString()}>`).join(", ")})` });
             s += link(node.guid, x.name, x.guid, "expression");
             s += PrintExpression(x);
         });
     } else if (node instanceof FunctionConstruct) {
-        node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.type.toString()}>` }));
+        node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.type_literal.value_type.toString()}>` }));
         if (node.body) {
             entries.push({ name: "body", label: "Body" });
             s += link(node.guid, "body", node.body.guid, "expression");
@@ -72,16 +70,8 @@ export function PrintExpression(node: ASTElement): string {
             }
         });
     } else if (node instanceof AssignmentStatement) {
-        if (isTypedElement(node.expression.lhs)) {
-            entries.push({ name: "lhs", label: `lhs <${node.expression.lhs.type}>` });
-        } else {
-            entries.push({ name: "lhs", label: "lhs" });
-        }
-        if (isTypedElement(node.expression.rhs)) {
-            entries.push({ name: "rhs", label: `rhs <${node.expression.rhs.type}>` });
-        } else {
-            entries.push({ name: "rhs", label: "rhs" });
-        }
+        entries.push({ name: "lhs", label: `lhs <${node.expression.lhs.value_type}>` });
+        entries.push({ name: "rhs", label: `rhs <${node.expression.rhs.value_type}>` });
         s += link(node.guid, "lhs", node.expression.lhs.guid, "expression");
         s += link(node.guid, "rhs", node.expression.rhs.guid, "expression");
         s += PrintExpression(node.expression.lhs);
@@ -94,7 +84,7 @@ export function PrintExpression(node: ASTElement): string {
         }
         s += link(node.guid, "value", node.expression.source.guid, "expression");
         s += PrintExpression(node.expression.source);
-    } else if (node instanceof TypedFieldReferenceExpression) {
+    } else if (node instanceof FieldReferenceExpression) {
         entries.push({ name: "source", label: "source" });
         s += link(node.guid, "source", node.source.guid, "expression");
         s += PrintExpression(node.source);
@@ -102,15 +92,15 @@ export function PrintExpression(node: ASTElement): string {
         entries.push({ name: "function", label: "function" });
         s += link(node.guid, "function", node.source.guid, "expression");
         s += PrintExpression(node.source);
-        node.args.forEach((x, y) => {
-            if (isTypedElement(node.source)) {
-                entries.push({ name: `arg${y}`, label: `argument ${y} <${(node.source.type as FunctionType).args[y]}>` });
-            } else {
-                entries.push({ name: `arg${y}`, label: `argument ${y}` });
-            }
-            s += link(node.guid, `arg${y}`, x.guid, "expression");
-            s += PrintExpression(x);
-        })
+        if (node.source.value_type instanceof FunctionType) {
+            node.args.forEach((x, y) => {
+                entries.push({ name: `arg${y}`, label: `argument ${y} <${(node.source.value_type as FunctionType).args[y]}>` });
+                s += link(node.guid, `arg${y}`, x.guid, "expression");
+                s += PrintExpression(x);
+            })
+        } else {
+            entries.push({ name: "err", label: `no args? type is ${node.source.value_type}` });
+        }
     }
 
     s += mrecord(node.guid, entries);

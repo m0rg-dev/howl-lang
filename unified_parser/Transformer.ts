@@ -1,9 +1,9 @@
-import { CustomTypeObject, TypeObject, TypeRegistry } from "../registry/TypeRegistry";
+import { TypeRegistry } from "../registry/TypeRegistry";
+import { CustomTypeObject, FunctionType, TypeObject } from "./TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
-import { AssignmentExpression, ClassConstruct, CompoundStatement, ElidedElement, FunctionCallExpression, FunctionConstruct, LocalDefinition, NameExpression, NullaryReturnExpression, TypeLiteral, UnaryReturnExpression, UntypedFieldReferenceExpression } from "./Parser";
+import { AssignmentExpression, ClassConstruct, CompoundStatement, ElidedElement, FunctionConstruct, LocalDefinition, NameExpression, NullaryReturnExpression, UnresolvedTypeLiteral, UnaryReturnExpression, TypeLiteral, ClassField } from "./Parser";
 import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "./SimpleStatement";
-import { isTypedElement, MethodReferenceExpression, TypedElement, TypedFieldReferenceExpression, VariableReferenceExpression } from "./TypedElement";
-import { Scope } from "./Scope";
+import { FunctionCallExpression, MethodReferenceExpression, FieldReferenceExpression, VariableReferenceExpression } from "./TypedElement";
 
 export type Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent?: ASTElement) => void;
 
@@ -22,12 +22,18 @@ export const ExtractClassTypes: Transformer = (element: ASTElement, replace: (n:
 export const ReplaceTypes: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
     if (element instanceof NameExpression
         && TypeRegistry.has(element.name)) {
-        replace(TypeRegistry.get(element.name))
-    } else if (element instanceof TypeLiteral
+        replace(new TypeLiteral(TypeRegistry.get(element.name)))
+    } else if (element instanceof UnresolvedTypeLiteral
         && TypeRegistry.has(element.name)) {
-        replace(TypeRegistry.get(element.name))
+        replace(new TypeLiteral(TypeRegistry.get(element.name)))
     }
 };
+
+export const SpecifyClassFields: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof ClassField && element.type_literal instanceof TypeLiteral) {
+        element.value_type = element.type_literal.value_type;
+    }
+}
 
 export const SpecifyStatements: Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent: ASTElement) => {
     if (element instanceof SimpleStatement
@@ -43,9 +49,9 @@ export const GenerateScopes: Transformer = (element: ASTElement, replace: (n: AS
     if (element instanceof FunctionConstruct) {
         element.scope.parent = parent;
         for (const arg of element.args) {
-            element.scope.locals.set(arg.name, arg.type as TypeObject);
+            element.scope.locals.set(arg.name, arg.type_literal.value_type);
         }
-        element.scope.return_type = element.returnType as TypeObject;
+        element.scope.return_type = element.return_type_literal.value_type;
         element.hasOwnScope = true;
     } else if (element instanceof CompoundStatement) {
         element.scope.parent = parent;
@@ -59,7 +65,7 @@ export const PropagateLocalDefinitions: Transformer = (element: ASTElement, repl
     if (element instanceof SimpleStatement
         && element.source[0] instanceof LocalDefinition
         && parent.scope) {
-        parent.scope.locals.set(element.source[0].name.name, element.source[0].type as TypeObject);
+        parent.scope.locals.set(element.source[0].name.name, element.source[0].type_literal.value_type);
         replace(new ElidedElement());
     }
 }
@@ -74,12 +80,12 @@ export const ReferenceLocals: Transformer = (element: ASTElement, replace: (n: A
 }
 
 export const SpecifyMethodReferences: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
-    if (element instanceof UntypedFieldReferenceExpression
-        && isTypedElement(element.source)
-        && element.source.type instanceof CustomTypeObject
-        && element.source.type.source instanceof ClassConstruct) {
-        if (element.source.type.source.methods.some(x => x.name == element.field)) {
-            replace(new MethodReferenceExpression(element.source as TypedElement, element.field));
+    if (element instanceof FieldReferenceExpression
+        && (element.source)
+        && element.source.value_type instanceof CustomTypeObject
+        && element.source.value_type.source instanceof ClassConstruct) {
+        if (element.source.value_type.source.methods.some(x => x.name == element.field)) {
+            replace(new MethodReferenceExpression(element.source as ASTElement, element.field));
         }
     }
 }
@@ -94,12 +100,19 @@ export const AddSelfToMethodCalls: Transformer = (element: ASTElement, replace: 
 }
 
 export const SpecifyFieldReferences: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
-    if (element instanceof UntypedFieldReferenceExpression
-        && isTypedElement(element.source)
-        && element.source.type instanceof CustomTypeObject
-        && element.source.type.source instanceof ClassConstruct) {
-        if (element.source.type.source.fields.some(x => x.name == element.field)) {
-            replace(new TypedFieldReferenceExpression(element.source as TypedElement, element.field));
+    if (element instanceof FieldReferenceExpression
+        && element.source.value_type instanceof CustomTypeObject
+        && element.source.value_type.source instanceof ClassConstruct) {
+        if (element.source.value_type.source.fields.some(x => x.name == element.field)) {
+            element.value_type = element.source.value_type.source.fields.find(x => x.name == element.field).type_literal.value_type;
         }
+    }
+}
+
+export const SpecifyFunctionCalls: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof FunctionCallExpression
+        && element.value_type == TypeRegistry.get("_unknown")
+        && element.source.value_type instanceof FunctionType) {
+        element.value_type = (element.source.value_type as FunctionType).rc;
     }
 }
