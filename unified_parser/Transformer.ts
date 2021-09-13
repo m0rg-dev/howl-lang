@@ -14,3 +14,4 @@ export const ExtractClassTypes: Transformer = (element: ASTElement, replace: (n:
         console.error(`Extracted class type: %${element.name}`);
     }
 }
+

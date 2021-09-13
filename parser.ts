@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import { Program } from './ast/Program';
 import { Lexer } from './lexer';
 import { TokenType } from './lexer/TokenType';
 
@@ -23,7 +22,3 @@ for (const tok of lexer.token_stream) {
         console.error(`${tok.start} ${tok.length} ${TokenType[tok.type]}`);
     }
 }
-
-const p = new Program();
-console.error(p.parse(lexer.handle()));
-console.log(p.synthesize());
