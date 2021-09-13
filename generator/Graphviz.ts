@@ -80,6 +80,23 @@ export function PrintExpression(node: ASTElement): string {
     const entries = [
         { name: "expression", label: node.toString() },
     ];
+
+    if (node.scope) {
+        entries.push({ name: "scope", label: "scope" });
+        s += link(node.guid, "scope", node.scope.guid, undefined);
+        const sub_entries: { name: string, label: string }[] = [];
+        if(node.scope.parent && node.scope.parent.scope) {
+            s += revlink(node.scope.guid, undefined, node.scope.parent.scope.guid, undefined);
+        }
+        for (const [k, v] of node.scope.locals) {
+            sub_entries.push({ name: k, label: `${v} ${k}` });
+        }
+        if(node.scope.return_type) {
+            sub_entries.push({ name: "__return", label: `return: ${node.scope.return_type}`})
+        }
+        s += record(node.scope.guid, sub_entries);
+    }
+
     if (node instanceof ClassConstruct) {
         node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.type.toString()}>` }));
         node.methods.forEach(x => {
@@ -131,4 +148,8 @@ function record(name: string, entries: { name: string, label: string }[]): strin
 
 function link(src: string, srcport: string, dest: string, destport: string): string {
     return `    n${src}${srcport ? `:n${srcport}` : ""} -> n${dest}${destport ? `:n${destport}` : ""}\n`;
+}
+
+function revlink(src: string, srcport: string, dest: string, destport: string): string {
+    return `    n${dest}${destport ? `:n${destport}` : ""} -> n${src}${srcport ? `:n${srcport}` : ""} [dir=back]\n`;
 }

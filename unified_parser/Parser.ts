@@ -3,6 +3,7 @@ import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
+import { TypeObject } from "../registry/TypeRegistry";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
 import { Any, Assert, End, First, InOrder, Invert, Literal, Matcher, Optional, Star } from "./Matcher";
 
@@ -151,7 +152,7 @@ export class ClassConstruct extends ASTElement {
 
 export class FunctionConstruct extends ASTElement {
     name: string;
-    returnType: TypeLiteral;
+    returnType: TypeLiteral | TypeObject;
     args: ArgumentDefinition[];
     body?: CompoundStatement;
     constructor(name: string) {
@@ -164,7 +165,7 @@ export class FunctionConstruct extends ASTElement {
 
 export class ArgumentDefinition extends ASTElement {
     name: string;
-    type: TypeLiteral;
+    type: TypeLiteral | TypeObject;
     constructor(name: string, type: TypeLiteral) {
         super();
         this.name = name;

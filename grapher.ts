@@ -6,7 +6,7 @@ import { TokenType } from './lexer/TokenType';
 import { install } from 'source-map-support';
 import { Parse } from './unified_parser/Parser';
 import { ASTElement } from './unified_parser/ASTElement';
-import { ApplyToAll, ExtractClassTypes } from './unified_parser/Transformer';
+import { ApplyToAll, ExtractClassTypes, GenerateScopes, PropagateLocalDefinitions, ReplaceTypes } from './unified_parser/Transformer';
 install();
 
 export function why_not(e: string): boolean {
@@ -39,5 +39,8 @@ console.log("}");
 
 const stream = Parse(lexer.token_stream);
 ApplyToAll(stream, ExtractClassTypes);
+ApplyToAll(stream, ReplaceTypes);
+ApplyToAll(stream, GenerateScopes);
+ApplyToAll(stream, PropagateLocalDefinitions);
 
 console.log(PrintAST(stream));
