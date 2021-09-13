@@ -1,11 +1,12 @@
 import * as fs from 'fs';
-import { PrintExpression } from './generator/Graphviz';
+import { PrintAST, PrintExpression } from './generator/Graphviz';
 import { Lexer } from './lexer';
 import { TokenType } from './lexer/TokenType';
 
 import { install } from 'source-map-support';
 import { Parse } from './unified_parser/Parser';
 import { ASTElement } from './unified_parser/ASTElement';
+import { ApplyToAll, ExtractClassTypes } from './unified_parser/Transformer';
 install();
 
 export function why_not(e: string): boolean {
@@ -36,11 +37,7 @@ PrintTree(p);
 console.log("}");
 */
 
-const ostream = Parse(lexer.token_stream);
-console.log("digraph {");
-console.log("    rankdir=LR;");
-ostream.forEach((x) => {
-    if(!(x instanceof ASTElement)) return;
-    PrintExpression(x);
-});
-console.log("}");
+const stream = Parse(lexer.token_stream);
+ApplyToAll(stream, ExtractClassTypes);
+
+console.log(PrintAST(stream));

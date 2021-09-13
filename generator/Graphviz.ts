@@ -1,5 +1,5 @@
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, isAstElement } from "../unified_parser/ASTElement";
+import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
 import { ClassConstruct, CompoundStatement, FunctionConstruct, ModuleConstruct, PartialClassConstruct, SimpleStatement } from "../unified_parser/Parser";
 
 /*
@@ -65,7 +65,18 @@ export function PrintExpression(node: ASTElement) {
 }
 */
 
-export function PrintExpression(node: ASTElement) {
+export function PrintAST(stream: TokenStream): string {
+    let s = "digraph{\n    rankdir=LR;";
+    stream.forEach((x) => {
+        if (!(x instanceof ASTElement)) return;
+        s += PrintExpression(x);
+    });
+    s += "}\n";
+    return s;
+}
+
+export function PrintExpression(node: ASTElement): string {
+    let s = "";
     const entries = [
         { name: "expression", label: node.toString() },
     ];
@@ -73,21 +84,21 @@ export function PrintExpression(node: ASTElement) {
         node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.type.toString()}>` }));
         node.methods.forEach(x => {
             entries.push({ name: x.name, label: `${x.name}<${x.returnType.toString()}>(${x.args.map(x => `${x.name}<${x.type.toString()}>`).join(", ")})` });
-            console.log(link(node.guid, x.name, x.guid, "expression"));
-            PrintExpression(x);
+            s += link(node.guid, x.name, x.guid, "expression");
+            s += PrintExpression(x);
         });
     } else if (node instanceof FunctionConstruct) {
         node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.type.toString()}>` }));
         if (node.body) {
             entries.push({ name: "body", label: "Body" });
-            console.log(link(node.guid, "body", node.body.guid, "expression"));
-            PrintExpression(node.body);
+            s += link(node.guid, "body", node.body.guid, "expression");
+            s += PrintExpression(node.body);
         }
     } else if (node instanceof CompoundStatement) {
         node.substatements.forEach(x => {
             entries.push({ name: x.guid, label: x.toString() });
-            console.log(link(node.guid, x.guid, x.guid, "expression"));
-            PrintExpression(x);
+            s += link(node.guid, x.guid, x.guid, "expression");
+            s += PrintExpression(x);
         });
     } else if (node instanceof SimpleStatement) {
         node.source.forEach((x, y) => {
@@ -99,7 +110,8 @@ export function PrintExpression(node: ASTElement) {
         });
     }
 
-    console.log(mrecord(node.guid, entries));
+    s += mrecord(node.guid, entries);
+    return s;
 }
 
 function mklabel(entries: { name: string, label: string }[]): string {
@@ -118,5 +130,5 @@ function record(name: string, entries: { name: string, label: string }[]): strin
 }
 
 function link(src: string, srcport: string, dest: string, destport: string): string {
-    return `    n${src}${srcport ? `:n${srcport}` : ""} -> n${dest}${destport ? `:n${destport}` : ""}`;
+    return `    n${src}${srcport ? `:n${srcport}` : ""} -> n${dest}${destport ? `:n${destport}` : ""}\n`;
 }
