@@ -1,7 +1,8 @@
 import { count } from "../generator/Synthesizable";
 import { TypeRegistry } from "../generator/TypeRegistry";
 import { Expression } from "./Expression";
-import { InferSubField, VoidExpression } from "./ExpressionParser";
+import { InferSubField } from "../unified_parser/ExpressionParser";
+import { VoidExpression } from "./VoidExpression";
 
 
 export class ReturnExpression extends Expression {

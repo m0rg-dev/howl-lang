@@ -1,8 +1,8 @@
 import { count } from "../generator/Synthesizable";
 import { Type, TypeRegistry } from "../generator/TypeRegistry";
-import { Specifiable, ProviderType } from "./ExpressionParser";
+import { ProviderType } from "../unified_parser/ExpressionParser";
 import { Expression } from "./Expression";
-
+import { Specifiable } from "./Specifiable";
 
 export class NumericLiteralExpression extends Expression implements Specifiable {
     value: number;

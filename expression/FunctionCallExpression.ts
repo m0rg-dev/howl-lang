@@ -1,5 +1,5 @@
 import { FunctionType, PointerType } from "../generator/TypeRegistry";
-import { InferSubField } from "./ExpressionParser";
+import { InferSubField } from "../unified_parser/ExpressionParser";
 import { Expression } from "./Expression";
 import { count } from "../generator/Synthesizable";
 

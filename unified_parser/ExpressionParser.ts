@@ -4,15 +4,21 @@ import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { AssignmentExpression } from "./AssignmentExpression";
-import { DereferenceExpression } from "./DereferenceExpression";
-import { Expression } from "./Expression";
-import { FieldReferenceExpression, MethodReferenceExpression } from "./FieldReferenceExpression";
-import { FunctionCallExpression } from "./FunctionCallExpression";
-import { LocalDefinitionExpression } from "./LocalDefinitionExpression";
-import { NumericLiteralExpression } from "./NumericLiteralExpression";
-import { ReturnExpression } from "./ReturnExpression";
-import { VariableExpression } from "./VariableExpression";
+import { AssignmentExpression } from "../expression/AssignmentExpression";
+import { DereferenceExpression } from "../expression/DereferenceExpression";
+import { Expression, isExpression } from "../expression/Expression";
+import { FieldReferenceExpression, MethodReferenceExpression } from "../expression/FieldReferenceExpression";
+import { FunctionCallExpression } from "../expression/FunctionCallExpression";
+import { LocalDefinitionExpression } from "../expression/LocalDefinitionExpression";
+import { NumericLiteralExpression } from "../expression/NumericLiteralExpression";
+import { ReturnExpression } from "../expression/ReturnExpression";
+import { VariableExpression } from "../expression/VariableExpression";
+import { isSpecifiable } from "../expression/Specifiable";
+import { StaticFunctionReferenceExpression } from "../expression/StaticFunctionReferenceExpression";
+import { StaticFunctionCallExpression } from "../expression/StaticFunctionCallExpression";
+import { SpecifyExpression } from "../expression/SpecifyExpression";
+import { VoidExpression } from "../expression/VoidExpression";
+import { Matcher, Literal, InOrder, Optional, Star, First } from "./Matcher";
 
 export function parseExpression(input_stream: Token[], scope: Scope): Expression {
     console.error("Entered expression parser.");
@@ -46,63 +52,6 @@ export function parseExpression(input_stream: Token[], scope: Scope): Expression
     }
     // TODO this should be an error
     return undefined;
-}
-
-function isExpression(obj: Object): obj is Expression {
-    return "isExpression" in obj;
-}
-
-export interface Specifiable {
-    specify(target: Type): Expression
-}
-
-function isSpecifiable(obj: Object): obj is Specifiable {
-    return "specify" in obj;
-}
-
-export class StaticFunctionReferenceExpression extends VariableExpression {
-    toString = () => `StaticFunctionReference<${this.type.to_readable()}(${this.name})`;
-}
-
-export class StaticFunctionCallExpression extends Expression {
-    name: string;
-    type: FunctionType;
-    args: Expression[];
-
-    constructor(name: string, type: FunctionType, args: Expression[]) {
-        super();
-        this.name = name;
-        this.type = type;
-        this.args = args;
-    }
-    valueType = () => this.type.return_type();
-    toString = () => `StaticFunctionCall<${this.valueType().to_readable()}>(${this.name}, (${this.args.map(x => x.toString()).join(", ")}))`;
-    inferTypes = () => {
-        this.args.map((x, i) => InferSubField(x, (n: Expression) => this.args[i] = n));
-    }
-}
-
-export class SpecifyExpression extends Expression {
-    sub: Expression;
-    type: Type;
-
-    constructor(sub: Expression, type: Type) {
-        super();
-        this.sub = sub;
-        this.type = type;
-    }
-
-    valueType = () => this.type;
-    toString = () => `Specify<${this.type.to_readable()}>(${this.sub.toString()})`;
-    inferTypes = () => {
-        InferSubField(this.sub, (n: Expression) => this.sub = n);
-    }
-}
-
-export class VoidExpression extends Expression {
-    valueType = () => TypeRegistry.get("void");
-    toString = () => `Void`;
-    inferTypes = () => { };
 }
 
 type ProductionRule = {
@@ -261,74 +210,6 @@ const rules: ProductionRule[] = [
         }
     }
 ];
-
-type Matcher = (stream: (Token | Expression)[]) => { matched: boolean, length: number };
-
-function Literal(what: string): Matcher {
-    return (stream: (Token | Expression)[]) => {
-        if (!stream[0]) return { matched: false, length: 0 };
-        if (isExpression(stream[0])) {
-            return { matched: stream[0]?.constructor.name == what, length: 1 }
-        } else {
-            return { matched: TokenType[stream[0].type] == what, length: 1 }
-        }
-    };
-}
-
-function InOrder(...what: Matcher[]): Matcher {
-    return (stream: (Token | Expression)[]) => {
-        const rc = { matched: true, length: 0 };
-        for (const m of what) {
-            const rc2 = m(stream.slice(rc.length));
-            if (!rc2.matched) return { matched: false, length: 0 };
-            rc.length += rc2.length;
-        }
-        return rc;
-    };
-}
-
-function First(...what: Matcher[]): Matcher {
-    return (stream: (Token | Expression)[]) => {
-        for (const m of what) {
-            const rc = m(stream);
-            if (rc.matched) return rc;
-        }
-        return { matched: false, length: 0 };
-    };
-}
-
-function Star(what: Matcher): Matcher {
-    return (stream: (Token | Expression)[]) => {
-        const rc = { matched: true, length: 0 };
-        while (true) {
-            const rc2 = what(stream.slice(rc.length));
-            if (!rc2.matched) break;
-            rc.length += rc2.length;
-        }
-        return rc;
-    };
-}
-
-function Optional(what: Matcher): Matcher {
-    return (stream: (Token | Expression)[]) => {
-        const rc = what(stream);
-        if (rc.matched) return rc;
-        return { matched: true, length: 0 };
-    }
-}
-
-function Invert(what: Matcher): Matcher {
-    return (stream: (Token | Expression)[]) => {
-        const rc = what(stream);
-        return { matched: !rc.matched, length: rc.length };
-    }
-}
-
-function Rest(): Matcher {
-    return (stream: (Token | Expression)[]) => {
-        return { matched: true, length: stream.length }
-    };
-}
 
 // ---
 

@@ -1,4 +1,4 @@
-import { parseExpression } from "../expression/ExpressionParser";
+import { parseExpression } from "../unified_parser/ExpressionParser";
 import { LocalDefinitionExpression } from "../expression/LocalDefinitionExpression";
 import { Expression } from "../expression/Expression";
 import { LexerHandle } from "../lexer";

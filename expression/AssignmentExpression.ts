@@ -2,7 +2,7 @@ import { TypeRegistry } from "../generator/TypeRegistry";
 import { Expression } from "./Expression";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
 import { VariableExpression } from "./VariableExpression";
-import { InferSubField } from "./ExpressionParser";
+import { InferSubField } from "../unified_parser/ExpressionParser";
 import { count } from "../generator/Synthesizable";
 
 

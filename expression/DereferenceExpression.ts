@@ -1,7 +1,7 @@
 import { count } from "../generator/Synthesizable";
 import { PointerType } from "../generator/TypeRegistry";
 import { Expression } from "./Expression";
-import { InferSubField } from "./ExpressionParser";
+import { InferSubField } from "../unified_parser/ExpressionParser";
 
 
 export class DereferenceExpression extends Expression {

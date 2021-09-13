@@ -1,7 +1,6 @@
 import { randomUUID } from "crypto";
 import { Type } from "../generator/TypeRegistry";
 
-
 export abstract class Expression {
     guid: string;
     constructor() {
@@ -17,4 +16,8 @@ export abstract class Expression {
     synthesize(): { code: string; location: string; } {
         return { code: `;; ${this.toString()}`, location: "%INVALID" };
     }
+}
+
+export function isExpression(obj: Object): obj is Expression {
+    return "isExpression" in obj;
 }
