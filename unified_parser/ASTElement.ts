@@ -32,7 +32,8 @@ export abstract class ASTElement {
         t(this, replace, parent);
     }
 
-    scope?: Scope;
+    scope: Scope = new Scope();
+    hasOwnScope = false;
 }
 
 export function isAstElement(obj: Object): obj is ASTElement {

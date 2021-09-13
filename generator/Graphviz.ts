@@ -1,69 +1,8 @@
-import { TokenType } from "../lexer/TokenType";
+import { FunctionType } from "../registry/TypeRegistry";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
-import { ClassConstruct, CompoundStatement, FunctionConstruct, ModuleConstruct, PartialClassConstruct, SimpleStatement } from "../unified_parser/Parser";
-
-/*
-export function PrintExpression(node: ASTElement) {
-    const entries = [
-        { name: "expression", label: node.constructor.name },
-    ];
-    if (node instanceof AssignmentExpression) {
-        entries.push({ name: "lhs", label: "lhs" });
-        entries.push({ name: "rhs", label: "rhs" });
-        console.log(`    n${node.guid}:nlhs -> n${node.lhs.guid}:nexpression`);
-        console.log(`    n${node.guid}:nrhs -> n${node.rhs.guid}:nexpression`);
-        PrintExpression(node.lhs);
-        PrintExpression(node.rhs);
-    } else if (node instanceof FieldReferenceExpression) {
-        entries.push({ name: "sub", label: "source" });
-        entries.push({ name: "field", label: '\\"' + node.field + '\\"' });
-        console.log(`    n${node.guid}:nsub -> n${node.sub.guid}:nexpression`);
-        PrintExpression(node.sub);
-    } else if (node instanceof VariableExpression) {
-        entries.push({ name: "name", label: '\\"' + node.name + '\\"' });
-    } else if (node instanceof LocalDefinitionExpression) {
-        entries.push({ name: "name", label: '\\"' + node.name + '\\"' });
-    } else if (node instanceof FunctionCallExpression) {
-        entries.push({ name: "function", label: `function<${node.type.to_readable()}>` });
-        console.log(`    n${node.guid}:nfunction -> n${node.rhs.guid}:nexpression`);
-        PrintExpression(node.rhs);
-        for (const arg_idx in node.args) {
-            entries.push({ name: `arg${arg_idx}`, label: `argument ${arg_idx}` });
-            console.log(`    n${node.guid}:narg${arg_idx} -> n${node.args[arg_idx].guid}:nexpression`);
-            PrintExpression(node.args[arg_idx]);
-        }
-    } else if (node instanceof StaticFunctionCallExpression) {
-        entries.push({ name: "function", label: `function<${node.type.to_readable()}>` });
-        entries.push({ name: "name", label: node.name });
-        for (const arg_idx in node.args) {
-            entries.push({ name: `arg${arg_idx}`, label: `argument ${arg_idx}` });
-            console.log(`    n${node.guid}:narg${arg_idx} -> n${node.args[arg_idx].guid}:nexpression`);
-            PrintExpression(node.args[arg_idx]);
-        }
-    } else if (node instanceof NumericLiteralExpression) {
-        entries.push({ name: "value", label: `${node.value}` });
-    } else if (node instanceof SpecifyExpression) {
-        console.log(`    n${node.guid} -> n${node.sub.guid}`);
-        PrintExpression(node.sub);
-    } else if (node instanceof ReturnExpression) {
-        console.log(`    n${node.guid} -> n${node.sub.guid}`);
-        PrintExpression(node.sub);
-    } else if (node instanceof DereferenceExpression) {
-        entries.push({ name: "sub", label: "source" });
-        console.log(`    n${node.guid}:nsub -> n${node.sub.guid}`);
-        PrintExpression(node.sub);
-    } else if (node instanceof VoidExpression) {
-    } else if (node instanceof ModuleConstruct) {
-        entries.push({ name: "name", label: node.name});
-    } else if (node instanceof PartialClassConstruct) {
-        entries.push({ name: "name", label: node.name});
-    } else {
-        console.error(`  (tried to graphviz unknown expression type ${node.constructor.name})`);
-    }
-
-    console.log(mrecord(node.guid, entries));
-}
-*/
+import { ClassConstruct, CompoundStatement, FunctionCallExpression, FunctionConstruct, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
+import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "../unified_parser/SimpleStatement";
+import { isTypedElement, MethodReferenceExpression, TypedFieldReferenceExpression } from "../unified_parser/TypedElement";
 
 export function PrintAST(stream: TokenStream): string {
     let s = "digraph{\n    rankdir=LR;";
@@ -78,21 +17,26 @@ export function PrintAST(stream: TokenStream): string {
 export function PrintExpression(node: ASTElement): string {
     let s = "";
     const entries = [
-        { name: "expression", label: node.toString() },
+        { name: "expression", label: node.constructor.name },
+        { name: "own_text", label: `"${node}"` },
     ];
 
-    if (node.scope) {
+    if (isTypedElement(node)) {
+        entries.push({ name: "type", label: `type: ${node.type}` });
+    }
+
+    if (node.scope && node.hasOwnScope) {
         entries.push({ name: "scope", label: "scope" });
         s += link(node.guid, "scope", node.scope.guid, undefined);
         const sub_entries: { name: string, label: string }[] = [];
-        if(node.scope.parent && node.scope.parent.scope) {
+        if (node.scope.parent && node.scope.parent.scope && node.scope.parent.hasOwnScope) {
             s += revlink(node.scope.guid, undefined, node.scope.parent.scope.guid, undefined);
         }
         for (const [k, v] of node.scope.locals) {
             sub_entries.push({ name: k, label: `${v} ${k}` });
         }
-        if(node.scope.return_type) {
-            sub_entries.push({ name: "__return", label: `return: ${node.scope.return_type}`})
+        if (node.scope.return_type) {
+            sub_entries.push({ name: "__return", label: `return: ${node.scope.return_type}` })
         }
         s += record(node.scope.guid, sub_entries);
     }
@@ -121,10 +65,52 @@ export function PrintExpression(node: ASTElement): string {
         node.source.forEach((x, y) => {
             if (isAstElement(x)) {
                 entries.push({ name: `${y}`, label: x.toString() });
+                s += link(node.guid, `${y}`, x.guid, "expression");
+                s += PrintExpression(x);
             } else {
                 entries.push({ name: `${y}`, label: x.text });
             }
         });
+    } else if (node instanceof AssignmentStatement) {
+        if (isTypedElement(node.expression.lhs)) {
+            entries.push({ name: "lhs", label: `lhs <${node.expression.lhs.type}>` });
+        } else {
+            entries.push({ name: "lhs", label: "lhs" });
+        }
+        if (isTypedElement(node.expression.rhs)) {
+            entries.push({ name: "rhs", label: `rhs <${node.expression.rhs.type}>` });
+        } else {
+            entries.push({ name: "rhs", label: "rhs" });
+        }
+        s += link(node.guid, "lhs", node.expression.lhs.guid, "expression");
+        s += link(node.guid, "rhs", node.expression.rhs.guid, "expression");
+        s += PrintExpression(node.expression.lhs);
+        s += PrintExpression(node.expression.rhs);
+    } else if (node instanceof UnaryReturnStatement) {
+        if (node.scope.get_return()) {
+            entries.push({ name: "value", label: `value <${node.scope.get_return()}>` });
+        } else {
+            entries.push({ name: "value", label: "value" });
+        }
+        s += link(node.guid, "value", node.expression.source.guid, "expression");
+        s += PrintExpression(node.expression.source);
+    } else if (node instanceof TypedFieldReferenceExpression) {
+        entries.push({ name: "source", label: "source" });
+        s += link(node.guid, "source", node.source.guid, "expression");
+        s += PrintExpression(node.source);
+    } else if (node instanceof FunctionCallExpression) {
+        entries.push({ name: "function", label: "function" });
+        s += link(node.guid, "function", node.source.guid, "expression");
+        s += PrintExpression(node.source);
+        node.args.forEach((x, y) => {
+            if (isTypedElement(node.source)) {
+                entries.push({ name: `arg${y}`, label: `argument ${y} <${(node.source.type as FunctionType).args[y]}>` });
+            } else {
+                entries.push({ name: `arg${y}`, label: `argument ${y}` });
+            }
+            s += link(node.guid, `arg${y}`, x.guid, "expression");
+            s += PrintExpression(x);
+        })
     }
 
     s += mrecord(node.guid, entries);
@@ -135,6 +121,9 @@ function mklabel(entries: { name: string, label: string }[]): string {
     return entries.map(x => `<n${x.name}>${x.label
         .replaceAll("<", "&#60;")
         .replaceAll(">", "&#62;")
+        .replaceAll('"', "&#34;")
+        .replaceAll("{", "&#123;")
+        .replaceAll("}", "&#125;")
         .replaceAll("|", "&#124;")}`).join(" | ");
 }
 

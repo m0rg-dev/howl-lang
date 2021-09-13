@@ -6,6 +6,9 @@ import { TokenType } from "../lexer/TokenType";
 import { TypeObject } from "../registry/TypeRegistry";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
 import { Any, Assert, End, First, InOrder, Invert, Literal, Matcher, Optional, Star } from "./Matcher";
+import { Scope } from "./Scope";
+import { SimpleStatement } from "./SimpleStatement";
+import { NumericLiteralExpression } from "./TypedElement";
 
 export function Parse(token_stream: Token[]): (Token | ASTElement)[] {
     let stream = ApplyPass(token_stream, FindTopLevelConstructs);
@@ -89,6 +92,7 @@ export class PartialClassConstruct extends ASTElement {
             if (item instanceof ClassField) {
                 rc.fields.push(item);
             } else if (item instanceof FunctionConstruct) {
+                item.args.unshift(new ArgumentDefinition("self", new TypeLiteral(this.name)));
                 rc.methods.push(item);
             }
         }
@@ -214,25 +218,7 @@ export class CompoundStatement extends ASTElement {
     toString = () => `CompoundStatement`;
 }
 
-export class SimpleStatement extends ASTElement {
-    source: TokenStream;
-    constructor(source: TokenStream) {
-        super();
-        this.source = source;
-    }
-    toString = () => `SimpleStatement`;
-}
-
-export class NumericLiteralExpression extends ASTElement {
-    value: number;
-    constructor(value: number) {
-        super();
-        this.value = value;
-    }
-    toString = () => `#${this.value}`;
-}
-
-export class FieldReferenceExpression extends ASTElement {
+export class UntypedFieldReferenceExpression extends ASTElement {
     source: ASTElement;
     field: string;
     constructor(source: ASTElement, field: string) {
@@ -276,6 +262,7 @@ export class AssignmentExpression extends ASTElement {
 export class FunctionCallExpression extends ASTElement {
     source: ASTElement;
     args: ASTElement[];
+    self_added = false;
 
     constructor(source: ASTElement, args: ASTElement[]) {
         super();
@@ -312,6 +299,10 @@ export class LocalDefinition extends ASTElement {
     }
 
     toString = () => `let ${this.name.toString()} ${this.type.toString()}`
+}
+
+export class ElidedElement extends ASTElement {
+    toString = () => "<elided>";
 }
 
 const MatchFunctionDefinitions = {
@@ -480,7 +471,7 @@ const ExpressionPass: Pass = {
         {
             name: "FieldReference2",
             match: InOrder(MatchElement(), Literal("PartialFieldReference")),
-            replace: (input: [ASTElement, PartialFieldReference]) => [new FieldReferenceExpression(input[0], input[1].field)]
+            replace: (input: [ASTElement, PartialFieldReference]) => [new UntypedFieldReferenceExpression(input[0], input[1].field)]
         },
         {
             name: "FunctionCall",
