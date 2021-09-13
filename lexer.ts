@@ -65,47 +65,47 @@ export class Lexer {
         const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|module|static)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
-        return { type: KEYWORD_TABLE[m[1]], length: m[0].length, start: this.mark };
+        return { type: KEYWORD_TABLE[m[1]], length: m[0].length, start: this.mark, text: m[0] };
     }
 
     private match_punctuation(): Token | undefined {
         const m = this.source.substr(this.mark).match(/^([{};(),.=])\s*/s);
         if (!m) return undefined;
 
-        return { type: PUNCTUATION_TABLE[m[1]], length: m[0].length, start: this.mark };
+        return { type: PUNCTUATION_TABLE[m[1]], length: m[0].length, start: this.mark, text: m[0] };
     }
 
     private match_name(): NameToken | undefined {
         const m = this.source.substr(this.mark).match(/^([_a-zA-Z][_a-zA-Z0-9-]*)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
-        return { type: TokenType.Name, name: m[1], length: m[0].length, start: this.mark };
+        return { type: TokenType.Name, name: m[1], length: m[0].length, start: this.mark, text: m[0] };
     }
 
     private match_numeric(): NumericLiteralToken | undefined {
         const m = this.source.substr(this.mark).match(/^(\d+)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
-        return { type: TokenType.NumericLiteral, value: Number.parseInt(m[1]), length: m[0].length, start: this.mark };
+        return { type: TokenType.NumericLiteral, value: Number.parseInt(m[1]), length: m[0].length, start: this.mark, text: m[0] };
     }
 
     private match_asm_literal(): AsmLiteralToken | undefined {
         const m = this.source.substr(this.mark).match(/^__asm__ ([^;]*)/s);
         if (!m) return undefined;
 
-        return { type: TokenType.AsmLiteral, source: m[1], length: m[0].length, start: this.mark };
+        return { type: TokenType.AsmLiteral, source: m[1], length: m[0].length, start: this.mark, text: m[0] };
     }
 
     private match_comment(): CommentToken | undefined {
         const m = this.source.substr(this.mark).match(/^\s*\/\/[^\n]*\n\s*/s);
         if (!m) return undefined;
 
-        return { type: TokenType.Comment, length: m[0].length, start: this.mark };
+        return { type: TokenType.Comment, length: m[0].length, start: this.mark, text: m[0] };
     }
 
     private next_token(): Token | undefined {
         if (this.mark >= this.source.length) {
-            return { type: TokenType.EOF, length: 0, start: this.mark };
+            return { type: TokenType.EOF, length: 0, start: this.mark, text: "" };
         }
 
         const comment = this.match_comment();

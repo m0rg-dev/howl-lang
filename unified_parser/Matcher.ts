@@ -80,3 +80,14 @@ export function Assert(what: Matcher): Matcher {
         return { matched: false, length: 0 };
     }
 }
+
+export function End(): Matcher {
+    return (stream: TokenStream) => {
+        if (stream.length == 0) return { matched: true, length: 0 };
+        return { matched: false, length: 0 };
+    }
+}
+
+export function Any(): Matcher {
+    return () => { return { matched: true, length: 1 }; }
+}

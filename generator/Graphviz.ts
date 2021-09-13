@@ -1,25 +1,6 @@
-import { AsmStatement } from "../ast/AsmStatement";
-import { old_ASTElement } from "../ast/ASTElement";
-import { Class } from "../ast/Class";
-import { CompoundStatement } from "../ast/CompoundStatement";
-import { FunctionDefinition } from "../ast/FunctionDefinition";
-import { Program } from "../ast/Program";
-import { SimpleStatement } from "../ast/SimpleStatement";
-import { VoidExpression } from "../expression/VoidExpression";
-import { SpecifyExpression } from "../expression/SpecifyExpression";
-import { StaticFunctionCallExpression } from "../expression/StaticFunctionCallExpression";
-import { AssignmentExpression } from "../expression/AssignmentExpression";
-import { ReturnExpression } from "../expression/ReturnExpression";
-import { VariableExpression } from "../expression/VariableExpression";
-import { DereferenceExpression } from "../expression/DereferenceExpression";
-import { LocalDefinitionExpression } from "../expression/LocalDefinitionExpression";
-import { FieldReferenceExpression } from "../expression/FieldReferenceExpression";
-import { Expression } from "../expression/Expression";
-import { NumericLiteralExpression } from "../expression/NumericLiteralExpression";
-import { FunctionCallExpression } from "../expression/FunctionCallExpression";
-import { ClassRegistry, ClassType, PointerType } from "./TypeRegistry";
-import { ASTElement } from "../unified_parser/ASTElement";
-import { ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
+import { TokenType } from "../lexer/TokenType";
+import { ASTElement, isAstElement } from "../unified_parser/ASTElement";
+import { ClassConstruct, CompoundStatement, FunctionConstruct, ModuleConstruct, PartialClassConstruct, SimpleStatement } from "../unified_parser/Parser";
 
 /*
 export function PrintExpression(node: ASTElement) {
@@ -88,6 +69,35 @@ export function PrintExpression(node: ASTElement) {
     const entries = [
         { name: "expression", label: node.toString() },
     ];
+    if (node instanceof ClassConstruct) {
+        node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.type.toString()}>` }));
+        node.methods.forEach(x => {
+            entries.push({ name: x.name, label: `${x.name}<${x.returnType.toString()}>(${x.args.map(x => `${x.name}<${x.type.toString()}>`).join(", ")})` });
+            console.log(link(node.guid, x.name, x.guid, "expression"));
+            PrintExpression(x);
+        });
+    } else if (node instanceof FunctionConstruct) {
+        node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.type.toString()}>` }));
+        if (node.body) {
+            entries.push({ name: "body", label: "Body" });
+            console.log(link(node.guid, "body", node.body.guid, "expression"));
+            PrintExpression(node.body);
+        }
+    } else if (node instanceof CompoundStatement) {
+        node.substatements.forEach(x => {
+            entries.push({ name: x.guid, label: x.toString() });
+            console.log(link(node.guid, x.guid, x.guid, "expression"));
+            PrintExpression(x);
+        });
+    } else if (node instanceof SimpleStatement) {
+        node.source.forEach((x, y) => {
+            if (isAstElement(x)) {
+                entries.push({ name: `${y}`, label: x.toString() });
+            } else {
+                entries.push({ name: `${y}`, label: x.text });
+            }
+        });
+    }
 
     console.log(mrecord(node.guid, entries));
 }
@@ -105,4 +115,8 @@ function mrecord(name: string, entries: { name: string, label: string }[]): stri
 
 function record(name: string, entries: { name: string, label: string }[]): string {
     return `    n${name} [shape=record label="${mklabel(entries)}"];\n`;
+}
+
+function link(src: string, srcport: string, dest: string, destport: string): string {
+    return `    n${src}${srcport ? `:n${srcport}` : ""} -> n${dest}${destport ? `:n${destport}` : ""}`;
 }

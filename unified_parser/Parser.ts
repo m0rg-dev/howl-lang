@@ -1,26 +1,28 @@
 import { TypeRegistry } from "../generator/TypeRegistry";
 import { NameToken } from "../lexer/NameToken";
+import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
-import { Assert, InOrder, Literal, Matcher, Optional } from "./Matcher";
+import { Any, Assert, End, First, InOrder, Invert, Literal, Matcher, Optional, Star } from "./Matcher";
 
 export function Parse(token_stream: Token[]): (Token | ASTElement)[] {
-    const stream: (Token | ASTElement)[] = [...token_stream];
-
-    ApplyPass(stream, FindTopLevelConstructs);
+    let stream = ApplyPass(token_stream, FindTopLevelConstructs);
 
     return stream;
 }
 
-export function ApplyPass(stream: (Token | ASTElement)[], pass: Pass) {
-    console.error(`Running pass: ${pass.name}`);
+export function ApplyPass(stream: (Token | ASTElement)[], pass: Pass): TokenStream {
+    stream = [...stream];
+    console.error(`\x1b[1mRunning pass\x1b[0m: ${pass.name}`);
+    console.error(`\x1b[1mInput:\x1b[0m [${stream.map(x => x['start'] ? TokenType[x['type']] : x.toString()).join(", ")}]`);
     let did_match = false;
     outer: do {
         did_match = false;
         for (const rule of pass.rules) {
             let ptr = 0;
             inner: for (ptr = 0; ptr < stream.length; ptr++) {
+                if (rule.startOnly && ptr > 0) break;
                 const m = rule.match(stream.slice(ptr));
                 if (m.matched) {
                     const repl = rule.replace(stream.slice(ptr, ptr + m.length));
@@ -28,19 +30,21 @@ export function ApplyPass(stream: (Token | ASTElement)[], pass: Pass) {
                     console.error(`Applied rule ${rule.name}`);
                     did_match = true;
                     const prev = stream.splice(ptr, m.length, ...repl);
-                    console.error(`[${prev.map(x => x['start'] ? TokenType[x['type']] : x.toString()).join(", ")}] => [${repl.map(x => x.toString()).join(", ")}]`);
+                    console.error(`[${prev.map(x => x['start'] ? TokenType[x['type']] : x.toString()).join(", ")}] => [${repl.map(x => x['start'] ? TokenType[x['type']] : x.toString()).join(", ")}]`);
                     continue outer;
                 }
             }
         }
     } while (did_match);
     console.error(`\x1b[1mResult:\x1b[0m [${stream.map(x => x['start'] ? TokenType[x['type']] : x.toString()).join(", ")}]`);
+    return stream;
 }
 
 type ProductionRule = {
     name: string,
     match: Matcher,
-    replace: (input: (Token | ASTElement)[]) => ASTElement[];
+    replace: (input: TokenStream) => TokenStream;
+    startOnly?: boolean,
 }
 
 type Pass = {
@@ -76,6 +80,20 @@ export class PartialClassConstruct extends ASTElement {
         this.name = name;
         this.source = [...source];
     }
+
+    parse(): ClassConstruct | ParseError {
+        const rc = new ClassConstruct(this.name);
+        const body = ApplyPass(this.source, ParseClassBody);
+        for (const item of body) {
+            if (item instanceof ClassField) {
+                rc.fields.push(item);
+            } else if (item instanceof FunctionConstruct) {
+                rc.methods.push(item);
+            }
+        }
+        return rc;
+    }
+
     toString = () => `PartialClass(${this.name})`;
 }
 
@@ -87,8 +105,237 @@ export class PartialFunctionConstruct extends ASTElement {
         this.name = name;
         this.source = [...source];
     }
+
+    parse(): FunctionConstruct | ParseError {
+        const rc = new FunctionConstruct(this.name);
+        const body = ApplyPass(this.source, ParseFunctionBody);
+        if (body[0] instanceof TypeLiteral) rc.returnType = body[0];
+        if (body[1] instanceof ArgumentList) rc.args = body[1].args;
+        if (body[2] instanceof CompoundStatement) rc.body = body[2];
+        return rc;
+    }
+
     toString = () => `PartialFunction(${this.name})`;
 }
+
+export class TypeLiteral extends ASTElement {
+    name: string;
+    constructor(name: string) {
+        super();
+        this.name = name;
+    }
+    toString = () => `Type(${this.name})`;
+}
+
+export class ClassField extends ASTElement {
+    name: string;
+    type: TypeLiteral;
+    constructor(name: string, type: TypeLiteral) {
+        super();
+        this.name = name;
+        this.type = type;
+    }
+    toString = () => `ClassField<${this.type.toString()}>(${this.name})`;
+}
+
+export class ClassConstruct extends ASTElement {
+    name: string;
+    fields: ClassField[] = [];
+    methods: FunctionConstruct[] = [];
+    constructor(name: string) {
+        super();
+        this.name = name;
+    }
+    toString = () => `Class(${this.name})`;
+}
+
+export class FunctionConstruct extends ASTElement {
+    name: string;
+    returnType: TypeLiteral;
+    args: ArgumentDefinition[];
+    body?: CompoundStatement;
+    constructor(name: string) {
+        super();
+        this.name = name;
+    }
+
+    toString = () => `Function<${this.returnType?.toString()}>(${this.name})`;
+}
+
+export class ArgumentDefinition extends ASTElement {
+    name: string;
+    type: TypeLiteral;
+    constructor(name: string, type: TypeLiteral) {
+        super();
+        this.name = name;
+        this.type = type;
+    }
+    toString = () => `ArgumentDefinition<${this.type.toString()}>(${this.name})`;
+}
+
+export class ArgumentList extends ASTElement {
+    args: ArgumentDefinition[] = [];
+    constructor(args: ArgumentDefinition[]) {
+        super();
+        this.args = args;
+    }
+    toString = () => `ArgumentList`;
+}
+
+export class CompoundStatement extends ASTElement {
+    substatements: ASTElement[];
+    source: TokenStream;
+    constructor(source: TokenStream) {
+        super();
+        this.source = source;
+    }
+    parse(): CompoundStatement {
+        this.source = ApplyPass(this.source.slice(1, this.source.length - 1), {
+            name: "CompoundStatement",
+            rules: [{
+                name: "RecognizeSubCompounds",
+                match: InOrder(Assert(Literal("OpenBrace")), Braces()),
+                replace: (input: TokenStream) => [new CompoundStatement(input).parse()]
+            }]
+        });
+        this.source = ApplyPass(this.source, ExpressionPass);
+        this.source = ApplyPass(this.source, {
+            name: "SimpleStatements",
+            rules: [{
+                name: "SplitSimpleStatements",
+                match: InOrder(Invert(Literal("SimpleStatement")), Star(Invert(Literal("Semicolon"))), Literal("Semicolon")),
+                replace: (input: TokenStream) => [new SimpleStatement(input.slice(0, input.length - 1))]
+            }]
+        });
+        this.substatements = this.source.filter(x => isAstElement(x)) as ASTElement[];
+        return this;
+    }
+    toString = () => `CompoundStatement`;
+}
+
+export class SimpleStatement extends ASTElement {
+    source: TokenStream;
+    constructor(source: TokenStream) {
+        super();
+        this.source = source;
+    }
+    toString = () => `SimpleStatement`;
+}
+
+export class NumericLiteralExpression extends ASTElement {
+    value: number;
+    constructor(value: number) {
+        super();
+        this.value = value;
+    }
+    toString = () => `#${this.value}`;
+}
+
+export class FieldReferenceExpression extends ASTElement {
+    source: ASTElement;
+    field: string;
+    constructor(source: ASTElement, field: string) {
+        super();
+        this.source = source;
+        this.field = field;
+    }
+    toString = () => `${this.source.toString()}.${this.field}`;
+}
+
+export class PartialFieldReference extends ASTElement {
+    field: string;
+    constructor(field: string) {
+        super();
+        this.field = field;
+    }
+    toString = () => `.${this.field}`;
+}
+
+export class NameExpression extends ASTElement {
+    name: string;
+    constructor(name: string) {
+        super();
+        this.name = name;
+    }
+    toString = () => `'${this.name}`;
+}
+
+export class AssignmentExpression extends ASTElement {
+    lhs: ASTElement;
+    rhs: ASTElement;
+    constructor(lhs: ASTElement, rhs: ASTElement) {
+        super();
+        this.lhs = lhs;
+        this.rhs = rhs;
+    }
+
+    toString = () => `${this.lhs.toString()} = ${this.rhs.toString()}`;
+}
+
+export class FunctionCallExpression extends ASTElement {
+    source: ASTElement;
+    args: ASTElement[];
+
+    constructor(source: ASTElement, args: ASTElement[]) {
+        super();
+        this.source = source;
+        this.args = args;
+    }
+
+    toString = () => `${this.source.toString()}(${this.args.map(x => x.toString()).join(", ")})`;
+}
+
+export class UnaryReturnExpression extends ASTElement {
+    source: ASTElement;
+
+    constructor(source: ASTElement) {
+        super();
+        this.source = source;
+    }
+
+    toString = () => `return ${this.source.toString()}`;
+}
+
+export class NullaryReturnExpression extends ASTElement {
+    toString = () => `return void`;
+}
+
+export class LocalDefinition extends ASTElement {
+    name: NameExpression;
+    type: ASTElement;
+
+    constructor(name: NameExpression, type: ASTElement) {
+        super();
+        this.name = name;
+        this.type = type;
+    }
+
+    toString = () => `let ${this.name.toString()} ${this.type.toString()}`
+}
+
+const MatchFunctionDefinitions = {
+    name: "FunctionConstruct",
+    match: InOrder(
+        Optional(Literal("Static")),
+        Literal("Function"),
+        Type(),
+        Literal("Name"),
+        Assert(Literal("OpenParen")),
+        Braces(),
+        First(
+            InOrder(
+                Assert(Literal("OpenBrace")),
+                Braces()
+            ),
+            Literal("Semicolon")
+        )),
+    replace: (input: TokenStream) => {
+        let idx = 0;
+        while (!(Literal("OpenParen")(input.slice(idx)).matched))
+            idx++;
+        return [new PartialFunctionConstruct((input[idx - 1] as NameToken).name, input).parse()];
+    }
+};
 
 const FindTopLevelConstructs: Pass = {
     name: "FindTopLevelConstructs",
@@ -104,28 +351,184 @@ const FindTopLevelConstructs: Pass = {
             name: "ClassConstruct",
             match: InOrder(Literal("Class"), Literal("Name"), Assert(Literal("OpenBrace")), Braces()),
             replace: (input: [Token, NameToken, ...(Token | ASTElement)[]]) => [
-                new PartialClassConstruct(input[1].name, input)
+                new PartialClassConstruct(input[1].name, input).parse()
             ]
         },
+        MatchFunctionDefinitions
+    ]
+};
+
+const ParseClassBody: Pass = {
+    name: "ParseClassBody",
+    rules: [
         {
-            name: "PartialFunctionConstruct",
-            match: InOrder(
-                Optional(Literal("Static")),
-                Literal("Function"),
-                Type(),
-                Literal("Name"),
-                Assert(Literal("OpenParen")),
-                Braces(),
-                Assert(Literal("OpenBrace")),
-                Braces()),
+            name: "DropNameAndBraces",
+            match: InOrder(Literal("Class"), Literal("Name"), Assert(Literal("OpenBrace")), Braces()),
             replace: (input: TokenStream) => {
-                let idx = 0;
-                while(!(Literal("OpenParen")(input.slice(idx)).matched)) idx++;
-                return [new PartialFunctionConstruct((input[idx-1] as NameToken).name, input)];
+                return input.slice(3, input.length - 1);
             }
+        },
+        {
+            name: "MatchClassFields",
+            match: InOrder(Type(), Literal("Name"), Literal("Semicolon")),
+            replace: (input: TokenStream) => {
+                const name = (input[input.length - 2] as NameToken).name;
+                const type = ApplyPass(input.slice(0, input.length - 2), ParseType)[0];
+                if (!(type instanceof TypeLiteral)) return undefined;
+                return [new ClassField(name, type)];
+            }
+        },
+        MatchFunctionDefinitions
+    ]
+};
+
+const ParseFunctionBody: Pass = {
+    name: "ParseFunctionBody",
+    rules: [
+        {
+            name: "DropKeywords",
+            match: InOrder(Optional(Literal("Static")), Literal("Function")),
+            replace: () => [],
+            startOnly: true
+        },
+        {
+            name: "MatchReturnType",
+            match: InOrder(Type(), Literal("Name"), Assert(Literal("OpenParen"))),
+            replace: (input: TokenStream) => {
+                const type = ApplyPass(input.slice(0, input.length - 1), ParseType)[0];
+                if (!(type instanceof TypeLiteral)) return undefined;
+                return [type];
+            },
+            startOnly: true
+        },
+        {
+            name: "MatchArgumentList",
+            match: InOrder(
+                Literal("TypeLiteral"),
+                Literal("OpenParen"),
+                Optional(
+                    InOrder(
+                        Type(), Literal("Name"),
+                        Star(InOrder(Literal("Comma"), Type(), Literal("Name"))),
+                        Optional(Literal("Comma")),
+                    )
+                ),
+                Star(Type()),
+                Literal("CloseParen")),
+            replace: (input: [TypeLiteral, ...TokenStream]) => {
+                const args = ApplyPass(input.slice(2, input.length - 1), {
+                    name: "ConvertArguments",
+                    rules: [
+                        {
+                            name: "ConvertArgument",
+                            match: InOrder(Type(), Literal("Name"), Optional(Literal("Comma"))),
+                            replace: (input: TokenStream) => {
+                                const [type, name] = ApplyPass(input, ParseType);
+                                if (!(type instanceof TypeLiteral)) return undefined;
+                                if (!(name['type'] == TokenType.Name)) return undefined;
+                                return [new ArgumentDefinition(name['name'], type)];
+                            }
+                        }
+                    ]
+                });
+                return [input[0], new ArgumentList(args as ArgumentDefinition[])];
+            },
+            startOnly: true
+        },
+        {
+            name: "MatchFunctionBody",
+            match: InOrder(Literal("TypeLiteral"), Literal("ArgumentList"), Assert(Literal("OpenBrace")), Braces()),
+            replace: (input: [TypeLiteral, ArgumentList, ...TokenStream]) => [input[0], input[1], new CompoundStatement(input.slice(2)).parse()],
+            startOnly: true
+        },
+    ]
+}
+
+const ParseType: Pass = {
+    name: "ParseType",
+    rules: [
+        {
+            name: "Simple",
+            match: Literal("Name"),
+            replace: (input: [NameToken]) => {
+                return [new TypeLiteral(input[0].name)];
+            },
+            startOnly: true
         }
     ]
 };
+
+const ExpressionPass: Pass = {
+    name: "ExpressionPass",
+    rules: [
+        {
+            name: "ConvertNumericLiterals",
+            match: Literal("NumericLiteral"),
+            replace: (input: [NumericLiteralToken]) => [new NumericLiteralExpression(input[0].value)]
+        },
+        {
+            name: "FieldReference1",
+            match: InOrder(Literal("Period"), Literal("Name")),
+            replace: (input: [Token, NameToken]) => [new PartialFieldReference(input[1].name)]
+        },
+        {
+            name: "ConvertNames",
+            match: Literal("Name"),
+            replace: (input: [NameToken]) => [new NameExpression(input[0].name)]
+        },
+        {
+            name: "FieldReference2",
+            match: InOrder(MatchElement(), Literal("PartialFieldReference")),
+            replace: (input: [ASTElement, PartialFieldReference]) => [new FieldReferenceExpression(input[0], input[1].field)]
+        },
+        {
+            name: "FunctionCall",
+            match: InOrder(
+                MatchElement(),
+                Literal("OpenParen"),
+                Optional(
+                    InOrder(
+                        MatchElement(),
+                        Star(InOrder(Literal("Comma"), MatchElement()))
+                    )
+                ),
+                Literal("CloseParen")
+            ),
+            replace: (input: [ASTElement, Token, ...TokenStream]) => {
+                const rhs = input[0];
+                const rest = input.slice(2, input.length - 1);
+                const args: ASTElement[] = [];
+                for (const exp of rest) {
+                    // TODO is this correct? I *think* so based on the match invariants, but it's sketchy
+                    if (isAstElement(exp)) {
+                        args.push(exp);
+                    }
+                }
+                return [new FunctionCallExpression(rhs, args)];
+            }
+        },
+        {
+            name: "LocalDefinition",
+            match: InOrder(Literal("Let"), Literal("NameExpression"), MatchElement(), Assert(Literal("Semicolon"))),
+            replace: (input: [Token, NameExpression, ASTElement]) => [new LocalDefinition(input[1], input[2])]
+        },
+        {
+            name: "Assignment",
+            match: InOrder(MatchElement(), Literal("Equals"), MatchElement(), Assert(Literal("Semicolon"))),
+            replace: (input: [ASTElement, Token, ASTElement]) => [new AssignmentExpression(input[0], input[2])]
+        },
+        {
+            name: "MatchUnaryReturn",
+            match: InOrder(Literal("Return"), MatchElement(), Assert(Literal("Semicolon"))),
+            replace: (input: [Token, ASTElement]) => [new UnaryReturnExpression(input[1])]
+        },
+        {
+            name: "MatchNullaryReturn",
+            match: InOrder(Literal("Return"), Assert(Literal("Semicolon"))),
+            replace: (input: [Token]) => [new NullaryReturnExpression()]
+        }
+    ]
+}
 
 function Braces(): Matcher {
     return (stream: (Token | ASTElement)[]) => {
@@ -157,4 +560,15 @@ function Braces(): Matcher {
 
 function Type(): Matcher {
     return Literal("Name");
+}
+
+function Rvalue(): Matcher {
+    return First(Literal("NumericLiteralExpression"));
+}
+
+function MatchElement(): Matcher {
+    return (stream: TokenStream) => {
+        if (isAstElement(stream[0])) return { matched: true, length: 1 };
+        return { matched: false, length: 0 };
+    }
 }

@@ -29,7 +29,7 @@ export function parseExpression(input_stream: Token[], scope: Scope): Expression
     let did_match = false;
     outer: do {
         did_match = false;
-        for (const rule of rules) {
+        for (const rule of ExpressionRules) {
             let ptr = 0;
             inner: for (ptr = 0; ptr < stream.length; ptr++) {
                 const m = rule.match(stream.slice(ptr));
@@ -61,7 +61,7 @@ type ProductionRule = {
     replace: (input: (Token | Expression)[], scope: Scope) => Expression[];
 }
 
-const rules: ProductionRule[] = [
+export const ExpressionRules: ProductionRule[] = [
     {
         name: "ConvertNumericLiterals",
         match: Literal("NumericLiteral"),
