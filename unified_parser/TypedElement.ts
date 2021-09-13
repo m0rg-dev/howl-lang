@@ -23,25 +23,6 @@ export class NumericLiteralExpression extends ASTElement {
     toString = () => `#${this.value}`;
 }
 
-export class FieldReferenceExpression extends ASTElement {
-    source: ASTElement;
-    field: string;
-
-    constructor(source: ASTElement, field: string) {
-        super(undefined);
-        /*
-        if (!(source.value_type instanceof CustomTypeObject
-            && source.value_type.source instanceof ClassConstruct)) throw new Error(`Can't take fields on ${source}<${source.value_type}>`);
-        this.value_type = source.value_type.source.fields.find(x => x.name == field)?.value_type;
-        if (!this.value_type) throw new Error(`Can't find field ${field} on ${source}`);
-        */
-        this.source = source;
-        this.field = field;
-    }
-
-    toString = () => `${this.source.toString()}.${this.field}`
-}
-
 export class MethodReferenceExpression extends ASTElement {
     source: ASTElement;
     method: string;

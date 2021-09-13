@@ -6,7 +6,8 @@ import { init_types } from "../registry/TypeRegistry";
 import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
 import { Assert, First, InOrder, Invert, Literal, Matcher, Optional, Star } from "./Matcher";
 import { SimpleStatement } from "./SimpleStatement";
-import { FieldReferenceExpression, FunctionCallExpression, NumericLiteralExpression } from "./TypedElement";
+import { FunctionCallExpression, NumericLiteralExpression } from "./TypedElement";
+import { FieldReferenceExpression } from "./FieldReferenceExpression";
 import { TypeObject } from "./TypeObject";
 
 export function Parse(token_stream: Token[]): (Token | ASTElement)[] {

@@ -2,7 +2,8 @@ import { FunctionType } from "../unified_parser/TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
 import { ClassConstruct, CompoundStatement, FunctionConstruct, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
 import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "../unified_parser/SimpleStatement";
-import { FunctionCallExpression, MethodReferenceExpression, FieldReferenceExpression } from "../unified_parser/TypedElement";
+import { FunctionCallExpression, MethodReferenceExpression } from "../unified_parser/TypedElement";
+import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 
 export function PrintAST(stream: TokenStream): string {
     let s = "digraph{\n    rankdir=LR;";
@@ -86,6 +87,7 @@ export function PrintExpression(node: ASTElement): string {
         s += PrintExpression(node.expression.source);
     } else if (node instanceof FieldReferenceExpression) {
         entries.push({ name: "source", label: "source" });
+        entries.push({ name: "index", label: `index: ${node.index()}` });
         s += link(node.guid, "source", node.source.guid, "expression");
         s += PrintExpression(node.source);
     } else if (node instanceof FunctionCallExpression) {

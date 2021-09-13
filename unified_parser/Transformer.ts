@@ -3,7 +3,8 @@ import { CustomTypeObject, FunctionType, TypeObject } from "./TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
 import { AssignmentExpression, ClassConstruct, CompoundStatement, ElidedElement, FunctionConstruct, LocalDefinition, NameExpression, NullaryReturnExpression, UnresolvedTypeLiteral, UnaryReturnExpression, TypeLiteral, ClassField } from "./Parser";
 import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "./SimpleStatement";
-import { FunctionCallExpression, MethodReferenceExpression, FieldReferenceExpression, VariableReferenceExpression } from "./TypedElement";
+import { FunctionCallExpression, MethodReferenceExpression, VariableReferenceExpression } from "./TypedElement";
+import { FieldReferenceExpression } from "./FieldReferenceExpression";
 
 export type Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent?: ASTElement) => void;
 

@@ -27,16 +27,6 @@ for (const tok of lexer.token_stream) {
     }
 }
 
-/*
-const p = new Program();
-console.error(p.parse(lexer.handle()));
-
-console.log("digraph {");
-console.log("    rankdir=LR;");
-PrintTree(p);
-console.log("}");
-*/
-
 const stream = Parse(lexer.token_stream);
 ApplyToAll(stream, ExtractClassTypes);
 ApplyToAll(stream, ReplaceTypes);
