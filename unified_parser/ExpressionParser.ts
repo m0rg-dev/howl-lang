@@ -6,7 +6,8 @@ import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { AssignmentExpression } from "../expression/AssignmentExpression";
 import { DereferenceExpression } from "../expression/DereferenceExpression";
-import { Expression, isExpression } from "../expression/Expression";
+import { isAstElement } from "./ASTElement";
+import { Expression } from "../expression/Expression";
 import { FieldReferenceExpression, MethodReferenceExpression } from "../expression/FieldReferenceExpression";
 import { FunctionCallExpression } from "../expression/FunctionCallExpression";
 import { LocalDefinitionExpression } from "../expression/LocalDefinitionExpression";
@@ -45,7 +46,7 @@ export function parseExpression(input_stream: Token[], scope: Scope): Expression
         }
     } while (did_match);
     console.error(`\x1b[1mResult:\x1b[0m [${stream.map(x => x['start'] ? TokenType[x['type']] : x.toString()).join(", ")}]`);
-    if (stream.length == 1 && isExpression(stream[0])) {
+    if (stream.length == 1 && isAstElement(stream[0])) {
         stream[0].inferTypes();
         console.error(`\x1b[1mAfter type inference:\x1b[0m [${stream.map(x => x['start'] ? TokenType[x['type']] : x.toString()).join(", ")}]`);
         return stream[0];
@@ -104,7 +105,7 @@ const rules: ProductionRule[] = [
             }
             for (const exp of rest) {
                 // TODO is this correct? I *think* so based on the match invariants, but it's sketchy
-                if (isExpression(exp)) {
+                if (isAstElement(exp)) {
                     args.push(new SpecifyExpression(exp, function_type.type_of_argument(arg_index)));
                     arg_index++;
                 }
@@ -234,7 +235,7 @@ function Concrete(what: Matcher): Matcher {
         const rc = what(stream);
         if (!rc.matched) return rc;
         if (rc.length != 1) throw new Error("Attempted to use a type assertion on a multi-subexpression match.");
-        if (!isExpression(stream[0])) throw new Error("Attempted to use a type assertion on a token.");
+        if (!isAstElement(stream[0])) throw new Error("Attempted to use a type assertion on a token.");
         if (stream[0].valueType().is_concrete()) return rc;
         return { matched: false, length: 0 };
     }

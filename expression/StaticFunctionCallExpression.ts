@@ -1,5 +1,5 @@
 import { FunctionType } from "../generator/TypeRegistry";
-import { Expression } from "../expression/Expression";
+import { Expression } from "./Expression";
 import { InferSubField } from "./ExpressionParser";
 
 

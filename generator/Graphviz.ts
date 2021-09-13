@@ -1,5 +1,5 @@
 import { AsmStatement } from "../ast/AsmStatement";
-import { ASTElement } from "../ast/ASTElement";
+import { old_ASTElement } from "../ast/ASTElement";
 import { Class } from "../ast/Class";
 import { CompoundStatement } from "../ast/CompoundStatement";
 import { FunctionDefinition } from "../ast/FunctionDefinition";
@@ -19,7 +19,7 @@ import { NumericLiteralExpression } from "../expression/NumericLiteralExpression
 import { FunctionCallExpression } from "../expression/FunctionCallExpression";
 import { ClassRegistry, ClassType, PointerType } from "./TypeRegistry";
 
-export function PrintTree(node: ASTElement, parent?: ASTElement): void {
+export function PrintTree(node: old_ASTElement, parent?: old_ASTElement): void {
     if (node instanceof Program) {
         console.log(mrecord(node.guid, [
             { name: "type", label: "Program" },

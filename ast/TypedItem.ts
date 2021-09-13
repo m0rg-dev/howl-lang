@@ -1,10 +1,10 @@
 import { Lexer, LexerHandle } from "../lexer";
 import { NameToken } from "../lexer/NameToken";
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, ErrorBadToken, ErrorBadType, Ok, ParseResult } from "./ASTElement";
+import { old_ASTElement, ErrorBadToken, ErrorBadType, Ok, ParseResult } from "./ASTElement";
 import { Type, TypeRegistry } from "../generator/TypeRegistry";
 
-export class TypedItem extends ASTElement {
+export class TypedItem extends old_ASTElement {
     type: Type;
     name: string;
 

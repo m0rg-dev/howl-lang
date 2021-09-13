@@ -2,14 +2,14 @@ import { Type } from "../generator/TypeRegistry";
 import { LexerHandle } from "../lexer";
 import { TokenType } from "../lexer/TokenType";
 import { AsmStatement } from "./AsmStatement";
-import { ASTElement, ErrorBadToken, ErrorEOF, Ok, ParseResult, Segment } from "./ASTElement";
+import { old_ASTElement, ErrorBadToken, ErrorEOF, Ok, ParseResult, Segment } from "./ASTElement";
 import { RecognizeBlock } from "./ASTUtil";
 import { Scope } from "./Scope";
 import { SimpleStatement } from "./SimpleStatement";
 import { TypedItem } from "./TypedItem";
 
-export class CompoundStatement extends ASTElement implements Scope {
-    lines: ASTElement[] = [];
+export class CompoundStatement extends old_ASTElement implements Scope {
+    lines: old_ASTElement[] = [];
     parent: Scope;
     locals: TypedItem[] = [];
 

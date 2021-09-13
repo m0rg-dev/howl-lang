@@ -1,9 +1,9 @@
 import { LexerHandle } from "../lexer";
 import { AsmLiteralToken } from "../lexer/AsmLiteralToken";
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, Ok, ParseResult } from "./ASTElement";
+import { old_ASTElement, Ok, ParseResult } from "./ASTElement";
 
-export class AsmStatement extends ASTElement {
+export class AsmStatement extends old_ASTElement {
     statement_text: string;
 
     bracket(handle: LexerHandle): LexerHandle {

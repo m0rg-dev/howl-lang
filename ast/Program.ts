@@ -1,14 +1,14 @@
 import { LexerHandle } from "../lexer";
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, ParseResult, Ok, Segment, ErrorBadToken } from "./ASTElement";
+import { old_ASTElement, ParseResult, Ok, Segment, ErrorBadToken } from "./ASTElement";
 import { Class } from "./Class";
 import { FunctionDefinition } from "./FunctionDefinition";
 import { Scope } from "./Scope";
 import { Type } from "../generator/TypeRegistry";
 import { NameToken } from "../lexer/NameToken";
 
-export class Program extends ASTElement implements Scope {
-    contents: ASTElement[] = [];
+export class Program extends old_ASTElement implements Scope {
+    contents: old_ASTElement[] = [];
     functions: Map<string, FunctionDefinition> = new Map();
     module_name: string;
 

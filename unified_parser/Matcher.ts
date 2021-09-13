@@ -1,13 +1,13 @@
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { Expression, isExpression } from "../expression/Expression";
+import { ASTElement, isAstElement } from "./ASTElement";
 
-export type Matcher = (stream: (Token | Expression)[]) => { matched: boolean; length: number; };
+export type Matcher = (stream: (Token | ASTElement)[]) => { matched: boolean; length: number; };
 export function Literal(what: string): Matcher {
-    return (stream: (Token | Expression)[]) => {
+    return (stream: (Token | ASTElement)[]) => {
         if (!stream[0])
             return { matched: false, length: 0 };
-        if (isExpression(stream[0])) {
+        if (isAstElement(stream[0])) {
             return { matched: stream[0]?.constructor.name == what, length: 1 };
         } else {
             return { matched: TokenType[stream[0].type] == what, length: 1 };
@@ -15,7 +15,7 @@ export function Literal(what: string): Matcher {
     };
 }
 export function InOrder(...what: Matcher[]): Matcher {
-    return (stream: (Token | Expression)[]) => {
+    return (stream: (Token | ASTElement)[]) => {
         const rc = { matched: true, length: 0 };
         for (const m of what) {
             const rc2 = m(stream.slice(rc.length));
@@ -27,7 +27,7 @@ export function InOrder(...what: Matcher[]): Matcher {
     };
 }
 export function First(...what: Matcher[]): Matcher {
-    return (stream: (Token | Expression)[]) => {
+    return (stream: (Token | ASTElement)[]) => {
         for (const m of what) {
             const rc = m(stream);
             if (rc.matched)
@@ -37,7 +37,7 @@ export function First(...what: Matcher[]): Matcher {
     };
 }
 export function Star(what: Matcher): Matcher {
-    return (stream: (Token | Expression)[]) => {
+    return (stream: (Token | ASTElement)[]) => {
         const rc = { matched: true, length: 0 };
         while (true) {
             const rc2 = what(stream.slice(rc.length));
@@ -49,21 +49,21 @@ export function Star(what: Matcher): Matcher {
     };
 }
 export function Optional(what: Matcher): Matcher {
-    return (stream: (Token | Expression)[]) => {
+    return (stream: (Token | ASTElement)[]) => {
         const rc = what(stream);
         if (rc.matched)
             return rc;
         return { matched: true, length: 0 };
     };
 }
-function Invert(what: Matcher): Matcher {
-    return (stream: (Token | Expression)[]) => {
+export function Invert(what: Matcher): Matcher {
+    return (stream: (Token | ASTElement)[]) => {
         const rc = what(stream);
         return { matched: !rc.matched, length: rc.length };
     };
 }
-function Rest(): Matcher {
-    return (stream: (Token | Expression)[]) => {
+export function Rest(): Matcher {
+    return (stream: (Token | ASTElement)[]) => {
         return { matched: true, length: stream.length };
     };
 }

@@ -1,6 +1,6 @@
 import { LexerHandle } from "../lexer";
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, ErrorBadToken, ErrorBadType, Ok, ParseResult, Segment } from "./ASTElement";
+import { old_ASTElement, ErrorBadToken, ErrorBadType, Ok, ParseResult, Segment } from "./ASTElement";
 import { RecognizeBlock } from "./ASTUtil";
 import { CompoundStatement } from "./CompoundStatement";
 import { TypedItem } from "./TypedItem";
@@ -8,7 +8,7 @@ import { StaticFunctionRegistry, FunctionType, Type, TypeRegistry } from "../gen
 import { reset } from "../generator/Synthesizable";
 import { Scope } from "./Scope";
 
-export class FunctionDefinition extends ASTElement implements Scope {
+export class FunctionDefinition extends old_ASTElement implements Scope {
     signature: TypedItem;
     is_static = false;
     mangled_name: string;

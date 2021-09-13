@@ -4,10 +4,10 @@ import { Expression } from "../expression/Expression";
 import { LexerHandle } from "../lexer";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, Ok, ParseResult } from "./ASTElement";
+import { old_ASTElement, Ok, ParseResult } from "./ASTElement";
 import { Scope } from "./Scope";
 
-export class SimpleStatement extends ASTElement {
+export class SimpleStatement extends old_ASTElement {
     statement_text: string;
     parent: Scope;
     expression: Expression;

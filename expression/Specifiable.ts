@@ -1,5 +1,5 @@
 import { Type } from "../generator/TypeRegistry";
-import { Expression } from "../expression/Expression";
+import { Expression } from "./Expression";
 
 
 export interface Specifiable {

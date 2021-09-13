@@ -19,7 +19,7 @@ export function Ok(): ParseResult {
 
 export type Segment = {
     handle: LexerHandle,
-    ast: ASTElement
+    ast: old_ASTElement
 }
 
 export function ErrorBadToken(handle: LexerHandle, ...allowable: TokenType[]): ParseError {
@@ -50,7 +50,7 @@ export function ErrorExpressionFailed(handle: LexerHandle): ParseError {
     }
 }
 
-export abstract class ASTElement implements Synthesizable {
+export abstract class old_ASTElement implements Synthesizable {
     guid: string;
     constructor() {
         this.guid = randomUUID().replace(/-/g, "_");

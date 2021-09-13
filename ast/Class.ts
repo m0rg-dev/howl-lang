@@ -1,14 +1,14 @@
 import { LexerHandle } from "../lexer";
 import { NameToken } from "../lexer/NameToken";
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, ErrorBadToken, Ok, ParseResult } from "./ASTElement";
+import { old_ASTElement, ErrorBadToken, Ok, ParseResult } from "./ASTElement";
 import { Mangle, RecognizeBlock } from "./ASTUtil";
 import { FunctionDefinition } from "./FunctionDefinition";
 import { TypedItem } from "./TypedItem";
 import { ClassRegistry, ClassType, PointerType, Type, TypeRegistry } from "../generator/TypeRegistry";
 import { Scope } from "./Scope";
 
-export class Class extends ASTElement implements Scope {
+export class Class extends old_ASTElement implements Scope {
     name: string;
     fields: TypedItem[] = [];
     methods: Map<string, FunctionDefinition> = new Map();

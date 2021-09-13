@@ -5,6 +5,7 @@ import { Lexer } from './lexer';
 import { TokenType } from './lexer/TokenType';
 
 import { install } from 'source-map-support';
+import { Parse } from './unified_parser/Parser';
 install();
 
 export function why_not(e: string): boolean {
@@ -25,6 +26,7 @@ for (const tok of lexer.token_stream) {
     }
 }
 
+/*
 const p = new Program();
 console.error(p.parse(lexer.handle()));
 
@@ -32,3 +34,6 @@ console.log("digraph {");
 console.log("    rankdir=LR;");
 PrintTree(p);
 console.log("}");
+*/
+
+Parse(lexer.token_stream);
