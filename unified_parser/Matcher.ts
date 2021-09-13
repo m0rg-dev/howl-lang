@@ -26,6 +26,7 @@ export function InOrder(...what: Matcher[]): Matcher {
         return rc;
     };
 }
+
 export function First(...what: Matcher[]): Matcher {
     return (stream: (Token | ASTElement)[]) => {
         for (const m of what) {
@@ -36,6 +37,7 @@ export function First(...what: Matcher[]): Matcher {
         return { matched: false, length: 0 };
     };
 }
+
 export function Star(what: Matcher): Matcher {
     return (stream: (Token | ASTElement)[]) => {
         const rc = { matched: true, length: 0 };
@@ -48,6 +50,7 @@ export function Star(what: Matcher): Matcher {
         return rc;
     };
 }
+
 export function Optional(what: Matcher): Matcher {
     return (stream: (Token | ASTElement)[]) => {
         const rc = what(stream);
@@ -56,12 +59,14 @@ export function Optional(what: Matcher): Matcher {
         return { matched: true, length: 0 };
     };
 }
+
 export function Invert(what: Matcher): Matcher {
     return (stream: (Token | ASTElement)[]) => {
         const rc = what(stream);
         return { matched: !rc.matched, length: rc.length };
     };
 }
+
 export function Rest(): Matcher {
     return (stream: (Token | ASTElement)[]) => {
         return { matched: true, length: stream.length };

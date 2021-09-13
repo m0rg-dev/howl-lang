@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
-import { Type } from "../generator/TypeRegistry";
-import { Expression } from "../expression/Expression";
+import { Token } from "../lexer/Token";
+
+export type TokenStream = (Token | ASTElement)[];
 
 export abstract class ASTElement {
     guid: string;
@@ -8,7 +9,6 @@ export abstract class ASTElement {
         this.guid = randomUUID().replace(/-/g, "_");
     }
     abstract toString(): string;
-    abstract valueType(): Type;
     isAstElement(): boolean { return true; }
 }
 

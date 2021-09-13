@@ -18,6 +18,8 @@ import { Expression } from "../expression/Expression";
 import { NumericLiteralExpression } from "../expression/NumericLiteralExpression";
 import { FunctionCallExpression } from "../expression/FunctionCallExpression";
 import { ClassRegistry, ClassType, PointerType } from "./TypeRegistry";
+import { ASTElement } from "../unified_parser/ASTElement";
+import { ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
 
 export function PrintTree(node: old_ASTElement, parent?: old_ASTElement): void {
     if (node instanceof Program) {
@@ -85,9 +87,9 @@ export function PrintTree(node: old_ASTElement, parent?: old_ASTElement): void {
     }
 }
 
-export function PrintExpression(node: Expression) {
+export function PrintExpression(node: ASTElement) {
     const entries = [
-        { name: "expression", label: node.constructor.name + "<" + node.valueType().to_readable() + ">" },
+        { name: "expression", label: node.constructor.name },
     ];
     if (node instanceof AssignmentExpression) {
         entries.push({ name: "lhs", label: "lhs" });
@@ -135,11 +137,15 @@ export function PrintExpression(node: Expression) {
         console.log(`    n${node.guid}:nsub -> n${node.sub.guid}`);
         PrintExpression(node.sub);
     } else if (node instanceof VoidExpression) {
+    } else if (node instanceof ModuleConstruct) {
+        entries.push({ name: "name", label: node.name});
+    } else if (node instanceof PartialClassConstruct) {
+        entries.push({ name: "name", label: node.name});
     } else {
         console.error(`  (tried to graphviz unknown expression type ${node.constructor.name})`);
     }
 
-    console.log(record(node.guid, entries));
+    console.log(mrecord(node.guid, entries));
 }
 
 function mklabel(entries: { name: string, label: string }[]): string {
