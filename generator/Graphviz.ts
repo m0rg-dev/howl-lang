@@ -21,72 +21,7 @@ import { ClassRegistry, ClassType, PointerType } from "./TypeRegistry";
 import { ASTElement } from "../unified_parser/ASTElement";
 import { ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
 
-export function PrintTree(node: old_ASTElement, parent?: old_ASTElement): void {
-    if (node instanceof Program) {
-        console.log(mrecord(node.guid, [
-            { name: "type", label: "Program" },
-            { name: "module", label: `module ${node.module_name}` },
-            ...node.contents.map(x => { return { name: x.guid, label: x.constructor.name } })
-        ]));
-        node.contents.map(x => console.log(`    n${node.guid}:n${x.guid} -> n${x.guid}`));
-        node.contents.map(x => PrintTree(x, this));
-    } else if (node instanceof Class) {
-        console.log(mrecord(node.guid, [
-            { name: "cname", label: `class ${node.name}` },
-            ...node.fields.map(x => { return { name: x.guid, label: x.to_readable() } }),
-        ]));
-
-        const stableptr = node.lookup_field('__stable')?.type;
-        if (stableptr && stableptr instanceof PointerType) {
-            const stable_type = stableptr.get_sub() as ClassType;
-            const stable = ClassRegistry.get(stable_type.get_name());
-            PrintTree(stable);
-            console.log(`    n${node.guid}:n${node.lookup_field('__stable').guid} -> n${stable.guid}:ncname`);
-            for (const [name, method] of node.methods) {
-                PrintTree(method);
-                console.log(`    n${stable.guid}:n${stable.lookup_field(name).guid} -> n${method.guid}`);
-            }
-        }
-    } else if (node instanceof FunctionDefinition) {
-        const entries = [
-            { name: "type", label: `${node.is_static ? "static " : ""}${node.signature.to_readable()}` },
-            ...node.args.map(x => { return { name: x.guid, label: "Argument: " + x.to_readable() } }),
-        ];
-        if (node.body) {
-            entries.push({ name: "body", label: "CompoundStatement" });
-            console.log(`    n${node.guid}:nbody->n${node.body.guid}:ntype`);
-            PrintTree(node.body, this);
-        }
-        console.log(mrecord(node.guid, entries));
-    } else if (node instanceof CompoundStatement) {
-        console.log(mrecord(node.guid, [
-            { name: "type", label: "CompoundStatement" },
-            ...node.locals.map(x => { return { name: x.guid, label: "Local: " + x.to_readable() } }),
-            ...node.lines.map(x => { return { name: x.guid, label: x.constructor.name } })
-        ]));
-        node.lines.map(x => PrintTree(x, this));
-        node.lines.map(x => console.log(`    n${node.guid}:n${x.guid} -> n${x.guid}`));
-    } else if (node instanceof SimpleStatement) {
-        if (node.expression) {
-            const entries = [
-                { name: "statement_text", label: node.statement_text },
-            ];
-            PrintExpression(node.expression);
-            console.log(`    n${node.guid} -> n${node.expression.guid}:nexpression`);
-            console.log(mrecord(node.guid, entries));
-        } else {
-            console.log(mrecord(node.guid, [
-                { name: "statement_text", label: node.statement_text },
-                { name: "expression", label: "<nonterminal>" }
-            ]));
-        }
-    } else if (node instanceof AsmStatement) {
-        console.log(mrecord(node.guid, [{ name: "statement_text", label: node.statement_text }]))
-    } else {
-        console.error(`  (tried to graphviz unknown type ${node.constructor.name})`);
-    }
-}
-
+/*
 export function PrintExpression(node: ASTElement) {
     const entries = [
         { name: "expression", label: node.constructor.name },
@@ -144,6 +79,15 @@ export function PrintExpression(node: ASTElement) {
     } else {
         console.error(`  (tried to graphviz unknown expression type ${node.constructor.name})`);
     }
+
+    console.log(mrecord(node.guid, entries));
+}
+*/
+
+export function PrintExpression(node: ASTElement) {
+    const entries = [
+        { name: "expression", label: node.toString() },
+    ];
 
     console.log(mrecord(node.guid, entries));
 }

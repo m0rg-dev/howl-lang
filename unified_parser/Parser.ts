@@ -3,7 +3,7 @@ import { NameToken } from "../lexer/NameToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
-import { InOrder, Literal, Matcher } from "./Matcher";
+import { Assert, InOrder, Literal, Matcher, Optional } from "./Matcher";
 
 export function Parse(token_stream: Token[]): (Token | ASTElement)[] {
     const stream: (Token | ASTElement)[] = [...token_stream];
@@ -70,13 +70,24 @@ export class ModuleConstruct extends ASTElement {
 
 export class PartialClassConstruct extends ASTElement {
     name: string;
-    body: TokenStream;
-    constructor(name: string, body: TokenStream) {
+    source: TokenStream;
+    constructor(name: string, source: TokenStream) {
         super();
         this.name = name;
-        this.body = [...body];
+        this.source = [...source];
     }
     toString = () => `PartialClass(${this.name})`;
+}
+
+export class PartialFunctionConstruct extends ASTElement {
+    name: string;
+    source: TokenStream;
+    constructor(name: string, source: TokenStream) {
+        super();
+        this.name = name;
+        this.source = [...source];
+    }
+    toString = () => `PartialFunction(${this.name})`;
 }
 
 const FindTopLevelConstructs: Pass = {
@@ -90,18 +101,28 @@ const FindTopLevelConstructs: Pass = {
             ]
         },
         {
-            name: "ModuleConstructNegative",
-            match: InOrder(Literal("Module")),
-            replace: (input: [Token]) => [
-                new ParseError("Expected module name")
+            name: "ClassConstruct",
+            match: InOrder(Literal("Class"), Literal("Name"), Assert(Literal("OpenBrace")), Braces()),
+            replace: (input: [Token, NameToken, ...(Token | ASTElement)[]]) => [
+                new PartialClassConstruct(input[1].name, input)
             ]
         },
         {
-            name: "ClassConstruct",
-            match: InOrder(Literal("Class"), Literal("Name"), Braces()),
-            replace: (input: [Token, NameToken, ...(Token | ASTElement)[]]) => [
-                new PartialClassConstruct(input[1].name, input.slice(2))
-            ]
+            name: "PartialFunctionConstruct",
+            match: InOrder(
+                Optional(Literal("Static")),
+                Literal("Function"),
+                Type(),
+                Literal("Name"),
+                Assert(Literal("OpenParen")),
+                Braces(),
+                Assert(Literal("OpenBrace")),
+                Braces()),
+            replace: (input: TokenStream) => {
+                let idx = 0;
+                while(!(Literal("OpenParen")(input.slice(idx)).matched)) idx++;
+                return [new PartialFunctionConstruct((input[idx-1] as NameToken).name, input)];
+            }
         }
     ]
 };
@@ -111,10 +132,10 @@ function Braces(): Matcher {
         let ptr = 0;
         const stack: TokenType[] = [];
 
-        while(ptr < stream.length) {
+        while (ptr < stream.length) {
             const tok = stream[ptr++];
-            if(isAstElement(tok)) continue;
-            switch(tok.type) {
+            if (isAstElement(tok)) continue;
+            switch (tok.type) {
                 case TokenType.OpenBrace:
                     stack.push(TokenType.OpenBrace);
                     break;
@@ -122,14 +143,18 @@ function Braces(): Matcher {
                     stack.push(TokenType.OpenParen);
                     break;
                 case TokenType.CloseBrace:
-                    if(stack.pop() != TokenType.OpenBrace) return { matched: false, length: 0 };
+                    if (stack.pop() != TokenType.OpenBrace) return { matched: false, length: 0 };
                     break;
                 case TokenType.CloseParen:
-                    if(stack.pop() != TokenType.OpenParen) return { matched: false, length: 0 };
+                    if (stack.pop() != TokenType.OpenParen) return { matched: false, length: 0 };
                     break;
             }
-            if(stack.length == 0) return { matched: true, length: ptr };
+            if (stack.length == 0) return { matched: true, length: ptr };
         }
         return { matched: false, length: 0 };
     };
+}
+
+function Type(): Matcher {
+    return Literal("Name");
 }

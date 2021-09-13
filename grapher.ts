@@ -1,6 +1,5 @@
 import * as fs from 'fs';
-import { Program } from './ast/Program';
-import { PrintExpression, PrintTree } from './generator/Graphviz';
+import { PrintExpression } from './generator/Graphviz';
 import { Lexer } from './lexer';
 import { TokenType } from './lexer/TokenType';
 

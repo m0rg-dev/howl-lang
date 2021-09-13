@@ -13,7 +13,7 @@ class Foo {
     }
 }
 
-fn static i32 main() {
+static fn i32 main() {
     let obj Foo;
     obj.set_value(42);
     return obj.get_value();

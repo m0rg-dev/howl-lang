@@ -1,7 +1,7 @@
 module TestInput;
 
-fn static i32 puts(_rawptr_i8 s);
-fn static _rawptr_i8 malloc(i32 size);
+static fn i32 puts(_rawptr_i8 s);
+static fn _rawptr_i8 malloc(i32 size);
 
 class String {
     _rawptr_i8 buffer;
@@ -23,7 +23,7 @@ class String {
     }
 }
 
-fn static i32 main() {
+static fn i32 main() {
     let s String;
     s.construct(s, 1);
     s.setCharacter(s, 0, 65);

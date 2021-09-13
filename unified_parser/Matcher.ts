@@ -1,6 +1,6 @@
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { ASTElement, isAstElement } from "./ASTElement";
+import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
 
 export type Matcher = (stream: (Token | ASTElement)[]) => { matched: boolean; length: number; };
 export function Literal(what: string): Matcher {
@@ -71,4 +71,12 @@ export function Rest(): Matcher {
     return (stream: (Token | ASTElement)[]) => {
         return { matched: true, length: stream.length };
     };
+}
+
+export function Assert(what: Matcher): Matcher {
+    return (stream: TokenStream) => {
+        const rc = what(stream);
+        if (rc.matched) return { matched: true, length: 0 };
+        return { matched: false, length: 0 };
+    }
 }
