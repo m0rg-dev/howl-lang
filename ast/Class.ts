@@ -93,7 +93,7 @@ export class Class extends ASTElement implements Scope {
                     break;
                 case TokenType.Function:
                     const func = new FunctionDefinition(this);
-                    const rc2 = func.parse(handle);
+                    const rc2 = func.parse(handle, new PointerType(new ClassType(this.name)));
                     if (rc2.ok) {
                         Mangle(func, this);
                         this.methods.set(func.signature.name, func);

@@ -39,3 +39,16 @@ export class FieldReferenceExpression extends Expression {
         return { code: s, location: ptr };
     }
 }
+
+export class MethodReferenceExpression extends FieldReferenceExpression {
+    self: Expression;
+
+    constructor(sub: Expression, field: string, type: Type, self: Expression) {
+        super(sub, field, type);
+        this.self = self;
+    }
+
+    toString(): string {
+        return `MethodReference<${this.type.to_readable()}>(${this.sub.toString()}, ${this.field})`;
+    }
+}

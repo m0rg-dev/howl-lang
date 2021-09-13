@@ -53,7 +53,7 @@ export class FunctionDefinition extends ASTElement implements Scope {
         return handle.bracket(0, handle.compare(sub));
     }
 
-    parse(handle: LexerHandle): ParseResult {
+    parse(handle: LexerHandle, self_type?: Type): ParseResult {
         if (handle.lookahead().type != TokenType.Function) throw new Error("COMPILER BUG");
         handle.consume();
         if (handle.lookahead().type == TokenType.Static) {
@@ -71,6 +71,10 @@ export class FunctionDefinition extends ASTElement implements Scope {
 
         if (handle.lookahead().type != TokenType.OpenParen) return { ok: false, errors: [ErrorBadToken(handle, TokenType.OpenParen)] };
         handle.consume();
+
+        if(self_type) {
+            this.args.push(TypedItem.build("self", self_type));
+        }
 
         while (handle.lookahead() && handle.lookahead().type != TokenType.CloseParen) {
             const arg = new TypedItem();

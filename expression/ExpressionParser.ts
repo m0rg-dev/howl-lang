@@ -7,7 +7,7 @@ import { TokenType } from "../lexer/TokenType";
 import { AssignmentExpression } from "./AssignmentExpression";
 import { DereferenceExpression } from "./DereferenceExpression";
 import { Expression } from "./Expression";
-import { FieldReferenceExpression } from "./FieldReferenceExpression";
+import { FieldReferenceExpression, MethodReferenceExpression } from "./FieldReferenceExpression";
 import { FunctionCallExpression } from "./FunctionCallExpression";
 import { LocalDefinitionExpression } from "./LocalDefinitionExpression";
 import { NumericLiteralExpression } from "./NumericLiteralExpression";
@@ -149,6 +149,10 @@ const rules: ProductionRule[] = [
                 return undefined;
             }
             let arg_index = 0;
+            if(input[0] instanceof MethodReferenceExpression) {
+                args.push(input[0].self);
+                arg_index++;
+            }
             for (const exp of rest) {
                 // TODO is this correct? I *think* so based on the match invariants, but it's sketchy
                 if (isExpression(exp)) {
@@ -177,12 +181,13 @@ const rules: ProductionRule[] = [
                 const subtype = stable.lookup_field(input[2].name);
                 if (!subtype) return undefined;
                 return [
-                    new FieldReferenceExpression(
+                    new MethodReferenceExpression(
                         new DereferenceExpression(
                             new FieldReferenceExpression(new DereferenceExpression(input[0]), "__stable", new PointerType(new ClassType(`__${class_type.get_name()}_static`))),
                         ),
                         input[2].name,
-                        subtype.type
+                        subtype.type,
+                        input[0]
                     )
                 ];
             } else {
@@ -328,7 +333,11 @@ function Rest(): Matcher {
 // ---
 
 function Lvalue(): Matcher {
-    return First(Literal("FieldReferenceExpression"), Literal("StaticReferenceExpression"), Literal("VariableExpression"));
+    return First(
+        Literal("FieldReferenceExpression"),
+        Literal("MethodReferenceExpression"),
+        Literal("StaticReferenceExpression"),
+        Literal("VariableExpression"));
 }
 
 function Rvalue(): Matcher {
