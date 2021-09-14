@@ -1,5 +1,5 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
-import { ClassType, FunctionType, RawPointerType } from "../unified_parser/TypeObject";
+import { ClassType, FunctionType, RawPointerType, UnionType } from "../unified_parser/TypeObject";
 import { ASTElement } from "../unified_parser/ASTElement";
 import { ElidedElement, LocalDefinition, NameExpression, UnresolvedTypeLiteral, TypeLiteral, ClassField } from "../unified_parser/Parser";
 import { CompoundStatement } from "../unified_parser/CompoundStatement";
@@ -20,6 +20,7 @@ import { TypeRequest } from "../unified_parser/TypeRequest";
 import { NewExpression } from "../unified_parser/NewExpression";
 import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
 import { ArithmeticExpression } from "../unified_parser/ArithmeticExpression";
+import { ComparisonExpression } from "../unified_parser/ComparisonExpression";
 
 export type Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent?: ASTElement) => boolean;
 
@@ -28,7 +29,7 @@ export function ApplyToAll(t: Transformer): boolean {
 
     let u = (element: ASTElement, replace: (n: ASTElement) => void, parent: ASTElement) => {
         let rc = t(element, replace, parent);
-        if(rc) did_apply = true;
+        if (rc) did_apply = true;
         return rc;
     }
 
@@ -180,7 +181,7 @@ export const SpecifyFieldReferences: Transformer = (element: ASTElement, replace
         && element.source.value_type instanceof ClassType) {
         if (element.source.value_type.source.fields.some(x => x.name == element.field)) {
             element.value_type = element.source.value_type.source.fields.find(x => x.name == element.field).type_literal.value_type;
-        return true;
+            return true;
         }
     }
 }
@@ -206,9 +207,21 @@ export const AddTypeRequests: Transformer = (element: ASTElement, replace: (n: A
         element.rhs = new TypeRequest(element.rhs, element.lhs.value_type);
     } else if (element instanceof UnaryReturnExpression) {
         element.source = new TypeRequest(element.source, element.scope.get_return())
-    } else if (element instanceof ArithmeticExpression && element.value_type != TypeRegistry.get("_unknown")) {
-        element.lhs = new TypeRequest(element.lhs, element.value_type);
-        element.rhs = new TypeRequest(element.rhs, element.value_type);
+    } else if (element instanceof ArithmeticExpression) {
+        if (element.value_type != TypeRegistry.get("_unknown")) {
+            element.lhs = new TypeRequest(element.lhs, element.value_type);
+            element.rhs = new TypeRequest(element.rhs, element.value_type);
+        } else if(element.lhs.value_type != TypeRegistry.get("_unknown")) {
+            element.rhs = new TypeRequest(element.rhs, element.lhs.value_type);
+        } else if(element.rhs.value_type != TypeRegistry.get("_unknown")) {
+            element.lhs = new TypeRequest(element.lhs, element.rhs.value_type);
+        }
+    } else if (element instanceof ComparisonExpression) {
+        if(element.lhs.value_type != TypeRegistry.get("_unknown")) {
+            element.rhs = new TypeRequest(element.rhs, element.lhs.value_type);
+        } else if(element.rhs.value_type != TypeRegistry.get("_unknown")) {
+            element.lhs = new TypeRequest(element.lhs, element.rhs.value_type);
+        }
     } else {
         return false;
     }
@@ -225,7 +238,10 @@ export const SpecifyRawPointerIndexes: Transformer = (element: ASTElement, repla
 }
 
 export const RemoveRedundantTypeRequests: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
-    if (element instanceof TypeRequest && element.value_type.toString() == element.source.value_type.toString()) {
+    if (element instanceof TypeRequest && (
+        element.value_type.toString() == element.source.value_type.toString()
+        || element.value_type instanceof UnionType && (element.value_type as UnionType).subtypes.some(x => x.toString() == element.source.value_type.toString())
+    )) {
         replace(element.source);
         return true;
     }

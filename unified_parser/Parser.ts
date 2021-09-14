@@ -479,17 +479,22 @@ export const ExpressionPass: Pass = {
             }
         },
         {
-            name: "Add",
-            match: InOrder(MatchElement(), Literal("Plus"), MatchElement()),
-            replace: (input: [ASTElement, Token, ASTElement]) => {
-                return [new ArithmeticExpression(input[0], input[2], "add")]
-            }
+            name: "ParenthesizedSingleElement",
+            match: InOrder(Literal("OpenParen"), MatchElement(), Literal("CloseParen")),
+            replace: (input: [Token, ASTElement, Token]) => [input[1]],
         },
         {
             name: "Multiply",
             match: InOrder(MatchElement(), Literal("Asterisk"), MatchElement()),
             replace: (input: [ASTElement, Token, ASTElement]) => {
                 return [new ArithmeticExpression(input[0], input[2], "mul")]
+            }
+        },
+        {
+            name: "Add",
+            match: InOrder(MatchElement(), Literal("Plus"), MatchElement()),
+            replace: (input: [ASTElement, Token, ASTElement]) => {
+                return [new ArithmeticExpression(input[0], input[2], "add")]
             }
         },
         {

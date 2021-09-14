@@ -176,6 +176,7 @@ export function PrintExpression(node: ASTElement): string {
 
     s += mrecord(node.guid, entries);
 
+    /*
     if (isSynthesizable(node)) {
         const block = node.synthesize();
         const ir_entries: { name: string, label: string }[] = [];
@@ -188,6 +189,7 @@ export function PrintExpression(node: ASTElement): string {
         s += mrecord(node.guid + `_ir`, ir_entries, "color=gray, fontcolor=gray");
         s += link(node.guid, undefined, node.guid + `_ir`, undefined);
     }
+    */
     return s;
 }
 

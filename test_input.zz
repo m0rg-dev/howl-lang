@@ -1,19 +1,27 @@
 module TestInput;
 
+static fn i32 puts(*i8 s);
+static fn *i8 realloc(*i8 ptr, i64 size);
+
 class String {
     *i8 buffer;
     i64 length;
-
-    fn void allocate(i64 size) {
-        self.buffer = calloc(size, 1);
-        self.length = size;
-        return;
-    }
+    i64 allocated_length;
 
     fn void setCharacter(i64 offset, i8 c) {
         if offset < self.length {
             self.buffer*[offset] = c;
         }
+        return;
+    }
+
+    fn void pushCharacter(i8 c) {
+        if self.allocated_length < (self.length + 1) {
+            self.allocated_length = (self.allocated_length * 2) + 1;
+            self.buffer = realloc(self.buffer, self.allocated_length);
+        }
+        self.buffer*[self.length] = c;
+        self.length = self.length + 1;
         return;
     }
 
@@ -25,22 +33,20 @@ class String {
 static fn i32 main() {
     let s String;
     s = new String;
-    s.allocate(8 * 1);
-    s.setCharacter(0, 72);
-    s.setCharacter(1, 101);
-    s.setCharacter(2, 108);
-    s.setCharacter(3, 108);
-    s.setCharacter(4, 111);
-    s.setCharacter(5, 44);
-    s.setCharacter(6, 32);
-    s.setCharacter(7, 87);
-    s.setCharacter(8, 111);
-    s.setCharacter(9, 114);
-    s.setCharacter(10, 108);
-    s.setCharacter(11, 100);
-    s.setCharacter(12, 33);
+    s.pushCharacter(72);
+    s.pushCharacter(101);
+    s.pushCharacter(108);
+    s.pushCharacter(108);
+    s.pushCharacter(111);
+    s.pushCharacter(44);
+    s.pushCharacter(32);
+    s.pushCharacter(87);
+    s.pushCharacter(111);
+    s.pushCharacter(114);
+    s.pushCharacter(108);
+    s.pushCharacter(100);
+    s.pushCharacter(33);
     puts(s.c_str());
     return 0;
 }
 
-static fn i32 puts(*i8 s);
