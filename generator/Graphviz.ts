@@ -17,6 +17,7 @@ import { isSynthesizable } from "./IR";
 import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
 import { IfStatement } from "../unified_parser/IfStatement";
 import { ComparisonExpression } from "../unified_parser/ComparisonExpression";
+import { ArithmeticExpression } from "../unified_parser/ArithmeticExpression";
 
 export function PrintAST(stream: TokenStream): string {
     const revstream = [...stream];
@@ -164,7 +165,7 @@ export function PrintExpression(node: ASTElement): string {
         entries.push({ name: "body", label: "body" });
         s += link(node.guid, "body", node.body.guid, undefined);
         s += PrintExpression(node.body);
-    } else if (node instanceof ComparisonExpression) {
+    } else if (node instanceof ComparisonExpression || node instanceof ArithmeticExpression) {
         entries.push({ name: "lhs", label: `lhs <${node.lhs.value_type}>` });
         entries.push({ name: "rhs", label: `rhs <${node.rhs.value_type}>` });
         s += link(node.guid, "lhs", node.lhs.guid, undefined);

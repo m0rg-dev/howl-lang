@@ -11,7 +11,7 @@ class String {
     }
 
     fn void setCharacter(i64 offset, i8 c) {
-        if(offset < self.length) {
+        if offset < self.length {
             self.buffer*[offset] = c;
         }
         return;
@@ -25,7 +25,7 @@ class String {
 static fn i32 main() {
     let s String;
     s = new String;
-    s.allocate(8);
+    s.allocate(8 * 1);
     s.setCharacter(0, 72);
     s.setCharacter(1, 101);
     s.setCharacter(2, 108);

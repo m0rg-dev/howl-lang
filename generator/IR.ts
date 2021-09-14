@@ -243,6 +243,24 @@ export class IRIntegerCompare extends IRStatement {
     toString = () => `${this.target.location} = icmp ${this.mode} ${this.lhs.type} ${this.lhs.location}, ${this.rhs.location}`;
 }
 
+export class IRIntegerMath extends IRStatement {
+    target: IRLocation;
+    lhs: IRLocation;
+    rhs: IRLocation;
+    mode: string;
+
+    constructor(target: IRLocation, lhs: IRLocation, rhs: IRLocation, mode: string) {
+        super();
+        this.lhs = lhs;
+        this.rhs = rhs;
+        this.mode = mode;
+        this.target = target;
+    }
+
+    toString = () => `${this.target.location} = ${this.mode} ${this.lhs.type} ${this.lhs.location}, ${this.rhs.location}`;
+}
+
+
 export class IRConditionalBranch extends IRStatement {
     if_true: IRLabel;
     if_false: IRLabel;

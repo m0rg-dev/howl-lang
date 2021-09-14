@@ -1,7 +1,7 @@
 import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
 import { Assert, First, InOrder, Invert, Literal, Star } from "./Matcher";
 import { SimpleStatement } from "./SimpleStatement";
-import { ApplyPass, Braces, ExpressionPass } from "./Parser";
+import { ApplyPass, Braces, ExpressionPass, MatchElement } from "./Parser";
 import { flattenBlock, IRAlloca, IRBlock, IRLabel, IRLabelStatement, IRNamedIdentifier, IRPointerType, IRStatement, isSynthesizable, Synthesizable } from "../generator/IR";
 import { Token } from "../lexer/Token";
 import { IfStatement } from "./IfStatement";
@@ -33,13 +33,11 @@ export class CompoundStatement extends VoidElement implements Synthesizable {
                     name: "IfStatement",
                     match: InOrder(
                         Literal("If"),
-                        Assert(Literal("OpenParen")), Braces(),
+                        MatchElement(),
                         Literal("CompoundStatement")
                     ),
-                    replace: (input: TokenStream) => {
-                        const body = input[input.length - 1] as CompoundStatement;
-                        const condition = input[2] as ASTElement;
-                        return [new IfStatement(condition, body)];
+                    replace: (input: [Token, ASTElement, CompoundStatement]) => {
+                        return [new IfStatement(input[1], input[2])];
                     }
                 },
                 {
@@ -79,3 +77,7 @@ export class CompoundStatement extends VoidElement implements Synthesizable {
         };
     }
 }
+function MatchExpression(): import("./Matcher").Matcher {
+    throw new Error("Function not implemented.");
+}
+

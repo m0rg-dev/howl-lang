@@ -12,7 +12,7 @@ import { VariableReferenceExpression } from "./VariableReferenceExpression";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
 import { ClassType, FunctionType, PassthroughType, RawPointerType, TypeObject } from "./TypeObject";
 import { ClassConstruct } from "./ClassConstruct";
-import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences, AddTypeRequests, RemoveRedundantTypeRequests, SpecifyNumericLiterals, SpecifyNews, SpecifyRawPointerIndexes } from "../transformers/Transformer";
+import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences, AddTypeRequests, RemoveRedundantTypeRequests, SpecifyNumericLiterals, SpecifyNews, SpecifyRawPointerIndexes, SpecifyMath, SpecifyArithmeticExpressions } from "../transformers/Transformer";
 import { StaticTableInitialization } from "./StaticTableInitialization";
 import { StaticFunctionReference } from "./StaticFunctionReference";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
@@ -24,6 +24,7 @@ import { NewExpression } from "./NewExpression";
 import { RawPointerIndexExpression } from "./RawPointerIndexExpression";
 import { CompoundStatement } from "./CompoundStatement";
 import { ComparisonExpression } from "./ComparisonExpression";
+import { ArithmeticExpression } from "./ArithmeticExpression";
 
 export function Parse(token_stream: Token[]) {
     init_types();
@@ -33,6 +34,7 @@ export function Parse(token_stream: Token[]) {
 
     ApplyToAll(ReplaceTypes);
     ApplyToAll(SpecifyNews);
+    ApplyToAll(SpecifyMath);
     ApplyToAll(SpecifyClassFields);
 
     GenerateStaticTables();
@@ -48,9 +50,15 @@ export function Parse(token_stream: Token[]) {
     ApplyToAll(SpecifyFieldReferences);
     ApplyToAll(SpecifyFunctionCalls);
     ApplyToAll(SpecifyRawPointerIndexes);
-    ApplyToAll(AddTypeRequests);
-    ApplyToAll(RemoveRedundantTypeRequests);
-    ApplyToAll(SpecifyNumericLiterals);
+
+    let did_apply = true;
+    while (did_apply) {
+        did_apply = false;
+        ApplyToAll(AddTypeRequests);
+        ApplyToAll(RemoveRedundantTypeRequests);
+        did_apply ||= ApplyToAll(SpecifyNumericLiterals);
+        did_apply ||= ApplyToAll(SpecifyArithmeticExpressions);
+    }
 
     RemoveClassMethods();
 }
@@ -471,6 +479,20 @@ export const ExpressionPass: Pass = {
             }
         },
         {
+            name: "Add",
+            match: InOrder(MatchElement(), Literal("Plus"), MatchElement()),
+            replace: (input: [ASTElement, Token, ASTElement]) => {
+                return [new ArithmeticExpression(input[0], input[2], "add")]
+            }
+        },
+        {
+            name: "Multiply",
+            match: InOrder(MatchElement(), Literal("Asterisk"), MatchElement()),
+            replace: (input: [ASTElement, Token, ASTElement]) => {
+                return [new ArithmeticExpression(input[0], input[2], "mul")]
+            }
+        },
+        {
             name: "LessThan",
             match: InOrder(MatchElement(), Literal("OpenAngle"), MatchElement()),
             replace: (input: [ASTElement, Token, ASTElement]) => {
@@ -602,7 +624,7 @@ function Rvalue(): Matcher {
     return First(Literal("NumericLiteralExpression"));
 }
 
-function MatchElement(): Matcher {
+export function MatchElement(): Matcher {
     return (stream: TokenStream) => {
         if (isAstElement(stream[0])) return { matched: true, length: 1 };
         return { matched: false, length: 0 };

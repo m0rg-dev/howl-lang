@@ -49,7 +49,7 @@ export class UnionType extends TypeObject {
     }
     walk() { }
     toString = () => `${this.subtypes.join(" | ")}`;
-    toIR = () => { throw new Error("can't IR-ify a union type") };
+    toIR = () => `%UNION`;
 }
 
 export class PassthroughType extends TypeObject {

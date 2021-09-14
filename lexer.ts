@@ -29,7 +29,8 @@ const PUNCTUATION_TABLE = {
     "=": TokenType.Equals,
     "*": TokenType.Asterisk,
     "<": TokenType.OpenAngle,
-    ">": TokenType.CloseAngle
+    ">": TokenType.CloseAngle,
+    "+": TokenType.Plus,
 }
 
 export class Lexer {
@@ -75,7 +76,7 @@ export class Lexer {
     }
 
     private match_punctuation(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^([{};(),.=\[\]*<>])\s*/s);
+        const m = this.source.substr(this.mark).match(/^([{};(),.=\[\]*<>+])\s*/s);
         if (!m) return undefined;
 
         return { type: PUNCTUATION_TABLE[m[1]], length: m[0].length, start: this.mark, text: m[0] };

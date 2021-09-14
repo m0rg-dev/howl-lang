@@ -22,6 +22,7 @@ export enum TokenType {
     Period,
     Equals,
     Asterisk,
+    Plus,
 
     Name,
     NumericLiteral,
