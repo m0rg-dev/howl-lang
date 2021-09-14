@@ -48,27 +48,27 @@ export function PrintExpression(node: ASTElement): string {
         node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.value_type.toString()}>` }));
         node.methods.forEach(x => {
             entries.push({ name: x.name, label: `${x.name}<${x.return_type_literal.value_type.toString()}>(${x.args.map(x => `${x.name}<${x.type_literal.value_type.toString()}>`).join(", ")})` });
-            s += link(node.guid, x.name, x.guid, "expression");
+            s += link(node.guid, x.name, x.guid, undefined);
             s += PrintExpression(x);
         });
     } else if (node instanceof FunctionConstruct) {
         node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.type_literal.value_type.toString()}>` }));
         if (node.body) {
             entries.push({ name: "body", label: "Body" });
-            s += link(node.guid, "body", node.body.guid, "expression");
+            s += link(node.guid, "body", node.body.guid, undefined);
             s += PrintExpression(node.body);
         }
     } else if (node instanceof CompoundStatement) {
         node.substatements.forEach(x => {
             entries.push({ name: x.guid, label: x.toString() });
-            s += link(node.guid, x.guid, x.guid, "expression");
+            s += link(node.guid, x.guid, x.guid, undefined);
             s += PrintExpression(x);
         });
     } else if (node instanceof SimpleStatement) {
         node.source.forEach((x, y) => {
             if (isAstElement(x)) {
                 entries.push({ name: `${y}`, label: x.toString() });
-                s += link(node.guid, `${y}`, x.guid, "expression");
+                s += link(node.guid, `${y}`, x.guid, undefined);
                 s += PrintExpression(x);
             } else {
                 entries.push({ name: `${y}`, label: x.text });
@@ -77,8 +77,8 @@ export function PrintExpression(node: ASTElement): string {
     } else if (node instanceof AssignmentStatement) {
         entries.push({ name: "lhs", label: `lhs <${node.expression.lhs.value_type}>` });
         entries.push({ name: "rhs", label: `rhs <${node.expression.rhs.value_type}>` });
-        s += link(node.guid, "lhs", node.expression.lhs.guid, "expression");
-        s += link(node.guid, "rhs", node.expression.rhs.guid, "expression");
+        s += link(node.guid, "lhs", node.expression.lhs.guid, undefined);
+        s += link(node.guid, "rhs", node.expression.rhs.guid, undefined);
         s += PrintExpression(node.expression.lhs);
         s += PrintExpression(node.expression.rhs);
     } else if (node instanceof UnaryReturnStatement) {
@@ -87,21 +87,21 @@ export function PrintExpression(node: ASTElement): string {
         } else {
             entries.push({ name: "value", label: "value" });
         }
-        s += link(node.guid, "value", node.expression.source.guid, "expression");
+        s += link(node.guid, "value", node.expression.source.guid, undefined);
         s += PrintExpression(node.expression.source);
     } else if (node instanceof FieldReferenceExpression) {
         entries.push({ name: "source", label: "source" });
         entries.push({ name: "index", label: `index: ${node.index()}` });
-        s += link(node.guid, "source", node.source.guid, "expression");
+        s += link(node.guid, "source", node.source.guid, undefined);
         s += PrintExpression(node.source);
     } else if (node instanceof FunctionCallExpression) {
         entries.push({ name: "function", label: "function" });
-        s += link(node.guid, "function", node.source.guid, "expression");
+        s += link(node.guid, "function", node.source.guid, undefined);
         s += PrintExpression(node.source);
         if (node.source.value_type instanceof FunctionType) {
             node.args.forEach((x, y) => {
                 entries.push({ name: `arg${y}`, label: `argument ${y} <${(node.source.value_type as FunctionType).args[y]}>` });
-                s += link(node.guid, `arg${y}`, x.guid, "expression");
+                s += link(node.guid, `arg${y}`, x.guid, undefined);
                 s += PrintExpression(x);
             })
         } else {
