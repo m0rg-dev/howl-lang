@@ -13,6 +13,7 @@ export class ClassConstruct extends VoidElement {
     constructor(name: string) {
         super();
         this.name = name;
+        TypeRegistry.set(this.name, new ClassType(this));
     }
     toString = () => `Class(${this.name})`;
     stableType = () => TypeRegistry.get(`__${this.name}_stable_t`) as ClassType;

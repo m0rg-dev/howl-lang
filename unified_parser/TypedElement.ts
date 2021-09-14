@@ -11,7 +11,7 @@ export class VariableReferenceExpression extends ASTElement {
         this.name = name;
     }
 
-    toString = () => `local ${this.name}`;
+    toString = () => `var ${this.name}`;
 }
 
 export class NumericLiteralExpression extends ASTElement {

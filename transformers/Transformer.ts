@@ -4,16 +4,24 @@ import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElem
 import { AssignmentExpression, CompoundStatement, ElidedElement, FunctionConstruct, LocalDefinition, NameExpression, NullaryReturnExpression, UnresolvedTypeLiteral, UnaryReturnExpression, TypeLiteral, ClassField } from "../unified_parser/Parser";
 import { ClassConstruct } from "../unified_parser/ClassConstruct";
 import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "../unified_parser/SimpleStatement";
-import { FunctionCallExpression, MethodReferenceExpression, VariableReferenceExpression } from "../unified_parser/TypedElement";
+import { FunctionCallExpression, MethodReferenceExpression, NumericLiteralExpression, VariableReferenceExpression } from "../unified_parser/TypedElement";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
+import { StaticFunctionRegistry } from "../registry/StaticVariableRegistry";
+import { TypeRequest } from "../unified_parser/TypeRequest";
 
 export type Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent?: ASTElement) => void;
 
-export function ApplyToAll(stream: TokenStream, t: Transformer) {
+export function ApplyToAll(t: Transformer) {
     console.error(`Applying transformer ${t.name}`);
-    stream.forEach((x, y) => {
-        if (isAstElement(x)) x.walk(t, (n: ASTElement) => stream[y] = n);
-    })
+    for (const [name, type] of TypeRegistry) {
+        if (type instanceof ClassType) {
+            type.source.walk(t, (n: ASTElement) => { });
+        }
+    }
+
+    for (const [name, func] of StaticFunctionRegistry) {
+        func.walk(t, (n: ASTElement) => { });
+    }
 }
 
 export const ExtractClassTypes: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
@@ -105,10 +113,10 @@ export const AddSelfToMethodCalls: Transformer = (element: ASTElement, replace: 
 export const IndirectMethodReferences: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
     if (element instanceof FunctionCallExpression
         && element.source instanceof MethodReferenceExpression) {
-            const src = element.source.source;
-            const method = element.source.method;
+        const src = element.source.source;
+        const method = element.source.method;
 
-            element.source = new FieldReferenceExpression(new FieldReferenceExpression(src, "__stable"), method);
+        element.source = new FieldReferenceExpression(new FieldReferenceExpression(src, "__stable"), method);
     }
 }
 
@@ -126,5 +134,29 @@ export const SpecifyFunctionCalls: Transformer = (element: ASTElement, replace: 
         && element.value_type == TypeRegistry.get("_unknown")
         && element.source.value_type instanceof FunctionType) {
         element.value_type = (element.source.value_type as FunctionType).rc;
+    }
+}
+
+export const AddTypeRequestsToCalls: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof FunctionCallExpression) {
+        element.args.forEach((x, y) => {
+            const desired_type = (element.source.value_type as FunctionType).args[y];
+            element.args[y] = new TypeRequest(element.args[y], desired_type);
+        });
+    }
+}
+
+export const RemoveRedundantTypeRequests: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof TypeRequest && element.value_type == element.source.value_type) {
+        replace(element.source);
+    }
+}
+
+export const SpecifyNumericLiterals: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof TypeRequest
+        && element.source instanceof NumericLiteralExpression) {
+        // TODO check and make sure it's actually a numeric type
+        element.source.value_type = element.value_type;
+        replace(element.source);
     }
 }

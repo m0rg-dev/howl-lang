@@ -7,6 +7,7 @@ import { FunctionCallExpression, MethodReferenceExpression } from "../unified_pa
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 import { StaticTableInitialization } from "../unified_parser/StaticTableInitialization";
 import { StaticInitializer } from "../registry/StaticVariableRegistry";
+import { TypeRequest } from "../unified_parser/TypeRequest";
 
 export function PrintAST(stream: TokenStream): string {
     const revstream = [...stream];
@@ -123,8 +124,10 @@ export function PrintExpression(node: ASTElement): string {
         } else {
             entries.push({ name: "err", label: `no args? type is ${node.source.value_type}` });
         }
-    } else if (node instanceof StaticTableInitialization) {
-
+    } else if (node instanceof TypeRequest) {
+        entries.push({ name: "source", label: "source" });
+        s += link(node.guid, "source", node.source.guid, undefined);
+        s += PrintExpression(node.source);
     }
 
     s += mrecord(node.guid, entries);
