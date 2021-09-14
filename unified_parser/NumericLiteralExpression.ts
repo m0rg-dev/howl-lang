@@ -16,7 +16,7 @@ export class NumericLiteralExpression extends ASTElement implements Synthesizabl
         if (this._ir_block) return this._ir_block;
 
         const out = new IRTemporary();
-        return {
+        return this._ir_block = {
             output_location: {
                 type: new IRPointerType(this.value_type),
                 location: out

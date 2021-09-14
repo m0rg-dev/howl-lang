@@ -1,5 +1,5 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
-import { ClassType, FunctionType, TypeObject } from "../unified_parser/TypeObject";
+import { ClassType, FunctionType, RawPointerType, TypeObject } from "../unified_parser/TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
 import { CompoundStatement, ElidedElement, LocalDefinition, NameExpression, UnresolvedTypeLiteral, TypeLiteral, ClassField } from "../unified_parser/Parser";
 import { FunctionConstruct } from "../unified_parser/FunctionConstruct";
@@ -18,6 +18,7 @@ import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpres
 import { StaticFunctionRegistry } from "../registry/StaticVariableRegistry";
 import { TypeRequest } from "../unified_parser/TypeRequest";
 import { NewExpression } from "../unified_parser/NewExpression";
+import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
 
 export type Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent?: ASTElement) => void;
 
@@ -47,7 +48,11 @@ export const ReplaceTypes: Transformer = (element: ASTElement, replace: (n: ASTE
         replace(new TypeLiteral(TypeRegistry.get(element.name)))
     } else if (element instanceof UnresolvedTypeLiteral
         && TypeRegistry.has(element.name)) {
-        replace(new TypeLiteral(TypeRegistry.get(element.name)))
+        if (element.ptrflag) {
+            replace(new TypeLiteral(new RawPointerType(TypeRegistry.get(element.name))))
+        } else {
+            replace(new TypeLiteral(TypeRegistry.get(element.name)))
+        }
     }
 };
 
@@ -154,17 +159,31 @@ export const SpecifyFunctionCalls: Transformer = (element: ASTElement, replace: 
     }
 }
 
-export const AddTypeRequestsToCalls: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+export const AddTypeRequests: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
     if (element instanceof FunctionCallExpression) {
         element.args.forEach((x, y) => {
             const desired_type = (element.source.value_type as FunctionType).args[y];
             element.args[y] = new TypeRequest(element.args[y], desired_type);
         });
+    } else if (element instanceof RawPointerIndexExpression) {
+        element.index = new TypeRequest(element.index, TypeRegistry.get("i64"));
+    } else if (element instanceof AssignmentExpression && element.lhs.value_type != TypeRegistry.get("_unknown")) {
+        element.rhs = new TypeRequest(element.rhs, element.lhs.value_type);
+    } else if (element instanceof UnaryReturnExpression) {
+        element.source = new TypeRequest(element.source, element.scope.get_return())
+    }
+}
+
+export const SpecifyRawPointerIndexes: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof RawPointerIndexExpression
+        && element.value_type == TypeRegistry.get("_unknown")
+        && element.source.value_type instanceof RawPointerType) {
+        element.value_type = (element.source.value_type as RawPointerType).subtype;
     }
 }
 
 export const RemoveRedundantTypeRequests: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
-    if (element instanceof TypeRequest && element.value_type == element.source.value_type) {
+    if (element instanceof TypeRequest && element.value_type.toString() == element.source.value_type.toString()) {
         replace(element.source);
     }
 }

@@ -1,4 +1,4 @@
-import { GEPStatement, IRBlock, IRLoad, IRPointerType, IRTemporary, isSynthesizable, Synthesizable } from "../generator/IR";
+import { GEPStructStatement, IRBlock, IRLoad, IRPointerType, IRTemporary, isSynthesizable, Synthesizable } from "../generator/IR";
 import { ASTElement } from "./ASTElement";
 import { ClassType } from "./TypeObject";
 
@@ -35,7 +35,7 @@ export class FieldReferenceExpression extends ASTElement implements Synthesizabl
             },
             statements: [
                 new IRLoad({ type: (source_block.output_location.type as IRPointerType).sub, location: temp}, source_block.output_location),
-                new GEPStatement({ type: new IRPointerType(this.value_type.toIR()), location: temp2 }, { type: (source_block.output_location.type as IRPointerType).sub, location: temp}, this.index())
+                new GEPStructStatement({ type: new IRPointerType(this.value_type.toIR()), location: temp2 }, { type: (source_block.output_location.type as IRPointerType).sub, location: temp}, this.index())
             ],
             sub_blocks: [source_block]
         };

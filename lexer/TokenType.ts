@@ -12,10 +12,13 @@ export enum TokenType {
     CloseBrace,
     OpenParen,
     CloseParen,
+    OpenBracket,
+    CloseBracket,
     Semicolon,
     Comma,
     Period,
     Equals,
+    Asterisk,
 
     Name,
     NumericLiteral,

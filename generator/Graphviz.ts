@@ -13,6 +13,7 @@ import { StaticTableInitialization } from "../unified_parser/StaticTableInitiali
 import { StaticInitializer } from "../registry/StaticVariableRegistry";
 import { TypeRequest } from "../unified_parser/TypeRequest";
 import { isSynthesizable } from "./IR";
+import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
 
 export function PrintAST(stream: TokenStream): string {
     const revstream = [...stream];
@@ -146,6 +147,13 @@ export function PrintExpression(node: ASTElement): string {
         entries.push({ name: "source", label: "source" });
         s += link(node.guid, "source", node.source.guid, undefined);
         s += PrintExpression(node.source);
+    } else if (node instanceof RawPointerIndexExpression) {
+        entries.push({ name: "source", label: "source" });
+        s += link(node.guid, "source", node.source.guid, undefined);
+        s += PrintExpression(node.source);
+        entries.push({ name: "index", label: "index" });
+        s += link(node.guid, "index", node.index.guid, undefined);
+        s += PrintExpression(node.index);
     }
 
     s += mrecord(node.guid, entries);

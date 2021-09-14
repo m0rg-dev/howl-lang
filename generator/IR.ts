@@ -78,7 +78,7 @@ export class IRPointerType extends IRType {
     toString = () => `${this.sub}*`;
 }
 
-export class GEPStatement extends IRStatement {
+export class GEPStructStatement extends IRStatement {
     target: IRLocation;
     source: IRLocation;
     fields: number[];
@@ -92,6 +92,21 @@ export class GEPStatement extends IRStatement {
     }
 
     toString = () => `${this.target.location} = getelementptr ${(this.source.type as IRPointerType).sub}, ${this.source.type} ${this.source.location}, i64 0, ${this.fields.map(x => `i32 ${x}`).join(", ")}`;
+}
+
+export class GEPPointerStatement extends IRStatement {
+    target: IRLocation;
+    source: IRLocation;
+    index: IRLocation;
+
+    constructor(target: IRLocation, source: IRLocation, index: IRLocation) {
+        super();
+        this.target = target;
+        this.source = source;
+        this.index = index;
+    }
+
+    toString = () => `${this.target.location} = getelementptr ${(this.source.type as IRPointerType).sub}, ${this.source.type} ${this.source.location}, ${this.index.type} ${this.index.location}`;
 }
 
 export class IRNullaryReturn extends IRStatement {

@@ -1,10 +1,8 @@
 import { IRAlloca, IRBaseType, IRBitcast, IRBlock, IRCall, IRFunctionType, IRNamedIdentifier, IRNumericLiteral, IRPointerType, IRSomethingElse, IRStore, IRTemporary, IRVoidCall, Synthesizable } from "../generator/IR";
 import { StaticFunctionRegistry } from "../registry/StaticVariableRegistry";
 import { ASTElement } from "./ASTElement";
-import { FunctionCallExpression } from "./FunctionCallExpression";
 import { TypeLiteral, UnresolvedTypeLiteral } from "./Parser";
 import { ClassType } from "./TypeObject";
-import { VariableReferenceExpression } from "./VariableReferenceExpression";
 
 export class NewExpression extends ASTElement implements Synthesizable {
     type_literal: TypeLiteral | UnresolvedTypeLiteral;

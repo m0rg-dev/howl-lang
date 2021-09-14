@@ -61,3 +61,13 @@ export class PassthroughType extends TypeObject {
     toString = () => `!${this.name}`;
     toIR = () => new IRBaseType(this.name);
 }
+
+export class RawPointerType extends TypeObject {
+    subtype: TypeObject;
+    constructor(subtype: TypeObject) {
+        super();
+        this.subtype = subtype;
+    }
+    toString = () => `*${this.subtype}`;
+    toIR = () => new IRPointerType(this.subtype.toIR());
+}
