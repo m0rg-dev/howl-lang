@@ -159,7 +159,7 @@ export class IRVoidCall extends IRStatement {
 
     constructor(source: IRLocation, args: IRLocation[]) {
         super();
-        if (!(source.type instanceof IRPointerType && source.type.sub instanceof IRFunctionType)) throw new Error("attempted to call non-function type");
+        if (!(source.type instanceof IRPointerType && source.type.sub instanceof IRFunctionType)) throw new Error(`attempted to call non-function type ${source.type}`);
         this.source = source;
         this.args = args;
     }
@@ -176,6 +176,19 @@ export class IRAlloca extends IRStatement {
     }
 
     toString = () => `${this.target.location} = alloca ${(this.target.type as IRPointerType).sub}`;
+}
+
+export class IRBitcast extends IRStatement {
+    target: IRLocation;
+    source: IRLocation;
+
+    constructor(target: IRLocation, source: IRLocation) {
+        super();
+        this.target = target;
+        this.source = source;
+    }
+
+    toString = () => `${this.target.location} = bitcast ${this.source.type} ${this.source.location} to ${this.target.type}`;
 }
 
 export class IRSomethingElse extends IRStatement {

@@ -5,6 +5,7 @@ import { IRAlloca, IRBlock, IRNamedIdentifier, IRPointerType, IRStore, IRTempora
 
 export class VariableReferenceExpression extends ASTElement implements Synthesizable {
     name: string;
+    force_local: boolean;
 
     constructor(type: TypeObject, name: string) {
         super(type);
@@ -17,7 +18,7 @@ export class VariableReferenceExpression extends ASTElement implements Synthesiz
     synthesize(): IRBlock {
         if (this._ir_block) return this._ir_block;
 
-        if (this.scope.is_static(this.name)) {
+        if (!(this.force_local) && this.scope.is_static(this.name)) {
             const temp = new IRTemporary();
             return {
                 output_location: {

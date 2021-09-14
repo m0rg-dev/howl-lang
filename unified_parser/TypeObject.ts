@@ -51,3 +51,13 @@ export class UnionType extends TypeObject {
     toString = () => `${this.subtypes.join(" | ")}`;
     toIR = () => { throw new Error("can't IR-ify a union type") };
 }
+
+export class PassthroughType extends TypeObject {
+    name: string;
+    constructor(name: string) {
+        super();
+        this.name = name;
+    }
+    toString = () => `!${this.name}`;
+    toIR = () => new IRBaseType(this.name);
+}

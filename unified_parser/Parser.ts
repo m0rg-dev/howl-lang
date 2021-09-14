@@ -11,9 +11,9 @@ import { NumericLiteralExpression } from "./NumericLiteralExpression";
 import { FunctionCallExpression } from "./FunctionCallExpression";
 import { VariableReferenceExpression } from "./VariableReferenceExpression";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
-import { ClassType, FunctionType, TypeObject } from "./TypeObject";
+import { ClassType, FunctionType, PassthroughType, TypeObject } from "./TypeObject";
 import { ClassConstruct } from "./ClassConstruct";
-import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences, AddTypeRequestsToCalls, RemoveRedundantTypeRequests, SpecifyNumericLiterals } from "../transformers/Transformer";
+import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences, AddTypeRequestsToCalls, RemoveRedundantTypeRequests, SpecifyNumericLiterals, SpecifyNews } from "../transformers/Transformer";
 import { StaticTableInitialization } from "./StaticTableInitialization";
 import { StaticFunctionReference } from "./StaticFunctionReference";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
@@ -21,12 +21,14 @@ import { NullaryReturnExpression } from "./NullaryReturnExpression";
 import { UnaryReturnExpression } from "./UnaryReturnExpression";
 import { AssignmentExpression } from "./AssignmentExpression";
 import { FunctionConstruct } from "./FunctionConstruct";
+import { NewExpression } from "./NewExpression";
 
 export function Parse(token_stream: Token[]) {
     init_types();
     ApplyPass(token_stream, FindTopLevelConstructs);
 
     ApplyToAll(ReplaceTypes);
+    ApplyToAll(SpecifyNews);
     ApplyToAll(SpecifyClassFields);
 
     GenerateStaticTables();
@@ -46,6 +48,7 @@ export function Parse(token_stream: Token[]) {
     ApplyToAll(SpecifyNumericLiterals);
 
     RemoveClassMethods();
+    AddStandardLibraryReferences();
 }
 
 export function ApplyPass(stream: (Token | ASTElement)[], pass: Pass): TokenStream {
@@ -441,6 +444,11 @@ const ExpressionPass: Pass = {
             replace: (input: [ASTElement, PartialFieldReference]) => [new FieldReferenceExpression(input[0], input[1].field)]
         },
         {
+            name: "New",
+            match: InOrder(Literal("New"), Literal("NameExpression")),
+            replace: (input: [Token, NameExpression]) => [new NewExpression(new UnresolvedTypeLiteral(input[1].name))]
+        },
+        {
             name: "FunctionCall",
             match: InOrder(
                 MatchElement(),
@@ -543,6 +551,16 @@ function RemoveClassMethods() {
         }
         t.source.methods = [];
     }
+}
+
+function AddStandardLibraryReferences() {
+    const calloc = new FunctionConstruct("calloc");
+    calloc.return_type_literal = new TypeLiteral(new PassthroughType("i8*"));
+    calloc.args = [
+        new ArgumentDefinition("count", new TypeLiteral(new PassthroughType("i64"))),
+        new ArgumentDefinition("size", new TypeLiteral(new PassthroughType("i64")))
+    ];
+    StaticFunctionRegistry.set("calloc", calloc);
 }
 
 function Braces(): Matcher {

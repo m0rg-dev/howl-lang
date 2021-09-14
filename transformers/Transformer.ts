@@ -17,6 +17,7 @@ import { VariableReferenceExpression } from "../unified_parser/VariableReference
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 import { StaticFunctionRegistry } from "../registry/StaticVariableRegistry";
 import { TypeRequest } from "../unified_parser/TypeRequest";
+import { NewExpression } from "../unified_parser/NewExpression";
 
 export type Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent?: ASTElement) => void;
 
@@ -50,8 +51,15 @@ export const ReplaceTypes: Transformer = (element: ASTElement, replace: (n: ASTE
     }
 };
 
+// TODO get rid of this crap
 export const SpecifyClassFields: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
     if (element instanceof ClassField && element.type_literal instanceof TypeLiteral) {
+        element.value_type = element.type_literal.value_type;
+    }
+}
+
+export const SpecifyNews: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof NewExpression && element.type_literal instanceof TypeLiteral) {
         element.value_type = element.type_literal.value_type;
     }
 }

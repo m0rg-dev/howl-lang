@@ -18,35 +18,37 @@ export class FunctionConstruct extends VoidElement implements Synthesizable {
     _ir_block: IRBlock;
     synthesize(): IRBlock {
         if (this._ir_block) return this._ir_block;
-        if (!this.body) return { output_location: undefined, statements: [] };
 
-        const statements: IRStatement[] = [];
+        if (this.body) {
+            const statements: IRStatement[] = [];
 
-        statements.push(new IRSomethingElse(`define ${this.return_type_literal.value_type.toIR()} @${this.name}(${this.args.map(x => x.type_literal.value_type.toIR() + " %__arg_" + x.name)}) {`));
+            statements.push(new IRSomethingElse(`define ${this.return_type_literal.value_type.toIR()} @${this.name}(${this.args.map(x => x.type_literal.value_type.toIR() + " %__arg_" + x.name)}) {`));
 
-        this.args.forEach(x => {
-            statements.push(new IRAlloca({ type: new IRPointerType(x.type_literal.value_type.toIR()), location: new IRNamedIdentifier(`%${x.name}`) }));
-            statements.push(new IRStore(
-                { type: x.type_literal.value_type.toIR(), location: new IRNamedIdentifier(`%__arg_${x.name}`) },
-                { type: new IRPointerType(x.type_literal.value_type.toIR()), location: new IRNamedIdentifier(`%${x.name}`) }
-            ));
-        })
+            this.args.forEach(x => {
+                statements.push(new IRAlloca({ type: new IRPointerType(x.type_literal.value_type.toIR()), location: new IRNamedIdentifier(`%${x.name}`) }));
+                statements.push(new IRStore(
+                    { type: x.type_literal.value_type.toIR(), location: new IRNamedIdentifier(`%__arg_${x.name}`) },
+                    { type: new IRPointerType(x.type_literal.value_type.toIR()), location: new IRNamedIdentifier(`%${x.name}`) }
+                ));
+            })
 
-        this.body.scope.locals.forEach((x, y) => {
-            // TODO
-            statements.push(new IRAlloca({ type: x.toIR(), location: new IRNamedIdentifier(`%${y}_`) }));
-            statements.push(new IRAlloca({ type: new IRPointerType(x.toIR()), location: new IRNamedIdentifier(`%${y}`) }));
-            statements.push(new IRStore({ type: x.toIR(), location: new IRNamedIdentifier(`%${y}_`) }, { type: new IRPointerType(x.toIR()), location: new IRNamedIdentifier(`%${y}`) }));
-        })
+            this.body.scope.locals.forEach((x, y) => {
+                statements.push(new IRAlloca({ type: new IRPointerType(x.toIR()), location: new IRNamedIdentifier(`%${y}`) }));
+            })
 
-        this.body.substatements.forEach(x => {
-            if (!isSynthesizable(x)) return;
-            statements.push(...flattenBlock(x.synthesize()));
-        });
+            this.body.substatements.forEach(x => {
+                if (!isSynthesizable(x)) return;
+                statements.push(...flattenBlock(x.synthesize()));
+            });
 
-        statements.push(new IRSomethingElse("}"));
+            statements.push(new IRSomethingElse("}"));
 
-        console.error(statements);
-        return { output_location: undefined, statements: statements };
+            console.error(statements);
+            return { output_location: undefined, statements: statements };
+        } else {
+            return { output_location: undefined, statements: [
+                new IRSomethingElse(`declare ${this.return_type_literal.value_type.toIR()} @${this.name}(${this.args.map(x => x.type_literal.value_type.toIR())})`)
+            ]};
+        }
     }
 }

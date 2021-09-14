@@ -15,7 +15,8 @@ class Foo {
 
 static fn i32 main() {
     let obj Foo;
-    __Foo_initialize(obj);
+    // __Foo_initialize(obj);
+    obj = new Foo;
     obj.set_value(42);
     return obj.get_value();
 }
