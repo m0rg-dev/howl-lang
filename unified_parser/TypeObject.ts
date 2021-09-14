@@ -1,12 +1,13 @@
 import { ASTElement } from "./ASTElement";
+import { ClassConstruct } from "./ClassConstruct";
 
 export abstract class TypeObject {
     abstract toString(): string;
  };
 
-export class CustomTypeObject extends TypeObject {
-    source: ASTElement;
-    constructor(source: ASTElement) {
+export class ClassType extends TypeObject {
+    source: ClassConstruct;
+    constructor(source: ClassConstruct) {
         super();
         this.source = source;
     }

@@ -8,7 +8,7 @@ import { Assert, First, InOrder, Invert, Literal, Matcher, Optional, Star } from
 import { SimpleStatement } from "./SimpleStatement";
 import { FunctionCallExpression, NumericLiteralExpression } from "./TypedElement";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
-import { CustomTypeObject, FunctionType, TypeObject } from "./TypeObject";
+import { ClassType, FunctionType, TypeObject } from "./TypeObject";
 import { ClassConstruct } from "./ClassConstruct";
 import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences } from "../transformers/Transformer";
 import { StaticTableInitialization } from "./StaticTableInitialization";
@@ -533,7 +533,7 @@ const GenerateStaticTables: Pass = {
                 initializer.fields.push(new StaticFunctionReference(`__${input[0].name}_${method.name}`, method_type));
             }
 
-            TypeRegistry.set(stable.name, new CustomTypeObject(stable));
+            TypeRegistry.set(stable.name, new ClassType(stable));
             input[0].fields.unshift(new ClassField("__stable", new TypeLiteral(TypeRegistry.get(stable.name))))
 
             return [stable, initializer, input[0]];

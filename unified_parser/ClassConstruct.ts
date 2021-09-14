@@ -1,7 +1,7 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
 import { VoidElement } from "./ASTElement";
 import { ClassField, FunctionConstruct } from "./Parser";
-import { CustomTypeObject } from "./TypeObject";
+import { ClassType } from "./TypeObject";
 
 
 export class ClassConstruct extends VoidElement {
@@ -15,5 +15,5 @@ export class ClassConstruct extends VoidElement {
         this.name = name;
     }
     toString = () => `Class(${this.name})`;
-    stableType = () => TypeRegistry.get(`__${this.name}_stable_t`) as CustomTypeObject;
+    stableType = () => TypeRegistry.get(`__${this.name}_stable_t`) as ClassType;
 }

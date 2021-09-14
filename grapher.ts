@@ -6,6 +6,7 @@ import { TokenType } from './lexer/TokenType';
 import { Parse } from './unified_parser/Parser';
 
 import { install } from 'source-map-support';
+import { TypeRegistry } from './registry/TypeRegistry';
 install();
 
 export function why_not(e: string): boolean {
@@ -29,4 +30,5 @@ for (const tok of lexer.token_stream) {
 const stream = Parse(lexer.token_stream);
 
 console.log(PrintAST(stream));
+console.error(TypeRegistry);
 console.error("Done.");

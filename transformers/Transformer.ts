@@ -1,5 +1,5 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
-import { CustomTypeObject, FunctionType, TypeObject } from "../unified_parser/TypeObject";
+import { ClassType, FunctionType, TypeObject } from "../unified_parser/TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
 import { AssignmentExpression, CompoundStatement, ElidedElement, FunctionConstruct, LocalDefinition, NameExpression, NullaryReturnExpression, UnresolvedTypeLiteral, UnaryReturnExpression, TypeLiteral, ClassField } from "../unified_parser/Parser";
 import { ClassConstruct } from "../unified_parser/ClassConstruct";
@@ -19,7 +19,7 @@ export function ApplyToAll(stream: TokenStream, t: Transformer) {
 export const ExtractClassTypes: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
     if (element instanceof ClassConstruct) {
         console.error(`Extracted class type: ${element.name}`);
-        TypeRegistry.set(element.name, new CustomTypeObject(element));
+        TypeRegistry.set(element.name, new ClassType(element));
     }
 };
 
@@ -86,8 +86,7 @@ export const ReferenceLocals: Transformer = (element: ASTElement, replace: (n: A
 export const SpecifyMethodReferences: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
     if (element instanceof FieldReferenceExpression
         && (element.source)
-        && element.source.value_type instanceof CustomTypeObject
-        && element.source.value_type.source instanceof ClassConstruct) {
+        && element.source.value_type instanceof ClassType) {
         if (element.source.value_type.source.methods.some(x => x.name == element.field)) {
             replace(new MethodReferenceExpression(element.source as ASTElement, element.field));
         }
@@ -115,8 +114,7 @@ export const IndirectMethodReferences: Transformer = (element: ASTElement, repla
 
 export const SpecifyFieldReferences: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
     if (element instanceof FieldReferenceExpression
-        && element.source.value_type instanceof CustomTypeObject
-        && element.source.value_type.source instanceof ClassConstruct) {
+        && element.source.value_type instanceof ClassType) {
         if (element.source.value_type.source.fields.some(x => x.name == element.field)) {
             element.value_type = element.source.value_type.source.fields.find(x => x.name == element.field).type_literal.value_type;
         }
