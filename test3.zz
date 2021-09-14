@@ -1,5 +1,12 @@
-static fn i32 main() {
-    let x i32;
-    x = 0;
-    return x;
+class a {
+    fn void b() {
+        return;
+    }
+}
+
+static fn void main() {
+    let b a;
+    __a_initialize(b);
+    b.b();
+    return;
 }

@@ -1,13 +1,18 @@
 import { FunctionType, TypeObject } from "../unified_parser/TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
-import { CompoundStatement, FunctionConstruct, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
+import { CompoundStatement, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
+import { FunctionConstruct } from "../unified_parser/FunctionConstruct";
 import { ClassConstruct } from "../unified_parser/ClassConstruct";
-import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "../unified_parser/SimpleStatement";
-import { FunctionCallExpression, MethodReferenceExpression } from "../unified_parser/TypedElement";
+import { SimpleStatement } from "../unified_parser/SimpleStatement";
+import { AssignmentStatement } from "../unified_parser/AssignmentStatement";
+import { UnaryReturnStatement } from "../unified_parser/UnaryReturnStatement";
+import { MethodReferenceExpression } from "../unified_parser/TypedElement";
+import { FunctionCallExpression } from "../unified_parser/FunctionCallExpression";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 import { StaticTableInitialization } from "../unified_parser/StaticTableInitialization";
 import { StaticInitializer } from "../registry/StaticVariableRegistry";
 import { TypeRequest } from "../unified_parser/TypeRequest";
+import { isSynthesizable } from "./IR";
 
 export function PrintAST(stream: TokenStream): string {
     const revstream = [...stream];
@@ -31,6 +36,19 @@ export function PrintStaticVariable(name: string, type: TypeObject, initializer?
             })
             s += record(`static_init_${name}`, entries);
             s += link(name, undefined, `static_init_${name}`, undefined);
+        }
+
+        if (isSynthesizable(initializer)) {
+            const block = initializer.synthesize();
+            const ir_entries: { name: string, label: string }[] = [];
+            if (block.output_location) {
+                ir_entries.push({ name: "location", label: `loc: ${block.output_location.location}\\l` });
+                ir_entries.push({ name: "type", label: `type: ${block.output_location.type.toString()}\\l` });
+    
+            }
+            block.statements.forEach(x => ir_entries.push({ name: "st", label: x.toString() + "\\l" }));
+            s += mrecord(`static_init_${name}` + `_ir`, ir_entries, "color=gray, fontcolor=gray");
+            s += link(`static_init_${name}`, undefined, `static_init_${name}` + `_ir`, undefined);
         }
     }
     return s;
@@ -131,6 +149,19 @@ export function PrintExpression(node: ASTElement): string {
     }
 
     s += mrecord(node.guid, entries);
+
+    if (isSynthesizable(node)) {
+        const block = node.synthesize();
+        const ir_entries: { name: string, label: string }[] = [];
+        if (block.output_location) {
+            ir_entries.push({ name: "location", label: `loc: ${block.output_location.location}\\l` });
+            ir_entries.push({ name: "type", label: `type: ${block.output_location.type.toString()}\\l` });
+
+        }
+        block.statements.forEach(x => ir_entries.push({ name: "st", label: x.toString() + "\\l" }));
+        s += mrecord(node.guid + `_ir`, ir_entries, "color=gray, fontcolor=gray");
+        s += link(node.guid, undefined, node.guid + `_ir`, undefined);
+    }
     return s;
 }
 
@@ -144,12 +175,12 @@ function mklabel(entries: { name: string, label: string }[]): string {
         .replaceAll("|", "&#124;")}`).join(" | ");
 }
 
-function mrecord(name: string, entries: { name: string, label: string }[]): string {
-    return `    n${name} [shape=Mrecord label="${mklabel(entries)}"];\n`;
+function mrecord(name: string, entries: { name: string, label: string }[], opt?: string): string {
+    return `    n${name} [shape=Mrecord label="${mklabel(entries)}" ${opt || ""}];\n`;
 }
 
-function record(name: string, entries: { name: string, label: string }[]): string {
-    return `    n${name} [shape=record label="${mklabel(entries)}"];\n`;
+function record(name: string, entries: { name: string, label: string }[], opt?: string): string {
+    return `    n${name} [shape=record label="${mklabel(entries)}" ${opt || ""}];\n`;
 }
 
 function link(src: string, srcport: string, dest: string, destport: string): string {

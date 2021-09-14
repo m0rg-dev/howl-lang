@@ -1,27 +1,5 @@
-import { TypeRegistry } from "../registry/TypeRegistry";
-import { ClassType, FunctionType, TypeObject } from "./TypeObject";
+import { ClassType, FunctionType } from "./TypeObject";
 import { ASTElement } from "./ASTElement";
-import { ClassConstruct } from "./ClassConstruct";
-
-export class VariableReferenceExpression extends ASTElement {
-    name: string;
-
-    constructor(type: TypeObject, name: string) {
-        super(type);
-        this.name = name;
-    }
-
-    toString = () => `var ${this.name}`;
-}
-
-export class NumericLiteralExpression extends ASTElement {
-    value: number;
-    constructor(value: number) {
-        super(TypeRegistry.get("_numeric_constant"));
-        this.value = value;
-    }
-    toString = () => `#${this.value}`;
-}
 
 export class MethodReferenceExpression extends ASTElement {
     source: ASTElement;
@@ -40,16 +18,3 @@ export class MethodReferenceExpression extends ASTElement {
     toString = () => `${this.source.toString()}->${this.method}`
 }
 
-export class FunctionCallExpression extends ASTElement {
-    source: ASTElement;
-    args: ASTElement[];
-    self_added = false;
-
-    constructor(source: ASTElement, args: ASTElement[]) {
-        super((source.value_type as FunctionType).rc);
-        this.source = source;
-        this.args = args;
-    }
-
-    toString = () => `${this.source.toString()}(${this.args.map(x => x.toString()).join(", ")})`;
-}

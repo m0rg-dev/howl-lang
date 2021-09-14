@@ -1,9 +1,10 @@
-import { ASTElement } from "./ASTElement";
+import { IRBaseType, IRClassType, IRFunctionType, IRPointerType, IRType } from "../generator/IR";
 import { ClassConstruct } from "./ClassConstruct";
 
 export abstract class TypeObject {
     abstract toString(): string;
- };
+    abstract toIR(): IRType;
+};
 
 export class ClassType extends TypeObject {
     source: ClassConstruct;
@@ -13,6 +14,7 @@ export class ClassType extends TypeObject {
     }
     toString = () => `${this.source}`;
     walk() { }
+    toIR = () => new IRPointerType(new IRClassType(this.source.name));
 }
 
 export class BaseType extends TypeObject {
@@ -23,6 +25,7 @@ export class BaseType extends TypeObject {
     }
 
     toString = () => `${this.name}`;
+    toIR = () => new IRBaseType(this.name);
 }
 
 export class FunctionType extends TypeObject {
@@ -35,6 +38,7 @@ export class FunctionType extends TypeObject {
     }
     walk() { }
     toString = () => `${this.rc}(${this.args.join(",")})`;
+    toIR = () => new IRPointerType(new IRFunctionType(this.rc.toIR(), this.args.map(x => x.toIR())));
 }
 
 export class UnionType extends TypeObject {
@@ -45,4 +49,5 @@ export class UnionType extends TypeObject {
     }
     walk() { }
     toString = () => `${this.subtypes.join(" | ")}`;
+    toIR = () => { throw new Error("can't IR-ify a union type") };
 }

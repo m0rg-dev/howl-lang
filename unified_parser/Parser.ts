@@ -5,8 +5,11 @@ import { TokenType } from "../lexer/TokenType";
 import { init_types, TypeRegistry } from "../registry/TypeRegistry";
 import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
 import { Assert, First, InOrder, Invert, Literal, Matcher, Optional, Star } from "./Matcher";
-import { AssignmentStatement, SimpleStatement } from "./SimpleStatement";
-import { FunctionCallExpression, NumericLiteralExpression, VariableReferenceExpression } from "./TypedElement";
+import { SimpleStatement } from "./SimpleStatement";
+import { AssignmentStatement } from "./AssignmentStatement";
+import { NumericLiteralExpression } from "./NumericLiteralExpression";
+import { FunctionCallExpression } from "./FunctionCallExpression";
+import { VariableReferenceExpression } from "./VariableReferenceExpression";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
 import { ClassType, FunctionType, TypeObject } from "./TypeObject";
 import { ClassConstruct } from "./ClassConstruct";
@@ -14,6 +17,10 @@ import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, Specif
 import { StaticTableInitialization } from "./StaticTableInitialization";
 import { StaticFunctionReference } from "./StaticFunctionReference";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
+import { NullaryReturnExpression } from "./NullaryReturnExpression";
+import { UnaryReturnExpression } from "./UnaryReturnExpression";
+import { AssignmentExpression } from "./AssignmentExpression";
+import { FunctionConstruct } from "./FunctionConstruct";
 
 export function Parse(token_stream: Token[]) {
     init_types();
@@ -179,19 +186,6 @@ export class ClassField extends ASTElement {
     toString = () => `ClassField<${this.type_literal.toString()}>(${this.name})`;
 }
 
-export class FunctionConstruct extends VoidElement {
-    name: string;
-    return_type_literal: UnresolvedTypeLiteral | TypeLiteral;
-    args: ArgumentDefinition[] = [];
-    body?: CompoundStatement;
-    constructor(name: string) {
-        super();
-        this.name = name;
-    }
-
-    toString = () => `Function<${this.return_type_literal?.value_type.toString()}>(${this.name})`;
-}
-
 export class ArgumentDefinition extends ASTElement {
     name: string;
     type_literal: UnresolvedTypeLiteral | TypeLiteral;
@@ -259,33 +253,6 @@ export class NameExpression extends ASTElement {
         this.name = name;
     }
     toString = () => `'${this.name}`;
-}
-
-export class AssignmentExpression extends VoidElement {
-    lhs: ASTElement;
-    rhs: ASTElement;
-    constructor(lhs: ASTElement, rhs: ASTElement) {
-        super();
-        this.lhs = lhs;
-        this.rhs = rhs;
-    }
-
-    toString = () => `${this.lhs.toString()} = ${this.rhs.toString()}`;
-}
-
-export class UnaryReturnExpression extends VoidElement {
-    source: ASTElement;
-
-    constructor(source: ASTElement) {
-        super();
-        this.source = source;
-    }
-
-    toString = () => `return ${this.source.toString()}`;
-}
-
-export class NullaryReturnExpression extends VoidElement {
-    toString = () => `return void`;
 }
 
 export class LocalDefinition extends VoidElement {
@@ -556,7 +523,8 @@ function GenerateInitializers() {
         fn.body.substatements = [
             new AssignmentStatement(new AssignmentExpression(
                 new FieldReferenceExpression(new VariableReferenceExpression(t, "self"), "__stable"),
-                new VariableReferenceExpression(TypeRegistry.get(`__${t.source.name}_stable_t`), `__${t.source.name}_stable`)))
+                new VariableReferenceExpression(TypeRegistry.get(`__${t.source.name}_stable_t`), `__${t.source.name}_stable`))),
+            new NullaryReturnExpression()
         ]
 
         StaticFunctionRegistry.set(fn.name, fn);

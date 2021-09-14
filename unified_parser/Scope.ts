@@ -25,6 +25,13 @@ export class Scope {
         return undefined;
     }
 
+    is_static(name: string): boolean {
+        if (this.locals.has(name)) return false;
+        if (this.parent?.scope) return this.parent.scope.is_static(name);
+        if (StaticVariableRegistry.has(name)) return true;
+        if (StaticFunctionRegistry.has(name)) return true;
+    }
+
     get_return(): TypeObject | undefined {
         if (this.return_type) return this.return_type;
         if (this.parent?.scope) return this.parent.scope.get_return();

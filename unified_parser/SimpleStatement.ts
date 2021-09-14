@@ -1,31 +1,26 @@
+import { IRBlock, isSynthesizable, Synthesizable } from "../generator/IR";
 import { ASTElement, TokenStream, VoidElement } from "./ASTElement";
-import { AssignmentExpression, UnaryReturnExpression } from "./Parser";
 
-export class SimpleStatement extends VoidElement {
+export class SimpleStatement extends VoidElement implements Synthesizable {
     source: TokenStream;
     constructor(source: TokenStream) {
         super();
         this.source = source;
     }
     toString = () => `SimpleStatement`;
-}
 
-export class AssignmentStatement extends VoidElement {
-    expression: AssignmentExpression;
-    constructor(expression: AssignmentExpression) {
-        super();
-        this.expression = expression;
+    _ir_block: IRBlock;
+    synthesize(): IRBlock {
+        if(this._ir_block) return this._ir_block;
+        if(this.source.length > 1 || !isSynthesizable(this.source[0])) return { output_location: undefined, statements: [] };
+        return {
+            output_location: undefined,
+            statements: [],
+            sub_blocks: [
+                this.source[0].synthesize()
+            ]
+        };
     }
-
-    toString = () => `AssignmentStatement`;
 }
 
-export class UnaryReturnStatement extends VoidElement {
-    expression: UnaryReturnExpression;
-    constructor(expression: UnaryReturnExpression) {
-        super();
-        this.expression = expression;
-    }
 
-    toString = () => `UnaryReturnStatement`;
-}
