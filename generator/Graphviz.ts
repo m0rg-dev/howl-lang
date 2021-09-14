@@ -1,13 +1,17 @@
 import { FunctionType } from "../unified_parser/TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
-import { ClassConstruct, CompoundStatement, FunctionConstruct, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
+import { CompoundStatement, FunctionConstruct, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
+import { ClassConstruct } from "../unified_parser/ClassConstruct";
 import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "../unified_parser/SimpleStatement";
 import { FunctionCallExpression, MethodReferenceExpression } from "../unified_parser/TypedElement";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
+import { StaticTableInitialization } from "../unified_parser/StaticTableInitialization";
 
 export function PrintAST(stream: TokenStream): string {
+    const revstream = [...stream];
+    revstream.reverse();
     let s = "digraph{\n    rankdir=LR;";
-    stream.forEach((x) => {
+    revstream.forEach((x) => {
         if (!(x instanceof ASTElement)) return;
         s += PrintExpression(x);
     });
@@ -103,6 +107,10 @@ export function PrintExpression(node: ASTElement): string {
         } else {
             entries.push({ name: "err", label: `no args? type is ${node.source.value_type}` });
         }
+    } else if (node instanceof StaticTableInitialization) {
+        node.fields.forEach((x, y) => {
+            entries.push({ name: `f${y}`, label: `${y}<${x.value_type.toString()}>: ${x.name}` });
+        })
     }
 
     s += mrecord(node.guid, entries);

@@ -2,17 +2,37 @@ import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { init_types } from "../registry/TypeRegistry";
+import { init_types, TypeRegistry } from "../registry/TypeRegistry";
 import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
 import { Assert, First, InOrder, Invert, Literal, Matcher, Optional, Star } from "./Matcher";
 import { SimpleStatement } from "./SimpleStatement";
 import { FunctionCallExpression, NumericLiteralExpression } from "./TypedElement";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
-import { TypeObject } from "./TypeObject";
+import { CustomTypeObject, FunctionType, TypeObject } from "./TypeObject";
+import { ClassConstruct } from "./ClassConstruct";
+import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences } from "./Transformer";
+import { StaticTableInitialization } from "./StaticTableInitialization";
+import { StaticFunctionReference } from "./StaticFunctionReference";
 
 export function Parse(token_stream: Token[]): (Token | ASTElement)[] {
     init_types();
     let stream = ApplyPass(token_stream, FindTopLevelConstructs);
+
+    ApplyToAll(stream, ExtractClassTypes);
+    ApplyToAll(stream, ReplaceTypes);
+    ApplyToAll(stream, SpecifyClassFields);
+    stream = ApplyPass(stream, GenerateStaticTables);
+    ApplyToAll(stream, SpecifyStatements);
+    ApplyToAll(stream, GenerateScopes);
+    ApplyToAll(stream, PropagateLocalDefinitions);
+    ApplyToAll(stream, ReferenceLocals);
+    ApplyToAll(stream, SpecifyMethodReferences);
+    ApplyToAll(stream, AddSelfToMethodCalls);
+    ApplyToAll(stream, IndirectMethodReferences);
+    ApplyToAll(stream, SpecifyFieldReferences);
+    ApplyToAll(stream, SpecifyFunctionCalls);
+
+    stream = ApplyPass(stream, RemoveClassMethods);
 
     return stream;
 }
@@ -143,23 +163,13 @@ export class TypeLiteral extends ASTElement {
 export class ClassField extends ASTElement {
     name: string;
     type_literal: UnresolvedTypeLiteral | TypeLiteral;
-    constructor(name: string, type: UnresolvedTypeLiteral) {
+    constructor(name: string, type: UnresolvedTypeLiteral | TypeLiteral) {
         super();
         this.name = name;
         this.type_literal = type;
+        if (type instanceof TypeLiteral) this.value_type = type.value_type;
     }
     toString = () => `ClassField<${this.type_literal.toString()}>(${this.name})`;
-}
-
-export class ClassConstruct extends VoidElement {
-    name: string;
-    fields: ClassField[] = [];
-    methods: FunctionConstruct[] = [];
-    constructor(name: string) {
-        super();
-        this.name = name;
-    }
-    toString = () => `Class(${this.name})`;
 }
 
 export class FunctionConstruct extends VoidElement {
@@ -503,6 +513,50 @@ const ExpressionPass: Pass = {
             replace: (input: [Token]) => [new NullaryReturnExpression()]
         }
     ]
+}
+
+const GenerateStaticTables: Pass = {
+    name: "GenerateStaticTables",
+    rules: [{
+        name: "GenerateStaticTable",
+        match: Literal("ClassConstruct"),
+        replace: (input: [ClassConstruct]) => {
+            if (input[0].is_stable || input[0].has_stable) return undefined;
+            const stable = new ClassConstruct(`__${input[0].name}_stable_t`);
+            const initializer = new StaticTableInitialization(input[0]);
+            stable.is_stable = true;
+            input[0].has_stable = true;
+
+            for (const method of input[0].methods) {
+                const method_type = new FunctionType(method.return_type_literal.value_type, method.args.map(x => x.type_literal.value_type));
+                stable.fields.push(new ClassField(method.name, new TypeLiteral(method_type)));
+                initializer.fields.push(new StaticFunctionReference(`__${input[0].name}_${method.name}`, method_type));
+            }
+
+            TypeRegistry.set(stable.name, new CustomTypeObject(stable));
+            input[0].fields.unshift(new ClassField("__stable", new TypeLiteral(TypeRegistry.get(stable.name))))
+
+            return [stable, initializer, input[0]];
+        }
+    }]
+}
+
+const RemoveClassMethods: Pass = {
+    name: "RemoveClassMethods",
+    rules: [{
+        name: "RemoveClassMethods",
+        match: Literal("ClassConstruct"),
+        replace: (input: [ClassConstruct]) => {
+            if(!input[0].methods.length) return undefined;
+            const real_methods: FunctionConstruct[] = [];
+            for(const method of input[0].methods) {
+                method.name = `__${input[0].name}_${method.name}`;
+                real_methods.push(method);
+            }
+            input[0].methods = [];
+            return [input[0], ...real_methods];
+        }
+    }]
 }
 
 function Braces(): Matcher {

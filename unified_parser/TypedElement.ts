@@ -1,7 +1,7 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
 import { CustomTypeObject, FunctionType, TypeObject } from "./TypeObject";
 import { ASTElement } from "./ASTElement";
-import { ClassConstruct } from "./Parser";
+import { ClassConstruct } from "./ClassConstruct";
 
 export class VariableReferenceExpression extends ASTElement {
     name: string;

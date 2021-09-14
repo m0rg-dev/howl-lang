@@ -1,7 +1,8 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
 import { CustomTypeObject, FunctionType, TypeObject } from "./TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
-import { AssignmentExpression, ClassConstruct, CompoundStatement, ElidedElement, FunctionConstruct, LocalDefinition, NameExpression, NullaryReturnExpression, UnresolvedTypeLiteral, UnaryReturnExpression, TypeLiteral, ClassField } from "./Parser";
+import { AssignmentExpression, CompoundStatement, ElidedElement, FunctionConstruct, LocalDefinition, NameExpression, NullaryReturnExpression, UnresolvedTypeLiteral, UnaryReturnExpression, TypeLiteral, ClassField } from "./Parser";
+import { ClassConstruct } from "./ClassConstruct";
 import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "./SimpleStatement";
 import { FunctionCallExpression, MethodReferenceExpression, VariableReferenceExpression } from "./TypedElement";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
@@ -9,6 +10,7 @@ import { FieldReferenceExpression } from "./FieldReferenceExpression";
 export type Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent?: ASTElement) => void;
 
 export function ApplyToAll(stream: TokenStream, t: Transformer) {
+    console.error(`Applying transformer ${t.name}`);
     stream.forEach((x, y) => {
         if (isAstElement(x)) x.walk(t, (n: ASTElement) => stream[y] = n);
     })
@@ -97,6 +99,16 @@ export const AddSelfToMethodCalls: Transformer = (element: ASTElement, replace: 
         && !element.self_added) {
         element.args.unshift(element.source.source);
         element.self_added = true;
+    }
+}
+
+export const IndirectMethodReferences: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof FunctionCallExpression
+        && element.source instanceof MethodReferenceExpression) {
+            const src = element.source.source;
+            const method = element.source.method;
+
+            element.source = new FieldReferenceExpression(new FieldReferenceExpression(src, "__stable"), method);
     }
 }
 

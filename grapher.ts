@@ -4,7 +4,6 @@ import { Lexer } from './lexer';
 import { TokenType } from './lexer/TokenType';
 
 import { Parse } from './unified_parser/Parser';
-import { AddSelfToMethodCalls, ApplyToAll, ExtractClassTypes, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, ReplaceTypes, SpecifyClassFields, SpecifyFieldReferences, SpecifyFunctionCalls, SpecifyMethodReferences, SpecifyStatements } from './unified_parser/Transformer';
 
 import { install } from 'source-map-support';
 install();
@@ -28,17 +27,6 @@ for (const tok of lexer.token_stream) {
 }
 
 const stream = Parse(lexer.token_stream);
-ApplyToAll(stream, ExtractClassTypes);
-ApplyToAll(stream, ReplaceTypes);
-ApplyToAll(stream, SpecifyClassFields);
-ApplyToAll(stream, SpecifyStatements);
-ApplyToAll(stream, GenerateScopes);
-ApplyToAll(stream, PropagateLocalDefinitions);
-ApplyToAll(stream, ReferenceLocals);
-ApplyToAll(stream, SpecifyMethodReferences);
-ApplyToAll(stream, SpecifyFieldReferences);
-ApplyToAll(stream, AddSelfToMethodCalls);
-ApplyToAll(stream, SpecifyFunctionCalls);
 
 console.log(PrintAST(stream));
 console.error("Done.");

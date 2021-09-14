@@ -1,5 +1,5 @@
 import { ASTElement } from "./ASTElement";
-import { ClassConstruct } from "./Parser";
+import { ClassConstruct } from "./ClassConstruct";
 import { CustomTypeObject } from "./TypeObject";
 
 
