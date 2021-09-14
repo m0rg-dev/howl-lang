@@ -7,8 +7,8 @@ export class VariableReferenceExpression extends ASTElement implements Synthesiz
     name: string;
     force_local: boolean;
 
-    constructor(type: TypeObject, name: string) {
-        super(type);
+    constructor(parent: ASTElement, type: TypeObject, name: string) {
+        super(type, parent);
         this.name = name;
     }
 
@@ -18,7 +18,7 @@ export class VariableReferenceExpression extends ASTElement implements Synthesiz
     synthesize(): IRBlock {
         if (this._ir_block) return this._ir_block;
 
-        if (!(this.force_local) && this.scope.is_static(this.name)) {
+        if (!(this.force_local) && this.isStatic(this.name)) {
             const temp = new IRTemporary();
             return {
                 output_location: {

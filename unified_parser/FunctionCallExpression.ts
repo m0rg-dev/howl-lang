@@ -1,6 +1,7 @@
 import { FunctionType } from "./TypeObject";
 import { ASTElement } from "./ASTElement";
 import { IRAlloca, IRBlock, IRCall, IRLoad, IRPointerType, IRStore, IRTemporary, IRVoidCall, isSynthesizable, Synthesizable } from "../generator/IR";
+import { GetType } from "../registry/TypeRegistry";
 
 
 export class FunctionCallExpression extends ASTElement implements Synthesizable {
@@ -8,8 +9,14 @@ export class FunctionCallExpression extends ASTElement implements Synthesizable 
     args: ASTElement[];
     self_added = false;
 
-    constructor(source: ASTElement, args: ASTElement[]) {
-        super((source.value_type as FunctionType).rc);
+    constructor(parent: ASTElement, source: ASTElement, args: ASTElement[]) {
+        super(GetType("void"), parent);
+        console.error(source);
+        if (!(source.value_type instanceof FunctionType)) {
+            //throw new Error(`Tried to call non-function ${source.value_type}`);
+        } else {
+            this.value_type = source.value_type.rc;
+        }
         this.source = source;
         this.args = args;
     }

@@ -5,8 +5,8 @@ import { ASTElement, VoidElement } from "./ASTElement";
 export class AssignmentExpression extends VoidElement implements Synthesizable {
     lhs: ASTElement;
     rhs: ASTElement;
-    constructor(lhs: ASTElement, rhs: ASTElement) {
-        super();
+    constructor(parent: ASTElement, lhs: ASTElement, rhs: ASTElement) {
+        super(parent);
         this.lhs = lhs;
         this.rhs = rhs;
     }

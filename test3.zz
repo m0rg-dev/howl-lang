@@ -6,7 +6,7 @@ class a {
 
 static fn void main() {
     let b a;
-    __a_initialize(b);
+    b = new a;
     b.b();
     return;
 }

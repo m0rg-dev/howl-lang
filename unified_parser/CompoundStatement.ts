@@ -1,32 +1,48 @@
 import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
 import { Assert, First, InOrder, Invert, Literal, Star } from "./Matcher";
 import { SimpleStatement } from "./SimpleStatement";
-import { ApplyPass, Braces, ExpressionPass, MatchElement } from "./Parser";
+import { ApplyPass, Braces, ExpressionPass, LocalDefinition, LocalDefinitionsPass, MatchElement } from "./Parser";
 import { flattenBlock, IRAlloca, IRBlock, IRLabel, IRLabelStatement, IRNamedIdentifier, IRPointerType, IRStatement, isSynthesizable, Synthesizable } from "../generator/IR";
 import { Token } from "../lexer/Token";
 import { IfStatement } from "./IfStatement";
+import { FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
 
 
 export class CompoundStatement extends VoidElement implements Synthesizable {
     substatements: ASTElement[];
     source: TokenStream;
     label: IRLabel;
-    constructor(source?: TokenStream) {
-        super();
+    constructor(parent: ASTElement, source?: TokenStream) {
+        super(parent);
         this.source = source;
         this.label = new IRLabel();
+        this.hasOwnScope = true;
     }
+
     parse(): CompoundStatement {
-        this.source = ApplyPass(this.source.slice(1, this.source.length - 1), {
+        this.source = ApplyPass(this, this.source.slice(1, this.source.length - 1), {
             name: "CompoundStatement",
             rules: [{
                 name: "RecognizeSubCompounds",
                 match: InOrder(Assert(Literal("OpenBrace")), Braces()),
-                replace: (input: TokenStream) => [new CompoundStatement(input).parse()]
+                replace: (input: TokenStream) => [new CompoundStatement(this, input).parse()]
             }]
         });
-        this.source = ApplyPass(this.source, ExpressionPass);
-        this.source = ApplyPass(this.source, {
+        this.source = ApplyPass(this, this.source, LocalDefinitionsPass);
+        this.source = ApplyPass(this, this.source, ExpressionPass);
+
+        this.source.filter(x => x instanceof LocalDefinition).forEach(x => {
+            this.scope.locals.set((x as LocalDefinition).name, (x as LocalDefinition).local_type);
+        });
+
+        this.source.forEach((x, y) => {
+            if (x instanceof ASTElement) {
+                x.walk(FixHierarchy, () => { }, this);
+                x.walk(ReferenceLocals, (n: ASTElement) => { this.source[y] = n });
+            }
+        });
+
+        this.source = ApplyPass(this, this.source, {
             name: "Statements",
             rules: [
                 {
@@ -37,16 +53,16 @@ export class CompoundStatement extends VoidElement implements Synthesizable {
                         Literal("CompoundStatement")
                     ),
                     replace: (input: [Token, ASTElement, CompoundStatement]) => {
-                        return [new IfStatement(input[1], input[2])];
+                        return [new IfStatement(this, input[1], input[2])];
                     }
                 },
                 {
                     name: "SplitSimpleStatements",
                     match: InOrder(Invert(First(
                         Literal("IfStatement"),
-                        Literal("SimpleStatement")
+                        Literal("SimpleStatement"),
                     )), Star(Invert(Literal("Semicolon"))), Literal("Semicolon")),
-                    replace: (input: TokenStream) => [new SimpleStatement(input.slice(0, input.length - 1))]
+                    replace: (input: TokenStream) => [new SimpleStatement(this, input.slice(0, input.length - 1))]
                 }
             ]
         });

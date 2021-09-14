@@ -2,36 +2,87 @@ import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { init_types, TypeRegistry } from "../registry/TypeRegistry";
-import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
-import { Assert, First, InOrder, Literal, Matcher, Optional, Star } from "./Matcher";
-import { AssignmentStatement } from "./AssignmentStatement";
-import { NumericLiteralExpression } from "./NumericLiteralExpression";
-import { FunctionCallExpression } from "./FunctionCallExpression";
-import { VariableReferenceExpression } from "./VariableReferenceExpression";
-import { FieldReferenceExpression } from "./FieldReferenceExpression";
-import { ClassType, FunctionType, PassthroughType, RawPointerType, TypeObject } from "./TypeObject";
-import { ClassConstruct } from "./ClassConstruct";
-import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences, AddTypeRequests, RemoveRedundantTypeRequests, SpecifyNumericLiterals, SpecifyNews, SpecifyRawPointerIndexes, SpecifyMath, SpecifyArithmeticExpressions } from "../transformers/Transformer";
-import { StaticTableInitialization } from "./StaticTableInitialization";
-import { StaticFunctionReference } from "./StaticFunctionReference";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
-import { NullaryReturnExpression } from "./NullaryReturnExpression";
-import { UnaryReturnExpression } from "./UnaryReturnExpression";
-import { AssignmentExpression } from "./AssignmentExpression";
-import { FunctionConstruct } from "./FunctionConstruct";
-import { NewExpression } from "./NewExpression";
-import { RawPointerIndexExpression } from "./RawPointerIndexExpression";
-import { CompoundStatement } from "./CompoundStatement";
-import { ComparisonExpression } from "./ComparisonExpression";
+import { GetType, init_types, IsType, TypeRegistry } from "../registry/TypeRegistry";
+import { FixHierarchy } from "../transformers/Transformer";
 import { ArithmeticExpression } from "./ArithmeticExpression";
+import { AssignmentExpression } from "./AssignmentExpression";
+import { AssignmentStatement } from "./AssignmentStatement";
+import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
+import { ClassConstruct } from "./ClassConstruct";
+import { ComparisonExpression } from "./ComparisonExpression";
+import { CompoundStatement } from "./CompoundStatement";
+import { FieldReferenceExpression } from "./FieldReferenceExpression";
+import { FunctionCallExpression } from "./FunctionCallExpression";
+import { FunctionConstruct } from "./FunctionConstruct";
+import { Assert, First, InOrder, Literal, Matcher, Optional, Star } from "./Matcher";
+import { NewExpression } from "./NewExpression";
+import { NullaryReturnExpression } from "./NullaryReturnExpression";
+import { NumericLiteralExpression } from "./NumericLiteralExpression";
+import { RawPointerIndexExpression } from "./RawPointerIndexExpression";
+import { StaticFunctionReference } from "./StaticFunctionReference";
+import { StaticTableInitialization } from "./StaticTableInitialization";
+import { ClassType, FunctionType, RawPointerType, TypeObject } from "./TypeObject";
+import { UnaryReturnExpression } from "./UnaryReturnExpression";
+import { VariableReferenceExpression } from "./VariableReferenceExpression";
+
+const ConvertTypes = {
+    name: "ConvertTypes",
+    rules: [{
+        name: "ConvertTypes",
+        match: Literal("NameExpression"),
+        replace: (input: [NameExpression], parent: ASTElement) => {
+            if (!IsType(input[0].name))
+                return undefined;
+            return [new TypeLiteral(parent, GetType(input[0].name))];
+        }
+    }]
+};
+
+const ConvertNames = {
+    name: "ConvertNames",
+    rules: [{
+        name: "ConvertNames",
+        match: Literal("Name"),
+        replace: (input: [NameToken], parent: ASTElement) => [new NameExpression(parent, input[0].name)]
+    }]
+}
 
 export function Parse(token_stream: Token[]) {
     init_types();
-    ApplyPass(token_stream, FindTopLevelConstructs);
+    let stream = ApplyPass(undefined, token_stream, ConvertNames);
+    stream = ApplyPass(undefined, stream, FindTypeGeneratingConstructs);
+    stream = ApplyPass(undefined, stream, ConvertTypes);
+
+    stream = stream.map(x => {
+        console.error(x);
+        if (x instanceof PartialClassConstruct) {
+            return x.parse()
+        }
+        return x;
+    });
+
+    stream = ApplyPass(undefined, stream, {
+        name: "StaticFunctions",
+        rules: [MatchFunctionDefinitions]
+    });
 
     AddStandardLibraryReferences();
 
+    /*
+    ApplyToAll(SpecifyStatements);
+
+    GenerateStaticTables();
+    GenerateInitializers();
+
+    ApplyToAll(GenerateScopes);
+    ApplyToAll(PropagateLocalDefinitions);
+    ApplyToAll(ReferenceLocals);
+    ApplyToAll(SpecifyMethodReferences);
+    */
+    //ApplyToAll(IndirectMethodReferences);
+
+    /*
     ApplyToAll(ReplaceTypes);
     ApplyToAll(SpecifyNews);
     ApplyToAll(SpecifyMath);
@@ -40,7 +91,6 @@ export function Parse(token_stream: Token[]) {
     GenerateStaticTables();
     GenerateInitializers();
 
-    ApplyToAll(SpecifyStatements);
     ApplyToAll(GenerateScopes);
     ApplyToAll(PropagateLocalDefinitions);
     ApplyToAll(ReferenceLocals);
@@ -61,9 +111,10 @@ export function Parse(token_stream: Token[]) {
     }
 
     RemoveClassMethods();
+    */
 }
 
-export function ApplyPass(stream: (Token | ASTElement)[], pass: Pass): TokenStream {
+export function ApplyPass(parent: ASTElement, stream: TokenStream, pass: Pass): TokenStream {
     stream = [...stream];
     console.error(`\x1b[1mRunning pass\x1b[0m: ${pass.name}`);
     console.error(`\x1b[1mInput:\x1b[0m [${stream.map(x => x['start'] ? TokenType[x['type']] : x.toString()).join(", ")}]`);
@@ -76,7 +127,7 @@ export function ApplyPass(stream: (Token | ASTElement)[], pass: Pass): TokenStre
                 if (rule.startOnly && ptr > 0) break;
                 const m = rule.match(stream.slice(ptr));
                 if (m.matched) {
-                    const repl = rule.replace(stream.slice(ptr, ptr + m.length));
+                    const repl = rule.replace(stream.slice(ptr, ptr + m.length), parent);
                     if (!repl) continue inner;
                     console.error(`Applied rule ${rule.name}`);
                     did_match = true;
@@ -94,7 +145,7 @@ export function ApplyPass(stream: (Token | ASTElement)[], pass: Pass): TokenStre
 type ProductionRule = {
     name: string,
     match: Matcher,
-    replace: (input: TokenStream) => TokenStream;
+    replace: (input: TokenStream, parent?: ASTElement) => TokenStream;
     startOnly?: boolean,
 }
 
@@ -105,8 +156,8 @@ type Pass = {
 
 export class ParseError extends VoidElement {
     description: string;
-    constructor(description: string) {
-        super();
+    constructor(parent: ASTElement, description: string) {
+        super(parent);
         this.description = description;
     }
 
@@ -115,8 +166,8 @@ export class ParseError extends VoidElement {
 
 export class ModuleConstruct extends VoidElement {
     name: string;
-    constructor(name: string) {
-        super();
+    constructor(parent: ASTElement, name: string) {
+        super(parent);
         this.name = name;
     }
     toString = () => `Module(${this.name})`;
@@ -125,20 +176,24 @@ export class ModuleConstruct extends VoidElement {
 export class PartialClassConstruct extends VoidElement {
     name: string;
     source: TokenStream;
-    constructor(name: string, source: TokenStream) {
-        super();
+    constructor(parent: ASTElement, name: string, source: TokenStream) {
+        super(parent);
         this.name = name;
         this.source = [...source];
+        TypeRegistry.set(this.name, new ClassType(undefined));
     }
 
     parse(): ClassConstruct | ParseError {
-        const rc = new ClassConstruct(this.name);
-        const body = ApplyPass(this.source, ParseClassBody);
+        const rc = new ClassConstruct(this.parent, this.name);
+        let body = ApplyPass(this, this.source, ConvertTypes);
+        body = ApplyPass(this, body, ParseClassBody);
+
         for (const item of body) {
             if (item instanceof ClassField) {
                 rc.fields.push(item);
             } else if (item instanceof FunctionConstruct) {
-                item.args.unshift(new ArgumentDefinition("self", new UnresolvedTypeLiteral(this.name)));
+                item.args.unshift(new ArgumentDefinition(this.parent, "self", GetType(this.name)));
+                item.scope.locals.set("self", GetType(this.name));
                 rc.methods.push(item);
             }
         }
@@ -148,21 +203,29 @@ export class PartialClassConstruct extends VoidElement {
     toString = () => `PartialClass(${this.name})`;
 }
 
-export class PartialFunctionConstruct extends ASTElement {
+export class PartialFunctionConstruct extends VoidElement {
     name: string;
     source: TokenStream;
-    constructor(name: string, source: TokenStream) {
-        super();
+    constructor(parent: ASTElement, name: string, source: TokenStream) {
+        super(parent);
         this.name = name;
         this.source = [...source];
     }
 
     parse(should_register = false): FunctionConstruct | ParseError {
-        const rc = new FunctionConstruct(this.name);
-        const body = ApplyPass(this.source, ParseFunctionBody);
-        if (body[0] instanceof UnresolvedTypeLiteral) rc.return_type_literal = body[0];
-        if (body[1] instanceof ArgumentList) rc.args = body[1].args;
-        if (body[2] instanceof CompoundStatement) rc.body = body[2];
+        const body = ApplyPass(this, this.source, ParseFunctionBody);
+        if (!(body[0] instanceof TypeLiteral)) throw new Error();
+        if (!(body[1] instanceof ArgumentList)) throw new Error();
+        if (!(body[2] instanceof CompoundStatement)) throw new Error();
+
+        const rctype = body[0].value_type;
+        const argtypes = body[1].args.map(x => x.value_type);
+        const fntype = new FunctionType(rctype, argtypes);
+        const rc = new FunctionConstruct(this.parent, fntype, this.name, body[1].args);
+        rc.body = body[2];
+
+        rc.walk(FixHierarchy, () => { }, this.parent);
+
         if (should_register) {
             StaticFunctionRegistry.set(this.name, rc);
         }
@@ -172,20 +235,9 @@ export class PartialFunctionConstruct extends ASTElement {
     toString = () => `PartialFunction(${this.name})`;
 }
 
-export class UnresolvedTypeLiteral extends ASTElement {
-    name: string;
-    ptrflag: boolean;
-    constructor(name: string, ptrflag = false) {
-        super();
-        this.name = name;
-        this.ptrflag = ptrflag;
-    }
-    toString = () => `Type(${this.name}${this.ptrflag ? "*" : ""})`;
-}
-
 export class TypeLiteral extends ASTElement {
-    constructor(type: TypeObject) {
-        super(type);
+    constructor(parent: ASTElement, type: TypeObject) {
+        super(type, parent);
     }
 
     toString = () => `!!TL!! ${this.value_type.toString()}`;
@@ -193,65 +245,60 @@ export class TypeLiteral extends ASTElement {
 
 export class ClassField extends ASTElement {
     name: string;
-    type_literal: UnresolvedTypeLiteral | TypeLiteral;
-    constructor(name: string, type: UnresolvedTypeLiteral | TypeLiteral) {
-        super();
+    constructor(parent: ASTElement, name: string, type: TypeObject) {
+        super(type, parent);
         this.name = name;
-        this.type_literal = type;
-        if (type instanceof TypeLiteral) this.value_type = type.value_type;
     }
-    toString = () => `ClassField<${this.type_literal.toString()}>(${this.name})`;
+    toString = () => `ClassField<${this.value_type.toString()}>(${this.name})`;
 }
 
 export class ArgumentDefinition extends ASTElement {
     name: string;
-    type_literal: UnresolvedTypeLiteral | TypeLiteral;
-    constructor(name: string, type: UnresolvedTypeLiteral | TypeLiteral) {
-        super();
+    constructor(parent: ASTElement, name: string, type: TypeObject) {
+        super(type, parent);
         this.name = name;
-        this.type_literal = type;
     }
-    toString = () => `ArgumentDefinition<${this.type_literal.toString()}>(${this.name})`;
+    toString = () => `ArgumentDefinition<${this.value_type.toString()}>(${this.name})`;
 }
 
-export class ArgumentList extends ASTElement {
+export class ArgumentList extends VoidElement {
     args: ArgumentDefinition[] = [];
-    constructor(args: ArgumentDefinition[]) {
-        super();
+    constructor(parent: ASTElement, args: ArgumentDefinition[]) {
+        super(parent);
         this.args = args;
     }
     toString = () => `ArgumentList`;
 }
 
-export class PartialFieldReference extends ASTElement {
+export class PartialFieldReference extends VoidElement {
     field: string;
-    constructor(field: string) {
-        super();
+    constructor(parent: ASTElement, field: string) {
+        super(parent);
         this.field = field;
     }
     toString = () => `.${this.field}`;
 }
 
-export class NameExpression extends ASTElement {
+export class NameExpression extends VoidElement {
     name: string;
-    constructor(name: string) {
-        super();
+    constructor(parent: ASTElement, name: string) {
+        super(parent);
         this.name = name;
     }
     toString = () => `'${this.name}`;
 }
 
 export class LocalDefinition extends VoidElement {
-    name: NameExpression;
-    type_literal: UnresolvedTypeLiteral | TypeLiteral;
+    name: string;
+    local_type: TypeObject;
 
-    constructor(name: NameExpression, type: UnresolvedTypeLiteral | TypeLiteral) {
-        super();
+    constructor(parent: ASTElement, name: string, type: TypeObject) {
+        super(parent);
         this.name = name;
-        this.type_literal = type;
+        this.local_type = type;
     }
 
-    toString = () => `let ${this.name.toString()} ${this.type_literal.toString()}`
+    toString = () => `let ${this.name.toString()} ${this.local_type.toString()}`
 }
 
 export class ElidedElement extends VoidElement {
@@ -263,8 +310,8 @@ const MatchFunctionDefinitions = {
     match: InOrder(
         Optional(Literal("Static")),
         Literal("Function"),
-        Type(),
-        Literal("Name"),
+        Literal("TypeLiteral"),
+        Literal("NameExpression"),
         Assert(Literal("OpenParen")),
         Braces(),
         First(
@@ -274,32 +321,31 @@ const MatchFunctionDefinitions = {
             ),
             Literal("Semicolon")
         )),
-    replace: (input: TokenStream) => {
+    replace: (input: TokenStream, parent: ASTElement) => {
         let idx = 0;
         while (!(Literal("OpenParen")(input.slice(idx)).matched))
             idx++;
-        return [new PartialFunctionConstruct((input[idx - 1] as NameToken).name, input).parse(input[0]['type'] == TokenType.Static)];
+        return [new PartialFunctionConstruct(parent, (input[idx - 1] as NameExpression).name, input).parse(input[0]['type'] == TokenType.Static)];
     }
 };
 
-const FindTopLevelConstructs: Pass = {
+const FindTypeGeneratingConstructs: Pass = {
     name: "FindTopLevelConstructs",
     rules: [
         {
             name: "ModuleConstruct",
-            match: InOrder(Literal("Module"), Literal("Name"), Literal("Semicolon")),
-            replace: (input: [Token, NameToken, Token]) => [
-                new ModuleConstruct(input[1].name)
+            match: InOrder(Literal("Module"), Literal("NameExpression"), Literal("Semicolon")),
+            replace: (input: [Token, NameExpression, Token], parent: ASTElement) => [
+                new ModuleConstruct(parent, input[1].name)
             ]
         },
         {
             name: "ClassConstruct",
-            match: InOrder(Literal("Class"), Literal("Name"), Assert(Literal("OpenBrace")), Braces()),
-            replace: (input: [Token, NameToken, ...(Token | ASTElement)[]]) => [
-                new PartialClassConstruct(input[1].name, input).parse()
+            match: InOrder(Literal("Class"), Literal("NameExpression"), Assert(Literal("OpenBrace")), Braces()),
+            replace: (input: [Token, NameExpression, ...(Token | ASTElement)[]], parent: ASTElement) => [
+                new PartialClassConstruct(parent, input[1].name, input)
             ]
         },
-        MatchFunctionDefinitions
     ]
 };
 
@@ -308,19 +354,16 @@ const ParseClassBody: Pass = {
     rules: [
         {
             name: "DropNameAndBraces",
-            match: InOrder(Literal("Class"), Literal("Name"), Assert(Literal("OpenBrace")), Braces()),
+            match: InOrder(Literal("Class"), Literal("TypeLiteral"), Assert(Literal("OpenBrace")), Braces()),
             replace: (input: TokenStream) => {
                 return input.slice(3, input.length - 1);
             }
         },
         {
             name: "MatchClassFields",
-            match: InOrder(Type(), Literal("Name"), Literal("Semicolon")),
-            replace: (input: TokenStream) => {
-                const name = (input[input.length - 2] as NameToken).name;
-                const type = ApplyPass(input.slice(0, input.length - 2), ParseType)[0];
-                if (!(type instanceof UnresolvedTypeLiteral)) return undefined;
-                return [new ClassField(name, type)];
+            match: InOrder(Literal("TypeLiteral"), Literal("NameExpression"), Literal("Semicolon")),
+            replace: (input: [TypeLiteral, NameExpression, Token], parent: ASTElement) => {
+                return [new ClassField(parent, input[1].name, input[0].value_type)];
             }
         },
         MatchFunctionDefinitions
@@ -338,75 +381,61 @@ const ParseFunctionBody: Pass = {
         },
         {
             name: "MatchReturnType",
-            match: InOrder(Type(), Literal("Name"), Assert(Literal("OpenParen"))),
-            replace: (input: TokenStream) => {
-                const type = ApplyPass(input.slice(0, input.length - 1), ParseType)[0];
-                if (!(type instanceof UnresolvedTypeLiteral)) return undefined;
-                return [type];
+            match: InOrder(Literal("TypeLiteral"), Literal("NameExpression"), Assert(Literal("OpenParen"))),
+            replace: (input: [TypeLiteral, NameExpression], parent: ASTElement) => {
+                return [input[0]];
             },
             startOnly: true
         },
         {
             name: "MatchArgumentList",
             match: InOrder(
-                Literal("UnresolvedTypeLiteral"),
+                Literal("TypeLiteral"),
                 Literal("OpenParen"),
                 Optional(
                     InOrder(
-                        Type(), Literal("Name"),
-                        Star(InOrder(Literal("Comma"), Type(), Literal("Name"))),
+                        Literal("TypeLiteral"), Literal("NameExpression"),
+                        Star(InOrder(Literal("Comma"), Literal("TypeLiteral"), Literal("NameExpression"))),
                         Optional(Literal("Comma")),
                     )
                 ),
-                Star(Type()),
+                Star(Literal("TypeLiteral")),
                 Literal("CloseParen")),
-            replace: (input: [UnresolvedTypeLiteral, ...TokenStream]) => {
-                const args = ApplyPass(input.slice(2, input.length - 1), {
+            replace: (input: [TypeLiteral, ...TokenStream], parent: ASTElement) => {
+                const args = ApplyPass(parent, input.slice(2, input.length - 1), {
                     name: "ConvertArguments",
                     rules: [
                         {
                             name: "ConvertArgument",
-                            match: InOrder(Type(), Literal("Name"), Optional(Literal("Comma"))),
-                            replace: (input: TokenStream) => {
-                                const [type, name] = ApplyPass(input, ParseType);
-                                if (!(type instanceof UnresolvedTypeLiteral)) return undefined;
-                                if (!(name['type'] == TokenType.Name)) return undefined;
-                                return [new ArgumentDefinition(name['name'], type)];
+                            match: InOrder(Literal("TypeLiteral"), Literal("NameExpression"), Optional(Literal("Comma"))),
+                            replace: (input: [TypeLiteral, NameExpression]) => {
+                                return [new ArgumentDefinition(parent, input[1].name, input[0].value_type)];
                             }
                         }
                     ]
                 });
-                return [input[0], new ArgumentList(args as ArgumentDefinition[])];
+                return [input[0], new ArgumentList(parent, args as ArgumentDefinition[])];
             },
             startOnly: true
         },
         {
             name: "MatchFunctionBody",
-            match: InOrder(Literal("UnresolvedTypeLiteral"), Literal("ArgumentList"), Assert(Literal("OpenBrace")), Braces()),
-            replace: (input: [UnresolvedTypeLiteral, ArgumentList, ...TokenStream]) => [input[0], input[1], new CompoundStatement(input.slice(2)).parse()],
+            match: InOrder(Literal("TypeLiteral"), Literal("ArgumentList"), Assert(Literal("OpenBrace")), Braces()),
+            replace: (input: [TypeLiteral, ArgumentList, ...TokenStream], parent: ASTElement) => [input[0], input[1], new CompoundStatement(parent, input.slice(2)).parse()],
             startOnly: true
         },
     ]
 }
 
-const ParseType: Pass = {
-    name: "ParseType",
+export const LocalDefinitionsPass: Pass = {
+    name: "LocalDefinitions",
     rules: [
         {
-            name: "Simple",
-            match: Literal("Name"),
-            replace: (input: [NameToken]) => {
-                return [new UnresolvedTypeLiteral(input[0].name)];
-            },
-            startOnly: true
-        },
-        {
-            name: "RawPointer",
-            match: InOrder(Literal("Asterisk"), Literal("Name")),
-            replace: (input: [Token, NameToken]) => {
-                return [new UnresolvedTypeLiteral(input[1].name, true)];
-            },
-            startOnly: true
+            name: "LocalDefinition",
+            match: InOrder(Literal("Let"), Literal("NameExpression"), Literal("TypeLiteral"), Assert(Literal("Semicolon"))),
+            replace: (input: [Token, NameExpression, TypeLiteral, Token], parent: ASTElement) => {
+                return [new LocalDefinition(parent, input[1].name, input[2].value_type)];
+            }
         }
     ]
 };
@@ -417,27 +446,22 @@ export const ExpressionPass: Pass = {
         {
             name: "ConvertNumericLiterals",
             match: Literal("NumericLiteral"),
-            replace: (input: [NumericLiteralToken]) => [new NumericLiteralExpression(input[0].value)]
+            replace: (input: [NumericLiteralToken], parent: ASTElement) => [new NumericLiteralExpression(parent, input[0].value)]
         },
         {
             name: "FieldReference1",
-            match: InOrder(Literal("Period"), Literal("Name")),
-            replace: (input: [Token, NameToken]) => [new PartialFieldReference(input[1].name)]
-        },
-        {
-            name: "ConvertNames",
-            match: Literal("Name"),
-            replace: (input: [NameToken]) => [new NameExpression(input[0].name)]
+            match: InOrder(Literal("Period"), Literal("NameExpression")),
+            replace: (input: [Token, NameExpression], parent: ASTElement) => [new PartialFieldReference(parent, input[1].name)]
         },
         {
             name: "FieldReference2",
             match: InOrder(MatchElement(), Literal("PartialFieldReference")),
-            replace: (input: [ASTElement, PartialFieldReference]) => [new FieldReferenceExpression(input[0], input[1].field)]
+            replace: (input: [ASTElement, PartialFieldReference], parent: ASTElement) => [new FieldReferenceExpression(parent, input[0], input[1].field)]
         },
         {
             name: "New",
             match: InOrder(Literal("New"), Literal("NameExpression")),
-            replace: (input: [Token, NameExpression]) => [new NewExpression(new UnresolvedTypeLiteral(input[1].name))]
+            replace: (input: [Token, NameExpression], parent: ASTElement) => [new NewExpression(parent, GetType(input[1].name))]
         },
         {
             name: "FunctionCall",
@@ -452,7 +476,7 @@ export const ExpressionPass: Pass = {
                 ),
                 Literal("CloseParen")
             ),
-            replace: (input: [ASTElement, Token, ...TokenStream]) => {
+            replace: (input: [ASTElement, Token, ...TokenStream], parent: ASTElement) => {
                 const rhs = input[0];
                 const rest = input.slice(2, input.length - 1);
                 const args: ASTElement[] = [];
@@ -462,7 +486,7 @@ export const ExpressionPass: Pass = {
                         args.push(exp);
                     }
                 }
-                return [new FunctionCallExpression(rhs, args)];
+                return [new FunctionCallExpression(parent, rhs, args)];
             }
         },
         {
@@ -474,8 +498,8 @@ export const ExpressionPass: Pass = {
                 MatchElement(),
                 Literal("CloseBracket")
             ),
-            replace: (input: [ASTElement, Token, Token, ASTElement, ...TokenStream]) => {
-                return [new RawPointerIndexExpression(input[0], input[3])];
+            replace: (input: [ASTElement, Token, Token, ASTElement, ...TokenStream], parent: ASTElement) => {
+                return [new RawPointerIndexExpression(parent, input[0], input[3])];
             }
         },
         {
@@ -486,43 +510,38 @@ export const ExpressionPass: Pass = {
         {
             name: "Multiply",
             match: InOrder(MatchElement(), Literal("Asterisk"), MatchElement()),
-            replace: (input: [ASTElement, Token, ASTElement]) => {
-                return [new ArithmeticExpression(input[0], input[2], "mul")]
+            replace: (input: [ASTElement, Token, ASTElement], parent: ASTElement) => {
+                return [new ArithmeticExpression(parent, input[0], input[2], "mul")]
             }
         },
         {
             name: "Add",
             match: InOrder(MatchElement(), Literal("Plus"), MatchElement()),
-            replace: (input: [ASTElement, Token, ASTElement]) => {
-                return [new ArithmeticExpression(input[0], input[2], "add")]
+            replace: (input: [ASTElement, Token, ASTElement], parent: ASTElement) => {
+                return [new ArithmeticExpression(parent, input[0], input[2], "add")]
             }
         },
         {
             name: "LessThan",
             match: InOrder(MatchElement(), Literal("OpenAngle"), MatchElement()),
-            replace: (input: [ASTElement, Token, ASTElement]) => {
-                return [new ComparisonExpression(input[0], input[2], "slt")]
+            replace: (input: [ASTElement, Token, ASTElement], parent: ASTElement) => {
+                return [new ComparisonExpression(parent, input[0], input[2], "slt")]
             }
-        },
-        {
-            name: "LocalDefinition",
-            match: InOrder(Literal("Let"), Literal("NameExpression"), MatchElement(), Assert(Literal("Semicolon"))),
-            replace: (input: [Token, NameExpression, ASTElement]) => [new LocalDefinition(input[1], input[2])]
         },
         {
             name: "Assignment",
             match: InOrder(MatchElement(), Literal("Equals"), MatchElement(), Assert(Literal("Semicolon"))),
-            replace: (input: [ASTElement, Token, ASTElement]) => [new AssignmentExpression(input[0], input[2])]
+            replace: (input: [ASTElement, Token, ASTElement], parent: ASTElement) => [new AssignmentExpression(parent, input[0], input[2])]
         },
         {
             name: "MatchUnaryReturn",
             match: InOrder(Literal("Return"), MatchElement(), Assert(Literal("Semicolon"))),
-            replace: (input: [Token, ASTElement]) => [new UnaryReturnExpression(input[1])]
+            replace: (input: [Token, ASTElement], parent: ASTElement) => [new UnaryReturnExpression(parent, input[1])]
         },
         {
             name: "MatchNullaryReturn",
             match: InOrder(Literal("Return"), Assert(Literal("Semicolon"))),
-            replace: (input: [Token]) => [new NullaryReturnExpression()]
+            replace: (input: [Token], parent: ASTElement) => [new NullaryReturnExpression(parent)]
         }
     ]
 }
@@ -531,20 +550,19 @@ function GenerateStaticTables() {
     for (const [_, t] of TypeRegistry) {
         if (!(t instanceof ClassType)) continue;
         if (t.source.is_stable || t.source.has_stable) continue;
-        const stable = new ClassConstruct(`__${t.source.name}_stable_t`);
+        const stable = new ClassConstruct(undefined, `__${t.source.name}_stable_t`);
         const initializer = new StaticTableInitialization(t.source);
         stable.is_stable = true;
         t.source.has_stable = true;
 
         for (const method of t.source.methods) {
-            const method_type = new FunctionType(method.return_type_literal.value_type, method.args.map(x => x.type_literal.value_type));
-            stable.fields.push(new ClassField(method.name, new TypeLiteral(method_type)));
-            initializer.fields.push(new StaticFunctionReference(`__${t.source.name}_${method.name}`, method_type));
+            stable.fields.push(new ClassField(stable, method.name, method.value_type));
+            initializer.fields.push(new StaticFunctionReference(stable, `__${t.source.name}_${method.name}`, method.value_type as FunctionType));
         }
 
         TypeRegistry.set(stable.name, new ClassType(stable));
         StaticVariableRegistry.set(`__${t.source.name}_stable`, { type: TypeRegistry.get(stable.name), initializer: initializer });
-        t.source.fields.unshift(new ClassField("__stable", new TypeLiteral(TypeRegistry.get(stable.name))))
+        t.source.fields.unshift(new ClassField(stable, "__stable", TypeRegistry.get(stable.name)));
     }
 }
 
@@ -553,16 +571,17 @@ function GenerateInitializers() {
         if (!(t instanceof ClassType)) continue;
         if (t.source.is_stable) continue;
 
-        const fn = new FunctionConstruct(`__${t.source.name}_initialize`);
-        fn.args.push(new ArgumentDefinition("self", new TypeLiteral(t)));
-        fn.return_type_literal = new TypeLiteral(TypeRegistry.get("void"));
+        const fn = new FunctionConstruct(t.source, new FunctionType(
+            GetType("void"),
+            [t],
+        ), `__${t.source.name}_initialize`, [new ArgumentDefinition(t.source, "self", t)]);
 
-        fn.body = new CompoundStatement();
+        fn.body = new CompoundStatement(fn);
         fn.body.substatements = [
-            new AssignmentStatement(new AssignmentExpression(
-                new FieldReferenceExpression(new VariableReferenceExpression(t, "self"), "__stable"),
-                new VariableReferenceExpression(TypeRegistry.get(`__${t.source.name}_stable_t`), `__${t.source.name}_stable`))),
-            new NullaryReturnExpression()
+            new AssignmentStatement(fn.body, new AssignmentExpression(fn.body,
+                new FieldReferenceExpression(fn.body, new VariableReferenceExpression(fn.body, t, "self"), "__stable"),
+                new VariableReferenceExpression(fn.body, TypeRegistry.get(`__${t.source.name}_stable_t`), `__${t.source.name}_stable`))),
+            new NullaryReturnExpression(fn.body)
         ]
 
         StaticFunctionRegistry.set(fn.name, fn);
@@ -584,12 +603,14 @@ function RemoveClassMethods() {
 }
 
 function AddStandardLibraryReferences() {
-    const calloc = new FunctionConstruct("calloc");
-    calloc.return_type_literal = new TypeLiteral(new RawPointerType(TypeRegistry.get("i8")));
-    calloc.args = [
-        new ArgumentDefinition("count", new TypeLiteral(TypeRegistry.get("i64"))),
-        new ArgumentDefinition("size", new TypeLiteral(TypeRegistry.get("i64")))
-    ];
+    const calloc = new FunctionConstruct(undefined, new FunctionType(
+        new RawPointerType(GetType("i8")), [
+        GetType("i64"),
+        GetType("i64")
+    ]), "calloc", [
+        new ArgumentDefinition(undefined, "count", TypeRegistry.get("i64")),
+        new ArgumentDefinition(undefined, "size", TypeRegistry.get("i64"))
+    ]);
     StaticFunctionRegistry.set("calloc", calloc);
 }
 
@@ -619,10 +640,6 @@ export function Braces(): Matcher {
         }
         return { matched: false, length: 0 };
     };
-}
-
-function Type(): Matcher {
-    return InOrder(Optional(Literal("Asterisk")), Literal("Name"));
 }
 
 function Rvalue(): Matcher {

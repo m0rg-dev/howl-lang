@@ -4,8 +4,8 @@ import { FunctionType } from "./TypeObject";
 export class StaticFunctionReference extends ASTElement {
     name: string;
 
-    constructor(name: string, type: FunctionType) {
-        super(type);
+    constructor(parent: ASTElement, name: string, type: FunctionType) {
+        super(type, parent);
         this.name = name;
     }
 

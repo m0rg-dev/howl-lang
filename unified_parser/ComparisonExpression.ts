@@ -7,8 +7,8 @@ export class ComparisonExpression extends ASTElement implements Synthesizable {
     lhs: ASTElement;
     rhs: ASTElement;
 
-    constructor(lhs: ASTElement, rhs: ASTElement, type: string) {
-        super(TypeRegistry.get("bool"));
+    constructor(parent: ASTElement, lhs: ASTElement, rhs: ASTElement, type: string) {
+        super(TypeRegistry.get("bool"), parent);
         this.comp_type = type;
         this.lhs = lhs;
         this.rhs = rhs;

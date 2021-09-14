@@ -5,8 +5,8 @@ import { ASTElement } from "./ASTElement";
 
 export class NumericLiteralExpression extends ASTElement implements Synthesizable {
     value: number;
-    constructor(value: number) {
-        super(TypeRegistry.get("_numeric_constant"));
+    constructor(parent: ASTElement, value: number) {
+        super(TypeRegistry.get("_numeric_constant"), parent);
         this.value = value;
     }
     toString = () => `#${this.value}`;

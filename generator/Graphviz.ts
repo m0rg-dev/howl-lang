@@ -1,23 +1,22 @@
-import { FunctionType, TypeObject } from "../unified_parser/TypeObject";
-import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
-import { ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
-import { CompoundStatement } from "../unified_parser/CompoundStatement";
-import { FunctionConstruct } from "../unified_parser/FunctionConstruct";
-import { ClassConstruct } from "../unified_parser/ClassConstruct";
-import { SimpleStatement } from "../unified_parser/SimpleStatement";
-import { AssignmentStatement } from "../unified_parser/AssignmentStatement";
-import { UnaryReturnStatement } from "../unified_parser/UnaryReturnStatement";
-import { MethodReferenceExpression } from "../unified_parser/TypedElement";
-import { FunctionCallExpression } from "../unified_parser/FunctionCallExpression";
-import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
-import { StaticTableInitialization } from "../unified_parser/StaticTableInitialization";
 import { StaticInitializer } from "../registry/StaticVariableRegistry";
-import { TypeRequest } from "../unified_parser/TypeRequest";
-import { isSynthesizable } from "./IR";
-import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
-import { IfStatement } from "../unified_parser/IfStatement";
-import { ComparisonExpression } from "../unified_parser/ComparisonExpression";
 import { ArithmeticExpression } from "../unified_parser/ArithmeticExpression";
+import { AssignmentExpression } from "../unified_parser/AssignmentExpression";
+import { AssignmentStatement } from "../unified_parser/AssignmentStatement";
+import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
+import { ClassConstruct } from "../unified_parser/ClassConstruct";
+import { ComparisonExpression } from "../unified_parser/ComparisonExpression";
+import { CompoundStatement } from "../unified_parser/CompoundStatement";
+import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
+import { FunctionCallExpression } from "../unified_parser/FunctionCallExpression";
+import { FunctionConstruct } from "../unified_parser/FunctionConstruct";
+import { IfStatement } from "../unified_parser/IfStatement";
+import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
+import { SimpleStatement } from "../unified_parser/SimpleStatement";
+import { StaticTableInitialization } from "../unified_parser/StaticTableInitialization";
+import { FunctionType, TypeObject } from "../unified_parser/TypeObject";
+import { TypeRequest } from "../unified_parser/TypeRequest";
+import { UnaryReturnStatement } from "../unified_parser/UnaryReturnStatement";
+import { isSynthesizable } from "./IR";
 
 export function PrintAST(stream: TokenStream): string {
     const revstream = [...stream];
@@ -49,7 +48,7 @@ export function PrintStaticVariable(name: string, type: TypeObject, initializer?
             if (block.output_location) {
                 ir_entries.push({ name: "location", label: `loc: ${block.output_location.location}\\l` });
                 ir_entries.push({ name: "type", label: `type: ${block.output_location.type.toString()}\\l` });
-    
+
             }
             block.statements.forEach(x => ir_entries.push({ name: "st", label: x.toString() + "\\l" }));
             s += mrecord(`static_init_${name}` + `_ir`, ir_entries, "color=gray, fontcolor=gray");
@@ -68,13 +67,10 @@ export function PrintExpression(node: ASTElement): string {
 
     entries.push({ name: "type", label: `type: ${node.value_type}` });
 
-    if (node.scope && node.hasOwnScope) {
+    if (node.hasOwnScope) {
         entries.push({ name: "scope", label: "scope" });
         s += link(node.guid, "scope", node.scope.guid, undefined);
         const sub_entries: { name: string, label: string }[] = [];
-        if (node.scope.parent && node.scope.parent.scope && node.scope.parent.hasOwnScope) {
-            s += revlink(node.scope.guid, undefined, node.scope.parent.scope.guid, undefined);
-        }
         for (const [k, v] of node.scope.locals) {
             sub_entries.push({ name: k, label: `${v} ${k}` });
         }
@@ -87,12 +83,12 @@ export function PrintExpression(node: ASTElement): string {
     if (node instanceof ClassConstruct) {
         node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.value_type.toString()}>` }));
         node.methods.forEach(x => {
-            entries.push({ name: x.name, label: `${x.name}<${x.return_type_literal.value_type.toString()}>(${x.args.map(x => `${x.name}<${x.type_literal.value_type.toString()}>`).join(", ")})` });
+            entries.push({ name: x.name, label: `${x.name}<${x.value_type}>` });
             s += link(node.guid, x.name, x.guid, undefined);
             s += PrintExpression(x);
         });
     } else if (node instanceof FunctionConstruct) {
-        node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.type_literal.value_type.toString()}>` }));
+        node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.value_type.toString()}>` }));
         if (node.body) {
             entries.push({ name: "body", label: "Body" });
             s += link(node.guid, "body", node.body.guid, undefined);
@@ -114,16 +110,16 @@ export function PrintExpression(node: ASTElement): string {
                 entries.push({ name: `${y}`, label: x.text });
             }
         });
-    } else if (node instanceof AssignmentStatement) {
-        entries.push({ name: "lhs", label: `lhs <${node.expression.lhs.value_type}>` });
-        entries.push({ name: "rhs", label: `rhs <${node.expression.rhs.value_type}>` });
-        s += link(node.guid, "lhs", node.expression.lhs.guid, undefined);
-        s += link(node.guid, "rhs", node.expression.rhs.guid, undefined);
-        s += PrintExpression(node.expression.lhs);
-        s += PrintExpression(node.expression.rhs);
+    } else if (node instanceof AssignmentExpression) {
+        entries.push({ name: "lhs", label: `lhs <${node.lhs.value_type}>` });
+        entries.push({ name: "rhs", label: `rhs <${node.rhs.value_type}>` });
+        s += link(node.guid, "lhs", node.lhs.guid, undefined);
+        s += link(node.guid, "rhs", node.rhs.guid, undefined);
+        s += PrintExpression(node.lhs);
+        s += PrintExpression(node.rhs);
     } else if (node instanceof UnaryReturnStatement) {
-        if (node.scope.get_return()) {
-            entries.push({ name: "value", label: `value <${node.scope.get_return()}>` });
+        if (node.getReturnType()) {
+            entries.push({ name: "value", label: `value <${node.getReturnType()}>` });
         } else {
             entries.push({ name: "value", label: "value" });
         }
@@ -158,7 +154,7 @@ export function PrintExpression(node: ASTElement): string {
         entries.push({ name: "index", label: "index" });
         s += link(node.guid, "index", node.index.guid, undefined);
         s += PrintExpression(node.index);
-    } else if(node instanceof IfStatement) {
+    } else if (node instanceof IfStatement) {
         entries.push({ name: "condition", label: "condition" });
         s += link(node.guid, "condition", node.condition.guid, undefined);
         s += PrintExpression(node.condition);
@@ -172,7 +168,7 @@ export function PrintExpression(node: ASTElement): string {
         s += link(node.guid, "rhs", node.rhs.guid, undefined);
         s += PrintExpression(node.lhs);
         s += PrintExpression(node.rhs);
-    } 
+    }
 
     s += mrecord(node.guid, entries);
 

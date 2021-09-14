@@ -4,8 +4,8 @@ import { TypeObject } from "./TypeObject";
 export class TypeRequest extends ASTElement {
     source: ASTElement;
 
-    constructor(source: ASTElement, type: TypeObject) {
-        super(type);
+    constructor(parent: ASTElement, source: ASTElement, type: TypeObject) {
+        super(type, parent);
         this.source = source;
     }
 

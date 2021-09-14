@@ -7,8 +7,8 @@ export class ArithmeticExpression extends ASTElement implements Synthesizable {
     lhs: ASTElement;
     rhs: ASTElement;
 
-    constructor(lhs: ASTElement, rhs: ASTElement, type: string) {
-        super(TypeRegistry.get("_unknown"));
+    constructor(parent: ASTElement, lhs: ASTElement, rhs: ASTElement, type: string) {
+        super(TypeRegistry.get("_unknown"), parent);
         this.op = type;
         this.lhs = lhs;
         this.rhs = rhs;

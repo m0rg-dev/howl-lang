@@ -1,5 +1,5 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
-import { VoidElement } from "./ASTElement";
+import { ASTElement, VoidElement } from "./ASTElement";
 import { ClassField } from "./Parser";
 import { FunctionConstruct } from "./FunctionConstruct";
 import { ClassType } from "./TypeObject";
@@ -12,10 +12,12 @@ export class ClassConstruct extends VoidElement implements Synthesizable {
     methods: FunctionConstruct[] = [];
     is_stable = false;
     has_stable = false;
-    constructor(name: string) {
-        super();
+    constructor(parent: ASTElement, name: string) {
+        super(parent);
         this.name = name;
-        TypeRegistry.set(this.name, new ClassType(this));
+        
+        // not cursed at all >_>
+        (TypeRegistry.get(this.name) as ClassType).source = this;
     }
     toString = () => `Class(${this.name})`;
     stableType = () => TypeRegistry.get(`__${this.name}_stable_t`) as ClassType;
@@ -25,7 +27,7 @@ export class ClassConstruct extends VoidElement implements Synthesizable {
             output_location: undefined,
             statements: [
                 new IRSomethingElse(`%${this.name} = type {`),
-                new IRSomethingElse(this.fields.map(x => x.type_literal.value_type.toIR().toString()).join(", ")),
+                new IRSomethingElse(this.fields.map(x => x.value_type.toIR().toString()).join(", ")),
                 new IRSomethingElse(`}`)
             ]
         };

@@ -5,12 +5,12 @@ export class MethodReferenceExpression extends ASTElement {
     source: ASTElement;
     method: string;
 
-    constructor(source: ASTElement, method: string) {
-        super(undefined);
+    constructor(parent: ASTElement, source: ASTElement, method: string) {
+        super(undefined, parent);
         if (!(source.value_type instanceof ClassType)) throw new Error(`Can't take fields on ${source}`);
         const method_obj = source.value_type.source.methods.find(x => x.name == method);
-        this.value_type = new FunctionType(method_obj.return_type_literal.value_type, method_obj.args.map(x => x.type_literal.value_type));
-        if (!this.value_type) throw new Error(`Can't find method ${method} on ${source}`);
+        if (!method_obj) throw new Error(`Can't find method ${method} on ${source}`);
+        this.value_type = method_obj.value_type;
         this.source = source;
         this.method = method;
     }

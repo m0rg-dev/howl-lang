@@ -5,8 +5,8 @@ import { ASTElement, VoidElement } from "./ASTElement";
 export class UnaryReturnExpression extends VoidElement implements Synthesizable {
     source: ASTElement;
 
-    constructor(source: ASTElement) {
-        super();
+    constructor(parent: ASTElement, source: ASTElement) {
+        super(parent);
         this.source = source;
     }
 

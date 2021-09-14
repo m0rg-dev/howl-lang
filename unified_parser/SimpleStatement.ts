@@ -3,8 +3,8 @@ import { ASTElement, TokenStream, VoidElement } from "./ASTElement";
 
 export class SimpleStatement extends VoidElement implements Synthesizable {
     source: TokenStream;
-    constructor(source: TokenStream) {
-        super();
+    constructor(parent: ASTElement, source: TokenStream) {
+        super(parent);
         this.source = source;
     }
     toString = () => `SimpleStatement`;

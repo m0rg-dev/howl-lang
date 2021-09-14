@@ -7,8 +7,8 @@ export class RawPointerIndexExpression extends ASTElement implements Synthesizab
     source: ASTElement;
     index: ASTElement;
 
-    constructor(source: ASTElement, index: ASTElement) {
-        super((source.value_type as RawPointerType).subtype);
+    constructor(parent: ASTElement, source: ASTElement, index: ASTElement) {
+        super((source.value_type as RawPointerType).subtype, parent);
         this.source = source;
         this.index = index;
     }

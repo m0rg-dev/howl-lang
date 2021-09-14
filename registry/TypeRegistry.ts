@@ -1,5 +1,5 @@
 import { BaseType, TypeObject, UnionType } from "../unified_parser/TypeObject";
-import { UnknownType } from "../unified_parser/UnknownType";
+import { UnresolvedType } from "../unified_parser/UnknownType";
 
 export const TypeRegistry = new Map<string, TypeObject>();
 
@@ -15,5 +15,15 @@ export function init_types() {
         TypeRegistry.get("i8"),
         TypeRegistry.get("bool")
     ));
-    TypeRegistry.set("_unknown", new UnknownType());
+}
+
+export function GetType(name: string): TypeObject {
+    if(TypeRegistry.has(name)) return TypeRegistry.get(name);
+    const unk = new UnresolvedType(name);
+    TypeRegistry.set(name, unk);
+    return unk;
+}
+
+export function IsType(name: string): boolean {
+    return TypeRegistry.has(name);
 }

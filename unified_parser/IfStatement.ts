@@ -6,8 +6,8 @@ export class IfStatement extends VoidElement implements Synthesizable {
     condition: ASTElement;
     body: CompoundStatement;
 
-    constructor(condition: ASTElement, body: CompoundStatement) {
-        super();
+    constructor(parent: ASTElement, condition: ASTElement, body: CompoundStatement) {
+        super(parent);
         this.condition = condition;
         this.body = body;
     }
