@@ -5,12 +5,20 @@ import { Scope } from "./Scope";
 import { Transformer } from "../transformers/Transformer";
 import { FunctionType, TypeObject } from "./TypeObject";
 import { StaticVariableRegistry, StaticFunctionRegistry } from "../registry/StaticVariableRegistry";
+import { Signature } from "../typemath/Signature";
 
 export type TokenStream = (Token | ASTElement)[];
 
 export abstract class ASTElement {
     guid: string;
     parent: ASTElement;
+
+    scope: Scope = new Scope();
+    hasOwnScope = false;
+    value_type: TypeObject;
+
+    signature: Signature = new Signature();
+
     constructor(type: TypeObject, parent: ASTElement) {
         this.guid = randomUUID().replace(/-/g, "_");
         this.value_type = type;
@@ -38,10 +46,6 @@ export abstract class ASTElement {
         }
         t(this, replace, parent);
     }
-
-    scope: Scope = new Scope();
-    hasOwnScope = false;
-    value_type: TypeObject;
 
     mostLocalScope(): Scope {
         if(this.hasOwnScope) return this.scope;

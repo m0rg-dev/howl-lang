@@ -5,10 +5,8 @@ import { AssignmentExpression } from "../unified_parser/AssignmentExpression";
 import { AssignmentStatement } from "../unified_parser/AssignmentStatement";
 import { ASTElement } from "../unified_parser/ASTElement";
 import { ComparisonExpression } from "../unified_parser/ComparisonExpression";
-import { CompoundStatement } from "../unified_parser/CompoundStatement";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 import { FunctionCallExpression } from "../unified_parser/FunctionCallExpression";
-import { FunctionConstruct } from "../unified_parser/FunctionConstruct";
 import { MethodReferenceExpression } from "../unified_parser/MethodReferenceExpression";
 import { NumericLiteralExpression } from "../unified_parser/NumericLiteralExpression";
 import { ElidedElement, LocalDefinition, NameExpression } from "../unified_parser/Parser";
@@ -31,7 +29,7 @@ export function ApplyToAll(t: Transformer): boolean {
         return rc;
     }
 
-    console.error(`Applying transformer ${t.name}`);
+    // console.error(`Applying transformer ${t.name}`);
     for (const [name, type] of TypeRegistry) {
         if (type instanceof ClassType) {
             type.source.walk(u, (n: ASTElement) => { });

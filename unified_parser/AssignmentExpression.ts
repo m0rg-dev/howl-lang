@@ -1,6 +1,6 @@
 import { IRBlock, IRLoad, IRPointerType, IRStore, IRTemporary, isSynthesizable, Synthesizable } from "../generator/IR";
+import { IntersectionConstraint } from "../typemath/Signature";
 import { ASTElement, VoidElement } from "./ASTElement";
-
 
 export class AssignmentExpression extends VoidElement implements Synthesizable {
     lhs: ASTElement;
@@ -9,6 +9,10 @@ export class AssignmentExpression extends VoidElement implements Synthesizable {
         super(parent);
         this.lhs = lhs;
         this.rhs = rhs;
+
+        this.signature.ports.add("lhs");
+        this.signature.ports.add("rhs");
+        this.signature.port_constraints.push(new IntersectionConstraint("lhs", "rhs"));
     }
 
     toString = () => `${this.lhs.toString()} = ${this.rhs.toString()}`;

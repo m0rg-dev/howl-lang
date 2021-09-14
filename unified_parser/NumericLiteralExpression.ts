@@ -1,13 +1,21 @@
-import { IRAlloca, IRBlock, IRNumericLiteral, IRPointerType, IRSomethingElse, IRStore, IRTemporary, Synthesizable } from "../generator/IR";
-import { TypeRegistry } from "../registry/TypeRegistry";
+import { IRAlloca, IRBlock, IRNumericLiteral, IRPointerType, IRStore, IRTemporary, Synthesizable } from "../generator/IR";
+import { GetType } from "../registry/TypeRegistry";
+import { UnionConstraint } from "../typemath/Signature";
 import { ASTElement } from "./ASTElement";
 
 
 export class NumericLiteralExpression extends ASTElement implements Synthesizable {
     value: number;
     constructor(parent: ASTElement, value: number) {
-        super(TypeRegistry.get("_numeric_constant"), parent);
+        super(GetType("_numeric_constant"), parent);
         this.value = value;
+
+        this.signature.ports.add("value");
+        this.signature.type_constraints.set("value", new UnionConstraint("value", [
+            GetType("i64"),
+            GetType("i32"),
+            GetType("i8")
+        ]));
     }
     toString = () => `#${this.value}`;
 

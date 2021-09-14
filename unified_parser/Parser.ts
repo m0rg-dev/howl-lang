@@ -4,7 +4,8 @@ import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
 import { GetType, init_types, IsType, TypeRegistry } from "../registry/TypeRegistry";
-import { FixHierarchy } from "../transformers/Transformer";
+import { ApplyToAll, FixHierarchy } from "../transformers/Transformer";
+import { ApplyIntersections, ImportLocals } from "../transformers/TypeInference";
 import { ArithmeticExpression } from "./ArithmeticExpression";
 import { AssignmentExpression } from "./AssignmentExpression";
 import { AssignmentStatement } from "./AssignmentStatement";
@@ -68,6 +69,13 @@ export function Parse(token_stream: Token[]) {
     });
 
     AddStandardLibraryReferences();
+
+    let did_apply = true;
+    while (did_apply) {
+        did_apply = false;
+        did_apply ||= ApplyToAll(ImportLocals);
+        did_apply ||= ApplyToAll(ApplyIntersections);
+    }
 
     /*
     ApplyToAll(SpecifyStatements);

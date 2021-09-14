@@ -66,6 +66,9 @@ export function PrintExpression(node: ASTElement): string {
     ];
 
     entries.push({ name: "type", label: `type: ${node.value_type}` });
+    if (node.signature.ports.size > 0) {
+        entries.push({ name: "signature", label: `signature: ${node.signature}` });
+    }
 
     if (node.hasOwnScope) {
         entries.push({ name: "scope", label: "scope" });
@@ -111,15 +114,15 @@ export function PrintExpression(node: ASTElement): string {
             }
         });
     } else if (node instanceof AssignmentExpression) {
-        entries.push({ name: "lhs", label: `lhs <${node.lhs.value_type}>` });
-        entries.push({ name: "rhs", label: `rhs <${node.rhs.value_type}>` });
+        entries.push({ name: "lhs", label: `lhs` });
+        entries.push({ name: "rhs", label: `rhs` });
         s += link(node.guid, "lhs", node.lhs.guid, undefined);
         s += link(node.guid, "rhs", node.rhs.guid, undefined);
         s += PrintExpression(node.lhs);
         s += PrintExpression(node.rhs);
     } else if (node instanceof UnaryReturnStatement) {
         if (node.getReturnType()) {
-            entries.push({ name: "value", label: `value <${node.getReturnType()}>` });
+            entries.push({ name: "value", label: `value` });
         } else {
             entries.push({ name: "value", label: "value" });
         }

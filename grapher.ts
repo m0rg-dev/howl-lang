@@ -53,7 +53,4 @@ for (const [name, {type, initializer}] of StaticVariableRegistry) {
 
 console.log("}");
 
-console.error(TypeRegistry);
-console.error(StaticVariableRegistry);
-console.error(StaticFunctionRegistry);
 console.error("Done.");

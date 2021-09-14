@@ -1,6 +1,7 @@
 import { TypeObject } from "./TypeObject";
 import { ASTElement } from "./ASTElement";
 import { IRAlloca, IRBlock, IRNamedIdentifier, IRPointerType, IRStore, IRTemporary, Synthesizable } from "../generator/IR";
+import { FromScopeConstraint } from "../typemath/Signature";
 
 
 export class VariableReferenceExpression extends ASTElement implements Synthesizable {
@@ -10,6 +11,9 @@ export class VariableReferenceExpression extends ASTElement implements Synthesiz
     constructor(parent: ASTElement, type: TypeObject, name: string) {
         super(type, parent);
         this.name = name;
+
+        this.signature.ports.add("value");
+        this.signature.port_constraints.push(new FromScopeConstraint("value", name));
     }
 
     toString = () => `var ${this.name}`;

@@ -52,6 +52,11 @@ export class UnionType extends TypeObject {
     toIR = () => `%UNION`;
 }
 
+export class AnyType extends TypeObject {
+    toString = () => `*`;
+    toIR = () => { throw new Error("can't IR an AnyType, check your type propagation") }
+}
+
 export class PassthroughType extends TypeObject {
     name: string;
     constructor(name: string) {
