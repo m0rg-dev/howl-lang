@@ -1,6 +1,7 @@
 import { FunctionType, TypeObject } from "../unified_parser/TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
-import { CompoundStatement, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
+import { ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
+import { CompoundStatement } from "../unified_parser/CompoundStatement";
 import { FunctionConstruct } from "../unified_parser/FunctionConstruct";
 import { ClassConstruct } from "../unified_parser/ClassConstruct";
 import { SimpleStatement } from "../unified_parser/SimpleStatement";
@@ -14,6 +15,8 @@ import { StaticInitializer } from "../registry/StaticVariableRegistry";
 import { TypeRequest } from "../unified_parser/TypeRequest";
 import { isSynthesizable } from "./IR";
 import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
+import { IfStatement } from "../unified_parser/IfStatement";
+import { ComparisonExpression } from "../unified_parser/ComparisonExpression";
 
 export function PrintAST(stream: TokenStream): string {
     const revstream = [...stream];
@@ -154,7 +157,21 @@ export function PrintExpression(node: ASTElement): string {
         entries.push({ name: "index", label: "index" });
         s += link(node.guid, "index", node.index.guid, undefined);
         s += PrintExpression(node.index);
-    }
+    } else if(node instanceof IfStatement) {
+        entries.push({ name: "condition", label: "condition" });
+        s += link(node.guid, "condition", node.condition.guid, undefined);
+        s += PrintExpression(node.condition);
+        entries.push({ name: "body", label: "body" });
+        s += link(node.guid, "body", node.body.guid, undefined);
+        s += PrintExpression(node.body);
+    } else if (node instanceof ComparisonExpression) {
+        entries.push({ name: "lhs", label: `lhs <${node.lhs.value_type}>` });
+        entries.push({ name: "rhs", label: `rhs <${node.rhs.value_type}>` });
+        s += link(node.guid, "lhs", node.lhs.guid, undefined);
+        s += link(node.guid, "rhs", node.rhs.guid, undefined);
+        s += PrintExpression(node.lhs);
+        s += PrintExpression(node.rhs);
+    } 
 
     s += mrecord(node.guid, entries);
 

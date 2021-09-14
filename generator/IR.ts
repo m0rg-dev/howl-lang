@@ -41,6 +41,15 @@ export class IRTemporary extends IRIdentifier {
     toString = () => `%${this.tentative ? 'temp' : ''}${this.index}`;
 }
 
+var label_ctr = 0;
+export class IRLabel {
+    index: number;
+    constructor() {
+        this.index = label_ctr++;
+    }
+    toString = () => `L${this.index}`
+}
+
 export abstract class IRStatement {
     abstract toString(): string;
 };
@@ -76,6 +85,17 @@ export class IRPointerType extends IRType {
     sub: IRType;
     constructor(sub: IRType) { super(); this.sub = sub; }
     toString = () => `${this.sub}*`;
+}
+
+export class IRLabelStatement extends IRStatement {
+    label: IRLabel;
+
+    constructor(label: IRLabel) {
+        super();
+        this.label = label;
+    }
+
+    toString = () => `br label %${this.label}\n${this.label}:`;
 }
 
 export class GEPStructStatement extends IRStatement {
@@ -204,6 +224,48 @@ export class IRBitcast extends IRStatement {
     }
 
     toString = () => `${this.target.location} = bitcast ${this.source.type} ${this.source.location} to ${this.target.type}`;
+}
+
+export class IRIntegerCompare extends IRStatement {
+    target: IRLocation;
+    lhs: IRLocation;
+    rhs: IRLocation;
+    mode: string;
+
+    constructor(target: IRLocation, lhs: IRLocation, rhs: IRLocation, mode: string) {
+        super();
+        this.lhs = lhs;
+        this.rhs = rhs;
+        this.mode = mode;
+        this.target = target;
+    }
+
+    toString = () => `${this.target.location} = icmp ${this.mode} ${this.lhs.type} ${this.lhs.location}, ${this.rhs.location}`;
+}
+
+export class IRConditionalBranch extends IRStatement {
+    if_true: IRLabel;
+    if_false: IRLabel;
+    cond: IRLocation;
+
+    constructor(if_true: IRLabel, if_false: IRLabel, cond: IRLocation) {
+        super();
+        this.if_true = if_true;
+        this.if_false = if_false;
+        this.cond = cond;
+    }
+
+    toString = () => `br ${this.cond.type} ${this.cond.location}, label %${this.if_true}, label %${this.if_false}`;
+}
+
+export class IRBranch extends IRStatement {
+    target: IRLabel;
+    constructor(target: IRLabel) {
+        super();
+        this.target = target;
+    }
+
+    toString = () => `br label %${this.target}`;
 }
 
 export class IRSomethingElse extends IRStatement {

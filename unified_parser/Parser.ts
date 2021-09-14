@@ -4,8 +4,7 @@ import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { init_types, TypeRegistry } from "../registry/TypeRegistry";
 import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
-import { Assert, First, InOrder, Invert, Literal, Matcher, Optional, Star } from "./Matcher";
-import { SimpleStatement } from "./SimpleStatement";
+import { Assert, First, InOrder, Literal, Matcher, Optional, Star } from "./Matcher";
 import { AssignmentStatement } from "./AssignmentStatement";
 import { NumericLiteralExpression } from "./NumericLiteralExpression";
 import { FunctionCallExpression } from "./FunctionCallExpression";
@@ -23,6 +22,8 @@ import { AssignmentExpression } from "./AssignmentExpression";
 import { FunctionConstruct } from "./FunctionConstruct";
 import { NewExpression } from "./NewExpression";
 import { RawPointerIndexExpression } from "./RawPointerIndexExpression";
+import { CompoundStatement } from "./CompoundStatement";
+import { ComparisonExpression } from "./ComparisonExpression";
 
 export function Parse(token_stream: Token[]) {
     init_types();
@@ -214,37 +215,6 @@ export class ArgumentList extends ASTElement {
     toString = () => `ArgumentList`;
 }
 
-export class CompoundStatement extends VoidElement {
-    substatements: ASTElement[];
-    source: TokenStream;
-    constructor(source?: TokenStream) {
-        super();
-        this.source = source;
-    }
-    parse(): CompoundStatement {
-        this.source = ApplyPass(this.source.slice(1, this.source.length - 1), {
-            name: "CompoundStatement",
-            rules: [{
-                name: "RecognizeSubCompounds",
-                match: InOrder(Assert(Literal("OpenBrace")), Braces()),
-                replace: (input: TokenStream) => [new CompoundStatement(input).parse()]
-            }]
-        });
-        this.source = ApplyPass(this.source, ExpressionPass);
-        this.source = ApplyPass(this.source, {
-            name: "SimpleStatements",
-            rules: [{
-                name: "SplitSimpleStatements",
-                match: InOrder(Invert(Literal("SimpleStatement")), Star(Invert(Literal("Semicolon"))), Literal("Semicolon")),
-                replace: (input: TokenStream) => [new SimpleStatement(input.slice(0, input.length - 1))]
-            }]
-        });
-        this.substatements = this.source.filter(x => isAstElement(x)) as ASTElement[];
-        return this;
-    }
-    toString = () => `CompoundStatement`;
-}
-
 export class PartialFieldReference extends ASTElement {
     field: string;
     constructor(field: string) {
@@ -433,7 +403,7 @@ const ParseType: Pass = {
     ]
 };
 
-const ExpressionPass: Pass = {
+export const ExpressionPass: Pass = {
     name: "ExpressionPass",
     rules: [
         {
@@ -498,6 +468,13 @@ const ExpressionPass: Pass = {
             ),
             replace: (input: [ASTElement, Token, Token, ASTElement, ...TokenStream]) => {
                 return [new RawPointerIndexExpression(input[0], input[3])];
+            }
+        },
+        {
+            name: "LessThan",
+            match: InOrder(MatchElement(), Literal("OpenAngle"), MatchElement()),
+            replace: (input: [ASTElement, Token, ASTElement]) => {
+                return [new ComparisonExpression(input[0], input[2], "slt")]
             }
         },
         {
@@ -589,7 +566,7 @@ function AddStandardLibraryReferences() {
     StaticFunctionRegistry.set("calloc", calloc);
 }
 
-function Braces(): Matcher {
+export function Braces(): Matcher {
     return (stream: (Token | ASTElement)[]) => {
         let ptr = 0;
         const stack: TokenType[] = [];

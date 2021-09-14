@@ -1,6 +1,7 @@
 import { flattenBlock, IRAlloca, IRBlock, IRLoad, IRNamedIdentifier, IRPointerType, IRSomethingElse, IRStatement, IRStore, isSynthesizable, Synthesizable } from "../generator/IR";
 import { VoidElement } from "./ASTElement";
-import { UnresolvedTypeLiteral, TypeLiteral, ArgumentDefinition, CompoundStatement } from "./Parser";
+import { UnresolvedTypeLiteral, TypeLiteral, ArgumentDefinition } from "./Parser";
+import { CompoundStatement } from "./CompoundStatement";
 
 
 export class FunctionConstruct extends VoidElement implements Synthesizable {
@@ -32,14 +33,7 @@ export class FunctionConstruct extends VoidElement implements Synthesizable {
                 ));
             })
 
-            this.body.scope.locals.forEach((x, y) => {
-                statements.push(new IRAlloca({ type: new IRPointerType(x.toIR()), location: new IRNamedIdentifier(`%${y}`) }));
-            })
-
-            this.body.substatements.forEach(x => {
-                if (!isSynthesizable(x)) return;
-                statements.push(...flattenBlock(x.synthesize()));
-            });
+            statements.push(...flattenBlock(this.body.synthesize()));
 
             statements.push(new IRSomethingElse("}"));
 

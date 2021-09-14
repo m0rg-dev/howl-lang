@@ -33,7 +33,7 @@ export class AssignmentExpression extends VoidElement implements Synthesizable {
             lhs_block.output_location
         );
 
-        return {
+        return this._ir_block = {
             output_location: undefined,
             statements: [
                 rhs_load,

@@ -7,6 +7,7 @@ export enum TokenType {
     Let,
     Module,
     Static,
+    If,
 
     OpenBrace,
     CloseBrace,
@@ -14,6 +15,8 @@ export enum TokenType {
     CloseParen,
     OpenBracket,
     CloseBracket,
+    OpenAngle,
+    CloseAngle,
     Semicolon,
     Comma,
     Period,

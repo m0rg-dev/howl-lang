@@ -2,14 +2,18 @@ module TestInput;
 
 class String {
     *i8 buffer;
+    i64 length;
 
     fn void allocate(i64 size) {
         self.buffer = calloc(size, 1);
+        self.length = size;
         return;
     }
 
     fn void setCharacter(i64 offset, i8 c) {
-        self.buffer*[offset] = c;
+        if(offset < self.length) {
+            self.buffer*[offset] = c;
+        }
         return;
     }
 
@@ -21,7 +25,7 @@ class String {
 static fn i32 main() {
     let s String;
     s = new String;
-    s.allocate(13);
+    s.allocate(8);
     s.setCharacter(0, 72);
     s.setCharacter(1, 101);
     s.setCharacter(2, 108);

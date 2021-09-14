@@ -1,7 +1,8 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
 import { ClassType, FunctionType, RawPointerType, TypeObject } from "../unified_parser/TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
-import { CompoundStatement, ElidedElement, LocalDefinition, NameExpression, UnresolvedTypeLiteral, TypeLiteral, ClassField } from "../unified_parser/Parser";
+import { ElidedElement, LocalDefinition, NameExpression, UnresolvedTypeLiteral, TypeLiteral, ClassField } from "../unified_parser/Parser";
+import { CompoundStatement } from "../unified_parser/CompoundStatement";
 import { FunctionConstruct } from "../unified_parser/FunctionConstruct";
 import { AssignmentExpression } from "../unified_parser/AssignmentExpression";
 import { UnaryReturnExpression } from "../unified_parser/UnaryReturnExpression";

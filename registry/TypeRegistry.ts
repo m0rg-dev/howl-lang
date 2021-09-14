@@ -4,6 +4,7 @@ import { UnknownType } from "../unified_parser/UnknownType";
 export const TypeRegistry = new Map<string, TypeObject>();
 
 export function init_types() {
+    TypeRegistry.set("bool", new BaseType("i1")),
     TypeRegistry.set("i8", new BaseType("i8"));
     TypeRegistry.set("i32", new BaseType("i32"));
     TypeRegistry.set("i64", new BaseType("i64"));
@@ -11,7 +12,8 @@ export function init_types() {
     TypeRegistry.set("_numeric_constant", new UnionType(
         TypeRegistry.get("i64"),
         TypeRegistry.get("i32"),
-        TypeRegistry.get("i8")
+        TypeRegistry.get("i8"),
+        TypeRegistry.get("bool")
     ));
     TypeRegistry.set("_unknown", new UnknownType());
 }
