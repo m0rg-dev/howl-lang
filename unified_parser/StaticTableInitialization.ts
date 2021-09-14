@@ -1,8 +1,8 @@
-import { VoidElement } from "./ASTElement";
+import { StaticInitializer } from "../registry/StaticVariableRegistry";
 import { ClassConstruct } from "./ClassConstruct";
 import { StaticFunctionReference } from "./StaticFunctionReference";
 
-export class StaticTableInitialization extends VoidElement {
+export class StaticTableInitialization extends StaticInitializer {
     for_class: ClassConstruct;
     fields: StaticFunctionReference[] = [];
 

@@ -13,6 +13,7 @@ import { ClassConstruct } from "./ClassConstruct";
 import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences } from "../transformers/Transformer";
 import { StaticTableInitialization } from "./StaticTableInitialization";
 import { StaticFunctionReference } from "./StaticFunctionReference";
+import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
 
 export function Parse(token_stream: Token[]): (Token | ASTElement)[] {
     init_types();
@@ -131,12 +132,15 @@ export class PartialFunctionConstruct extends ASTElement {
         this.source = [...source];
     }
 
-    parse(): FunctionConstruct | ParseError {
+    parse(should_register = false): FunctionConstruct | ParseError {
         const rc = new FunctionConstruct(this.name);
         const body = ApplyPass(this.source, ParseFunctionBody);
         if (body[0] instanceof UnresolvedTypeLiteral) rc.return_type_literal = body[0];
         if (body[1] instanceof ArgumentList) rc.args = body[1].args;
         if (body[2] instanceof CompoundStatement) rc.body = body[2];
+        if (should_register) {
+            StaticFunctionRegistry.set(this.name, rc);
+        }
         return rc;
     }
 
@@ -318,7 +322,7 @@ const MatchFunctionDefinitions = {
         let idx = 0;
         while (!(Literal("OpenParen")(input.slice(idx)).matched))
             idx++;
-        return [new PartialFunctionConstruct((input[idx - 1] as NameToken).name, input).parse()];
+        return [new PartialFunctionConstruct((input[idx - 1] as NameToken).name, input).parse(input[0]['type'] == TokenType.Static)];
     }
 };
 
@@ -534,9 +538,10 @@ const GenerateStaticTables: Pass = {
             }
 
             TypeRegistry.set(stable.name, new ClassType(stable));
+            StaticVariableRegistry.set(`__${input[0].name}_stable`, { type: TypeRegistry.get(stable.name), initializer: initializer });
             input[0].fields.unshift(new ClassField("__stable", new TypeLiteral(TypeRegistry.get(stable.name))))
 
-            return [stable, initializer, input[0]];
+            return [stable, input[0]];
         }
     }]
 }
@@ -547,11 +552,12 @@ const RemoveClassMethods: Pass = {
         name: "RemoveClassMethods",
         match: Literal("ClassConstruct"),
         replace: (input: [ClassConstruct]) => {
-            if(!input[0].methods.length) return undefined;
+            if (!input[0].methods.length) return undefined;
             const real_methods: FunctionConstruct[] = [];
-            for(const method of input[0].methods) {
+            for (const method of input[0].methods) {
                 method.name = `__${input[0].name}_${method.name}`;
                 real_methods.push(method);
+                StaticFunctionRegistry.set(method.name, method);
             }
             input[0].methods = [];
             return [input[0], ...real_methods];

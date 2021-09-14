@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { PrintAST } from './generator/Graphviz';
+import { PrintAST, PrintExpression, PrintStaticVariable } from './generator/Graphviz';
 import { Lexer } from './lexer';
 import { TokenType } from './lexer/TokenType';
 
@@ -7,6 +7,8 @@ import { Parse } from './unified_parser/Parser';
 
 import { install } from 'source-map-support';
 import { TypeRegistry } from './registry/TypeRegistry';
+import { StaticFunctionRegistry, StaticVariableRegistry } from './registry/StaticVariableRegistry';
+import { ClassType } from './unified_parser/TypeObject';
 install();
 
 export function why_not(e: string): boolean {
@@ -27,8 +29,31 @@ for (const tok of lexer.token_stream) {
     }
 }
 
-const stream = Parse(lexer.token_stream);
+Parse(lexer.token_stream);
 
+/*
 console.log(PrintAST(stream));
+*/
+
+console.log("digraph {\n    rankdir=LR;");
+
+for (const [name, type] of TypeRegistry) {
+    if (type instanceof ClassType) {
+        console.log(PrintExpression(type.source));
+    }
+}
+
+for (const [name, func] of StaticFunctionRegistry) {
+    console.log(PrintExpression(func));
+}
+
+for (const [name, {type, initializer}] of StaticVariableRegistry) {
+    console.log(PrintStaticVariable(name, type, initializer));
+}
+
+console.log("}");
+
 console.error(TypeRegistry);
+console.error(StaticVariableRegistry);
+console.error(StaticFunctionRegistry);
 console.error("Done.");

@@ -1,4 +1,4 @@
-import { FunctionType } from "../unified_parser/TypeObject";
+import { FunctionType, TypeObject } from "../unified_parser/TypeObject";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
 import { CompoundStatement, FunctionConstruct, ModuleConstruct, PartialClassConstruct } from "../unified_parser/Parser";
 import { ClassConstruct } from "../unified_parser/ClassConstruct";
@@ -6,6 +6,7 @@ import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "../u
 import { FunctionCallExpression, MethodReferenceExpression } from "../unified_parser/TypedElement";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 import { StaticTableInitialization } from "../unified_parser/StaticTableInitialization";
+import { StaticInitializer } from "../registry/StaticVariableRegistry";
 
 export function PrintAST(stream: TokenStream): string {
     const revstream = [...stream];
@@ -16,6 +17,21 @@ export function PrintAST(stream: TokenStream): string {
         s += PrintExpression(x);
     });
     s += "}\n";
+    return s;
+}
+
+export function PrintStaticVariable(name: string, type: TypeObject, initializer?: StaticInitializer): string {
+    let s = record(name, [{ name: "name", label: name }, { name: "type", label: type.toString() }]);
+    if (initializer) {
+        if (initializer instanceof StaticTableInitialization) {
+            const entries: { name: string, label: string }[] = [];
+            initializer.fields.forEach((x, y) => {
+                entries.push({ name: `f${y}`, label: `${y}<${x.value_type.toString()}>: ${x.name}` });
+            })
+            s += record(`static_init_${name}`, entries);
+            s += link(name, undefined, `static_init_${name}`, undefined);
+        }
+    }
     return s;
 }
 
@@ -108,9 +124,7 @@ export function PrintExpression(node: ASTElement): string {
             entries.push({ name: "err", label: `no args? type is ${node.source.value_type}` });
         }
     } else if (node instanceof StaticTableInitialization) {
-        node.fields.forEach((x, y) => {
-            entries.push({ name: `f${y}`, label: `${y}<${x.value_type.toString()}>: ${x.name}` });
-        })
+
     }
 
     s += mrecord(node.guid, entries);
