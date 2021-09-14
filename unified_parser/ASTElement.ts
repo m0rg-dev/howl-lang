@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { Token } from "../lexer/Token";
 import { TypeRegistry } from "../registry/TypeRegistry";
 import { Scope } from "./Scope";
-import { Transformer } from "./Transformer";
+import { Transformer } from "../transformers/Transformer";
 import { TypeObject } from "./TypeObject";
 
 export type TokenStream = (Token | ASTElement)[];

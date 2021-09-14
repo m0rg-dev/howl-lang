@@ -10,7 +10,7 @@ import { FunctionCallExpression, NumericLiteralExpression } from "./TypedElement
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
 import { CustomTypeObject, FunctionType, TypeObject } from "./TypeObject";
 import { ClassConstruct } from "./ClassConstruct";
-import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences } from "./Transformer";
+import { ApplyToAll, ExtractClassTypes, ReplaceTypes, SpecifyClassFields, SpecifyStatements, GenerateScopes, PropagateLocalDefinitions, ReferenceLocals, SpecifyMethodReferences, SpecifyFieldReferences, AddSelfToMethodCalls, SpecifyFunctionCalls, IndirectMethodReferences } from "../transformers/Transformer";
 import { StaticTableInitialization } from "./StaticTableInitialization";
 import { StaticFunctionReference } from "./StaticFunctionReference";
 

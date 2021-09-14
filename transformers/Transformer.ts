@@ -1,11 +1,11 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
-import { CustomTypeObject, FunctionType, TypeObject } from "./TypeObject";
-import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
-import { AssignmentExpression, CompoundStatement, ElidedElement, FunctionConstruct, LocalDefinition, NameExpression, NullaryReturnExpression, UnresolvedTypeLiteral, UnaryReturnExpression, TypeLiteral, ClassField } from "./Parser";
-import { ClassConstruct } from "./ClassConstruct";
-import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "./SimpleStatement";
-import { FunctionCallExpression, MethodReferenceExpression, VariableReferenceExpression } from "./TypedElement";
-import { FieldReferenceExpression } from "./FieldReferenceExpression";
+import { CustomTypeObject, FunctionType, TypeObject } from "../unified_parser/TypeObject";
+import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
+import { AssignmentExpression, CompoundStatement, ElidedElement, FunctionConstruct, LocalDefinition, NameExpression, NullaryReturnExpression, UnresolvedTypeLiteral, UnaryReturnExpression, TypeLiteral, ClassField } from "../unified_parser/Parser";
+import { ClassConstruct } from "../unified_parser/ClassConstruct";
+import { AssignmentStatement, SimpleStatement, UnaryReturnStatement } from "../unified_parser/SimpleStatement";
+import { FunctionCallExpression, MethodReferenceExpression, VariableReferenceExpression } from "../unified_parser/TypedElement";
+import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 
 export type Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent?: ASTElement) => void;
 
@@ -15,6 +15,7 @@ export function ApplyToAll(stream: TokenStream, t: Transformer) {
         if (isAstElement(x)) x.walk(t, (n: ASTElement) => stream[y] = n);
     })
 }
+
 export const ExtractClassTypes: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
     if (element instanceof ClassConstruct) {
         console.error(`Extracted class type: ${element.name}`);
