@@ -4,7 +4,7 @@ import { Specifiable } from "../typemath/Specifiable";
 import { ASTElement } from "./ASTElement";
 import { CompoundStatement } from "./CompoundStatement";
 import { ArgumentDefinition } from "./Parser";
-import { FunctionType, TemplateType, TypeBox, TypeObject } from "./TypeObject";
+import { FunctionType, TemplateType, TypeObject } from "./TypeObject";
 
 export class FunctionConstruct extends ASTElement implements Synthesizable, Specifiable {
     name: string;
@@ -72,7 +72,7 @@ export class FunctionConstruct extends ASTElement implements Synthesizable, Spec
     }
 
     generics: Map<string, TypeConstraint> = new Map();
-    generic_targets: Map<string, TypeBox> = new Map();
+    generic_targets: Map<string, TemplateType> = new Map();
     bounds: PortConstraint[] = [];
     cctr = 0;
     addConstraint(port: string, constraint: TypeConstraint) {
@@ -80,7 +80,7 @@ export class FunctionConstruct extends ASTElement implements Synthesizable, Spec
             this.generics.set(port, this.generics.get(port).intersect(constraint));
         } else {
             this.generics.set(port, constraint);
-            this.generic_targets.set(port, new TypeBox(new TemplateType(port)));
+            this.generic_targets.set(port, new TemplateType(port));
             console.error(`[ new port: ${port} = ${constraint} ]`);
         }
     }
@@ -93,14 +93,16 @@ export class FunctionConstruct extends ASTElement implements Synthesizable, Spec
     getAllPorts() { return Array.from(this.generics.keys()); }
     addBound(bound: PortConstraint) { this.bounds.push(bound); }
     getAllBounds() { return this.bounds; }
-    nextConstraintName(): string { return `T${this.cctr++}`; }
     merge(into: string, from: string) {
         this.generics.delete(from);
-        this.generic_targets.get(from).sub = this.generic_targets.get(into).sub;
+
+        const ft = this.generic_targets.get(from);
+        const it = this.generic_targets.get(into);
+        ft.rename(it.getName());
         this.bounds.forEach(x => {
-            if(x instanceof PortIntersectionConstraint) {
-                if(x.p0 == from) x.p0 = into;
-                if(x.p1 == from) x.p1 = into;
+            if (x instanceof PortIntersectionConstraint) {
+                if (x.p0 == from) x.p0 = into;
+                if (x.p1 == from) x.p1 = into;
             }
         })
     }

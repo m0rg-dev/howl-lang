@@ -1,21 +1,21 @@
 import { AllConstraint, ExactConstraint, FieldReferenceConstraint, FromScopeConstraint, PortIntersectionConstraint, ReturnTypeConstraint, TypeConstraint } from "../typemath/Signature";
-import { Specifiable } from "../typemath/Specifiable";
+import { nextConstraintName, Specifiable } from "../typemath/Specifiable";
 import { AssignmentExpression } from "../unified_parser/AssignmentExpression";
 import { ASTElement } from "../unified_parser/ASTElement";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
-import { ClassType, TemplateType, TupleType, TypeBox } from "../unified_parser/TypeObject";
+import { ClassType, TemplateType, TupleType } from "../unified_parser/TypeObject";
 import { UnaryReturnExpression } from "../unified_parser/UnaryReturnExpression";
 import { Transformer } from "./Transformer";
 
 function importConstraint(c: TypeConstraint, temp: Specifiable): string {
-    const n = temp.nextConstraintName();
+    const n = nextConstraintName();
     if (c instanceof ExactConstraint && c.t instanceof ClassType) {
         const t = c.t.source.generic_fields.map(x => {
-            const n2 = temp.nextConstraintName();
+            const n2 = nextConstraintName();
             temp.addConstraint(n2, new AllConstraint());
             return temp.getTarget(n2);
         });
-        const n3 = temp.nextConstraintName();
+        const n3 = nextConstraintName();
         temp.addConstraint(n3, c);
         const tuple = new TupleType([temp.getTarget(n3), ...t]);
         temp.addConstraint(n, new ExactConstraint(tuple));
@@ -44,8 +44,8 @@ export const LiftConstraints: Transformer = (element: ASTElement) => {
 
 export const LiftBounds: Transformer = (element: ASTElement) => {
     if (element instanceof AssignmentExpression) {
-        const t0 = (element.lhs.computed_type as TypeBox)?.sub as TemplateType;
-        const t1 = (element.rhs.computed_type as TypeBox)?.sub as TemplateType;
+        const t0 = element.lhs.computed_type as TemplateType;
+        const t1 = element.rhs.computed_type as TemplateType;
         if (!t0 || !t1) return;
 
         const temp = element.mostLocalTemplate();
@@ -53,8 +53,8 @@ export const LiftBounds: Transformer = (element: ASTElement) => {
 
         console.error(`[LiftBounds] ${t0} x ${t1}`);
         temp.addBound(new PortIntersectionConstraint(
-            t0.name,
-            t1.name
+            t0.getName(),
+            t1.getName()
         ));
     }
     return true;
@@ -62,24 +62,24 @@ export const LiftBounds: Transformer = (element: ASTElement) => {
 
 export const LiftReturns: Transformer = (element: ASTElement) => {
     if (element instanceof UnaryReturnExpression) {
-        const t = (element.source.computed_type as TypeBox)?.sub as TemplateType;
+        const t = element.source.computed_type as TemplateType;
         const temp = element.mostLocalTemplate();
         if (!temp) return;
         console.error(`[LiftReturns] ${t}`);
-        const n = temp.nextConstraintName();
+        const n = nextConstraintName();
         temp.addConstraint(n, new ReturnTypeConstraint(element));
-        temp.addBound(new PortIntersectionConstraint(n, t.name));
+        temp.addBound(new PortIntersectionConstraint(n, t.getName()));
     }
     return true;
 }
 
 export const LiftFieldReferences: Transformer = (element: ASTElement) => {
     if (element instanceof FieldReferenceExpression) {
-        const t = (element.source.computed_type as TypeBox)?.sub as TemplateType;
+        const t = element.source.computed_type as TemplateType;
         const temp = element.mostLocalTemplate();
         if (!temp) return;
         console.error(`[LiftFieldReferences] ${t}.${element.field}`);
-        const n = temp.nextConstraintName();
+        const n = nextConstraintName();
         temp.addConstraint(n, new FieldReferenceConstraint(element.source.computed_type, element.field));
         element.computed_type = temp.getTarget(n);
     }
@@ -132,8 +132,8 @@ function DestructureTupleIntersections(source: ASTElement & Specifiable): boolea
 
             con0.t.subtypes.forEach((x, y) => {
                 source.addBound(new PortIntersectionConstraint(
-                    ((x as TypeBox).sub as TemplateType).name,
-                    (((con1.t as TupleType).subtypes[y] as TypeBox).sub as TemplateType).name,
+                    (x as TemplateType).getName(),
+                    ((con1.t as TupleType).subtypes[y] as TemplateType).getName(),
                 ));
             });
 
@@ -175,16 +175,14 @@ function ReferenceFields(source: ASTElement & Specifiable): boolean {
     source.getAllPorts().forEach(x => {
         const c = source.getConstraint(x);
         if (c instanceof FieldReferenceConstraint
-            && c.source instanceof TypeBox
-            && c.source.sub instanceof TemplateType) {
-            const t = source.getConstraint(c.source.sub.name);
+            && c.source instanceof TemplateType) {
+            const t = source.getConstraint(c.source.getName());
             if (!(t instanceof ExactConstraint
                 && t.t instanceof TupleType)) return;
             const tuple = t.t;
-            if (tuple.subtypes[0] instanceof TypeBox
-                && tuple.subtypes[0].sub instanceof TemplateType) {
-                const t2 = source.getConstraint(tuple.subtypes[0].sub.name);
-                if(!(t2 instanceof ExactConstraint && t2.t instanceof ClassType)) return;
+            if (tuple.subtypes[0] instanceof TemplateType) {
+                const t2 = source.getConstraint(tuple.subtypes[0].getName());
+                if (!(t2 instanceof ExactConstraint && t2.t instanceof ClassType)) return;
                 const n = new ExactConstraint(t2.t.source.fieldType(c.field_name, tuple.subtypes.slice(1)));
                 console.error(`[ReferenceFields] ${c} ${x} ${c.field_name} => ${n}`);
                 source.replaceConstraint(x, n);
@@ -199,15 +197,12 @@ function Propagate(source: ASTElement & Specifiable): boolean {
     let rc = false;
     source.getAllPorts().forEach(x => {
         const t = source.getTarget(x);
-        if (t.sub instanceof TemplateType) {
-            const n = source.getConstraint(t.sub.name);
-            if (n instanceof ExactConstraint
-                && n.t instanceof TypeBox
-                && n.t.sub instanceof TemplateType) {
-                console.error(`[Propagate] ${t} => ${n}`);
-                source.merge(n.t.sub.name, x);
-                rc = true;
-            }
+        const n = source.getConstraint(t.getName());
+        if (n instanceof ExactConstraint
+            && n.t instanceof TemplateType) {
+            console.error(`[Propagate] ${t} => ${n}`);
+            source.merge(n.t.getName(), x);
+            rc = true;
         }
     });
     return rc;
@@ -217,14 +212,12 @@ export function FreezeTypes(source: ASTElement & Specifiable): boolean {
     let rc = false;
     source.getAllPorts().forEach(x => {
         const t = source.getTarget(x);
-        if (t.sub instanceof TemplateType) {
-            const c = source.getConstraint(t.sub.name);
-            if (c instanceof ExactConstraint) {
-                t.sub.resolution = c.t;
-                console.error(`[FreezeTypes] ${x} => ${c.t}`);
-                source.removeConstraint(x);
-                rc = true;
-            }
+        const c = source.getConstraint(t.getName());
+        if (c instanceof ExactConstraint) {
+            t.resolve(c.t);
+            console.error(`[FreezeTypes] ${x} => ${c.t}`);
+            source.removeConstraint(x);
+            rc = true;
         }
     });
     return rc;

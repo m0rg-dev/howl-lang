@@ -25,7 +25,7 @@ import { SimpleStatement } from "./SimpleStatement";
 import { StaticFunctionReference } from "./StaticFunctionReference";
 import { StaticTableInitialization } from "./StaticTableInitialization";
 import { StringLiteralExpression } from "./StringLiteralExpression";
-import { ClassType, RawPointerType, TypeObject } from "./TypeObject";
+import { ClassType, RawPointerType, template_name_registry, TypeObject } from "./TypeObject";
 import { UnaryReturnExpression } from "./UnaryReturnExpression";
 import { VariableReferenceExpression } from "./VariableReferenceExpression";
 
@@ -99,6 +99,8 @@ export function Parse(token_stream: Token[]) {
             did_apply ||= Infer(func);
         }
     }
+
+    console.error(template_name_registry);
 
     // RemoveClassMethods();
 }

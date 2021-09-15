@@ -18,32 +18,29 @@ export class ClassType extends TypeObject {
     toIR = () => new IRPointerType(new IRClassType(this.source.name));
 }
 
-export class TypeBox extends TypeObject {
-    sub: TypeObject;
-    constructor(sub: TypeObject) {
-        super();
-        this.sub = sub;
-    }
-    toString = () => `${this.sub}`;
-    toIR = () => this.sub.toIR();
-    asResolvedTemplate(): TypeObject {
-        if (this.sub instanceof TemplateType) return this.sub.resolution;
-    }
-}
-
-export function isBoxedTemplate(t: TypeObject): t is TypeBox {
-    return t instanceof TypeBox && t.sub instanceof TemplateType;
-}
-
+export var template_name_registry = new Map<string, string>();
+var template_resolution_registry = new Map<string, TypeObject>();
 export class TemplateType extends TypeObject {
-    name: string;
-    resolution: TypeObject;
+    private name: string;
+    private resolution: TypeObject;
     constructor(name: string) {
         super();
         this.name = name;
+        template_name_registry.set(name, name);
     }
-    toString = () => this.resolution ? this.resolution.toString() : `:${this.name}`;
-    toIR = () => this.resolution ? this.resolution.toIR() : `%TEMPLATE:${this.name}`;
+    toString = () => template_resolution_registry.has(this.getName()) ? template_resolution_registry.get(this.getName()).toString() : `:${this.getName()}`;
+    toIR = () => template_resolution_registry.has(this.getName()) ? template_resolution_registry.get(this.getName()).toIR() : `%TEMPLATE:${this.getName()}`;
+
+    getName = () => {
+        let n = this.name;
+        while(n != template_name_registry.get(n)) {
+            n = template_name_registry.get(n);
+        }
+        return n;
+    }
+    getResolution = () => template_resolution_registry.get(this.name);
+    rename = (n: string) => template_name_registry.set(this.name, n);
+    resolve = (n: TypeObject) => template_resolution_registry.set(this.name, n);
 }
 
 export class BaseType extends TypeObject {

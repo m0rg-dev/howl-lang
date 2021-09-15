@@ -94,7 +94,7 @@ export class ClassConstruct extends ASTElement implements Synthesizable {
     fieldType(field_name: string, generic_map: TypeObject[]): TypeObject {
         const t = this.fields.find(x => x.name == field_name).field_type;
         if(t instanceof TemplateType) {
-            const idx = this.generic_fields.findIndex(x => t.name == x);
+            const idx = this.generic_fields.findIndex(x => t.getName() == x);
             return generic_map[idx];
         } else {
             return t;
