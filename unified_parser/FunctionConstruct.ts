@@ -10,13 +10,15 @@ export class FunctionConstruct extends ASTElement implements Synthesizable {
     return_type: TypeObject;
     args: ArgumentDefinition[];
     body?: CompoundStatement;
-    constructor(parent: ASTElement, name: string, rc: TypeObject, args: ArgumentDefinition[]) {
+    function_is_static: boolean;
+    constructor(parent: ASTElement, name: string, rc: TypeObject, args: ArgumentDefinition[], function_is_static: boolean) {
         super(parent);
         this.name = name;
         this.hasOwnScope = true;
         args.forEach(x => this.scope.locals.set(x.name, x.field_type));
         this.args = args;
         this.return_type = rc;
+        this.function_is_static = function_is_static;
 
         this.signature.ports.add("value");
         this.signature.type_constraints.set("value", new ExactConstraint("value", new FunctionType(

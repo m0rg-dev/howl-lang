@@ -2,9 +2,11 @@ import { ExactConstraint, FromScopeConstraint, OutgoingConstraint, PortIntersect
 import { ASTElement } from "../unified_parser/ASTElement";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 import { FunctionCallExpression } from "../unified_parser/FunctionCallExpression";
+import { TypeLiteral } from "../unified_parser/Parser";
 import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
 import { ClassType, FunctionType, RawPointerType } from "../unified_parser/TypeObject";
 import { UnaryReturnExpression } from "../unified_parser/UnaryReturnExpression";
+import { VariableReferenceExpression } from "../unified_parser/VariableReferenceExpression";
 import { ReferenceLocals, Transformer } from "./Transformer";
 
 export const Infer: Transformer = (element: ASTElement, replace: (_: any) => void) => {
@@ -16,6 +18,7 @@ export const Infer: Transformer = (element: ASTElement, replace: (_: any) => voi
     rc ||= IndexRawPointers(element, replace);
     rc ||= PropagateFunctionType(element, replace);
     rc ||= AddSelfToMethodCalls(element, replace);
+    rc ||= ConvertStaticReferences(element, replace);
     rc ||= IndirectMethodReferences(element, replace);
     rc ||= CollapseSingleValuedUnions(element, replace);
     //rc ||= FreezeTypes(element, replace);
@@ -30,7 +33,7 @@ export const ImportLocals: Transformer = (element: ASTElement) => {
             console.error(`[ImportLocals] ${element}: <${x}> => <${n}>`);
             element.signature.type_constraints.set(x.port, n);
             rc = true;
-        } else if(x instanceof ReturnTypeConstraint && element.getReturnType()) {
+        } else if (x instanceof ReturnTypeConstraint && element.getReturnType()) {
             const n = new ExactConstraint("value", element.getReturnType());
             console.error(`[ImportLocals] ${element}: <${x}> => <${n}>`);
             element.signature.type_constraints.set("value", n);
@@ -76,6 +79,7 @@ export const ExportOutgoing: Transformer = (element: ASTElement) => {
             const obj = element[x.port] as ASTElement;
             const old = obj.signature.type_constraints.get("value");
             if (!old) return;
+            if (old instanceof FromScopeConstraint) return;
 
             element.signature.port_constraints.splice(y, 1);
 
@@ -156,6 +160,9 @@ export const AddSelfToMethodCalls: Transformer = (element: ASTElement, replace: 
         && element.source instanceof FieldReferenceExpression
         && element.source.source.singleValueType() instanceof ClassType
         && !element.self_added) {
+        const ct = element.source.source.singleValueType() as ClassType;
+        if(ct.source.is_stable) return;
+
         console.error(`[AddSelfToMethodCalls] ${element}`);
         element.args.unshift(element.source.source);
         element.self_added = true;
@@ -177,6 +184,16 @@ export const IndirectMethodReferences: Transformer = (element: ASTElement) => {
         element.source = new FieldReferenceExpression(element, new FieldReferenceExpression(element, src, "__stable"), method);
         return true;
     }
+}
+
+export const ConvertStaticReferences: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof TypeLiteral
+        && element.field_type instanceof ClassType) {
+        console.error(`[ConvertStaticReferences] ${element}`);
+        replace(new VariableReferenceExpression(element.parent, `__${element.field_type.source.name}_stable`));
+        return true;
+    }
+    return false;
 }
 
 export const CollapseSingleValuedUnions: Transformer = (element: ASTElement) => {

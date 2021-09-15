@@ -55,9 +55,9 @@ export class AllConstraint extends TypeConstraint {
 
 export class AnyFunctionConstraint extends TypeConstraint {
     intersect(other: TypeConstraint): TypeConstraint {
-        if(other instanceof AllConstraint || other instanceof AnyFunctionConstraint) {
+        if (other instanceof AllConstraint || other instanceof AnyFunctionConstraint) {
             return this;
-        } else if(other instanceof ExactConstraint) {
+        } else if (other instanceof ExactConstraint) {
             return other.intersect(this);
         } else {
             throw new Error(`don't know how to intersect with <${other}>`);
@@ -69,9 +69,9 @@ export class AnyFunctionConstraint extends TypeConstraint {
 
 export class AnyClassConstraint extends TypeConstraint {
     intersect(other: TypeConstraint): TypeConstraint {
-        if(other instanceof AllConstraint || other instanceof AnyClassConstraint) {
+        if (other instanceof AllConstraint || other instanceof AnyClassConstraint) {
             return this;
-        } else if(other instanceof ExactConstraint) {
+        } else if (other instanceof ExactConstraint) {
             return other.intersect(this);
         } else {
             throw new Error(`don't know how to intersect with <${other}>`);
@@ -83,9 +83,9 @@ export class AnyClassConstraint extends TypeConstraint {
 
 export class AnyRawPointerConstraint extends TypeConstraint {
     intersect(other: TypeConstraint): TypeConstraint {
-        if(other instanceof AllConstraint || other instanceof AnyRawPointerConstraint) {
+        if (other instanceof AllConstraint || other instanceof AnyRawPointerConstraint) {
             return this;
-        } else if(other instanceof ExactConstraint) {
+        } else if (other instanceof ExactConstraint) {
             return other.intersect(this);
         } else {
             throw new Error(`don't know how to intersect with <${other}>`);
@@ -105,13 +105,13 @@ export class UnionConstraint extends TypeConstraint {
     toString = () => `${this.port} = {${this.t.join(", ")}}`;
     intersect(other: TypeConstraint): TypeConstraint {
         let u: TypeObject[];
-        if(other instanceof UnionConstraint) {
+        if (other instanceof UnionConstraint) {
             u = [...other.t];
-        } else if(other instanceof ExactConstraint) {
+        } else if (other instanceof ExactConstraint) {
             u = [other.t];
-        } else if(other instanceof AllConstraint) {
+        } else if (other instanceof AllConstraint) {
             return this;
-        } else if(other instanceof ReturnTypeConstraint) {
+        } else if (other instanceof ReturnTypeConstraint) {
             // TODO
             return other;
         } else {
@@ -133,23 +133,26 @@ export class ExactConstraint extends TypeConstraint {
     toString = () => `${this.port}=${this.t}`;
     intersect(other: TypeConstraint): TypeConstraint {
         let match: boolean;
-        if(other instanceof UnionConstraint) {
+        if (other instanceof UnionConstraint) {
             match = other.t.some(x => x.toString() == this.t.toString());
-        } else if(other instanceof ExactConstraint) {
+        } else if (other instanceof ExactConstraint) {
             match = other.t.toString() == this.t.toString();
-        } else if(other instanceof AnyClassConstraint) {
+        } else if (other instanceof AnyClassConstraint) {
             match = this.t instanceof ClassType;
-        } else if(other instanceof AnyFunctionConstraint) {
+        } else if (other instanceof AnyFunctionConstraint) {
             match = this.t instanceof FunctionType;
-        } else if(other instanceof AnyRawPointerConstraint) {
+        } else if (other instanceof AnyRawPointerConstraint) {
             match = this.t instanceof RawPointerType;
-        } else if(other instanceof AllConstraint) {
+        } else if (other instanceof ReturnTypeConstraint) {
+            // TODO
+            return other;
+        } else if (other instanceof AllConstraint) {
             match = true;
         } else {
             throw new Error(`don't know how to intersect with ${other}`);
         }
 
-        if(match) {
+        if (match) {
             return this;
         } else {
             return new EmptyConstraint(this.port);

@@ -28,25 +28,16 @@ class String {
     fn *i8 c_str() {
         return self.buffer;
     }
+
+    static fn String fromBytes(*i8 buffer) {
+        return new String;
+    }
 }
 
 static fn i32 main() {
-    let s String;
-    s = new String;
-    s.pushCharacter(72);
-    s.pushCharacter(101);
-    s.pushCharacter(108);
-    s.pushCharacter(108);
-    s.pushCharacter(111);
-    s.pushCharacter(44);
-    s.pushCharacter(32);
-    s.pushCharacter(87);
-    s.pushCharacter(111);
-    s.pushCharacter(114);
-    s.pushCharacter(108);
-    s.pushCharacter(100);
-    s.pushCharacter(33);
-    puts(s.c_str());
+    let s1 String;
+    s1 = new String;
+    String.fromBytes(s1.c_str());
     return 0;
 }
 

@@ -75,6 +75,12 @@ export function Parse(token_stream: Token[]) {
         rules: [MatchFunctionDefinitions]
     });
 
+    for (const item of stream) {
+        if (item instanceof FunctionConstruct && item.function_is_static) {
+            StaticFunctionRegistry.set(item.name, item);
+        }
+    }
+
     ApplyToAll(ReferenceLocals);
 
     AddStandardLibraryReferences();
@@ -214,10 +220,12 @@ export class PartialClassConstruct extends ASTElement {
             if (item instanceof ClassField) {
                 rc.fields.push(item);
             } else if (item instanceof FunctionConstruct) {
-                item.args.unshift(new ArgumentDefinition(this.parent, "self", GetType(this.name)));
-                item.scope.locals.set("self", GetType(this.name));
-                item.walk(FixHierarchy, () => { }, this);
-                item.walk(ReferenceLocals, (n: ASTElement) => { });
+                if (!item.function_is_static) {
+                    item.args.unshift(new ArgumentDefinition(this.parent, "self", GetType(this.name)));
+                    item.scope.locals.set("self", GetType(this.name));
+                    item.walk(FixHierarchy, () => { }, this);
+                    item.walk(ReferenceLocals, (n: ASTElement) => { });
+                }
                 rc.methods.push(item);
             }
         }
@@ -236,17 +244,14 @@ export class PartialFunctionConstruct extends ASTElement {
         this.source = [...source];
     }
 
-    parse(should_register = false): FunctionConstruct | ParseError {
+    parse(is_static = false): FunctionConstruct | ParseError {
         const body = ApplyPass(this, this.source, ParseFunctionBody);
         if (!(body[0] instanceof TypeLiteral)) throw new Error();
         const rctype = body[0].field_type;
         if (!(body[1] instanceof ArgumentList)) throw new Error();
-        const rc = new FunctionConstruct(this.parent, this.name, rctype, body[1].args);
-        if (should_register) {
-            StaticFunctionRegistry.set(this.name, rc);
-        }
+        const rc = new FunctionConstruct(this.parent, this.name, rctype, body[1].args, is_static);
 
-        if(!(body[2] instanceof ASTElement) && body[2].type == TokenType.Semicolon) {
+        if (!(body[2] instanceof ASTElement) && body[2].type == TokenType.Semicolon) {
             return rc;
         }
 
@@ -605,7 +610,7 @@ function GenerateInitializers() {
         if (!(t instanceof ClassType)) continue;
         if (t.source.is_stable) continue;
 
-        const fn = new FunctionConstruct(t.source, `__${t.source.name}_initialize`, GetType("void"), [new ArgumentDefinition(t.source, "self", t)]);
+        const fn = new FunctionConstruct(t.source, `__${t.source.name}_initialize`, GetType("void"), [new ArgumentDefinition(t.source, "self", t)], true);
 
         fn.body = new CompoundStatement(fn);
         fn.body.substatements = [
@@ -637,7 +642,7 @@ function AddStandardLibraryReferences() {
     const calloc = new FunctionConstruct(undefined, "calloc", new RawPointerType(GetType("i8")), [
         new ArgumentDefinition(undefined, "count", TypeRegistry.get("i64")),
         new ArgumentDefinition(undefined, "size", TypeRegistry.get("i64"))
-    ]);
+    ], true);
     StaticFunctionRegistry.set("calloc", calloc);
 }
 
