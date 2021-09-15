@@ -2,6 +2,7 @@ import { AsmLiteralToken } from "./lexer/AsmLiteralToken";
 import { CommentToken } from "./lexer/CommentToken";
 import { NameToken } from "./lexer/NameToken";
 import { NumericLiteralToken } from "./lexer/NumericLiteralToken";
+import { StringLiteralToken } from "./lexer/StringLiteralToken";
 import { Token } from "./lexer/Token";
 import { TokenType } from "./lexer/TokenType";
 
@@ -14,6 +15,7 @@ const KEYWORD_TABLE = {
     "module": TokenType.Module,
     "static": TokenType.Static,
     "if": TokenType.If,
+    "while": TokenType.While,
 }
 
 const PUNCTUATION_TABLE = {
@@ -69,7 +71,7 @@ export class Lexer {
     }
 
     private match_keyword(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|module|static|if)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
+        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|module|static|if|while)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
         return { type: KEYWORD_TABLE[m[1]], length: m[0].length, start: this.mark, text: m[0] };
@@ -103,6 +105,13 @@ export class Lexer {
         return { type: TokenType.AsmLiteral, source: m[1], length: m[0].length, start: this.mark, text: m[0] };
     }
 
+    private match_string_literal(): StringLiteralToken | undefined {
+        const m = this.source.substr(this.mark).match(/^"((?:\\.|[^"\\])*)"/);
+        if (!m) return undefined;
+
+        return { type: TokenType.StringLiteral, str: m[1], length: m[0].length, start: this.mark, text: m[0] };
+    }
+
     private match_comment(): CommentToken | undefined {
         const m = this.source.substr(this.mark).match(/^\s*\/\/[^\n]*\n\s*/s);
         if (!m) return undefined;
@@ -126,6 +135,9 @@ export class Lexer {
 
         const asm = this.match_asm_literal();
         if (asm) return asm;
+
+        const str = this.match_string_literal();
+        if(str) return str;
 
         const name = this.match_name();
         if (name) return name;

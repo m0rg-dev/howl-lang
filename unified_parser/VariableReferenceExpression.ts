@@ -20,7 +20,7 @@ export class VariableReferenceExpression extends ASTElement implements Synthesiz
 
     _ir_block: IRBlock;
     synthesize(): IRBlock {
-        if (this._ir_block) return this._ir_block;
+        if (this._ir_block) return { output_location: this._ir_block.output_location, statements: [] };
 
         if (!(this.force_local) && this.isStatic(this.name)) {
             const temp = new IRTemporary();

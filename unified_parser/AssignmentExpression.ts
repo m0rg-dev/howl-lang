@@ -19,7 +19,7 @@ export class AssignmentExpression extends ASTElement implements Synthesizable {
 
     _ir_block: IRBlock;
     synthesize(): IRBlock {
-        if(this._ir_block) return this._ir_block;
+        if(this._ir_block) return { output_location: this._ir_block.output_location, statements: [] };
         if (!isSynthesizable(this.lhs)) return { output_location: undefined, statements: [] };
         if (!isSynthesizable(this.rhs)) return { output_location: undefined, statements: [] };
         const lhs_block = this.lhs.synthesize();

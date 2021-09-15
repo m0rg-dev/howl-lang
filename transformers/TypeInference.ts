@@ -2,15 +2,18 @@ import { ExactConstraint, FromScopeConstraint, OutgoingConstraint, PortIntersect
 import { ASTElement } from "../unified_parser/ASTElement";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 import { FunctionCallExpression } from "../unified_parser/FunctionCallExpression";
+import { NumericLiteralExpression } from "../unified_parser/NumericLiteralExpression";
 import { TypeLiteral } from "../unified_parser/Parser";
 import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
+import { StringLiteralExpression } from "../unified_parser/StringLiteralExpression";
 import { ClassType, FunctionType, RawPointerType } from "../unified_parser/TypeObject";
 import { UnaryReturnExpression } from "../unified_parser/UnaryReturnExpression";
 import { VariableReferenceExpression } from "../unified_parser/VariableReferenceExpression";
-import { ReferenceLocals, Transformer } from "./Transformer";
+import { FixHierarchy, ReferenceLocals, Transformer } from "./Transformer";
 
 export const Infer: Transformer = (element: ASTElement, replace: (_: any) => void) => {
     let rc = false;
+    rc ||= WrapStringConstants(element, replace);
     rc ||= ImportLocals(element, replace);
     rc ||= ApplyPortIntersections(element, replace);
     rc ||= ExportOutgoing(element, replace);
@@ -137,17 +140,21 @@ export const IndexRawPointers: Transformer = (element: ASTElement) => {
 export const PropagateFunctionType: Transformer = (element: ASTElement) => {
     let rc = false;
     if (element instanceof FunctionCallExpression && element.source.singleValueType()) {
-        const old = element.signature.type_constraints.get("value");
         const ft = (element.source.singleValueType() as FunctionType);
+        if (!element.args_generated) {
+            ft.args.forEach((x, y) => {
+                const outgoing = new OutgoingConstraint(`arg${y}`, new ExactConstraint("value", x));
+                console.error(`[PropagateFunctionType] ${element}: ${outgoing}`);
+                element.signature.port_constraints.push(outgoing);
+            });
+            element.args_generated = true;
+        }
+        const old = element.signature.type_constraints.get("value");
+
         const n = old.intersect(new ExactConstraint("value", ft.rc));
 
         if (old.toString() == n.toString()) return;
         console.error(`[PropagateFunctionType] ${element} value: <${old}> => <${n}>`);
-        ft.args.forEach((x, y) => {
-            const outgoing = new OutgoingConstraint(`arg${y}`, new ExactConstraint("value", x));
-            console.error(`[PropagateFunctionType] ${element}: ${outgoing}`);
-            element.signature.port_constraints.push(outgoing);
-        })
         element.signature.type_constraints.set("value", n);
         rc = true;
     }
@@ -161,7 +168,7 @@ export const AddSelfToMethodCalls: Transformer = (element: ASTElement, replace: 
         && element.source.source.singleValueType() instanceof ClassType
         && !element.self_added) {
         const ct = element.source.source.singleValueType() as ClassType;
-        if(ct.source.is_stable) return;
+        if (ct.source.is_stable) return;
 
         console.error(`[AddSelfToMethodCalls] ${element}`);
         element.args.unshift(element.source.source);
@@ -201,6 +208,21 @@ export const CollapseSingleValuedUnions: Transformer = (element: ASTElement) => 
         && (element.signature.type_constraints.get("value") as UnionConstraint).t.length == 1) {
         console.error(`[CollapseSingleValuedUnions] ${element}`);
         element.signature.type_constraints.set("value", new ExactConstraint("value", (element.signature.type_constraints.get("value") as UnionConstraint).t[0]));
+        return true;
+    }
+    return false;
+}
+
+export const WrapStringConstants: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
+    if (element instanceof StringLiteralExpression && !element.wrapped) {
+        replace(new FunctionCallExpression(element.parent,
+            new FieldReferenceExpression(element.parent,
+                new VariableReferenceExpression(element.parent, "__String_stable"),
+                "fromBytes"),
+            [element, new NumericLiteralExpression(element.parent, element.value.length)]));
+        console.error(`[WrapStringConstants] ${element}`);
+        element.walk(FixHierarchy, replace);
+        element.wrapped = true;
         return true;
     }
     return false;

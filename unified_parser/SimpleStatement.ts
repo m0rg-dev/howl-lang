@@ -11,7 +11,7 @@ export class SimpleStatement extends ASTElement implements Synthesizable {
 
     _ir_block: IRBlock;
     synthesize(): IRBlock {
-        if(this._ir_block) return this._ir_block;
+        if(this._ir_block) return { output_location: this._ir_block.output_location, statements: [] };
         if(this.source.length > 1 || !isSynthesizable(this.source[0])) return { output_location: undefined, statements: [] };
         return {
             output_location: undefined,

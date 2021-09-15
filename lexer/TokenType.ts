@@ -8,6 +8,7 @@ export enum TokenType {
     Module,
     Static,
     If,
+    While,
 
     OpenBrace,
     CloseBrace,
@@ -27,6 +28,7 @@ export enum TokenType {
     Name,
     NumericLiteral,
     AsmLiteral,
+    StringLiteral,
 
     Comment,
     EOF

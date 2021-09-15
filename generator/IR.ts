@@ -87,6 +87,12 @@ export class IRPointerType extends IRType {
     toString = () => `${this.sub}*`;
 }
 
+export class IRArrayType extends IRPointerType {
+    len: number;
+    constructor(sub: IRType, len: number) { super(sub); this.len = len; }
+    toString = () => `[${this.len} x ${this.sub}]`;
+}
+
 export class IRLabelStatement extends IRStatement {
     label: IRLabel;
 
@@ -127,6 +133,19 @@ export class GEPPointerStatement extends IRStatement {
     }
 
     toString = () => `${this.target.location} = getelementptr ${(this.source.type as IRPointerType).sub}, ${this.source.type} ${this.source.location}, ${this.index.type} ${this.index.location}`;
+}
+
+export class GEPStringConstantStatement extends IRStatement {
+    target: IRLocation;
+    source: IRLocation;
+
+    constructor(target: IRLocation, source: IRLocation) {
+        super();
+        this.target = target;
+        this.source = source;
+    }
+
+    toString = () => `${this.target.location} = getelementptr ${(this.source.type as IRPointerType).sub}, ${this.source.type} ${this.source.location}, i64 0, i64 0`;
 }
 
 export class IRNullaryReturn extends IRStatement {

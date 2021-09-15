@@ -1,5 +1,6 @@
 import { NameToken } from "../lexer/NameToken";
 import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
+import { StringLiteralToken } from "../lexer/StringLiteralToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
@@ -24,6 +25,7 @@ import { RawPointerIndexExpression } from "./RawPointerIndexExpression";
 import { SimpleStatement } from "./SimpleStatement";
 import { StaticFunctionReference } from "./StaticFunctionReference";
 import { StaticTableInitialization } from "./StaticTableInitialization";
+import { StringLiteralExpression } from "./StringLiteralExpression";
 import { ClassType, RawPointerType, TypeObject } from "./TypeObject";
 import { UnaryReturnExpression } from "./UnaryReturnExpression";
 import { VariableReferenceExpression } from "./VariableReferenceExpression";
@@ -80,10 +82,10 @@ export function Parse(token_stream: Token[]) {
             StaticFunctionRegistry.set(item.name, item);
         }
     }
-
+    
+    AddStandardLibraryReferences();
     ApplyToAll(ReferenceLocals);
 
-    AddStandardLibraryReferences();
     GenerateStaticTables();
     GenerateInitializers();
 
@@ -486,6 +488,11 @@ export const ExpressionPass: Pass = {
             name: "ConvertNumericLiterals",
             match: Literal("NumericLiteral"),
             replace: (input: [NumericLiteralToken], parent: ASTElement) => [new NumericLiteralExpression(parent, input[0].value)]
+        },
+        {
+            name: "ConvertStringLiterals",
+            match: Literal("StringLiteral"),
+            replace: (input: [StringLiteralToken], parent: ASTElement) => [new StringLiteralExpression(parent, input[0].str)]
         },
         {
             name: "FieldReference1",

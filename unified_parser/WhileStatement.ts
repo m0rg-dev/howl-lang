@@ -2,7 +2,7 @@ import { flattenBlock, IRBaseType, IRBlock, IRBranch, IRConditionalBranch, IRLab
 import { ASTElement } from "./ASTElement";
 import { CompoundStatement } from "./CompoundStatement";
 
-export class IfStatement extends ASTElement implements Synthesizable {
+export class WhileStatement extends ASTElement implements Synthesizable {
     condition: ASTElement;
     body: CompoundStatement;
 
@@ -12,7 +12,7 @@ export class IfStatement extends ASTElement implements Synthesizable {
         this.body = body;
     }
 
-    toString = () => `if(${this.condition})`;
+    toString = () => `while(${this.condition})`;
 
     _ir_block: IRBlock;
     synthesize(): IRBlock {
@@ -28,9 +28,12 @@ export class IfStatement extends ASTElement implements Synthesizable {
             cond_block.output_location
         );
 
+        const before_label = new IRLabel();
         const after_label = new IRLabel();
 
         const statements = [
+            new IRLabelStatement(before_label),
+            ...flattenBlock(cond_block),
             cond_load,
             new IRConditionalBranch(
                 this.body.label,
@@ -38,15 +41,13 @@ export class IfStatement extends ASTElement implements Synthesizable {
                 { type: (cond_block.output_location.type as IRPointerType).sub, location: cond_temp }
             ),
             ...flattenBlock(this.body.synthesize()),
+            new IRBranch(before_label),
             new IRLabelStatement(after_label)
         ];
 
         return this._ir_block = {
             output_location: undefined,
             statements: statements,
-            sub_blocks: [
-                cond_block
-            ]
         };
     }
 }

@@ -46,4 +46,3 @@ for (const [name, { type, initializer }] of StaticVariableRegistry) {
         console.log(initializer.synthesize().statements.map(x => x.toString()).join("\n"));
     }
 }
-

@@ -7,6 +7,7 @@ export class FunctionCallExpression extends ASTElement implements Synthesizable 
     source: ASTElement;
     args: ASTElement[];
     self_added = false;
+    args_generated = false;
 
     constructor(parent: ASTElement, source: ASTElement, args: ASTElement[]) {
         super(parent);
@@ -27,7 +28,7 @@ export class FunctionCallExpression extends ASTElement implements Synthesizable 
     toString = () => `${this.source.toString()}(${this.args.map(x => x.toString()).join(", ")})`;
     _ir_block: IRBlock;
     synthesize(): IRBlock {
-        if (this._ir_block) return this._ir_block;
+        if (this._ir_block) return { output_location: this._ir_block.output_location, statements: [] };
         if (!isSynthesizable(this.source)) throw new Error(`Attempted to synthesize call of non-synthesizable ${this.source}`);
         if (this.args.some(x => !isSynthesizable(x))) return { output_location: undefined, statements: [] };
 

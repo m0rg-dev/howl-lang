@@ -3,7 +3,6 @@ import { GetType } from "../registry/TypeRegistry";
 import { UnionConstraint } from "../typemath/Signature";
 import { ASTElement } from "./ASTElement";
 
-
 export class NumericLiteralExpression extends ASTElement implements Synthesizable {
     value: number;
     constructor(parent: ASTElement, value: number) {
@@ -21,7 +20,7 @@ export class NumericLiteralExpression extends ASTElement implements Synthesizabl
 
     _ir_block: IRBlock;
     synthesize(): IRBlock {
-        if (this._ir_block) return this._ir_block;
+        if (this._ir_block) return { output_location: this._ir_block.output_location, statements: [] };
 
         const out = new IRTemporary();
         return this._ir_block = {

@@ -30,7 +30,7 @@ export class FieldReferenceExpression extends ASTElement implements Synthesizabl
 
     _ir_block: IRBlock;
     synthesize(): IRBlock {
-        if (this._ir_block) return this._ir_block;
+        if (this._ir_block) return { output_location: this._ir_block.output_location, statements: [] };
         if (!isSynthesizable(this.source)) throw new Error("attempted to synthesize FieldReferenceExpression of non-synthesizable");
         const source_block = this.source.synthesize();
         const temp = new IRTemporary();

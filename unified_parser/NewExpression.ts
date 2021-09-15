@@ -18,7 +18,7 @@ export class NewExpression extends ASTElement implements Synthesizable {
     toString = () => `new ${this.field_type.toString()}`;
     _ir_block: IRBlock;
     synthesize(): IRBlock {
-        if (this._ir_block) return this._ir_block;
+        if (this._ir_block) return { output_location: this._ir_block.output_location, statements: [] };
 
         const initializer = StaticFunctionRegistry.get(`__${(this.field_type as ClassType).source.name}_initialize`);
 

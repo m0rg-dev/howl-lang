@@ -6,6 +6,7 @@ import { IfStatement } from "./IfStatement";
 import { Assert, First, InOrder, Invert, Literal, Star } from "./Matcher";
 import { ApplyPass, Braces, ExpressionPass, LocalDefinition, LocalDefinitionsPass, MatchElement } from "./Parser";
 import { SimpleStatement } from "./SimpleStatement";
+import { WhileStatement } from "./WhileStatement";
 
 
 export class CompoundStatement extends ASTElement implements Synthesizable {
@@ -57,9 +58,21 @@ export class CompoundStatement extends ASTElement implements Synthesizable {
                     }
                 },
                 {
+                    name: "WhileStatement",
+                    match: InOrder(
+                        Literal("While"),
+                        MatchElement(),
+                        Literal("CompoundStatement")
+                    ),
+                    replace: (input: [Token, ASTElement, CompoundStatement]) => {
+                        return [new WhileStatement(this, input[1], input[2])];
+                    }
+                },
+                {
                     name: "SplitSimpleStatements",
                     match: InOrder(Invert(First(
                         Literal("IfStatement"),
+                        Literal("WhileStatement"),
                         Literal("SimpleStatement"),
                     )), Star(Invert(Literal("Semicolon"))), Literal("Semicolon")),
                     replace: (input: TokenStream) => [new SimpleStatement(this, input.slice(0, input.length - 1))]
@@ -73,7 +86,7 @@ export class CompoundStatement extends ASTElement implements Synthesizable {
 
     _ir_block: IRBlock;
     synthesize(): IRBlock {
-        if (this._ir_block) return this._ir_block;
+        if (this._ir_block) return { output_location: this._ir_block.output_location, statements: [] };
         const statements: IRStatement[] = [
             new IRLabelStatement(this.label)
         ];

@@ -23,7 +23,7 @@ export class RawPointerIndexExpression extends ASTElement implements Synthesizab
     toString = () => `${this.source}*[${this.index}]`;
     _ir_block: IRBlock;
     synthesize(): IRBlock {
-        if (this._ir_block) return this._ir_block;
+        if (this._ir_block) return { output_location: this._ir_block.output_location, statements: [] };
         if (!isSynthesizable(this.source)) throw new Error("attempted to synthesize RawPointerIndexExpression of non-synthesizable");
         if (!isSynthesizable(this.index)) throw new Error("attempted to synthesize RawPointerIndexExpression indexed by non-synthesizable");
 

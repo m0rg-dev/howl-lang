@@ -8,36 +8,31 @@ class String {
     i64 length;
     i64 allocated_length;
 
-    fn void setCharacter(i64 offset, i8 c) {
-        if offset < self.length {
-            self.buffer*[offset] = c;
-        }
-        return;
-    }
-
-    fn void pushCharacter(i8 c) {
-        if self.allocated_length < (self.length + 1) {
-            self.allocated_length = (self.allocated_length * 2) + 1;
-            self.buffer = realloc(self.buffer, self.allocated_length);
-        }
-        self.buffer*[self.length] = c;
-        self.length = self.length + 1;
-        return;
-    }
-
     fn *i8 c_str() {
         return self.buffer;
     }
 
-    static fn String fromBytes(*i8 buffer) {
-        return new String;
+    static fn String fromBytes(*i8 buffer, i64 length) {
+        let rc String;
+        let i i64;
+
+        rc = new String;
+        rc.length = length;
+        rc.allocated_length = length + 1;
+        rc.buffer = calloc(length + 1, 1);
+
+        i = 0;
+        while i < length {
+            rc.buffer*[i] = buffer*[i];
+            i = i + 1;
+        }
+
+        return rc;
     }
 }
 
 static fn i32 main() {
-    let s1 String;
-    s1 = new String;
-    String.fromBytes(s1.c_str());
+    puts("Hello, World!".c_str());
     return 0;
 }
 
