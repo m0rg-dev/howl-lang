@@ -1,4 +1,5 @@
 import { StaticInitializer } from "../registry/StaticVariableRegistry";
+import { isSpecifiable } from "../typemath/Specifiable";
 import { ArithmeticExpression } from "../unified_parser/ArithmeticExpression";
 import { AssignmentExpression } from "../unified_parser/AssignmentExpression";
 import { AssignmentStatement } from "../unified_parser/AssignmentStatement";
@@ -70,6 +71,12 @@ export function PrintExpression(node: ASTElement): string {
         entries.push({ name: "type", label: `computed type: ${node.computed_type}` });
     } else if (node.signature.ports.size > 0) {
         entries.push({ name: "signature", label: `signature: ${node.signature}` });
+    }
+
+    if (isSpecifiable(node)) {
+        node.getAllPorts().forEach(x => {
+            entries.push({ name: x, label: `${x} = ${node.getConstraint(x)}` });
+        })
     }
 
     if (node.hasOwnScope) {

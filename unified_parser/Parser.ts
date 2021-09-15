@@ -6,12 +6,11 @@ import { TokenType } from "../lexer/TokenType";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
 import { GetType, init_types, IsType, TypeRegistry } from "../registry/TypeRegistry";
 import { ApplyToAll, FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
-import { FreezeTypes, Infer } from "../transformers/TypeInference";
+import { LiftConstraints } from "../transformers/TypeInference";
 import { ArithmeticExpression } from "./ArithmeticExpression";
 import { AssignmentExpression } from "./AssignmentExpression";
-import { AssignmentStatement } from "./AssignmentStatement";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
-import { ClassConstruct } from "./ClassConstruct";
+import { ClassConstruct, PartialClassConstruct } from "./ClassConstruct";
 import { ComparisonExpression } from "./ComparisonExpression";
 import { CompoundStatement } from "./CompoundStatement";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
@@ -30,7 +29,7 @@ import { ClassType, RawPointerType, TypeObject } from "./TypeObject";
 import { UnaryReturnExpression } from "./UnaryReturnExpression";
 import { VariableReferenceExpression } from "./VariableReferenceExpression";
 
-const ConvertTypes = {
+export const ConvertTypes = {
     name: "ConvertTypes",
     rules: [{
         name: "ConvertTypes",
@@ -65,7 +64,6 @@ export function Parse(token_stream: Token[]) {
     stream = ApplyPass(undefined, stream, ConvertTypes);
 
     stream = stream.map(x => {
-        console.error(x);
         if (x instanceof PartialClassConstruct) {
             return x.parse()
         }
@@ -82,66 +80,24 @@ export function Parse(token_stream: Token[]) {
             StaticFunctionRegistry.set(item.name, item);
         }
     }
-    
+
     AddStandardLibraryReferences();
     ApplyToAll(ReferenceLocals);
 
     GenerateStaticTables();
     GenerateInitializers();
 
-    let did_apply = true;
-    while (did_apply) {
-        did_apply = false;
-        did_apply ||= ApplyToAll(Infer);
-    }
+    // let did_apply = true;
+    // while (did_apply) {
+    //     did_apply = false;
+    //     did_apply ||= ApplyToAll(Infer);
+    // }
 
-    if (!process.env["SKIP_PHASE"]?.includes("FreezeTypes")) ApplyToAll(FreezeTypes);
+    ApplyToAll(LiftConstraints);
 
-    RemoveClassMethods();
-
-    /*
-    ApplyToAll(SpecifyStatements);
-
-    GenerateStaticTables();
-    GenerateInitializers();
-
-    ApplyToAll(GenerateScopes);
-    ApplyToAll(PropagateLocalDefinitions);
-    ApplyToAll(ReferenceLocals);
-    ApplyToAll(SpecifyMethodReferences);
-    */
-    //ApplyToAll(IndirectMethodReferences);
-
-    /*
-    ApplyToAll(ReplaceTypes);
-    ApplyToAll(SpecifyNews);
-    ApplyToAll(SpecifyMath);
-    ApplyToAll(SpecifyClassFields);
-
-    GenerateStaticTables();
-    GenerateInitializers();
-
-    ApplyToAll(GenerateScopes);
-    ApplyToAll(PropagateLocalDefinitions);
-    ApplyToAll(ReferenceLocals);
-    ApplyToAll(SpecifyMethodReferences);
-    ApplyToAll(AddSelfToMethodCalls);
-    ApplyToAll(IndirectMethodReferences);
-    ApplyToAll(SpecifyFieldReferences);
-    ApplyToAll(SpecifyFunctionCalls);
-    ApplyToAll(SpecifyRawPointerIndexes);
-
-    let did_apply = true;
-    while (did_apply) {
-        did_apply = false;
-        ApplyToAll(AddTypeRequests);
-        ApplyToAll(RemoveRedundantTypeRequests);
-        did_apply ||= ApplyToAll(SpecifyNumericLiterals);
-        did_apply ||= ApplyToAll(SpecifyArithmeticExpressions);
-    }
+    // if (!process.env["SKIP_PHASE"]?.includes("FreezeTypes")) ApplyToAll(FreezeTypes);
 
     RemoveClassMethods();
-    */
 }
 
 export function ApplyPass(parent: ASTElement, stream: TokenStream, pass: Pass): TokenStream {
@@ -172,14 +128,14 @@ export function ApplyPass(parent: ASTElement, stream: TokenStream, pass: Pass): 
     return stream;
 }
 
-type ProductionRule = {
+export type ProductionRule = {
     name: string,
     match: Matcher,
     replace: (input: TokenStream, parent?: ASTElement) => TokenStream;
     startOnly?: boolean,
 }
 
-type Pass = {
+export type Pass = {
     name: string,
     rules: ProductionRule[]
 }
@@ -201,40 +157,6 @@ export class ModuleConstruct extends ASTElement {
         this.name = name;
     }
     toString = () => `Module(${this.name})`;
-}
-
-export class PartialClassConstruct extends ASTElement {
-    name: string;
-    source: TokenStream;
-    constructor(parent: ASTElement, name: string, source: TokenStream) {
-        super(parent);
-        this.name = name;
-        this.source = [...source];
-        TypeRegistry.set(this.name, new ClassType(undefined));
-    }
-
-    parse(): ClassConstruct | ParseError {
-        const rc = new ClassConstruct(this.parent, this.name);
-        let body = ApplyPass(this, this.source, ConvertTypes);
-        body = ApplyPass(this, body, ParseClassBody);
-
-        for (const item of body) {
-            if (item instanceof ClassField) {
-                rc.fields.push(item);
-            } else if (item instanceof FunctionConstruct) {
-                if (!item.function_is_static) {
-                    item.args.unshift(new ArgumentDefinition(this.parent, "self", GetType(this.name)));
-                    item.scope.locals.set("self", GetType(this.name));
-                    item.walk(FixHierarchy, () => { }, this);
-                    item.walk(ReferenceLocals, (n: ASTElement) => { });
-                }
-                rc.methods.push(item);
-            }
-        }
-        return rc;
-    }
-
-    toString = () => `PartialClass(${this.name})`;
 }
 
 export class PartialFunctionConstruct extends ASTElement {
@@ -346,7 +268,7 @@ export class ElidedElement extends ASTElement {
     toString = () => "<elided>";
 }
 
-const MatchFunctionDefinitions = {
+export const MatchFunctionDefinitions = {
     name: "FunctionConstruct",
     match: InOrder(
         Optional(Literal("Static")),
@@ -382,32 +304,11 @@ const FindTypeGeneratingConstructs: Pass = {
         },
         {
             name: "ClassConstruct",
-            match: InOrder(Literal("Class"), Literal("NameExpression"), Assert(Literal("OpenBrace")), Braces()),
+            match: InOrder(Literal("Class"), Literal("NameExpression"), Optional(InOrder(Assert(Literal("OpenAngle")), BracesWithAngle())), Assert(Literal("OpenBrace")), Braces()),
             replace: (input: [Token, NameExpression, ...(Token | ASTElement)[]], parent: ASTElement) => [
                 new PartialClassConstruct(parent, input[1].name, input)
             ]
         },
-    ]
-};
-
-const ParseClassBody: Pass = {
-    name: "ParseClassBody",
-    rules: [
-        {
-            name: "DropNameAndBraces",
-            match: InOrder(Literal("Class"), Literal("TypeLiteral"), Assert(Literal("OpenBrace")), Braces()),
-            replace: (input: TokenStream) => {
-                return input.slice(3, input.length - 1);
-            }
-        },
-        {
-            name: "MatchClassFields",
-            match: InOrder(Literal("TypeLiteral"), Literal("NameExpression"), Literal("Semicolon")),
-            replace: (input: [TypeLiteral, NameExpression, Token], parent: ASTElement) => {
-                return [new ClassField(parent, input[1].name, input[0].field_type)];
-            }
-        },
-        MatchFunctionDefinitions
     ]
 };
 
@@ -673,6 +574,40 @@ export function Braces(): Matcher {
                     break;
                 case TokenType.CloseParen:
                     if (stack.pop() != TokenType.OpenParen) return { matched: false, length: 0 };
+                    break;
+            }
+            if (stack.length == 0) return { matched: true, length: ptr };
+        }
+        return { matched: false, length: 0 };
+    };
+}
+
+export function BracesWithAngle(): Matcher {
+    return (stream: (Token | ASTElement)[]) => {
+        let ptr = 0;
+        const stack: TokenType[] = [];
+
+        while (ptr < stream.length) {
+            const tok = stream[ptr++];
+            if (isAstElement(tok)) continue;
+            switch (tok.type) {
+                case TokenType.OpenBrace:
+                    stack.push(TokenType.OpenBrace);
+                    break;
+                case TokenType.OpenParen:
+                    stack.push(TokenType.OpenParen);
+                    break;
+                case TokenType.OpenAngle:
+                    stack.push(TokenType.OpenAngle);
+                    break;
+                case TokenType.CloseBrace:
+                    if (stack.pop() != TokenType.OpenBrace) return { matched: false, length: 0 };
+                    break;
+                case TokenType.CloseParen:
+                    if (stack.pop() != TokenType.OpenParen) return { matched: false, length: 0 };
+                    break;
+                case TokenType.CloseAngle:
+                    if (stack.pop() != TokenType.OpenAngle) return { matched: false, length: 0 };
                     break;
             }
             if (stack.length == 0) return { matched: true, length: ptr };

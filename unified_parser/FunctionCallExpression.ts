@@ -16,10 +16,6 @@ export class FunctionCallExpression extends ASTElement implements Synthesizable 
 
         this.signature.ports.add("value");
         this.signature.ports.add("source");
-        args.forEach((x, y) => {
-            this.signature.ports.add(`arg${y}`);
-            this[`arg${y}`] = x;
-        });
 
         this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyFunctionConstraint("value")));
         this.signature.type_constraints.set("value", new AllConstraint("value"));

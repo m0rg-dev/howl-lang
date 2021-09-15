@@ -1,11 +1,12 @@
 import { flattenBlock, IRAlloca, IRBlock, IRNamedIdentifier, IRPointerType, IRSomethingElse, IRStatement, IRStore, Synthesizable } from "../generator/IR";
-import { ExactConstraint } from "../typemath/Signature";
+import { ExactConstraint, TypeConstraint } from "../typemath/Signature";
+import { Specifiable } from "../typemath/Specifiable";
 import { ASTElement } from "./ASTElement";
 import { CompoundStatement } from "./CompoundStatement";
 import { ArgumentDefinition } from "./Parser";
-import { FunctionType, TypeObject } from "./TypeObject";
+import { FunctionType, TemplateType, TypeBox, TypeObject } from "./TypeObject";
 
-export class FunctionConstruct extends ASTElement implements Synthesizable {
+export class FunctionConstruct extends ASTElement implements Synthesizable, Specifiable {
     name: string;
     return_type: TypeObject;
     args: ArgumentDefinition[];
@@ -65,4 +66,19 @@ export class FunctionConstruct extends ASTElement implements Synthesizable {
             };
         }
     }
+
+    generics: Map<string, TypeConstraint> = new Map();
+    generic_targets: Map<string, TypeBox> = new Map();
+    addConstraint(port: string, constraint: TypeConstraint) {
+        if (this.generics.has(port)) {
+            this.generics.set(port, this.generics.get(port).intersect(constraint));
+        } else {
+            this.generics.set(port, constraint);
+            this.generic_targets.set(port, new TypeBox(new TemplateType(port)));
+        }
+    }
+    getConstraint(port: string) { return this.generics.get(port); }
+    getTarget(port: string) { return this.generic_targets.get(port); }
+    getAllPorts() { return Array.from(this.generics.keys()); }
+    nextConstraintName(): string { return `T${this.generics.size}`; }
 }

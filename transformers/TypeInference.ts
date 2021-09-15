@@ -7,27 +7,43 @@ import { TypeLiteral } from "../unified_parser/Parser";
 import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
 import { StringLiteralExpression } from "../unified_parser/StringLiteralExpression";
 import { ClassType, FunctionType, RawPointerType } from "../unified_parser/TypeObject";
-import { UnaryReturnExpression } from "../unified_parser/UnaryReturnExpression";
 import { VariableReferenceExpression } from "../unified_parser/VariableReferenceExpression";
-import { FixHierarchy, ReferenceLocals, Transformer } from "./Transformer";
+import { FixHierarchy, Transformer } from "./Transformer";
 
 export const Infer: Transformer = (element: ASTElement, replace: (_: any) => void) => {
     let rc = false;
-    rc ||= WrapStringConstants(element, replace);
-    rc ||= ImportLocals(element, replace);
-    rc ||= ApplyPortIntersections(element, replace);
-    rc ||= ExportOutgoing(element, replace);
-    rc ||= ReferenceFields(element, replace);
-    rc ||= IndexRawPointers(element, replace);
-    rc ||= PropagateFunctionType(element, replace);
-    rc ||= AddSelfToMethodCalls(element, replace);
-    rc ||= ConvertStaticReferences(element, replace);
-    rc ||= IndirectMethodReferences(element, replace);
-    rc ||= CollapseSingleValuedUnions(element, replace);
-    //rc ||= FreezeTypes(element, replace);
+    rc ||= LiftConstraints(element, replace);
+    
+    // rc ||= WrapStringConstants(element, replace);
+    // rc ||= ImportLocals(element, replace);
+    // rc ||= ApplyPortIntersections(element, replace);
+    // rc ||= ExportOutgoing(element, replace);
+    // rc ||= ReferenceFields(element, replace);
+    // rc ||= IndexRawPointers(element, replace);
+    // rc ||= PropagateFunctionType(element, replace);
+    // rc ||= AddSelfToMethodCalls(element, replace);
+    // rc ||= ConvertStaticReferences(element, replace);
+    // rc ||= IndirectMethodReferences(element, replace);
+    // rc ||= CollapseSingleValuedUnions(element, replace);
     return rc;
 }
 
+export const LiftConstraints: Transformer = (element: ASTElement) => {
+    let rc = false;
+    element.signature.type_constraints.forEach((x, y) => {
+        const temp = element.mostLocalTemplate();
+        if (!temp) return;
+        const n = temp.nextConstraintName();
+        temp.addConstraint(n, x);
+        element.computed_type = temp.getTarget(n);
+        element.signature.type_constraints.delete(y);
+        rc = true;
+    });
+    return rc;
+}
+
+// ------
+/*
 export const ImportLocals: Transformer = (element: ASTElement) => {
     let rc = false;
     element.signature.type_constraints.forEach((x, y) => {
@@ -79,7 +95,10 @@ export const ExportOutgoing: Transformer = (element: ASTElement) => {
     let rc = false;
     element.signature.port_constraints.forEach((x, y) => {
         if (x instanceof OutgoingConstraint) {
-            const obj = element[x.port] as ASTElement;
+            let obj = element[x.port] as ASTElement;
+            if (!obj && x.port.startsWith("arg")) {
+                obj = element["args"][x.port.substr(3)];
+            }
             const old = obj.signature.type_constraints.get("value");
             if (!old) return;
             if (old instanceof FromScopeConstraint) return;
@@ -87,7 +106,7 @@ export const ExportOutgoing: Transformer = (element: ASTElement) => {
             element.signature.port_constraints.splice(y, 1);
 
             const n = old.intersect(x.sub);
-            console.error(`[ExportOutgoing] ${element} -> ${obj}: <${old}> => <${n}>`);
+            console.error(`[ExportOutgoing] ${element} -> ${obj} (${x.port}): <${old}> => <${n}>`);
             obj.signature.type_constraints.set("value", n);
             rc = true;
         }
@@ -239,3 +258,4 @@ export const FreezeTypes: Transformer = (element: ASTElement) => {
     }
     return rc;
 }
+*/

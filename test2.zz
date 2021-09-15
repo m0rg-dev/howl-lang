@@ -1,13 +1,13 @@
 module Test2;
 
-class Foo {
-    i32 value;
+class Foo<T> {
+    T value;
 
-    fn i32 get_value() {
+    fn T get_value() {
         return self.value;
     }
 
-    fn void set_value(i32 v) {
+    fn void set_value(T v) {
         self.value = v;
         return;
     }
@@ -15,7 +15,9 @@ class Foo {
 
 static fn i32 main() {
     let obj Foo;
+    let val i32;
     obj = new Foo;
-    obj.set_value(42);
+    val = 42;
+    obj.set_value(val);
     return obj.get_value();
 }

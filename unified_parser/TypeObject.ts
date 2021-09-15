@@ -1,4 +1,5 @@
 import { IRBaseType, IRClassType, IRFunctionType, IRPointerType, IRType } from "../generator/IR";
+import { TypeConstraint } from "../typemath/Signature";
 import { ClassConstruct } from "./ClassConstruct";
 
 export abstract class TypeObject {
@@ -16,6 +17,27 @@ export class ClassType extends TypeObject {
     walk() { }
     toIR = () => new IRPointerType(new IRClassType(this.source.name));
 }
+
+export class TypeBox extends TypeObject {
+    sub: TypeObject;
+    constructor(sub: TypeObject) {
+        super();
+        this.sub = sub;
+    }
+    toString = () => this.sub.toString();
+    toIR = () => this.sub.toIR();
+}
+
+export class TemplateType extends TypeObject {
+    name: string;
+    constructor(name: string) {
+        super();
+        this.name = name;
+    }
+    toString = () => `:${this.name}`;
+    toIR = () => { /* throw new Error("can't IR a TemplateType, check your type propagation") */ return `%TEMPLATE<${this.name}>`; }
+}
+
 
 export class BaseType extends TypeObject {
     name: string;

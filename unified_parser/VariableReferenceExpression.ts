@@ -10,6 +10,7 @@ export class VariableReferenceExpression extends ASTElement implements Synthesiz
 
     constructor(parent: ASTElement, name: string) {
         super(parent);
+        console.error(`[VRE CONSTRUCTOR] ${this.guid}`);
         this.name = name;
 
         this.signature.ports.add("value");

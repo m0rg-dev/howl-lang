@@ -40,14 +40,14 @@ export class PortIntersectionConstraint extends PortConstraint {
 }
 
 export class EmptyConstraint extends TypeConstraint {
-    toString = () => `${this.port} = <empty>`;
+    toString = () => `<empty>`;
     intersect(other: TypeConstraint) {
         return new EmptyConstraint(this.port);
     }
 }
 
 export class AllConstraint extends TypeConstraint {
-    toString = () => `${this.port} = <all>`;
+    toString = () => `<all>`;
     intersect(other: TypeConstraint) {
         return other;
     }
@@ -64,7 +64,7 @@ export class AnyFunctionConstraint extends TypeConstraint {
         }
     }
 
-    toString = () => `${this.port} is Function`;
+    toString = () => `is Function`;
 }
 
 export class AnyClassConstraint extends TypeConstraint {
@@ -78,7 +78,7 @@ export class AnyClassConstraint extends TypeConstraint {
         }
     }
 
-    toString = () => `${this.port} is Class`;
+    toString = () => `is Class`;
 }
 
 export class AnyRawPointerConstraint extends TypeConstraint {
@@ -92,7 +92,7 @@ export class AnyRawPointerConstraint extends TypeConstraint {
         }
     }
 
-    toString = () => `${this.port} is RawPointer<T>`;
+    toString = () => `is RawPointer<T>`;
 }
 
 export class UnionConstraint extends TypeConstraint {
@@ -102,7 +102,7 @@ export class UnionConstraint extends TypeConstraint {
         this.t = t;
     }
 
-    toString = () => `${this.port} = {${this.t.join(", ")}}`;
+    toString = () => `{${this.t.join(", ")}}`;
     intersect(other: TypeConstraint): TypeConstraint {
         let u: TypeObject[];
         if (other instanceof UnionConstraint) {
@@ -130,7 +130,7 @@ export class ExactConstraint extends TypeConstraint {
         this.t = t;
     }
 
-    toString = () => `${this.port}=${this.t}`;
+    toString = () => `${this.t}`;
     intersect(other: TypeConstraint): TypeConstraint {
         let match: boolean;
         if (other instanceof UnionConstraint) {
@@ -170,7 +170,7 @@ export class FromScopeConstraint extends TypeConstraint {
         this.scope_name = scope_name;
     }
 
-    toString = () => `${this.port} <- typeof ${this.scope_name}`;
+    toString = () => `typeof ${this.scope_name}`;
 }
 
 export class ReturnTypeConstraint extends TypeConstraint {
@@ -181,7 +181,7 @@ export class ReturnTypeConstraint extends TypeConstraint {
         super(port);
     }
 
-    toString = () => `${this.port} <- typeof return`;
+    toString = () => `typeof return`;
 }
 
 export class OutgoingConstraint extends PortConstraint {

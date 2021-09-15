@@ -1,11 +1,11 @@
 import { randomUUID } from "crypto";
 import { Token } from "../lexer/Token";
-import { TypeRegistry } from "../registry/TypeRegistry";
-import { Scope } from "./Scope";
+import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
 import { Transformer } from "../transformers/Transformer";
-import { FunctionType, TypeObject } from "./TypeObject";
-import { StaticVariableRegistry, StaticFunctionRegistry } from "../registry/StaticVariableRegistry";
 import { ExactConstraint, Signature } from "../typemath/Signature";
+import { isSpecifiable, Specifiable } from "../typemath/Specifiable";
+import { Scope } from "./Scope";
+import { FunctionType, TypeObject } from "./TypeObject";
 
 export type TokenStream = (Token | ASTElement)[];
 
@@ -51,6 +51,16 @@ export abstract class ASTElement {
         return this.parent?.mostLocalScope();
     }
 
+    mostLocalTemplate(): Specifiable {
+        if(isSpecifiable(this)) return this;
+        return this.parent?.mostLocalTemplate();
+    }
+
+    findPortOwner(name: string): Specifiable {
+        if(isSpecifiable(this) && this.getConstraint(name)) return this;
+        return this.parent?.findPortOwner(name);
+    }
+
     findName(name: string): TypeObject | undefined {
         if (this.scope.locals.has(name)) return this.scope.locals.get(name);
         if (this.parent) return this.parent.findName(name);
@@ -86,5 +96,5 @@ export abstract class ASTElement {
 }
 
 export function isAstElement(obj: Object): obj is ASTElement {
-    return "isAstElement" in obj;
+    return (typeof obj == "object") && "isAstElement" in obj;
 }

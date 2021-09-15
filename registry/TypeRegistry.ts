@@ -27,3 +27,11 @@ export function GetType(name: string): TypeObject {
 export function IsType(name: string): boolean {
     return TypeRegistry.has(name);
 }
+
+export function RegisterType(name: string, type: TypeObject) {
+    TypeRegistry.set(name, type);
+}
+
+export function DeregisterType(name: string) {
+    TypeRegistry.delete(name);
+}

@@ -86,7 +86,7 @@ export const ReferenceLocals: Transformer = (element: ASTElement, replace: (n: A
     if (element instanceof NameExpression) {
         const type = element.findName(element.name);
         if (type) {
-            console.error(`REFERENCELOCALS ${element.name} ${type}`);
+            console.error(`REFERENCELOCALS ${element.parent} ${element.name} ${type}`);
             replace(new VariableReferenceExpression(element.parent, element.name));
             return true;
         }
