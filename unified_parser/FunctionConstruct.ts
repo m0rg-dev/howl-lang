@@ -1,21 +1,33 @@
-import { flattenBlock, IRAlloca, IRBlock, IRLoad, IRNamedIdentifier, IRPointerType, IRSomethingElse, IRStatement, IRStore, isSynthesizable, Synthesizable } from "../generator/IR";
-import { ASTElement, VoidElement } from "./ASTElement";
-import { TypeLiteral, ArgumentDefinition } from "./Parser";
+import { flattenBlock, IRAlloca, IRBlock, IRNamedIdentifier, IRPointerType, IRSomethingElse, IRStatement, IRStore, Synthesizable } from "../generator/IR";
+import { ExactConstraint } from "../typemath/Signature";
+import { ASTElement } from "./ASTElement";
 import { CompoundStatement } from "./CompoundStatement";
-import { FunctionType } from "./TypeObject";
-
+import { ArgumentDefinition } from "./Parser";
+import { FunctionType, TypeObject } from "./TypeObject";
 
 export class FunctionConstruct extends ASTElement implements Synthesizable {
     name: string;
-    return_type_literal: TypeLiteral;
+    return_type: TypeObject;
     args: ArgumentDefinition[];
     body?: CompoundStatement;
-    constructor(parent: ASTElement, type: FunctionType, name: string, args: ArgumentDefinition[]) {
-        super(type, parent);
+    constructor(parent: ASTElement, name: string, rc: TypeObject, args: ArgumentDefinition[]) {
+        super(parent);
         this.name = name;
         this.hasOwnScope = true;
-        args.forEach(x => this.scope.locals.set(x.name, x.value_type));
+        args.forEach(x => this.scope.locals.set(x.name, x.field_type));
         this.args = args;
+        this.return_type = rc;
+
+        this.signature.ports.add("value");
+        this.signature.type_constraints.set("value", new ExactConstraint("value", new FunctionType(
+            rc, args.map(x => x.field_type)
+        )));
+    }
+
+    as_type(): FunctionType {
+        return new FunctionType(
+            this.return_type, this.args.map(x => x.field_type)
+        );
     }
 
     toString = () => `fn ${this.name}`;
@@ -27,13 +39,13 @@ export class FunctionConstruct extends ASTElement implements Synthesizable {
         if (this.body) {
             const statements: IRStatement[] = [];
 
-            statements.push(new IRSomethingElse(`define ${this.value_type.toIR()} @${this.name}(${this.args.map(x => x.value_type.toIR() + " %__arg_" + x.name)}) {`));
+            statements.push(new IRSomethingElse(`define ${this.return_type.toIR()} @${this.name}(${this.args.map(x => x.field_type.toIR() + " %__arg_" + x.name)}) {`));
 
             this.args.forEach(x => {
-                statements.push(new IRAlloca({ type: new IRPointerType(x.value_type.toIR()), location: new IRNamedIdentifier(`%${x.name}`) }));
+                statements.push(new IRAlloca({ type: new IRPointerType(x.field_type.toIR()), location: new IRNamedIdentifier(`%${x.name}`) }));
                 statements.push(new IRStore(
-                    { type: x.value_type.toIR(), location: new IRNamedIdentifier(`%__arg_${x.name}`) },
-                    { type: new IRPointerType(x.value_type.toIR()), location: new IRNamedIdentifier(`%${x.name}`) }
+                    { type: x.field_type.toIR(), location: new IRNamedIdentifier(`%__arg_${x.name}`) },
+                    { type: new IRPointerType(x.field_type.toIR()), location: new IRNamedIdentifier(`%${x.name}`) }
                 ));
             })
 
@@ -44,9 +56,11 @@ export class FunctionConstruct extends ASTElement implements Synthesizable {
             console.error(statements);
             return { output_location: undefined, statements: statements };
         } else {
-            return { output_location: undefined, statements: [
-                new IRSomethingElse(`declare ${this.return_type_literal.value_type.toIR()} @${this.name}(${this.args.map(x => x.value_type.toIR())})`)
-            ]};
+            return {
+                output_location: undefined, statements: [
+                    new IRSomethingElse(`declare ${this.return_type.toIR()} @${this.name}(${this.args.map(x => x.field_type.toIR())})`)
+                ]
+            };
         }
     }
 }

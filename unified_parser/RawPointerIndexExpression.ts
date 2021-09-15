@@ -1,5 +1,6 @@
 import { GEPPointerStatement, IRBlock, IRLoad, IRPointerType, IRTemporary, IRType, isSynthesizable, Synthesizable } from "../generator/IR";
 import { TypeRegistry } from "../registry/TypeRegistry";
+import { AllConstraint, AnyRawPointerConstraint, OutgoingConstraint } from "../typemath/Signature";
 import { ASTElement } from "./ASTElement";
 import { RawPointerType } from "./TypeObject";
 
@@ -8,9 +9,15 @@ export class RawPointerIndexExpression extends ASTElement implements Synthesizab
     index: ASTElement;
 
     constructor(parent: ASTElement, source: ASTElement, index: ASTElement) {
-        super((source.value_type as RawPointerType).subtype, parent);
+        super(parent);
         this.source = source;
         this.index = index;
+
+        this.signature.ports.add("value");
+        this.signature.ports.add("source");
+
+        this.signature.type_constraints.set("value", new AllConstraint("value"));
+        this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyRawPointerConstraint("value")));
     }
 
     toString = () => `${this.source}*[${this.index}]`;
@@ -28,12 +35,12 @@ export class RawPointerIndexExpression extends ASTElement implements Synthesizab
         const out = new IRTemporary();
         return this._ir_block = {
             output_location: {
-                type: this.source.value_type.toIR(),
+                type: this.source.computed_type.toIR(),
                 location: out
             },
             statements: [
                 new IRLoad({
-                    type: this.value_type.toIR(),
+                    type: this.computed_type.toIR(),
                     location: temp_src
                 }, source_block.output_location),
                 new IRLoad({
@@ -41,10 +48,10 @@ export class RawPointerIndexExpression extends ASTElement implements Synthesizab
                     location: temp_idx
                 }, index_block.output_location),
                 new GEPPointerStatement({
-                    type: this.value_type.toIR(),
+                    type: this.computed_type.toIR(),
                     location: out
                 }, {
-                    type: new IRPointerType(this.value_type.toIR()),
+                    type: new IRPointerType(this.computed_type.toIR()),
                     location: temp_src
                 }, {
                     type: TypeRegistry.get("i64"),

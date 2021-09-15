@@ -1,8 +1,8 @@
 import { IRBlock, IRNullaryReturn, Synthesizable } from "../generator/IR";
-import { VoidElement } from "./ASTElement";
+import { ASTElement } from "./ASTElement";
 
 
-export class NullaryReturnExpression extends VoidElement implements Synthesizable {
+export class NullaryReturnExpression extends ASTElement implements Synthesizable {
     toString = () => `return void`;
 
     synthesize(): IRBlock {

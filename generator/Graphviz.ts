@@ -15,6 +15,7 @@ import { SimpleStatement } from "../unified_parser/SimpleStatement";
 import { StaticTableInitialization } from "../unified_parser/StaticTableInitialization";
 import { FunctionType, TypeObject } from "../unified_parser/TypeObject";
 import { TypeRequest } from "../unified_parser/TypeRequest";
+import { UnaryReturnExpression } from "../unified_parser/UnaryReturnExpression";
 import { UnaryReturnStatement } from "../unified_parser/UnaryReturnStatement";
 import { isSynthesizable } from "./IR";
 
@@ -36,7 +37,7 @@ export function PrintStaticVariable(name: string, type: TypeObject, initializer?
         if (initializer instanceof StaticTableInitialization) {
             const entries: { name: string, label: string }[] = [];
             initializer.fields.forEach((x, y) => {
-                entries.push({ name: `f${y}`, label: `${y}<${x.value_type.toString()}>: ${x.name}` });
+                entries.push({ name: `f${y}`, label: `${y}<${x.field_type.toString()}>: ${x.name}` });
             })
             s += record(`static_init_${name}`, entries);
             s += link(name, undefined, `static_init_${name}`, undefined);
@@ -65,8 +66,9 @@ export function PrintExpression(node: ASTElement): string {
         { name: "own_text", label: `"${node}"` },
     ];
 
-    entries.push({ name: "type", label: `type: ${node.value_type}` });
-    if (node.signature.ports.size > 0) {
+    if (node.computed_type) {
+        entries.push({ name: "type", label: `computed type: ${node.computed_type}` });
+    } else if (node.signature.ports.size > 0) {
         entries.push({ name: "signature", label: `signature: ${node.signature}` });
     }
 
@@ -84,14 +86,14 @@ export function PrintExpression(node: ASTElement): string {
     }
 
     if (node instanceof ClassConstruct) {
-        node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.value_type.toString()}>` }));
+        node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.field_type.toString()}>` }));
         node.methods.forEach(x => {
-            entries.push({ name: x.name, label: `${x.name}<${x.value_type}>` });
+            entries.push({ name: x.name, label: `${x.name}` });
             s += link(node.guid, x.name, x.guid, undefined);
             s += PrintExpression(x);
         });
     } else if (node instanceof FunctionConstruct) {
-        node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.value_type.toString()}>` }));
+        node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.field_type.toString()}>` }));
         if (node.body) {
             entries.push({ name: "body", label: "Body" });
             s += link(node.guid, "body", node.body.guid, undefined);
@@ -120,32 +122,29 @@ export function PrintExpression(node: ASTElement): string {
         s += link(node.guid, "rhs", node.rhs.guid, undefined);
         s += PrintExpression(node.lhs);
         s += PrintExpression(node.rhs);
-    } else if (node instanceof UnaryReturnStatement) {
+    } else if (node instanceof UnaryReturnExpression) {
         if (node.getReturnType()) {
             entries.push({ name: "value", label: `value` });
         } else {
             entries.push({ name: "value", label: "value" });
         }
-        s += link(node.guid, "value", node.expression.source.guid, undefined);
-        s += PrintExpression(node.expression.source);
+        s += link(node.guid, "value", node.source.guid, undefined);
+        s += PrintExpression(node.source);
     } else if (node instanceof FieldReferenceExpression) {
         entries.push({ name: "source", label: "source" });
         entries.push({ name: "index", label: `index: ${node.index()}` });
         s += link(node.guid, "source", node.source.guid, undefined);
         s += PrintExpression(node.source);
     } else if (node instanceof FunctionCallExpression) {
-        entries.push({ name: "function", label: "function" });
-        s += link(node.guid, "function", node.source.guid, undefined);
+        entries.push({ name: "source", label: "source" });
+        s += link(node.guid, "source", node.source.guid, undefined);
         s += PrintExpression(node.source);
-        if (node.source.value_type instanceof FunctionType) {
-            node.args.forEach((x, y) => {
-                entries.push({ name: `arg${y}`, label: `argument ${y} <${(node.source.value_type as FunctionType).args[y]}>` });
-                s += link(node.guid, `arg${y}`, x.guid, undefined);
-                s += PrintExpression(x);
-            })
-        } else {
-            entries.push({ name: "err", label: `no args? type is ${node.source.value_type}` });
-        }
+        node.args.forEach((x, y) => {
+            entries.push({ name: `arg${y}`, label: `argument ${y}` });
+            s += link(node.guid, `arg${y}`, x.guid, undefined);
+            s += PrintExpression(x);
+        })
+
     } else if (node instanceof TypeRequest) {
         entries.push({ name: "source", label: "source" });
         s += link(node.guid, "source", node.source.guid, undefined);
@@ -165,8 +164,8 @@ export function PrintExpression(node: ASTElement): string {
         s += link(node.guid, "body", node.body.guid, undefined);
         s += PrintExpression(node.body);
     } else if (node instanceof ComparisonExpression || node instanceof ArithmeticExpression) {
-        entries.push({ name: "lhs", label: `lhs <${node.lhs.value_type}>` });
-        entries.push({ name: "rhs", label: `rhs <${node.rhs.value_type}>` });
+        entries.push({ name: "lhs", label: `lhs` });
+        entries.push({ name: "rhs", label: `rhs` });
         s += link(node.guid, "lhs", node.lhs.guid, undefined);
         s += link(node.guid, "rhs", node.rhs.guid, undefined);
         s += PrintExpression(node.lhs);

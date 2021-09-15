@@ -17,7 +17,7 @@ export class StaticTableInitialization extends StaticInitializer implements Synt
         return {
             output_location: undefined,
             statements: [
-                new IRSomethingElse(`@__${this.for_class.name}_stable = constant %__${this.for_class.name}_stable_t {${this.fields.map(x => `${x.value_type.toIR()} @${x.name}`).join(", ")}}`)
+                new IRSomethingElse(`@__${this.for_class.name}_stable = constant %__${this.for_class.name}_stable_t {${this.fields.map(x => `${x.field_type.toIR()} @${x.name}`).join(", ")}}`)
             ]
         };
     }

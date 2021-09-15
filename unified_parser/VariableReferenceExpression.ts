@@ -8,12 +8,12 @@ export class VariableReferenceExpression extends ASTElement implements Synthesiz
     name: string;
     force_local: boolean;
 
-    constructor(parent: ASTElement, type: TypeObject, name: string) {
-        super(type, parent);
+    constructor(parent: ASTElement, name: string) {
+        super(parent);
         this.name = name;
 
         this.signature.ports.add("value");
-        this.signature.port_constraints.push(new FromScopeConstraint("value", name));
+        this.signature.type_constraints.set("value", new FromScopeConstraint("value", name));
     }
 
     toString = () => `var ${this.name}`;
@@ -26,23 +26,23 @@ export class VariableReferenceExpression extends ASTElement implements Synthesiz
             const temp = new IRTemporary();
             return {
                 output_location: {
-                    type: new IRPointerType(this.value_type.toIR()),
+                    type: new IRPointerType(this.computed_type.toIR()),
                     location: temp
                 },
                 statements: [
                     new IRAlloca(
-                        { type: new IRPointerType(this.value_type.toIR()), location: temp }
+                        { type: new IRPointerType(this.computed_type.toIR()), location: temp }
                     ),
                     new IRStore(
-                        { type: this.value_type.toIR(), location: `@${this.name}` },
-                        { type: new IRPointerType(this.value_type.toIR()), location: temp }
+                        { type: this.computed_type.toIR(), location: `@${this.name}` },
+                        { type: new IRPointerType(this.computed_type.toIR()), location: temp }
                     )
                 ]
             };
         } else {
             return {
                 output_location: {
-                    type: new IRPointerType(this.value_type.toIR()),
+                    type: new IRPointerType(this.computed_type.toIR()),
                     location: new IRNamedIdentifier(`%${this.name}`)
                 },
                 statements: []

@@ -4,12 +4,12 @@ import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
 import { GetType, init_types, IsType, TypeRegistry } from "../registry/TypeRegistry";
-import { ApplyToAll, FixHierarchy } from "../transformers/Transformer";
-import { ApplyIntersections, ImportLocals } from "../transformers/TypeInference";
+import { ApplyToAll, FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
+import { FreezeTypes, Infer } from "../transformers/TypeInference";
 import { ArithmeticExpression } from "./ArithmeticExpression";
 import { AssignmentExpression } from "./AssignmentExpression";
 import { AssignmentStatement } from "./AssignmentStatement";
-import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
+import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
 import { ClassConstruct } from "./ClassConstruct";
 import { ComparisonExpression } from "./ComparisonExpression";
 import { CompoundStatement } from "./CompoundStatement";
@@ -21,9 +21,10 @@ import { NewExpression } from "./NewExpression";
 import { NullaryReturnExpression } from "./NullaryReturnExpression";
 import { NumericLiteralExpression } from "./NumericLiteralExpression";
 import { RawPointerIndexExpression } from "./RawPointerIndexExpression";
+import { SimpleStatement } from "./SimpleStatement";
 import { StaticFunctionReference } from "./StaticFunctionReference";
 import { StaticTableInitialization } from "./StaticTableInitialization";
-import { ClassType, FunctionType, RawPointerType, TypeObject } from "./TypeObject";
+import { ClassType, RawPointerType, TypeObject } from "./TypeObject";
 import { UnaryReturnExpression } from "./UnaryReturnExpression";
 import { VariableReferenceExpression } from "./VariableReferenceExpression";
 
@@ -36,6 +37,12 @@ const ConvertTypes = {
             if (!IsType(input[0].name))
                 return undefined;
             return [new TypeLiteral(parent, GetType(input[0].name))];
+        }
+    }, {
+        name: "RawPointer",
+        match: InOrder(Literal("Asterisk"), Literal("TypeLiteral")),
+        replace: (input: [Token, TypeLiteral], parent: ASTElement) => {
+            return [new TypeLiteral(parent, new RawPointerType(input[1].field_type))]
         }
     }]
 };
@@ -68,14 +75,21 @@ export function Parse(token_stream: Token[]) {
         rules: [MatchFunctionDefinitions]
     });
 
+    ApplyToAll(ReferenceLocals);
+
     AddStandardLibraryReferences();
+    GenerateStaticTables();
+    GenerateInitializers();
 
     let did_apply = true;
     while (did_apply) {
         did_apply = false;
-        did_apply ||= ApplyToAll(ImportLocals);
-        did_apply ||= ApplyToAll(ApplyIntersections);
+        did_apply ||= ApplyToAll(Infer);
     }
+
+    if (!process.env["SKIP_PHASE"]?.includes("FreezeTypes")) ApplyToAll(FreezeTypes);
+
+    RemoveClassMethods();
 
     /*
     ApplyToAll(SpecifyStatements);
@@ -162,7 +176,7 @@ type Pass = {
     rules: ProductionRule[]
 }
 
-export class ParseError extends VoidElement {
+export class ParseError extends ASTElement {
     description: string;
     constructor(parent: ASTElement, description: string) {
         super(parent);
@@ -172,7 +186,7 @@ export class ParseError extends VoidElement {
     toString = () => `ParseError: ${this.description}`;
 }
 
-export class ModuleConstruct extends VoidElement {
+export class ModuleConstruct extends ASTElement {
     name: string;
     constructor(parent: ASTElement, name: string) {
         super(parent);
@@ -181,7 +195,7 @@ export class ModuleConstruct extends VoidElement {
     toString = () => `Module(${this.name})`;
 }
 
-export class PartialClassConstruct extends VoidElement {
+export class PartialClassConstruct extends ASTElement {
     name: string;
     source: TokenStream;
     constructor(parent: ASTElement, name: string, source: TokenStream) {
@@ -202,6 +216,8 @@ export class PartialClassConstruct extends VoidElement {
             } else if (item instanceof FunctionConstruct) {
                 item.args.unshift(new ArgumentDefinition(this.parent, "self", GetType(this.name)));
                 item.scope.locals.set("self", GetType(this.name));
+                item.walk(FixHierarchy, () => { }, this);
+                item.walk(ReferenceLocals, (n: ASTElement) => { });
                 rc.methods.push(item);
             }
         }
@@ -211,7 +227,7 @@ export class PartialClassConstruct extends VoidElement {
     toString = () => `PartialClass(${this.name})`;
 }
 
-export class PartialFunctionConstruct extends VoidElement {
+export class PartialFunctionConstruct extends ASTElement {
     name: string;
     source: TokenStream;
     constructor(parent: ASTElement, name: string, source: TokenStream) {
@@ -223,20 +239,22 @@ export class PartialFunctionConstruct extends VoidElement {
     parse(should_register = false): FunctionConstruct | ParseError {
         const body = ApplyPass(this, this.source, ParseFunctionBody);
         if (!(body[0] instanceof TypeLiteral)) throw new Error();
+        const rctype = body[0].field_type;
         if (!(body[1] instanceof ArgumentList)) throw new Error();
-        if (!(body[2] instanceof CompoundStatement)) throw new Error();
-
-        const rctype = body[0].value_type;
-        const argtypes = body[1].args.map(x => x.value_type);
-        const fntype = new FunctionType(rctype, argtypes);
-        const rc = new FunctionConstruct(this.parent, fntype, this.name, body[1].args);
-        rc.body = body[2];
-
-        rc.walk(FixHierarchy, () => { }, this.parent);
-
+        const rc = new FunctionConstruct(this.parent, this.name, rctype, body[1].args);
         if (should_register) {
             StaticFunctionRegistry.set(this.name, rc);
         }
+
+        if(!(body[2] instanceof ASTElement) && body[2].type == TokenType.Semicolon) {
+            return rc;
+        }
+
+        if (!(body[2] instanceof CompoundStatement)) throw new Error();
+
+        rc.body = body[2];
+
+        rc.walk(FixHierarchy, () => { }, this.parent);
         return rc;
     }
 
@@ -244,32 +262,40 @@ export class PartialFunctionConstruct extends VoidElement {
 }
 
 export class TypeLiteral extends ASTElement {
+    field_type: TypeObject;
+
     constructor(parent: ASTElement, type: TypeObject) {
-        super(type, parent);
+        super(parent);
+        this.field_type = type;
     }
 
-    toString = () => `!!TL!! ${this.value_type.toString()}`;
+    toString = () => `!!TL!! ${this.field_type.toString()}`;
 }
 
 export class ClassField extends ASTElement {
     name: string;
+    field_type: TypeObject;
     constructor(parent: ASTElement, name: string, type: TypeObject) {
-        super(type, parent);
+        super(parent);
         this.name = name;
+        this.field_type = type;
     }
-    toString = () => `ClassField<${this.value_type.toString()}>(${this.name})`;
+    toString = () => `ClassField<${this.field_type.toString()}>(${this.name})`;
 }
 
 export class ArgumentDefinition extends ASTElement {
     name: string;
+    field_type: TypeObject;
+
     constructor(parent: ASTElement, name: string, type: TypeObject) {
-        super(type, parent);
+        super(parent);
         this.name = name;
+        this.field_type = type;
     }
-    toString = () => `ArgumentDefinition<${this.value_type.toString()}>(${this.name})`;
+    toString = () => `ArgumentDefinition<${this.field_type.toString()}>(${this.name})`;
 }
 
-export class ArgumentList extends VoidElement {
+export class ArgumentList extends ASTElement {
     args: ArgumentDefinition[] = [];
     constructor(parent: ASTElement, args: ArgumentDefinition[]) {
         super(parent);
@@ -278,7 +304,7 @@ export class ArgumentList extends VoidElement {
     toString = () => `ArgumentList`;
 }
 
-export class PartialFieldReference extends VoidElement {
+export class PartialFieldReference extends ASTElement {
     field: string;
     constructor(parent: ASTElement, field: string) {
         super(parent);
@@ -287,7 +313,7 @@ export class PartialFieldReference extends VoidElement {
     toString = () => `.${this.field}`;
 }
 
-export class NameExpression extends VoidElement {
+export class NameExpression extends ASTElement {
     name: string;
     constructor(parent: ASTElement, name: string) {
         super(parent);
@@ -296,7 +322,7 @@ export class NameExpression extends VoidElement {
     toString = () => `'${this.name}`;
 }
 
-export class LocalDefinition extends VoidElement {
+export class LocalDefinition extends ASTElement {
     name: string;
     local_type: TypeObject;
 
@@ -309,7 +335,7 @@ export class LocalDefinition extends VoidElement {
     toString = () => `let ${this.name.toString()} ${this.local_type.toString()}`
 }
 
-export class ElidedElement extends VoidElement {
+export class ElidedElement extends ASTElement {
     toString = () => "<elided>";
 }
 
@@ -371,7 +397,7 @@ const ParseClassBody: Pass = {
             name: "MatchClassFields",
             match: InOrder(Literal("TypeLiteral"), Literal("NameExpression"), Literal("Semicolon")),
             replace: (input: [TypeLiteral, NameExpression, Token], parent: ASTElement) => {
-                return [new ClassField(parent, input[1].name, input[0].value_type)];
+                return [new ClassField(parent, input[1].name, input[0].field_type)];
             }
         },
         MatchFunctionDefinitions
@@ -417,7 +443,7 @@ const ParseFunctionBody: Pass = {
                             name: "ConvertArgument",
                             match: InOrder(Literal("TypeLiteral"), Literal("NameExpression"), Optional(Literal("Comma"))),
                             replace: (input: [TypeLiteral, NameExpression]) => {
-                                return [new ArgumentDefinition(parent, input[1].name, input[0].value_type)];
+                                return [new ArgumentDefinition(parent, input[1].name, input[0].field_type)];
                             }
                         }
                     ]
@@ -442,7 +468,7 @@ export const LocalDefinitionsPass: Pass = {
             name: "LocalDefinition",
             match: InOrder(Literal("Let"), Literal("NameExpression"), Literal("TypeLiteral"), Assert(Literal("Semicolon"))),
             replace: (input: [Token, NameExpression, TypeLiteral, Token], parent: ASTElement) => {
-                return [new LocalDefinition(parent, input[1].name, input[2].value_type)];
+                return [new LocalDefinition(parent, input[1].name, input[2].field_type)];
             }
         }
     ]
@@ -468,8 +494,8 @@ export const ExpressionPass: Pass = {
         },
         {
             name: "New",
-            match: InOrder(Literal("New"), Literal("NameExpression")),
-            replace: (input: [Token, NameExpression], parent: ASTElement) => [new NewExpression(parent, GetType(input[1].name))]
+            match: InOrder(Literal("New"), Literal("TypeLiteral")),
+            replace: (input: [Token, TypeLiteral], parent: ASTElement) => [new NewExpression(parent, input[1].field_type)]
         },
         {
             name: "FunctionCall",
@@ -564,8 +590,8 @@ function GenerateStaticTables() {
         t.source.has_stable = true;
 
         for (const method of t.source.methods) {
-            stable.fields.push(new ClassField(stable, method.name, method.value_type));
-            initializer.fields.push(new StaticFunctionReference(stable, `__${t.source.name}_${method.name}`, method.value_type as FunctionType));
+            stable.fields.push(new ClassField(stable, method.name, method.as_type()));
+            initializer.fields.push(new StaticFunctionReference(stable, `__${t.source.name}_${method.name}`, method.as_type()));
         }
 
         TypeRegistry.set(stable.name, new ClassType(stable));
@@ -579,16 +605,13 @@ function GenerateInitializers() {
         if (!(t instanceof ClassType)) continue;
         if (t.source.is_stable) continue;
 
-        const fn = new FunctionConstruct(t.source, new FunctionType(
-            GetType("void"),
-            [t],
-        ), `__${t.source.name}_initialize`, [new ArgumentDefinition(t.source, "self", t)]);
+        const fn = new FunctionConstruct(t.source, `__${t.source.name}_initialize`, GetType("void"), [new ArgumentDefinition(t.source, "self", t)]);
 
         fn.body = new CompoundStatement(fn);
         fn.body.substatements = [
-            new AssignmentStatement(fn.body, new AssignmentExpression(fn.body,
-                new FieldReferenceExpression(fn.body, new VariableReferenceExpression(fn.body, t, "self"), "__stable"),
-                new VariableReferenceExpression(fn.body, TypeRegistry.get(`__${t.source.name}_stable_t`), `__${t.source.name}_stable`))),
+            new SimpleStatement(fn.body, [new AssignmentExpression(fn.body,
+                new FieldReferenceExpression(fn.body, new VariableReferenceExpression(fn.body, "self"), "__stable"),
+                new VariableReferenceExpression(fn.body, `__${t.source.name}_stable`))]),
             new NullaryReturnExpression(fn.body)
         ]
 
@@ -611,11 +634,7 @@ function RemoveClassMethods() {
 }
 
 function AddStandardLibraryReferences() {
-    const calloc = new FunctionConstruct(undefined, new FunctionType(
-        new RawPointerType(GetType("i8")), [
-        GetType("i64"),
-        GetType("i64")
-    ]), "calloc", [
+    const calloc = new FunctionConstruct(undefined, "calloc", new RawPointerType(GetType("i8")), [
         new ArgumentDefinition(undefined, "count", TypeRegistry.get("i64")),
         new ArgumentDefinition(undefined, "size", TypeRegistry.get("i64"))
     ]);

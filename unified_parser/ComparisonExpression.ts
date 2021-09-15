@@ -1,5 +1,6 @@
 import { IRAlloca, IRBaseType, IRBlock, IRIntegerCompare, IRLoad, IRPointerType, IRStore, IRTemporary, isSynthesizable, Synthesizable } from "../generator/IR";
-import { TypeRegistry } from "../registry/TypeRegistry";
+import { GetType, TypeRegistry } from "../registry/TypeRegistry";
+import { ExactConstraint, PortIntersectionConstraint } from "../typemath/Signature";
 import { ASTElement } from "./ASTElement";
 
 export class ComparisonExpression extends ASTElement implements Synthesizable {
@@ -8,10 +9,16 @@ export class ComparisonExpression extends ASTElement implements Synthesizable {
     rhs: ASTElement;
 
     constructor(parent: ASTElement, lhs: ASTElement, rhs: ASTElement, type: string) {
-        super(TypeRegistry.get("bool"), parent);
+        super(parent);
         this.comp_type = type;
         this.lhs = lhs;
         this.rhs = rhs;
+
+        this.signature.ports.add("lhs");
+        this.signature.ports.add("rhs");
+        this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "rhs"));
+        this.signature.ports.add("value");
+        this.signature.type_constraints.set("value", new ExactConstraint("value", GetType("bool")));
     }
 
     toString = () => `${this.lhs} ${this.comp_type} ${this.rhs}`;

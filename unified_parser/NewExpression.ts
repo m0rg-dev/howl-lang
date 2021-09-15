@@ -1,26 +1,33 @@
 import { IRAlloca, IRBaseType, IRBitcast, IRBlock, IRCall, IRFunctionType, IRNamedIdentifier, IRNumericLiteral, IRPointerType, IRSomethingElse, IRStore, IRTemporary, IRVoidCall, Synthesizable } from "../generator/IR";
 import { StaticFunctionRegistry } from "../registry/StaticVariableRegistry";
+import { ExactConstraint } from "../typemath/Signature";
 import { ASTElement } from "./ASTElement";
 import { TypeLiteral } from "./Parser";
 import { ClassType, TypeObject } from "./TypeObject";
 
 export class NewExpression extends ASTElement implements Synthesizable {
+    field_type: TypeObject;
+
     constructor(parent: ASTElement, type: TypeObject) {
-        super(type, parent);
+        super(parent);
+        this.field_type = type;
+
+        this.signature.ports.add("value");
+        this.signature.type_constraints.set("value", new ExactConstraint("value", type));
     }
-    toString = () => `new ${this.value_type.toString()}`;
+    toString = () => `new ${this.field_type.toString()}`;
     _ir_block: IRBlock;
     synthesize(): IRBlock {
         if (this._ir_block) return this._ir_block;
 
-        const initializer = StaticFunctionRegistry.get(`__${(this.value_type as ClassType).source.name}_initialize`);
+        const initializer = StaticFunctionRegistry.get(`__${(this.field_type as ClassType).source.name}_initialize`);
 
         const temp1 = new IRTemporary();
         const temp2 = new IRTemporary();
         const temp3 = new IRTemporary();
         return this._ir_block = {
             output_location: {
-                type: new IRPointerType(this.value_type.toIR()),
+                type: new IRPointerType(this.field_type.toIR()),
                 location: temp3
             },
             statements: [
@@ -44,28 +51,28 @@ export class NewExpression extends ASTElement implements Synthesizable {
                     }
                 ]),
                 new IRBitcast({
-                    type: this.value_type.toIR(),
+                    type: this.field_type.toIR(),
                     location: temp2
                 }, {
                     type: new IRPointerType(new IRBaseType("i8")),
                     location: temp1
                 }),
                 new IRAlloca({
-                    type: new IRPointerType(this.value_type.toIR()),
+                    type: new IRPointerType(this.field_type.toIR()),
                     location: temp3
                 }),
                 new IRStore({
-                    type: this.value_type.toIR(),
+                    type: this.field_type.toIR(),
                     location: temp2
                 }, {
-                    type: new IRPointerType(this.value_type.toIR()),
+                    type: new IRPointerType(this.field_type.toIR()),
                     location: temp3
                 }),
                 new IRVoidCall({
-                    type: new IRPointerType(new IRFunctionType(this.value_type.toIR(), [])),
+                    type: new IRPointerType(new IRFunctionType(this.field_type.toIR(), [])),
                     location: new IRNamedIdentifier(`@${initializer.name}`)
                 }, [{
-                    type: this.value_type.toIR(),
+                    type: this.field_type.toIR(),
                     location: temp2
                 }])
             ]

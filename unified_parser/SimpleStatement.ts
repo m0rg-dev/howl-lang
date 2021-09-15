@@ -1,7 +1,7 @@
 import { IRBlock, isSynthesizable, Synthesizable } from "../generator/IR";
-import { ASTElement, TokenStream, VoidElement } from "./ASTElement";
+import { ASTElement, TokenStream } from "./ASTElement";
 
-export class SimpleStatement extends VoidElement implements Synthesizable {
+export class SimpleStatement extends ASTElement implements Synthesizable {
     source: TokenStream;
     constructor(parent: ASTElement, source: TokenStream) {
         super(parent);

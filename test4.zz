@@ -1,5 +1,4 @@
 static fn void main() {
-    let a i32;
-    a = 4;
+    let a *i32;
     return;
 }

@@ -1,8 +1,8 @@
 import { IRBlock, IRLoad, IRPointerType, IRStore, IRTemporary, isSynthesizable, Synthesizable } from "../generator/IR";
-import { IntersectionConstraint } from "../typemath/Signature";
-import { ASTElement, VoidElement } from "./ASTElement";
+import { PortIntersectionConstraint } from "../typemath/Signature";
+import { ASTElement } from "./ASTElement";
 
-export class AssignmentExpression extends VoidElement implements Synthesizable {
+export class AssignmentExpression extends ASTElement implements Synthesizable {
     lhs: ASTElement;
     rhs: ASTElement;
     constructor(parent: ASTElement, lhs: ASTElement, rhs: ASTElement) {
@@ -12,7 +12,7 @@ export class AssignmentExpression extends VoidElement implements Synthesizable {
 
         this.signature.ports.add("lhs");
         this.signature.ports.add("rhs");
-        this.signature.port_constraints.push(new IntersectionConstraint("lhs", "rhs"));
+        this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "rhs"));
     }
 
     toString = () => `${this.lhs.toString()} = ${this.rhs.toString()}`;
@@ -22,7 +22,6 @@ export class AssignmentExpression extends VoidElement implements Synthesizable {
         if(this._ir_block) return this._ir_block;
         if (!isSynthesizable(this.lhs)) return { output_location: undefined, statements: [] };
         if (!isSynthesizable(this.rhs)) return { output_location: undefined, statements: [] };
-
         const lhs_block = this.lhs.synthesize();
         const rhs_block = this.rhs.synthesize();
 

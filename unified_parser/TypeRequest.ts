@@ -3,11 +3,13 @@ import { TypeObject } from "./TypeObject";
 
 export class TypeRequest extends ASTElement {
     source: ASTElement;
+    field_type: TypeObject;
 
     constructor(parent: ASTElement, source: ASTElement, type: TypeObject) {
-        super(type, parent);
+        super(parent);
         this.source = source;
+        this.field_type = type;
     }
 
-    toString = () => `as ${this.value_type}`;
+    toString = () => `as ${this.field_type}`;
 }

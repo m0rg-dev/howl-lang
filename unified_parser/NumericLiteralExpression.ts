@@ -7,7 +7,7 @@ import { ASTElement } from "./ASTElement";
 export class NumericLiteralExpression extends ASTElement implements Synthesizable {
     value: number;
     constructor(parent: ASTElement, value: number) {
-        super(GetType("_numeric_constant"), parent);
+        super(parent);
         this.value = value;
 
         this.signature.ports.add("value");
@@ -26,13 +26,13 @@ export class NumericLiteralExpression extends ASTElement implements Synthesizabl
         const out = new IRTemporary();
         return this._ir_block = {
             output_location: {
-                type: new IRPointerType(this.value_type),
+                type: new IRPointerType(this.computed_type),
                 location: out
             },
             statements: [
-                new IRAlloca({ type: new IRPointerType(this.value_type), location: out }),
-                new IRStore({ type: this.value_type, location: new IRNumericLiteral(this.value) },
-                    { type: new IRPointerType(this.value_type), location: out })
+                new IRAlloca({ type: new IRPointerType(this.computed_type), location: out }),
+                new IRStore({ type: this.computed_type, location: new IRNumericLiteral(this.value) },
+                    { type: new IRPointerType(this.computed_type), location: out })
             ]
         };
     }

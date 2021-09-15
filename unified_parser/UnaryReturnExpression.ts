@@ -1,13 +1,17 @@
 import { IRBlock, IRLoad, IRPointerType, IRTemporary, IRUnaryReturn, isSynthesizable, Synthesizable } from "../generator/IR";
-import { ASTElement, VoidElement } from "./ASTElement";
+import { OutgoingConstraint, ReturnTypeConstraint } from "../typemath/Signature";
+import { ASTElement } from "./ASTElement";
 
 
-export class UnaryReturnExpression extends VoidElement implements Synthesizable {
+export class UnaryReturnExpression extends ASTElement implements Synthesizable {
     source: ASTElement;
 
     constructor(parent: ASTElement, source: ASTElement) {
         super(parent);
         this.source = source;
+
+        this.signature.ports.add("source");
+        this.signature.port_constraints.push(new OutgoingConstraint("source", new ReturnTypeConstraint("value")));
     }
 
     toString = () => `return ${this.source.toString()}`;
@@ -15,7 +19,7 @@ export class UnaryReturnExpression extends VoidElement implements Synthesizable 
     _ir_block: IRBlock;
     synthesize(): IRBlock {
         if (this._ir_block) return this._ir_block;
-        if (!isSynthesizable(this.source)) return {output_location:undefined,statements:[]}; //throw new Error("attempted to synthesize UnaryReturnExpression of non-synthesizable");
+        if (!isSynthesizable(this.source)) return { output_location: undefined, statements: [] }; //throw new Error("attempted to synthesize UnaryReturnExpression of non-synthesizable");
         const source_block = this.source.synthesize();
         console.error(source_block);
         const temp = new IRTemporary();

@@ -1,14 +1,14 @@
-import { ASTElement, isAstElement, TokenStream, VoidElement } from "./ASTElement";
-import { Assert, First, InOrder, Invert, Literal, Star } from "./Matcher";
-import { SimpleStatement } from "./SimpleStatement";
-import { ApplyPass, Braces, ExpressionPass, LocalDefinition, LocalDefinitionsPass, MatchElement } from "./Parser";
 import { flattenBlock, IRAlloca, IRBlock, IRLabel, IRLabelStatement, IRNamedIdentifier, IRPointerType, IRStatement, isSynthesizable, Synthesizable } from "../generator/IR";
 import { Token } from "../lexer/Token";
-import { IfStatement } from "./IfStatement";
 import { FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
+import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
+import { IfStatement } from "./IfStatement";
+import { Assert, First, InOrder, Invert, Literal, Star } from "./Matcher";
+import { ApplyPass, Braces, ExpressionPass, LocalDefinition, LocalDefinitionsPass, MatchElement } from "./Parser";
+import { SimpleStatement } from "./SimpleStatement";
 
 
-export class CompoundStatement extends VoidElement implements Synthesizable {
+export class CompoundStatement extends ASTElement implements Synthesizable {
     substatements: ASTElement[];
     source: TokenStream;
     label: IRLabel;

@@ -1,4 +1,4 @@
-import { TypeObject } from "../unified_parser/TypeObject";
+import { ClassType, FunctionType, RawPointerType, TypeObject } from "../unified_parser/TypeObject";
 
 export abstract class TypeConstraint {
     port: string;
@@ -27,7 +27,7 @@ export class Signature {
     }
 };
 
-export class IntersectionConstraint extends PortConstraint {
+export class PortIntersectionConstraint extends PortConstraint {
     p0: string;
     p1: string;
     constructor(p0: string, p1: string) {
@@ -40,10 +40,59 @@ export class IntersectionConstraint extends PortConstraint {
 }
 
 export class EmptyConstraint extends TypeConstraint {
-    toString = () => `<empty>`;
+    toString = () => `${this.port} = <empty>`;
     intersect(other: TypeConstraint) {
         return new EmptyConstraint(this.port);
     }
+}
+
+export class AllConstraint extends TypeConstraint {
+    toString = () => `${this.port} = <all>`;
+    intersect(other: TypeConstraint) {
+        return other;
+    }
+}
+
+export class AnyFunctionConstraint extends TypeConstraint {
+    intersect(other: TypeConstraint): TypeConstraint {
+        if(other instanceof AllConstraint || other instanceof AnyFunctionConstraint) {
+            return this;
+        } else if(other instanceof ExactConstraint) {
+            return other.intersect(this);
+        } else {
+            throw new Error(`don't know how to intersect with <${other}>`);
+        }
+    }
+
+    toString = () => `${this.port} is Function`;
+}
+
+export class AnyClassConstraint extends TypeConstraint {
+    intersect(other: TypeConstraint): TypeConstraint {
+        if(other instanceof AllConstraint || other instanceof AnyClassConstraint) {
+            return this;
+        } else if(other instanceof ExactConstraint) {
+            return other.intersect(this);
+        } else {
+            throw new Error(`don't know how to intersect with <${other}>`);
+        }
+    }
+
+    toString = () => `${this.port} is Class`;
+}
+
+export class AnyRawPointerConstraint extends TypeConstraint {
+    intersect(other: TypeConstraint): TypeConstraint {
+        if(other instanceof AllConstraint || other instanceof AnyRawPointerConstraint) {
+            return this;
+        } else if(other instanceof ExactConstraint) {
+            return other.intersect(this);
+        } else {
+            throw new Error(`don't know how to intersect with <${other}>`);
+        }
+    }
+
+    toString = () => `${this.port} is RawPointer<T>`;
 }
 
 export class UnionConstraint extends TypeConstraint {
@@ -60,11 +109,16 @@ export class UnionConstraint extends TypeConstraint {
             u = [...other.t];
         } else if(other instanceof ExactConstraint) {
             u = [other.t];
+        } else if(other instanceof AllConstraint) {
+            return this;
+        } else if(other instanceof ReturnTypeConstraint) {
+            // TODO
+            return other;
         } else {
             throw new Error(`don't know how to intersect with ${other}`);
         }
 
-        u.filter(x => this.t.some(y => y.toString() == x.toString()));
+        u = u.filter(x => this.t.some(y => y.toString() == x.toString()));
         return new UnionConstraint(this.port, u);
     }
 }
@@ -83,6 +137,14 @@ export class ExactConstraint extends TypeConstraint {
             match = other.t.some(x => x.toString() == this.t.toString());
         } else if(other instanceof ExactConstraint) {
             match = other.t.toString() == this.t.toString();
+        } else if(other instanceof AnyClassConstraint) {
+            match = this.t instanceof ClassType;
+        } else if(other instanceof AnyFunctionConstraint) {
+            match = this.t instanceof FunctionType;
+        } else if(other instanceof AnyRawPointerConstraint) {
+            match = this.t instanceof RawPointerType;
+        } else if(other instanceof AllConstraint) {
+            match = true;
         } else {
             throw new Error(`don't know how to intersect with ${other}`);
         }
@@ -95,17 +157,38 @@ export class ExactConstraint extends TypeConstraint {
     }
 }
 
-export class FromScopeConstraint extends PortConstraint {
-    port: string;
+export class FromScopeConstraint extends TypeConstraint {
+    intersect(other: TypeConstraint): TypeConstraint {
+        throw new Error("Method not implemented.");
+    }
     scope_name: string;
     constructor(port: string, scope_name: string) {
-        super();
-        this.port = port;
+        super(port);
         this.scope_name = scope_name;
     }
 
     toString = () => `${this.port} <- typeof ${this.scope_name}`;
+}
+
+export class ReturnTypeConstraint extends TypeConstraint {
     intersect(other: TypeConstraint): TypeConstraint {
-        throw new Error(`don't call intersect directly on an FromScopeConstraint.`);
+        throw new Error("Method not implemented.");
     }
+    constructor(port: string) {
+        super(port);
+    }
+
+    toString = () => `${this.port} <- typeof return`;
+}
+
+export class OutgoingConstraint extends PortConstraint {
+    port: string;
+    sub: TypeConstraint;
+    constructor(port: string, sub: TypeConstraint) {
+        super();
+        this.port = port;
+        this.sub = sub;
+    }
+
+    toString = () => `(${this.sub}) -> ${this.port}`;
 }

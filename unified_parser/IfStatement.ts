@@ -1,8 +1,8 @@
 import { flattenBlock, IRBaseType, IRBlock, IRBranch, IRConditionalBranch, IRLabel, IRLabelStatement, IRLoad, IRPointerType, IRTemporary, isSynthesizable, Synthesizable } from "../generator/IR";
-import { ASTElement, VoidElement } from "./ASTElement";
+import { ASTElement } from "./ASTElement";
 import { CompoundStatement } from "./CompoundStatement";
 
-export class IfStatement extends VoidElement implements Synthesizable {
+export class IfStatement extends ASTElement implements Synthesizable {
     condition: ASTElement;
     body: CompoundStatement;
 

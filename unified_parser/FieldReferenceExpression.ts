@@ -1,5 +1,5 @@
 import { GEPStructStatement, IRBlock, IRLoad, IRPointerType, IRTemporary, isSynthesizable, Synthesizable } from "../generator/IR";
-import { GetType } from "../registry/TypeRegistry";
+import { AllConstraint, AnyClassConstraint, OutgoingConstraint } from "../typemath/Signature";
 import { ASTElement } from "./ASTElement";
 import { ClassType } from "./TypeObject";
 
@@ -9,21 +9,21 @@ export class FieldReferenceExpression extends ASTElement implements Synthesizabl
     field: string;
 
     constructor(parent: ASTElement, source: ASTElement, field: string) {
-        super(GetType("void"), parent);
-        if (source.value_type instanceof ClassType) {
-            this.value_type = source.value_type.source.fields.find(x => x.name == field).value_type;
-        } else {
-            console.error(source);
-            //throw new Error(`Attempted to construct FieldReferenceExpression of non-Class ${source.value_type}`);
-        }
+        super(parent);
         this.source = source;
         this.field = field;
+
+        this.signature.ports.add("value");
+        this.signature.ports.add("source");
+        this.signature.type_constraints.set("value", new AllConstraint("value"));
+        this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyClassConstraint("value")));
     }
 
     toString = () => `${this.source.toString()}.${this.field}`;
     index(): number {
-        if (this.source.value_type instanceof ClassType) {
-            return this.source.value_type.source.fields.findIndex(x => x.name == this.field);
+        const vt = this.source.singleValueType();
+        if (vt instanceof ClassType) {
+            return vt.source.fields.findIndex(x => x.name == this.field);
         }
         return -1;
     }
@@ -37,12 +37,12 @@ export class FieldReferenceExpression extends ASTElement implements Synthesizabl
         const temp2 = new IRTemporary();
         return this._ir_block = {
             output_location: {
-                type: new IRPointerType(this.value_type.toIR()),
+                type: new IRPointerType(this.computed_type.toIR()),
                 location: temp2
             },
             statements: [
                 new IRLoad({ type: (source_block.output_location.type as IRPointerType).sub, location: temp }, source_block.output_location),
-                new GEPStructStatement({ type: new IRPointerType(this.value_type.toIR()), location: temp2 }, { type: (source_block.output_location.type as IRPointerType).sub, location: temp }, this.index())
+                new GEPStructStatement({ type: new IRPointerType(this.computed_type.toIR()), location: temp2 }, { type: (source_block.output_location.type as IRPointerType).sub, location: temp }, this.index())
             ],
             sub_blocks: [source_block]
         };
