@@ -32,8 +32,8 @@ export class StringLiteralExpression extends ASTElement implements Synthesizable
     constructor(parent: ASTElement, value: string) {
         super(parent);
         this.value = value;
-        this.signature.ports.add("value");
-        this.signature.type_constraints.set("value", new ExactConstraint("value", new RawPointerType(GetType("i8"))));
+        // this.signature.ports.add("value");
+        // this.signature.type_constraints.set("value", new ExactConstraint("value", new RawPointerType(GetType("i8"))));
         StaticVariableRegistry.set(this.guid, {
             type: new RawPointerType(new BaseType("i8")),
             initializer: new StringInitializer(this.value, this.guid)

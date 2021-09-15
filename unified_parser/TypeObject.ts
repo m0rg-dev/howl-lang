@@ -24,20 +24,27 @@ export class TypeBox extends TypeObject {
         super();
         this.sub = sub;
     }
-    toString = () => this.sub.toString();
+    toString = () => `${this.sub}`;
     toIR = () => this.sub.toIR();
+    asResolvedTemplate(): TypeObject {
+        if (this.sub instanceof TemplateType) return this.sub.resolution;
+    }
+}
+
+export function isBoxedTemplate(t: TypeObject): t is TypeBox {
+    return t instanceof TypeBox && t.sub instanceof TemplateType;
 }
 
 export class TemplateType extends TypeObject {
     name: string;
+    resolution: TypeObject;
     constructor(name: string) {
         super();
         this.name = name;
     }
-    toString = () => `:${this.name}`;
-    toIR = () => { /* throw new Error("can't IR a TemplateType, check your type propagation") */ return `%TEMPLATE<${this.name}>`; }
+    toString = () => this.resolution ? this.resolution.toString() : `:${this.name}`;
+    toIR = () => this.resolution ? this.resolution.toIR() : `%TEMPLATE:${this.name}`;
 }
-
 
 export class BaseType extends TypeObject {
     name: string;
@@ -72,6 +79,17 @@ export class UnionType extends TypeObject {
     walk() { }
     toString = () => `${this.subtypes.join(" | ")}`;
     toIR = () => `%UNION`;
+}
+
+export class TupleType extends TypeObject {
+    subtypes: TypeObject[];
+    constructor(subtypes: TypeObject[]) {
+        super();
+        this.subtypes = subtypes;
+    }
+    walk() { }
+    toString = () => `(${this.subtypes.join(", ")})`;
+    toIR = () => `%TUPLE`;
 }
 
 export class AnyType extends TypeObject {

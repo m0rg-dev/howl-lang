@@ -1,6 +1,7 @@
 import { flattenBlock, IRAlloca, IRBlock, IRLabel, IRLabelStatement, IRNamedIdentifier, IRPointerType, IRStatement, isSynthesizable, Synthesizable } from "../generator/IR";
 import { Token } from "../lexer/Token";
 import { FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
+import { ExactConstraint } from "../typemath/Signature";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
 import { IfStatement } from "./IfStatement";
 import { Assert, First, InOrder, Invert, Literal, Star } from "./Matcher";
@@ -33,7 +34,7 @@ export class CompoundStatement extends ASTElement implements Synthesizable {
         this.source = ApplyPass(this, this.source, ExpressionPass);
 
         this.source.filter(x => x instanceof LocalDefinition).forEach(x => {
-            this.scope.locals.set((x as LocalDefinition).name, (x as LocalDefinition).local_type);
+            this.scope.locals.set((x as LocalDefinition).name, new ExactConstraint((x as LocalDefinition).local_type));
         });
 
         this.source.forEach((x, y) => {
@@ -80,6 +81,7 @@ export class CompoundStatement extends ASTElement implements Synthesizable {
             ]
         });
         this.substatements = this.source.filter(x => isAstElement(x)) as ASTElement[];
+        this.source = [];
         return this;
     }
     toString = () => `CompoundStatement`;
@@ -91,9 +93,11 @@ export class CompoundStatement extends ASTElement implements Synthesizable {
             new IRLabelStatement(this.label)
         ];
 
-        this.scope.locals.forEach((x, y) => {
-            statements.push(new IRAlloca({ type: new IRPointerType(x.toIR()), location: new IRNamedIdentifier(`%${y}`) }));
-        })
+        throw new Error("you didn't fix this part yet");
+
+        // this.scope.locals.forEach((x, y) => {
+        //     statements.push(new IRAlloca({ type: new IRPointerType(x.toIR()), location: new IRNamedIdentifier(`%${y}`) }));
+        // })
 
         this.substatements.forEach(x => {
             if (!isSynthesizable(x)) return;

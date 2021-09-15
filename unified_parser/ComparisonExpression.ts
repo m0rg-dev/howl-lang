@@ -14,11 +14,11 @@ export class ComparisonExpression extends ASTElement implements Synthesizable {
         this.lhs = lhs;
         this.rhs = rhs;
 
-        this.signature.ports.add("lhs");
-        this.signature.ports.add("rhs");
-        this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "rhs"));
-        this.signature.ports.add("value");
-        this.signature.type_constraints.set("value", new ExactConstraint("value", GetType("bool")));
+        // this.signature.ports.add("lhs");
+        // this.signature.ports.add("rhs");
+        // this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "rhs"));
+        // this.signature.ports.add("value");
+        // this.signature.type_constraints.set("value", new ExactConstraint("value", GetType("bool")));
     }
 
     toString = () => `${this.lhs} ${this.comp_type} ${this.rhs}`;

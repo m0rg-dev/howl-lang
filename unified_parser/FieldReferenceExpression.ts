@@ -13,10 +13,10 @@ export class FieldReferenceExpression extends ASTElement implements Synthesizabl
         this.source = source;
         this.field = field;
 
-        this.signature.ports.add("value");
-        this.signature.ports.add("source");
-        this.signature.type_constraints.set("value", new AllConstraint("value"));
-        this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyClassConstraint("value")));
+        // this.signature.ports.add("value");
+        // this.signature.ports.add("source");
+        // this.signature.type_constraints.set("value", new AllConstraint("value"));
+        // this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyClassConstraint("value")));
     }
 
     toString = () => `${this.source.toString()}.${this.field}`;

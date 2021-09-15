@@ -1,30 +1,14 @@
+import { ASTElement } from "../unified_parser/ASTElement";
 import { ClassType, FunctionType, RawPointerType, TypeObject } from "../unified_parser/TypeObject";
 
 export abstract class TypeConstraint {
-    port: string;
-    constructor(port: string) {
-        this.port = port;
-    }
     abstract toString(): string;
     abstract intersect(other: TypeConstraint): TypeConstraint
+    canIntersect(): boolean { return true; }
 };
 
 export abstract class PortConstraint {
     abstract toString(): string;
-};
-
-export class Signature {
-    ports: Set<string> = new Set();
-    type_constraints: Map<string, TypeConstraint> = new Map();
-    port_constraints: PortConstraint[] = [];
-
-    toString(): string {
-        let parts: string[] = [];
-        this.ports.forEach((v, k) => parts.push(k));
-        this.type_constraints.forEach(x => parts.push(x.toString()));
-        this.port_constraints.forEach(x => parts.push(x.toString()));
-        return `<${parts.join(", ")}>`;
-    }
 };
 
 export class PortIntersectionConstraint extends PortConstraint {
@@ -42,7 +26,7 @@ export class PortIntersectionConstraint extends PortConstraint {
 export class EmptyConstraint extends TypeConstraint {
     toString = () => `<empty>`;
     intersect(other: TypeConstraint) {
-        return new EmptyConstraint(this.port);
+        return new EmptyConstraint();
     }
 }
 
@@ -97,8 +81,8 @@ export class AnyRawPointerConstraint extends TypeConstraint {
 
 export class UnionConstraint extends TypeConstraint {
     t: TypeObject[];
-    constructor(port: string, t: TypeObject[]) {
-        super(port);
+    constructor(t: TypeObject[]) {
+        super();
         this.t = t;
     }
 
@@ -119,14 +103,14 @@ export class UnionConstraint extends TypeConstraint {
         }
 
         u = u.filter(x => this.t.some(y => y.toString() == x.toString()));
-        return new UnionConstraint(this.port, u);
+        return new UnionConstraint(u);
     }
 }
 
 export class ExactConstraint extends TypeConstraint {
     t: TypeObject;
-    constructor(port: string, t: TypeObject) {
-        super(port);
+    constructor(t: TypeObject) {
+        super();
         this.t = t;
     }
 
@@ -149,13 +133,13 @@ export class ExactConstraint extends TypeConstraint {
         } else if (other instanceof AllConstraint) {
             match = true;
         } else {
-            throw new Error(`don't know how to intersect with ${other}`);
+            throw new Error(`don't know how to intersect ${this} with ${other}`);
         }
 
         if (match) {
             return this;
         } else {
-            return new EmptyConstraint(this.port);
+            return new EmptyConstraint();
         }
     }
 }
@@ -164,10 +148,14 @@ export class FromScopeConstraint extends TypeConstraint {
     intersect(other: TypeConstraint): TypeConstraint {
         throw new Error("Method not implemented.");
     }
+    canIntersect = () => false;
+
     scope_name: string;
-    constructor(port: string, scope_name: string) {
-        super(port);
+    scope: ASTElement;
+    constructor(scope_name: string, scope: ASTElement) {
+        super();
         this.scope_name = scope_name;
+        this.scope = scope;
     }
 
     toString = () => `typeof ${this.scope_name}`;
@@ -177,11 +165,30 @@ export class ReturnTypeConstraint extends TypeConstraint {
     intersect(other: TypeConstraint): TypeConstraint {
         throw new Error("Method not implemented.");
     }
-    constructor(port: string) {
-        super(port);
-    }
+    canIntersect = () => false;
 
+    scope: ASTElement;
+    constructor(scope: ASTElement) {
+        super();
+        this.scope = scope;
+    }
     toString = () => `typeof return`;
+}
+
+export class FieldReferenceConstraint extends TypeConstraint {
+    intersect(other: TypeConstraint): TypeConstraint {
+        throw new Error("Method not implemented.");
+    }
+    canIntersect = () => false;
+
+    source: TypeObject;
+    field_name: string;
+    constructor(source: TypeObject, field_name: string) {
+        super();
+        this.source = source;
+        this.field_name = field_name;
+    }
+    toString = () => `typeof ${this.source}.${this.field_name}`;
 }
 
 export class OutgoingConstraint extends PortConstraint {

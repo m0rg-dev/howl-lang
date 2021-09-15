@@ -2,22 +2,11 @@ module Test2;
 
 class Foo<T> {
     T value;
-
-    fn T get_value() {
-        return self.value;
-    }
-
-    fn void set_value(T v) {
-        self.value = v;
-        return;
-    }
 }
 
 static fn i32 main() {
     let obj Foo;
     let val i32;
-    obj = new Foo;
-    val = 42;
-    obj.set_value(val);
-    return obj.get_value();
+    obj.value = val;
+    return 0;
 }

@@ -1,5 +1,5 @@
 import { flattenBlock, IRAlloca, IRBlock, IRNamedIdentifier, IRPointerType, IRSomethingElse, IRStatement, IRStore, Synthesizable } from "../generator/IR";
-import { ExactConstraint, TypeConstraint } from "../typemath/Signature";
+import { ExactConstraint, PortConstraint, PortIntersectionConstraint, TypeConstraint } from "../typemath/Signature";
 import { Specifiable } from "../typemath/Specifiable";
 import { ASTElement } from "./ASTElement";
 import { CompoundStatement } from "./CompoundStatement";
@@ -16,15 +16,15 @@ export class FunctionConstruct extends ASTElement implements Synthesizable, Spec
         super(parent);
         this.name = name;
         this.hasOwnScope = true;
-        args.forEach(x => this.scope.locals.set(x.name, x.field_type));
+        args.forEach(x => this.scope.locals.set(x.name, new ExactConstraint(x.field_type)));
         this.args = args;
         this.return_type = rc;
         this.function_is_static = function_is_static;
 
-        this.signature.ports.add("value");
-        this.signature.type_constraints.set("value", new ExactConstraint("value", new FunctionType(
-            rc, args.map(x => x.field_type)
-        )));
+        // this.signature.ports.add("value");
+        // this.signature.type_constraints.set("value", new ExactConstraint("value", new FunctionType(
+        //     rc, args.map(x => x.field_type)
+        // )));
     }
 
     as_type(): FunctionType {
@@ -67,18 +67,41 @@ export class FunctionConstruct extends ASTElement implements Synthesizable, Spec
         }
     }
 
+    getReturnType(): ExactConstraint {
+        return new ExactConstraint(this.return_type);
+    }
+
     generics: Map<string, TypeConstraint> = new Map();
     generic_targets: Map<string, TypeBox> = new Map();
+    bounds: PortConstraint[] = [];
+    cctr = 0;
     addConstraint(port: string, constraint: TypeConstraint) {
         if (this.generics.has(port)) {
             this.generics.set(port, this.generics.get(port).intersect(constraint));
         } else {
             this.generics.set(port, constraint);
             this.generic_targets.set(port, new TypeBox(new TemplateType(port)));
+            console.error(`[ new port: ${port} = ${constraint} ]`);
         }
     }
+    replaceConstraint(port: string, constraint: TypeConstraint) {
+        this.generics.set(port, constraint);
+    }
     getConstraint(port: string) { return this.generics.get(port); }
+    removeConstraint(port: string) { this.generics.delete(port); }
     getTarget(port: string) { return this.generic_targets.get(port); }
     getAllPorts() { return Array.from(this.generics.keys()); }
-    nextConstraintName(): string { return `T${this.generics.size}`; }
+    addBound(bound: PortConstraint) { this.bounds.push(bound); }
+    getAllBounds() { return this.bounds; }
+    nextConstraintName(): string { return `T${this.cctr++}`; }
+    merge(into: string, from: string) {
+        this.generics.delete(from);
+        this.generic_targets.get(from).sub = this.generic_targets.get(into).sub;
+        this.bounds.forEach(x => {
+            if(x instanceof PortIntersectionConstraint) {
+                if(x.p0 == from) x.p0 = into;
+                if(x.p1 == from) x.p1 = into;
+            }
+        })
+    }
 }

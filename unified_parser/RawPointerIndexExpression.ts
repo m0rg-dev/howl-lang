@@ -13,11 +13,11 @@ export class RawPointerIndexExpression extends ASTElement implements Synthesizab
         this.source = source;
         this.index = index;
 
-        this.signature.ports.add("value");
-        this.signature.ports.add("source");
+        // this.signature.ports.add("value");
+        // this.signature.ports.add("source");
 
-        this.signature.type_constraints.set("value", new AllConstraint("value"));
-        this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyRawPointerConstraint("value")));
+        // this.signature.type_constraints.set("value", new AllConstraint("value"));
+        // this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyRawPointerConstraint("value")));
     }
 
     toString = () => `${this.source}*[${this.index}]`;

@@ -10,8 +10,8 @@ export class UnaryReturnExpression extends ASTElement implements Synthesizable {
         super(parent);
         this.source = source;
 
-        this.signature.ports.add("source");
-        this.signature.port_constraints.push(new OutgoingConstraint("source", new ReturnTypeConstraint("value")));
+        // this.signature.ports.add("source");
+        // this.signature.port_constraints.push(new OutgoingConstraint("source", new ReturnTypeConstraint("value")));
     }
 
     toString = () => `return ${this.source.toString()}`;

@@ -1,43 +1,231 @@
-import { ExactConstraint, FromScopeConstraint, OutgoingConstraint, PortIntersectionConstraint, ReturnTypeConstraint, UnionConstraint } from "../typemath/Signature";
+import { AllConstraint, ExactConstraint, FieldReferenceConstraint, FromScopeConstraint, PortIntersectionConstraint, ReturnTypeConstraint, TypeConstraint } from "../typemath/Signature";
+import { Specifiable } from "../typemath/Specifiable";
+import { AssignmentExpression } from "../unified_parser/AssignmentExpression";
 import { ASTElement } from "../unified_parser/ASTElement";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
-import { FunctionCallExpression } from "../unified_parser/FunctionCallExpression";
-import { NumericLiteralExpression } from "../unified_parser/NumericLiteralExpression";
-import { TypeLiteral } from "../unified_parser/Parser";
-import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
-import { StringLiteralExpression } from "../unified_parser/StringLiteralExpression";
-import { ClassType, FunctionType, RawPointerType } from "../unified_parser/TypeObject";
-import { VariableReferenceExpression } from "../unified_parser/VariableReferenceExpression";
-import { FixHierarchy, Transformer } from "./Transformer";
+import { ClassType, TemplateType, TupleType, TypeBox } from "../unified_parser/TypeObject";
+import { UnaryReturnExpression } from "../unified_parser/UnaryReturnExpression";
+import { Transformer } from "./Transformer";
 
-export const Infer: Transformer = (element: ASTElement, replace: (_: any) => void) => {
-    let rc = false;
-    rc ||= LiftConstraints(element, replace);
-    
-    // rc ||= WrapStringConstants(element, replace);
-    // rc ||= ImportLocals(element, replace);
-    // rc ||= ApplyPortIntersections(element, replace);
-    // rc ||= ExportOutgoing(element, replace);
-    // rc ||= ReferenceFields(element, replace);
-    // rc ||= IndexRawPointers(element, replace);
-    // rc ||= PropagateFunctionType(element, replace);
-    // rc ||= AddSelfToMethodCalls(element, replace);
-    // rc ||= ConvertStaticReferences(element, replace);
-    // rc ||= IndirectMethodReferences(element, replace);
-    // rc ||= CollapseSingleValuedUnions(element, replace);
-    return rc;
+function importConstraint(c: TypeConstraint, temp: Specifiable): string {
+    const n = temp.nextConstraintName();
+    if (c instanceof ExactConstraint && c.t instanceof ClassType) {
+        const t = c.t.source.generic_fields.map(x => {
+            const n2 = temp.nextConstraintName();
+            temp.addConstraint(n2, new AllConstraint());
+            return temp.getTarget(n2);
+        });
+        const n3 = temp.nextConstraintName();
+        temp.addConstraint(n3, c);
+        const tuple = new TupleType([temp.getTarget(n3), ...t]);
+        temp.addConstraint(n, new ExactConstraint(tuple));
+    } else {
+        temp.addConstraint(n, c);
+    }
+    return n;
 }
 
 export const LiftConstraints: Transformer = (element: ASTElement) => {
-    let rc = false;
-    element.signature.type_constraints.forEach((x, y) => {
+    const temp = element.mostLocalTemplate();
+
+    if (element.hasOwnScope) {
+        element.scope.locals.forEach((v, k) => {
+            element.scope.locals.set(k, new ExactConstraint(temp.getTarget(importConstraint(v, temp))));
+        });
+    }
+
+    if (!element.value_constraint) return;
+    if (element.computed_type) return;
+    if (!temp) return;
+    element.computed_type = temp.getTarget(importConstraint(element.value_constraint, temp));
+
+    return true;
+}
+
+export const LiftBounds: Transformer = (element: ASTElement) => {
+    if (element instanceof AssignmentExpression) {
+        const t0 = (element.lhs.computed_type as TypeBox)?.sub as TemplateType;
+        const t1 = (element.rhs.computed_type as TypeBox)?.sub as TemplateType;
+        if (!t0 || !t1) return;
+
         const temp = element.mostLocalTemplate();
         if (!temp) return;
+
+        console.error(`[LiftBounds] ${t0} x ${t1}`);
+        temp.addBound(new PortIntersectionConstraint(
+            t0.name,
+            t1.name
+        ));
+    }
+    return true;
+}
+
+export const LiftReturns: Transformer = (element: ASTElement) => {
+    if (element instanceof UnaryReturnExpression) {
+        const t = (element.source.computed_type as TypeBox)?.sub as TemplateType;
+        const temp = element.mostLocalTemplate();
+        if (!temp) return;
+        console.error(`[LiftReturns] ${t}`);
         const n = temp.nextConstraintName();
-        temp.addConstraint(n, x);
+        temp.addConstraint(n, new ReturnTypeConstraint(element));
+        temp.addBound(new PortIntersectionConstraint(n, t.name));
+    }
+    return true;
+}
+
+export const LiftFieldReferences: Transformer = (element: ASTElement) => {
+    if (element instanceof FieldReferenceExpression) {
+        const t = (element.source.computed_type as TypeBox)?.sub as TemplateType;
+        const temp = element.mostLocalTemplate();
+        if (!temp) return;
+        console.error(`[LiftFieldReferences] ${t}.${element.field}`);
+        const n = temp.nextConstraintName();
+        temp.addConstraint(n, new FieldReferenceConstraint(element.source.computed_type, element.field));
         element.computed_type = temp.getTarget(n);
-        element.signature.type_constraints.delete(y);
-        rc = true;
+    }
+    return true;
+}
+
+export function Infer(source: ASTElement & Specifiable): boolean {
+    let rc = false;
+    rc ||= ImportLocals(source);
+    rc ||= DestructureTupleIntersections(source);
+    rc ||= ReferenceFields(source);
+    rc ||= Propagate(source);
+    rc ||= ApplyIntersections(source);
+    rc ||= FreezeTypes(source);
+    return rc;
+}
+
+function ImportLocals(source: ASTElement & Specifiable): boolean {
+    let rc = false;
+    source.getAllPorts().forEach(x => {
+        const c = source.getConstraint(x);
+        if (c instanceof FromScopeConstraint) {
+            const t = c.scope.findName(c.scope_name);
+            source.replaceConstraint(x, t);
+            console.error(`[ImportLocals] ${source}: ${x} => ${t}`);
+            rc = true;
+        } else if (c instanceof ReturnTypeConstraint) {
+            const t = c.scope.getReturnType();
+            source.replaceConstraint(x, t);
+            console.error(`[ImportLocals] ${source}: ${x} => ${t}`);
+            rc = true;
+        }
+    });
+    return rc;
+}
+
+function DestructureTupleIntersections(source: ASTElement & Specifiable): boolean {
+    let rc = false;
+    const b = source.getAllBounds();
+    b.forEach((x, y) => {
+        if (x instanceof PortIntersectionConstraint) {
+            const con0 = source.getConstraint(x.p0);
+            const con1 = source.getConstraint(x.p1);
+            if (!con0 || !con1) return;
+            if (!(con0 instanceof ExactConstraint) || !(con1 instanceof ExactConstraint)) return;
+            if (!(con0.t instanceof TupleType) || !(con1.t instanceof TupleType)) return;
+
+            console.error(`[DestructureTupleIntersections] ${x} (${con0}, ${con1})`);
+            b.splice(y, 1);
+
+            con0.t.subtypes.forEach((x, y) => {
+                source.addBound(new PortIntersectionConstraint(
+                    ((x as TypeBox).sub as TemplateType).name,
+                    (((con1.t as TupleType).subtypes[y] as TypeBox).sub as TemplateType).name,
+                ));
+            });
+
+            rc = true;
+        }
+    });
+    return rc;
+}
+
+function ApplyIntersections(source: ASTElement & Specifiable): boolean {
+    let rc = false;
+    const b = source.getAllBounds();
+    b.forEach((x, y) => {
+        if (x instanceof PortIntersectionConstraint) {
+            const con0 = source.getConstraint(x.p0);
+            const con1 = source.getConstraint(x.p1);
+            if (!con0 || !con1) {
+                console.error(`[ApplyIntersections] Removing ${x} (${con0} ${con1})`);
+                b.splice(y, 1);
+                return;
+            }
+            if (!con0.canIntersect() || !con1.canIntersect()) return;
+            b.splice(y, 1);
+
+            const int = con0.intersect(con1);
+
+            console.error(`[ApplyIntersections] ${x} (${con0}, ${con1}) => ${int}`);
+
+            source.replaceConstraint(x.p0, int);
+            source.merge(x.p0, x.p1);
+            rc = true;
+        }
+    })
+    return rc;
+}
+
+function ReferenceFields(source: ASTElement & Specifiable): boolean {
+    let rc = false;
+    source.getAllPorts().forEach(x => {
+        const c = source.getConstraint(x);
+        if (c instanceof FieldReferenceConstraint
+            && c.source instanceof TypeBox
+            && c.source.sub instanceof TemplateType) {
+            const t = source.getConstraint(c.source.sub.name);
+            if (!(t instanceof ExactConstraint
+                && t.t instanceof TupleType)) return;
+            const tuple = t.t;
+            if (tuple.subtypes[0] instanceof TypeBox
+                && tuple.subtypes[0].sub instanceof TemplateType) {
+                const t2 = source.getConstraint(tuple.subtypes[0].sub.name);
+                if(!(t2 instanceof ExactConstraint && t2.t instanceof ClassType)) return;
+                const n = new ExactConstraint(t2.t.source.fieldType(c.field_name, tuple.subtypes.slice(1)));
+                console.error(`[ReferenceFields] ${c} ${x} ${c.field_name} => ${n}`);
+                source.replaceConstraint(x, n);
+                rc = true;
+            }
+        }
+    });
+    return rc;
+}
+
+function Propagate(source: ASTElement & Specifiable): boolean {
+    let rc = false;
+    source.getAllPorts().forEach(x => {
+        const t = source.getTarget(x);
+        if (t.sub instanceof TemplateType) {
+            const n = source.getConstraint(t.sub.name);
+            if (n instanceof ExactConstraint
+                && n.t instanceof TypeBox
+                && n.t.sub instanceof TemplateType) {
+                console.error(`[Propagate] ${t} => ${n}`);
+                source.merge(n.t.sub.name, x);
+                rc = true;
+            }
+        }
+    });
+    return rc;
+}
+
+export function FreezeTypes(source: ASTElement & Specifiable): boolean {
+    let rc = false;
+    source.getAllPorts().forEach(x => {
+        const t = source.getTarget(x);
+        if (t.sub instanceof TemplateType) {
+            const c = source.getConstraint(t.sub.name);
+            if (c instanceof ExactConstraint) {
+                t.sub.resolution = c.t;
+                console.error(`[FreezeTypes] ${x} => ${c.t}`);
+                source.removeConstraint(x);
+                rc = true;
+            }
+        }
     });
     return rc;
 }

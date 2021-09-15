@@ -2,10 +2,10 @@ import { randomUUID } from "crypto";
 import { Token } from "../lexer/Token";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
 import { Transformer } from "../transformers/Transformer";
-import { ExactConstraint, Signature } from "../typemath/Signature";
+import { ExactConstraint, TypeConstraint } from "../typemath/Signature";
 import { isSpecifiable, Specifiable } from "../typemath/Specifiable";
 import { Scope } from "./Scope";
-import { FunctionType, TypeObject } from "./TypeObject";
+import { TypeObject } from "./TypeObject";
 
 export type TokenStream = (Token | ASTElement)[];
 
@@ -17,7 +17,7 @@ export abstract class ASTElement {
     hasOwnScope = false;
     computed_type: TypeObject;
 
-    signature: Signature = new Signature();
+    value_constraint: TypeConstraint;
 
     constructor(parent: ASTElement) {
         this.guid = randomUUID().replace(/-/g, "_");
@@ -52,22 +52,22 @@ export abstract class ASTElement {
     }
 
     mostLocalTemplate(): Specifiable {
-        if(isSpecifiable(this)) return this;
+        if (isSpecifiable(this)) return this;
         return this.parent?.mostLocalTemplate();
     }
 
     findPortOwner(name: string): Specifiable {
-        if(isSpecifiable(this) && this.getConstraint(name)) return this;
+        if (isSpecifiable(this) && this.getConstraint(name)) return this;
         return this.parent?.findPortOwner(name);
     }
 
-    findName(name: string): TypeObject | undefined {
+    findName(name: string): TypeConstraint | undefined {
         if (this.scope.locals.has(name)) return this.scope.locals.get(name);
         if (this.parent) return this.parent.findName(name);
-        if (StaticVariableRegistry.has(name)) return StaticVariableRegistry.get(name).type;
+        if (StaticVariableRegistry.has(name)) return new ExactConstraint(StaticVariableRegistry.get(name).type);
         if (StaticFunctionRegistry.has(name)) {
             const fn = StaticFunctionRegistry.get(name);
-            return fn.as_type();
+            return new ExactConstraint(fn.as_type());
         }
         return undefined;
     }
@@ -80,18 +80,13 @@ export abstract class ASTElement {
         return false;
     }
 
-    getReturnType(): TypeObject | undefined {
-        if (this.singleValueType() instanceof FunctionType) return (this.singleValueType() as FunctionType).rc;
+    getReturnType(): ExactConstraint | undefined {
         if (this.parent) return this.parent.getReturnType();
         return undefined;
     }
 
     singleValueType(): TypeObject | undefined {
-        if (this.computed_type) return this.computed_type;
-        if (this.signature.type_constraints.has("value")
-            && this.signature.type_constraints.get("value") instanceof ExactConstraint) {
-            return (this.signature.type_constraints.get("value") as ExactConstraint).t;
-        }
+        return this.computed_type;
     }
 }
 

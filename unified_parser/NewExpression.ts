@@ -12,8 +12,9 @@ export class NewExpression extends ASTElement implements Synthesizable {
         super(parent);
         this.field_type = type;
 
-        this.signature.ports.add("value");
-        this.signature.type_constraints.set("value", new ExactConstraint("value", type));
+        // this.signature.ports.add("value");
+        // this.signature.type_constraints.set("value", new ExactConstraint("value", type));
+        this.value_constraint = new ExactConstraint(type);
     }
     toString = () => `new ${this.field_type.toString()}`;
     _ir_block: IRBlock;

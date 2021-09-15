@@ -6,7 +6,7 @@ import { TokenType } from "../lexer/TokenType";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
 import { GetType, init_types, IsType, TypeRegistry } from "../registry/TypeRegistry";
 import { ApplyToAll, FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
-import { LiftConstraints } from "../transformers/TypeInference";
+import { FreezeTypes, Infer, LiftBounds, LiftConstraints, LiftFieldReferences, LiftReturns } from "../transformers/TypeInference";
 import { ArithmeticExpression } from "./ArithmeticExpression";
 import { AssignmentExpression } from "./AssignmentExpression";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
@@ -84,20 +84,23 @@ export function Parse(token_stream: Token[]) {
     AddStandardLibraryReferences();
     ApplyToAll(ReferenceLocals);
 
-    GenerateStaticTables();
-    GenerateInitializers();
-
-    // let did_apply = true;
-    // while (did_apply) {
-    //     did_apply = false;
-    //     did_apply ||= ApplyToAll(Infer);
-    // }
+    // GenerateStaticTables();
+    // GenerateInitializers();
 
     ApplyToAll(LiftConstraints);
+    ApplyToAll(LiftReturns);
+    ApplyToAll(LiftFieldReferences);
+    ApplyToAll(LiftBounds);
 
-    // if (!process.env["SKIP_PHASE"]?.includes("FreezeTypes")) ApplyToAll(FreezeTypes);
+    let did_apply = true;
+    while (did_apply) {
+        did_apply = false;
+        for (const [name, func] of StaticFunctionRegistry) {
+            did_apply ||= Infer(func);
+        }
+    }
 
-    RemoveClassMethods();
+    // RemoveClassMethods();
 }
 
 export function ApplyPass(parent: ASTElement, stream: TokenStream, pass: Pass): TokenStream {

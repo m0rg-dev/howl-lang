@@ -14,12 +14,12 @@ export class ArithmeticExpression extends ASTElement implements Synthesizable {
         this.lhs = lhs;
         this.rhs = rhs;
 
-        this.signature.ports.add("lhs");
-        this.signature.ports.add("rhs");
-        this.signature.ports.add("value");
-        this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "rhs"));
-        this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "value"));
-        this.signature.type_constraints.set("value", new AllConstraint("value"));
+        // this.signature.ports.add("lhs");
+        // this.signature.ports.add("rhs");
+        // this.signature.ports.add("value");
+        // this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "rhs"));
+        // this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "value"));
+        // this.signature.type_constraints.set("value", new AllConstraint("value"));
     }
 
     toString = () => `${this.lhs} ${this.op} ${this.rhs}`;

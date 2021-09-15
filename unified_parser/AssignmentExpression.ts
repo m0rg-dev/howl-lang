@@ -10,9 +10,9 @@ export class AssignmentExpression extends ASTElement implements Synthesizable {
         this.lhs = lhs;
         this.rhs = rhs;
 
-        this.signature.ports.add("lhs");
-        this.signature.ports.add("rhs");
-        this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "rhs"));
+        // this.signature.ports.add("lhs");
+        // this.signature.ports.add("rhs");
+        // this.signature.port_constraints.push(new PortIntersectionConstraint("lhs", "rhs"));
     }
 
     toString = () => `${this.lhs.toString()} = ${this.rhs.toString()}`;

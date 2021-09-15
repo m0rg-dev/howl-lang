@@ -3,11 +3,12 @@ import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { DeregisterType, GetType, RegisterType, TypeRegistry } from "../registry/TypeRegistry";
 import { FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
+import { ExactConstraint } from "../typemath/Signature";
 import { ASTElement, TokenStream } from "./ASTElement";
 import { FunctionConstruct } from "./FunctionConstruct";
 import { Assert, InOrder, Literal, Optional } from "./Matcher";
 import { ApplyPass, ArgumentDefinition, Braces, BracesWithAngle, ClassField, ConvertTypes, MatchFunctionDefinitions, NameExpression, ParseError, Pass, TypeLiteral } from "./Parser";
-import { ClassType, TemplateType } from "./TypeObject";
+import { ClassType, TemplateType, TypeObject } from "./TypeObject";
 
 
 export class PartialClassConstruct extends ASTElement {
@@ -54,7 +55,7 @@ export class PartialClassConstruct extends ASTElement {
             } else if (item instanceof FunctionConstruct) {
                 if (!item.function_is_static) {
                     item.args.unshift(new ArgumentDefinition(this.parent, "self", GetType(this.name)));
-                    item.scope.locals.set("self", GetType(this.name));
+                    item.scope.locals.set("self", new ExactConstraint(GetType(this.name)));
                     item.walk(FixHierarchy, () => { }, this);
                     item.walk(ReferenceLocals, (n: ASTElement) => { });
                 }
@@ -89,6 +90,16 @@ export class ClassConstruct extends ASTElement implements Synthesizable {
     }
     toString = () => `Class<${this.generic_fields.join(", ")}>(${this.name})`;
     stableType = () => TypeRegistry.get(`__${this.name}_stable_t`) as ClassType;
+
+    fieldType(field_name: string, generic_map: TypeObject[]): TypeObject {
+        const t = this.fields.find(x => x.name == field_name).field_type;
+        if(t instanceof TemplateType) {
+            const idx = this.generic_fields.findIndex(x => t.name == x);
+            return generic_map[idx];
+        } else {
+            return t;
+        }
+    }
 
     synthesize(): IRBlock {
         return {

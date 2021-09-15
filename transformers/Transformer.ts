@@ -72,15 +72,15 @@ export const SpecifyStatements: Transformer = (element: ASTElement, replace: (n:
     }
 }
 
-export const PropagateLocalDefinitions: Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent: ASTElement) => {
-    if (element instanceof SimpleStatement
-        && element.source[0] instanceof LocalDefinition
-        && parent.scope) {
-        parent.scope.locals.set(element.source[0].name, element.source[0].local_type);
-        replace(new ElidedElement(element.parent));
-        return true;
-    }
-}
+// export const PropagateLocalDefinitions: Transformer = (element: ASTElement, replace: (n: ASTElement) => void, parent: ASTElement) => {
+//     if (element instanceof SimpleStatement
+//         && element.source[0] instanceof LocalDefinition
+//         && parent.scope) {
+//         parent.scope.locals.set(element.source[0].name, element.source[0].local_type);
+//         replace(new ElidedElement(element.parent));
+//         return true;
+//     }
+// }
 
 export const ReferenceLocals: Transformer = (element: ASTElement, replace: (n: ASTElement) => void) => {
     if (element instanceof NameExpression) {

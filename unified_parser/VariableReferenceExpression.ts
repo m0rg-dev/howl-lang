@@ -13,8 +13,7 @@ export class VariableReferenceExpression extends ASTElement implements Synthesiz
         console.error(`[VRE CONSTRUCTOR] ${this.guid}`);
         this.name = name;
 
-        this.signature.ports.add("value");
-        this.signature.type_constraints.set("value", new FromScopeConstraint("value", name));
+        this.value_constraint = new FromScopeConstraint(name, parent);
     }
 
     toString = () => `var ${this.name}`;

@@ -9,12 +9,11 @@ export class NumericLiteralExpression extends ASTElement implements Synthesizabl
         super(parent);
         this.value = value;
 
-        this.signature.ports.add("value");
-        this.signature.type_constraints.set("value", new UnionConstraint("value", [
+        this.value_constraint = new UnionConstraint([
             GetType("i64"),
             GetType("i32"),
             GetType("i8")
-        ]));
+        ]);
     }
     toString = () => `#${this.value}`;
 

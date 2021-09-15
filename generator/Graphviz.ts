@@ -68,15 +68,18 @@ export function PrintExpression(node: ASTElement): string {
     ];
 
     if (node.computed_type) {
-        entries.push({ name: "type", label: `computed type: ${node.computed_type}` });
-    } else if (node.signature.ports.size > 0) {
-        entries.push({ name: "signature", label: `signature: ${node.signature}` });
+        entries.push({ name: "type", label: `concrete type: ${node.computed_type}` });
+    } else if (node.value_constraint) {
+        entries.push({ name: "type", label: `type: ${node.value_constraint}` });
     }
 
     if (isSpecifiable(node)) {
         node.getAllPorts().forEach(x => {
             entries.push({ name: x, label: `${x} = ${node.getConstraint(x)}` });
-        })
+        });
+        node.getAllBounds().forEach(x => {
+            entries.push({ name: "bound", label: x.toString() });
+        });
     }
 
     if (node.hasOwnScope) {

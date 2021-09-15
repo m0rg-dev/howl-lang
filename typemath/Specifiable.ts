@@ -1,11 +1,16 @@
 import { TypeBox } from "../unified_parser/TypeObject";
-import { TypeConstraint } from "./Signature";
+import { PortConstraint, TypeConstraint } from "./Signature";
 
 export interface Specifiable {
     addConstraint(port: string, constraint: TypeConstraint): void;
+    replaceConstraint(port: string, constraint: TypeConstraint): void;
     getConstraint(port: string): TypeConstraint;
+    removeConstraint(port: string): void;
     getTarget(port: string): TypeBox;
+    merge(into: string, from: string): void;
     getAllPorts(): string[];
+    addBound(bound: PortConstraint): void;
+    getAllBounds(): PortConstraint[];
     nextConstraintName(): string;
 }
 

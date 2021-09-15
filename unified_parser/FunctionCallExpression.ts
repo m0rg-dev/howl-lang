@@ -14,11 +14,11 @@ export class FunctionCallExpression extends ASTElement implements Synthesizable 
         this.source = source;
         this.args = args;
 
-        this.signature.ports.add("value");
-        this.signature.ports.add("source");
+        // this.signature.ports.add("value");
+        // this.signature.ports.add("source");
 
-        this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyFunctionConstraint("value")));
-        this.signature.type_constraints.set("value", new AllConstraint("value"));
+        // this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyFunctionConstraint("value")));
+        // this.signature.type_constraints.set("value", new AllConstraint("value"));
     }
 
     toString = () => `${this.source.toString()}(${this.args.map(x => x.toString()).join(", ")})`;
