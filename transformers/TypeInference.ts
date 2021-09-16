@@ -1,22 +1,24 @@
 import { TypeRegistry } from "../registry/TypeRegistry";
-import { AllConstraint, ExactConstraint, FieldReferenceConstraint, FromScopeConstraint, PortIntersectionConstraint, ReturnTypeConstraint, TypeConstraint } from "../typemath/Signature";
+import { AllConstraint, AnyFunctionConstraint, ExactConstraint, FieldReferenceConstraint, FromScopeConstraint, PortIntersectionConstraint, ReturnTypeConstraint, TypeConstraint } from "../typemath/Signature";
 import { nextConstraintName, Specifiable } from "../typemath/Specifiable";
 import { AssignmentExpression } from "../unified_parser/AssignmentExpression";
 import { ASTElement } from "../unified_parser/ASTElement";
 import { ClassConstruct } from "../unified_parser/ClassConstruct";
 import { FieldReferenceExpression } from "../unified_parser/FieldReferenceExpression";
 import { FunctionConstruct } from "../unified_parser/FunctionConstruct";
-import { ClassType, TemplateType, TupleType } from "../unified_parser/TypeObject";
+import { ClassType, FunctionType, TemplateType, TupleType } from "../unified_parser/TypeObject";
 import { UnaryReturnExpression } from "../unified_parser/UnaryReturnExpression";
 import { AddSelfToMethodCalls, ReferenceLocals, Transformer } from "./Transformer";
 
 export function RunTypeInference(f: FunctionConstruct, shouldGenerateTypes = true) {
+    console.error(`[RunTypeInference] ${f.name}`);
     f.walk(ReferenceLocals, () => { });
     f.walk(LiftConstraints, () => { });
     f.walk(LiftReturns, () => { });
     f.walk(LiftFieldReferences, () => { });
     f.walk(LiftBounds, () => { });
 
+    /*
     let did_apply = true;
     while (did_apply) {
         did_apply = false;
@@ -31,6 +33,7 @@ export function RunTypeInference(f: FunctionConstruct, shouldGenerateTypes = tru
     FreezeTypes(f);
 
     f.walk(AddSelfToMethodCalls, () => { });
+    */
 }
 
 function importConstraint(c: TypeConstraint, temp: Specifiable): string {
@@ -44,6 +47,9 @@ function importConstraint(c: TypeConstraint, temp: Specifiable): string {
         const n3 = nextConstraintName();
         temp.addConstraint(n3, c);
         const tuple = new TupleType([temp.getTarget(n3), ...t]);
+        temp.addConstraint(n, new ExactConstraint(tuple));
+    } else if(c instanceof AnyFunctionConstraint) {
+        const tuple = new TupleType([new AnyFunctionConstraint(c.args), ...Array.apply(null, Array(c.args + 1)).map(_ => new AllConstraint())]);
         temp.addConstraint(n, new ExactConstraint(tuple));
     } else {
         temp.addConstraint(n, c);
@@ -208,7 +214,10 @@ function ReferenceFields(source: ASTElement & Specifiable): boolean {
             if (tuple.subtypes[0] instanceof TemplateType) {
                 const t2 = source.getConstraint(tuple.subtypes[0].getName());
                 if (!(t2 instanceof ExactConstraint && t2.t instanceof ClassType)) return;
-                const n = new ExactConstraint(t2.t.source.fieldType(c.field_name, tuple.subtypes.slice(1)));
+                let ft = t2.t.source.fieldType(c.field_name, tuple.subtypes.slice(1));
+                if(!ft) ft = t2.t.source.staticType(c.field_name, tuple.subtypes.slice(1));
+                if(!ft) return;
+                const n = new ExactConstraint(ft);
                 console.error(`[ReferenceFields] ${c} ${x} ${c.field_name} => ${n}`);
                 source.replaceConstraint(x, n);
                 rc = true;
@@ -242,7 +251,7 @@ export function FreezeTypes(source: ASTElement & Specifiable): boolean {
         if (c instanceof ExactConstraint) {
             t.resolve(c.t);
             console.error(`[FreezeTypes] ${x} => ${c.t}`);
-            source.removeConstraint(x);
+            //source.removeConstraint(x);
             rc = true;
         }
     });
@@ -259,10 +268,10 @@ export function GenerateTypes(source: ASTElement & Specifiable) {
                     .map(x => (x as ExactConstraint).t);
                 if (subtemplates[0] instanceof ClassType) {
                     const cl = subtemplates[0].source;
-                    console.error(`[GenerateTypes] ${cl.name}_${subtemplates.slice(1).map(x => x.toString()).join("_")}`);
+                    console.error(`[GenerateTypes] ${cl.name}_${subtemplates.slice(1).join("_")}`);
                     let specified: ClassConstruct;
-                    if (TypeRegistry.has(`${cl.name}_${subtemplates.slice(1).map(x => x.toString()).join("_")}`)) {
-                        specified = (TypeRegistry.get(`${cl.name}_${subtemplates.slice(1).map(x => x.toString()).join("_")}`) as ClassType).source;
+                    if (TypeRegistry.has(`${cl.name}_${subtemplates.slice(1).join("_")}`)) {
+                        specified = (TypeRegistry.get(`${cl.name}_${subtemplates.slice(1).join("_")}`) as ClassType).source;
                     } else {
                         specified = cl.specify(subtemplates.slice(1));
                     }

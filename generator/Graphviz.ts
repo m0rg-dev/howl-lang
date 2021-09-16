@@ -2,7 +2,6 @@ import { StaticInitializer } from "../registry/StaticVariableRegistry";
 import { isSpecifiable } from "../typemath/Specifiable";
 import { ArithmeticExpression } from "../unified_parser/ArithmeticExpression";
 import { AssignmentExpression } from "../unified_parser/AssignmentExpression";
-import { AssignmentStatement } from "../unified_parser/AssignmentStatement";
 import { ASTElement, isAstElement, TokenStream } from "../unified_parser/ASTElement";
 import { ClassConstruct } from "../unified_parser/ClassConstruct";
 import { ComparisonExpression } from "../unified_parser/ComparisonExpression";
@@ -14,10 +13,9 @@ import { IfStatement } from "../unified_parser/IfStatement";
 import { RawPointerIndexExpression } from "../unified_parser/RawPointerIndexExpression";
 import { SimpleStatement } from "../unified_parser/SimpleStatement";
 import { StaticTableInitialization } from "../unified_parser/StaticTableInitialization";
-import { FunctionType, TypeObject } from "../unified_parser/TypeObject";
+import { TypeObject } from "../unified_parser/TypeObject";
 import { TypeRequest } from "../unified_parser/TypeRequest";
 import { UnaryReturnExpression } from "../unified_parser/UnaryReturnExpression";
-import { UnaryReturnStatement } from "../unified_parser/UnaryReturnStatement";
 import { isSynthesizable } from "./IR";
 
 export function PrintAST(stream: TokenStream): string {
@@ -38,7 +36,7 @@ export function PrintStaticVariable(name: string, type: TypeObject, initializer?
         if (initializer instanceof StaticTableInitialization) {
             const entries: { name: string, label: string }[] = [];
             initializer.fields.forEach((x, y) => {
-                entries.push({ name: `f${y}`, label: `${y}<${x.field_type.toString()}>: ${x.name}` });
+                entries.push({ name: `f${y}`, label: `${y}<${x.field_type}>: ${x.name}` });
             })
             s += record(`static_init_${name}`, entries);
             s += link(name, undefined, `static_init_${name}`, undefined);
@@ -96,14 +94,14 @@ export function PrintExpression(node: ASTElement): string {
     }
 
     if (node instanceof ClassConstruct) {
-        node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.field_type.toString()}>` }));
+        node.fields.forEach(x => entries.push({ name: x.name, label: `${x.name}<${x.field_type}>` }));
         node.methods.forEach(x => {
             entries.push({ name: x.name, label: `${x.name}` });
             s += link(node.guid, x.name, x.guid, undefined);
             s += PrintExpression(x);
         });
     } else if (node instanceof FunctionConstruct) {
-        node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.field_type.toString()}>` }));
+        node.args.forEach(x => entries.push({ name: x.name, label: `arg: ${x.name}<${x.field_type}>` }));
         if (node.body) {
             entries.push({ name: "body", label: "Body" });
             s += link(node.guid, "body", node.body.guid, undefined);

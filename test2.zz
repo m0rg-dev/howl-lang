@@ -3,14 +3,19 @@ module Test2;
 class Foo<T> {
     T value;
 
-    fn T method() {
-        return 0;
+    fn void set(T value) {
+        self.value = value;
+        return;
+    }
+
+    fn T get() {
+        return self.value;
     }
 }
 
 static fn i32 main() {
     let obj Foo;
     let val i32;
-    obj.value = val;
-    return 0;
+    obj.set(val);
+    return val;
 }

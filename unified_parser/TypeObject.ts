@@ -28,8 +28,8 @@ export class TemplateType extends TypeObject {
         this.name = name;
         template_name_registry.set(name, name);
     }
-    toString = () => template_resolution_registry.has(this.getName()) ? template_resolution_registry.get(this.getName()).toString() : `:${this.getName()}`;
-    toIR = () => template_resolution_registry.has(this.getName()) ? template_resolution_registry.get(this.getName()).toIR() : `%TEMPLATE:${this.getName()}`;
+    toString = () => template_resolution_registry.get(this.getName()) ? template_resolution_registry.get(this.getName()).toString() : `:${this.getName()}`;
+    toIR = () => template_resolution_registry.get(this.getName()) ? template_resolution_registry.get(this.getName()).toIR() : `%TEMPLATE:${this.getName()}`;
 
     getName = () => {
         let n = this.name;

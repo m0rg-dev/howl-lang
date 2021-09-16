@@ -93,13 +93,18 @@ export class ClassConstruct extends ASTElement implements Synthesizable {
     stableType = () => TypeRegistry.get(`__${this.name}_stable_t`) as ClassType;
 
     fieldType(field_name: string, generic_map: TypeObject[]): TypeObject {
-        const t = this.fields.find(x => x.name == field_name).field_type;
+        const t = this.fields.find(x => x.name == field_name)?.field_type;
         if (t instanceof TemplateType) {
             const idx = this.generic_fields.findIndex(x => t.getName() == x);
             return generic_map[idx];
         } else {
             return t;
         }
+    }
+
+    staticType(field_name: string, generic_map: TypeObject[]): TypeObject {
+        const t = this.methods.find(x => x.name == field_name)?.as_type();
+        return t;
     }
 
     synthesize(): IRBlock {
@@ -117,9 +122,9 @@ export class ClassConstruct extends ASTElement implements Synthesizable {
     }
 
     specify(generic_map: TypeObject[]): ClassConstruct {
-        const cl = new ClassConstruct(this.parent, `${this.name}_${generic_map.map(x => x.toString()).join("_")}`);
+        const cl = new ClassConstruct(this.parent, `${this.name}_${generic_map.join("_")}`);
         cl.fields = this.fields.map(f => new ClassField(cl, f.name, f.field_type));
-        
+
         cl.fields.forEach(f => {
             if (f.field_type instanceof TemplateType) {
                 const idx = this.generic_fields.findIndex(x => (f.field_type as TemplateType).getName() == x);

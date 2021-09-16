@@ -38,6 +38,13 @@ export class AllConstraint extends TypeConstraint {
 }
 
 export class AnyFunctionConstraint extends TypeConstraint {
+    args: number;
+
+    constructor(args: number) {
+        super();
+        this.args = args;
+    }
+
     intersect(other: TypeConstraint): TypeConstraint {
         if (other instanceof AllConstraint || other instanceof AnyFunctionConstraint) {
             return this;
@@ -47,8 +54,7 @@ export class AnyFunctionConstraint extends TypeConstraint {
             throw new Error(`don't know how to intersect with <${other}>`);
         }
     }
-
-    toString = () => `is Function`;
+    toString = () => `is Function(${this.args})`;
 }
 
 export class AnyClassConstraint extends TypeConstraint {
