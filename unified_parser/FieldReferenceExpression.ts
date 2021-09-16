@@ -12,16 +12,12 @@ export class FieldReferenceExpression extends ASTElement implements Synthesizabl
         super(parent);
         this.source = source;
         this.field = field;
-
-        // this.signature.ports.add("value");
-        // this.signature.ports.add("source");
-        // this.signature.type_constraints.set("value", new AllConstraint("value"));
-        // this.signature.port_constraints.push(new OutgoingConstraint("source", new AnyClassConstraint("value")));
     }
 
     toString = () => `${this.source.toString()}.${this.field}`;
     index(): number {
         const vt = this.source.singleValueType();
+        console.error(this.source.computed_type);
         if (vt instanceof ClassType) {
             return vt.source.fields.findIndex(x => x.name == this.field);
         }

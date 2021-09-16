@@ -2,6 +2,10 @@ module Test2;
 
 class Foo<T> {
     T value;
+
+    fn T method() {
+        return 0;
+    }
 }
 
 static fn i32 main() {

@@ -6,8 +6,9 @@ import { FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
 import { ExactConstraint } from "../typemath/Signature";
 import { ASTElement, TokenStream } from "./ASTElement";
 import { FunctionConstruct } from "./FunctionConstruct";
-import { Assert, InOrder, Literal, Optional } from "./Matcher";
-import { ApplyPass, ArgumentDefinition, Braces, BracesWithAngle, ClassField, ConvertTypes, MatchFunctionDefinitions, NameExpression, ParseError, Pass, TypeLiteral } from "./Parser";
+import { Assert, Braces, BracesWithAngle, InOrder, Literal, Optional } from "./Matcher";
+import { MatchFunctionDefinitions } from "./MatchFunctionDefinitions";
+import { ApplyPass, ArgumentDefinition, ClassField, ConvertTypes, NameExpression, ParseError, Pass, TypeLiteral } from "./Parser";
 import { ClassType, TemplateType, TypeObject } from "./TypeObject";
 
 
@@ -93,7 +94,7 @@ export class ClassConstruct extends ASTElement implements Synthesizable {
 
     fieldType(field_name: string, generic_map: TypeObject[]): TypeObject {
         const t = this.fields.find(x => x.name == field_name).field_type;
-        if(t instanceof TemplateType) {
+        if (t instanceof TemplateType) {
             const idx = this.generic_fields.findIndex(x => t.getName() == x);
             return generic_map[idx];
         } else {
@@ -102,6 +103,9 @@ export class ClassConstruct extends ASTElement implements Synthesizable {
     }
 
     synthesize(): IRBlock {
+        if (this.generic_fields.length) {
+            return { output_location: undefined, statements: [] };
+        }
         return {
             output_location: undefined,
             statements: [
@@ -110,6 +114,20 @@ export class ClassConstruct extends ASTElement implements Synthesizable {
                 new IRSomethingElse(`}`)
             ]
         };
+    }
+
+    specify(generic_map: TypeObject[]): ClassConstruct {
+        const cl = new ClassConstruct(this.parent, `${this.name}_${generic_map.map(x => x.toString()).join("_")}`);
+        cl.fields = this.fields.map(f => new ClassField(cl, f.name, f.field_type));
+        
+        cl.fields.forEach(f => {
+            if (f.field_type instanceof TemplateType) {
+                const idx = this.generic_fields.findIndex(x => (f.field_type as TemplateType).getName() == x);
+                f.field_type = generic_map[idx];
+            }
+        });
+        cl.generic_fields = [];
+        return cl;
     }
 }
 

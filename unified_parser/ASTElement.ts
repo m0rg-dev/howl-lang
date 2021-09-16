@@ -5,7 +5,7 @@ import { Transformer } from "../transformers/Transformer";
 import { ExactConstraint, TypeConstraint } from "../typemath/Signature";
 import { isSpecifiable, Specifiable } from "../typemath/Specifiable";
 import { Scope } from "./Scope";
-import { TypeObject } from "./TypeObject";
+import { TemplateType, TypeObject } from "./TypeObject";
 
 export type TokenStream = (Token | ASTElement)[];
 
@@ -86,7 +86,15 @@ export abstract class ASTElement {
     }
 
     singleValueType(): TypeObject | undefined {
+        if(this.computed_type instanceof TemplateType) return this.computed_type.getResolution();
         return this.computed_type;
+    }
+
+    toJSON(): any {
+        let o2: any = {};
+        Object.assign(o2, this);
+        o2.parent = undefined;
+        return o2;
     }
 }
 

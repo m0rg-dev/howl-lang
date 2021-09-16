@@ -5,8 +5,8 @@ import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { StaticFunctionRegistry, StaticVariableRegistry } from "../registry/StaticVariableRegistry";
 import { GetType, init_types, IsType, TypeRegistry } from "../registry/TypeRegistry";
-import { ApplyToAll, FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
-import { FreezeTypes, Infer, LiftBounds, LiftConstraints, LiftFieldReferences, LiftReturns } from "../transformers/TypeInference";
+import { FixHierarchy } from "../transformers/Transformer";
+import { RunTypeInference } from "../transformers/TypeInference";
 import { ArithmeticExpression } from "./ArithmeticExpression";
 import { AssignmentExpression } from "./AssignmentExpression";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
@@ -16,16 +16,18 @@ import { CompoundStatement } from "./CompoundStatement";
 import { FieldReferenceExpression } from "./FieldReferenceExpression";
 import { FunctionCallExpression } from "./FunctionCallExpression";
 import { FunctionConstruct } from "./FunctionConstruct";
-import { Assert, First, InOrder, Literal, Matcher, Optional, Star } from "./Matcher";
+import { Assert, Braces, BracesWithAngle, First, InOrder, Literal, Matcher, Optional, Star } from "./Matcher";
+import { MatchFunctionDefinitions } from "./MatchFunctionDefinitions";
 import { NewExpression } from "./NewExpression";
 import { NullaryReturnExpression } from "./NullaryReturnExpression";
 import { NumericLiteralExpression } from "./NumericLiteralExpression";
+import { ParseFunctionBody } from "./ParseFunctionBody";
 import { RawPointerIndexExpression } from "./RawPointerIndexExpression";
 import { SimpleStatement } from "./SimpleStatement";
 import { StaticFunctionReference } from "./StaticFunctionReference";
 import { StaticTableInitialization } from "./StaticTableInitialization";
 import { StringLiteralExpression } from "./StringLiteralExpression";
-import { ClassType, RawPointerType, template_name_registry, TypeObject } from "./TypeObject";
+import { ClassType, RawPointerType, TypeObject } from "./TypeObject";
 import { UnaryReturnExpression } from "./UnaryReturnExpression";
 import { VariableReferenceExpression } from "./VariableReferenceExpression";
 
@@ -82,27 +84,15 @@ export function Parse(token_stream: Token[]) {
     }
 
     AddStandardLibraryReferences();
-    ApplyToAll(ReferenceLocals);
 
-    // GenerateStaticTables();
-    // GenerateInitializers();
-
-    ApplyToAll(LiftConstraints);
-    ApplyToAll(LiftReturns);
-    ApplyToAll(LiftFieldReferences);
-    ApplyToAll(LiftBounds);
-
-    let did_apply = true;
-    while (did_apply) {
-        did_apply = false;
-        for (const [name, func] of StaticFunctionRegistry) {
-            did_apply ||= Infer(func);
-        }
+    for (const [name, func] of StaticFunctionRegistry) {
+        RunTypeInference(func);
     }
 
-    console.error(template_name_registry);
+    GenerateStaticTables();
+    GenerateInitializers();
 
-    // RemoveClassMethods();
+    RemoveClassMethods();
 }
 
 export function ApplyPass(parent: ASTElement, stream: TokenStream, pass: Pass): TokenStream {
@@ -273,30 +263,6 @@ export class ElidedElement extends ASTElement {
     toString = () => "<elided>";
 }
 
-export const MatchFunctionDefinitions = {
-    name: "FunctionConstruct",
-    match: InOrder(
-        Optional(Literal("Static")),
-        Literal("Function"),
-        Literal("TypeLiteral"),
-        Literal("NameExpression"),
-        Assert(Literal("OpenParen")),
-        Braces(),
-        First(
-            InOrder(
-                Assert(Literal("OpenBrace")),
-                Braces()
-            ),
-            Literal("Semicolon")
-        )),
-    replace: (input: TokenStream, parent: ASTElement) => {
-        let idx = 0;
-        while (!(Literal("OpenParen")(input.slice(idx)).matched))
-            idx++;
-        return [new PartialFunctionConstruct(parent, (input[idx - 1] as NameExpression).name, input).parse(input[0]['type'] == TokenType.Static)];
-    }
-};
-
 const FindTypeGeneratingConstructs: Pass = {
     name: "FindTopLevelConstructs",
     rules: [
@@ -316,63 +282,6 @@ const FindTypeGeneratingConstructs: Pass = {
         },
     ]
 };
-
-const ParseFunctionBody: Pass = {
-    name: "ParseFunctionBody",
-    rules: [
-        {
-            name: "DropKeywords",
-            match: InOrder(Optional(Literal("Static")), Literal("Function")),
-            replace: () => [],
-            startOnly: true
-        },
-        {
-            name: "MatchReturnType",
-            match: InOrder(Literal("TypeLiteral"), Literal("NameExpression"), Assert(Literal("OpenParen"))),
-            replace: (input: [TypeLiteral, NameExpression], parent: ASTElement) => {
-                return [input[0]];
-            },
-            startOnly: true
-        },
-        {
-            name: "MatchArgumentList",
-            match: InOrder(
-                Literal("TypeLiteral"),
-                Literal("OpenParen"),
-                Optional(
-                    InOrder(
-                        Literal("TypeLiteral"), Literal("NameExpression"),
-                        Star(InOrder(Literal("Comma"), Literal("TypeLiteral"), Literal("NameExpression"))),
-                        Optional(Literal("Comma")),
-                    )
-                ),
-                Star(Literal("TypeLiteral")),
-                Literal("CloseParen")),
-            replace: (input: [TypeLiteral, ...TokenStream], parent: ASTElement) => {
-                const args = ApplyPass(parent, input.slice(2, input.length - 1), {
-                    name: "ConvertArguments",
-                    rules: [
-                        {
-                            name: "ConvertArgument",
-                            match: InOrder(Literal("TypeLiteral"), Literal("NameExpression"), Optional(Literal("Comma"))),
-                            replace: (input: [TypeLiteral, NameExpression]) => {
-                                return [new ArgumentDefinition(parent, input[1].name, input[0].field_type)];
-                            }
-                        }
-                    ]
-                });
-                return [input[0], new ArgumentList(parent, args as ArgumentDefinition[])];
-            },
-            startOnly: true
-        },
-        {
-            name: "MatchFunctionBody",
-            match: InOrder(Literal("TypeLiteral"), Literal("ArgumentList"), Assert(Literal("OpenBrace")), Braces()),
-            replace: (input: [TypeLiteral, ArgumentList, ...TokenStream], parent: ASTElement) => [input[0], input[1], new CompoundStatement(parent, input.slice(2)).parse()],
-            startOnly: true
-        },
-    ]
-}
 
 export const LocalDefinitionsPass: Pass = {
     name: "LocalDefinitions",
@@ -502,6 +411,7 @@ function GenerateStaticTables() {
     for (const [_, t] of TypeRegistry) {
         if (!(t instanceof ClassType)) continue;
         if (t.source.is_stable || t.source.has_stable) continue;
+        if (t.source.generic_fields.length) continue;
         const stable = new ClassConstruct(undefined, `__${t.source.name}_stable_t`);
         const initializer = new StaticTableInitialization(t.source);
         stable.is_stable = true;
@@ -522,6 +432,7 @@ function GenerateInitializers() {
     for (const [_, t] of TypeRegistry) {
         if (!(t instanceof ClassType)) continue;
         if (t.source.is_stable) continue;
+        if (t.source.generic_fields.length) continue;
 
         const fn = new FunctionConstruct(t.source, `__${t.source.name}_initialize`, GetType("void"), [new ArgumentDefinition(t.source, "self", t)], true);
 
@@ -534,6 +445,7 @@ function GenerateInitializers() {
         ]
 
         StaticFunctionRegistry.set(fn.name, fn);
+        RunTypeInference(fn, false);
     }
 }
 
@@ -541,11 +453,14 @@ function RemoveClassMethods() {
     for (const [_, t] of TypeRegistry) {
         if (!(t instanceof ClassType)) continue;
         if (!t.source.methods.length) return undefined;
-        const real_methods: FunctionConstruct[] = [];
-        for (const method of t.source.methods) {
-            method.name = `__${t.source.name}_${method.name}`;
-            real_methods.push(method);
-            StaticFunctionRegistry.set(method.name, method);
+        console.error(`[RemoveClassMethods] ${t.source.name}`);
+        if (!t.source.generic_fields.length) {
+            const real_methods: FunctionConstruct[] = [];
+            for (const method of t.source.methods) {
+                method.name = `__${t.source.name}_${method.name}`;
+                real_methods.push(method);
+                StaticFunctionRegistry.set(method.name, method);
+            }
         }
         t.source.methods = [];
     }
@@ -557,68 +472,6 @@ function AddStandardLibraryReferences() {
         new ArgumentDefinition(undefined, "size", TypeRegistry.get("i64"))
     ], true);
     StaticFunctionRegistry.set("calloc", calloc);
-}
-
-export function Braces(): Matcher {
-    return (stream: (Token | ASTElement)[]) => {
-        let ptr = 0;
-        const stack: TokenType[] = [];
-
-        while (ptr < stream.length) {
-            const tok = stream[ptr++];
-            if (isAstElement(tok)) continue;
-            switch (tok.type) {
-                case TokenType.OpenBrace:
-                    stack.push(TokenType.OpenBrace);
-                    break;
-                case TokenType.OpenParen:
-                    stack.push(TokenType.OpenParen);
-                    break;
-                case TokenType.CloseBrace:
-                    if (stack.pop() != TokenType.OpenBrace) return { matched: false, length: 0 };
-                    break;
-                case TokenType.CloseParen:
-                    if (stack.pop() != TokenType.OpenParen) return { matched: false, length: 0 };
-                    break;
-            }
-            if (stack.length == 0) return { matched: true, length: ptr };
-        }
-        return { matched: false, length: 0 };
-    };
-}
-
-export function BracesWithAngle(): Matcher {
-    return (stream: (Token | ASTElement)[]) => {
-        let ptr = 0;
-        const stack: TokenType[] = [];
-
-        while (ptr < stream.length) {
-            const tok = stream[ptr++];
-            if (isAstElement(tok)) continue;
-            switch (tok.type) {
-                case TokenType.OpenBrace:
-                    stack.push(TokenType.OpenBrace);
-                    break;
-                case TokenType.OpenParen:
-                    stack.push(TokenType.OpenParen);
-                    break;
-                case TokenType.OpenAngle:
-                    stack.push(TokenType.OpenAngle);
-                    break;
-                case TokenType.CloseBrace:
-                    if (stack.pop() != TokenType.OpenBrace) return { matched: false, length: 0 };
-                    break;
-                case TokenType.CloseParen:
-                    if (stack.pop() != TokenType.OpenParen) return { matched: false, length: 0 };
-                    break;
-                case TokenType.CloseAngle:
-                    if (stack.pop() != TokenType.OpenAngle) return { matched: false, length: 0 };
-                    break;
-            }
-            if (stack.length == 0) return { matched: true, length: ptr };
-        }
-        return { matched: false, length: 0 };
-    };
 }
 
 function Rvalue(): Matcher {

@@ -38,7 +38,7 @@ export class TemplateType extends TypeObject {
         }
         return n;
     }
-    getResolution = () => template_resolution_registry.get(this.name);
+    getResolution = () => template_resolution_registry.get(this.getName());
     rename = (n: string) => template_name_registry.set(this.name, n);
     resolve = (n: TypeObject) => template_resolution_registry.set(this.name, n);
 }
@@ -86,7 +86,7 @@ export class TupleType extends TypeObject {
     }
     walk() { }
     toString = () => `(${this.subtypes.join(", ")})`;
-    toIR = () => `%TUPLE`;
+    toIR = () => `%TUPLE(${this.subtypes.join(",")})`;
 }
 
 export class AnyType extends TypeObject {

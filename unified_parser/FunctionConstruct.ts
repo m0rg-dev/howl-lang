@@ -20,11 +20,6 @@ export class FunctionConstruct extends ASTElement implements Synthesizable, Spec
         this.args = args;
         this.return_type = rc;
         this.function_is_static = function_is_static;
-
-        // this.signature.ports.add("value");
-        // this.signature.type_constraints.set("value", new ExactConstraint("value", new FunctionType(
-        //     rc, args.map(x => x.field_type)
-        // )));
     }
 
     as_type(): FunctionType {

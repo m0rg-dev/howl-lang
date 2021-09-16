@@ -4,8 +4,8 @@ import { FixHierarchy, ReferenceLocals } from "../transformers/Transformer";
 import { ExactConstraint } from "../typemath/Signature";
 import { ASTElement, isAstElement, TokenStream } from "./ASTElement";
 import { IfStatement } from "./IfStatement";
-import { Assert, First, InOrder, Invert, Literal, Star } from "./Matcher";
-import { ApplyPass, Braces, ExpressionPass, LocalDefinition, LocalDefinitionsPass, MatchElement } from "./Parser";
+import { Assert, Braces, First, InOrder, Invert, Literal, Star } from "./Matcher";
+import { ApplyPass, ExpressionPass, LocalDefinition, LocalDefinitionsPass, MatchElement } from "./Parser";
 import { SimpleStatement } from "./SimpleStatement";
 import { WhileStatement } from "./WhileStatement";
 
@@ -93,11 +93,10 @@ export class CompoundStatement extends ASTElement implements Synthesizable {
             new IRLabelStatement(this.label)
         ];
 
-        throw new Error("you didn't fix this part yet");
-
-        // this.scope.locals.forEach((x, y) => {
-        //     statements.push(new IRAlloca({ type: new IRPointerType(x.toIR()), location: new IRNamedIdentifier(`%${y}`) }));
-        // })
+        this.scope.locals.forEach((x, y) => {
+            if(!(x instanceof ExactConstraint)) throw new Error();
+            statements.push(new IRAlloca({ type: new IRPointerType(x.t.toIR()), location: new IRNamedIdentifier(`%${y}`) }));
+        })
 
         this.substatements.forEach(x => {
             if (!isSynthesizable(x)) return;

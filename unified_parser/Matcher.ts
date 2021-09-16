@@ -91,3 +91,66 @@ export function End(): Matcher {
 export function Any(): Matcher {
     return () => { return { matched: true, length: 1 }; }
 }
+
+
+export function Braces(): Matcher {
+    return (stream: (Token | ASTElement)[]) => {
+        let ptr = 0;
+        const stack: TokenType[] = [];
+
+        while (ptr < stream.length) {
+            const tok = stream[ptr++];
+            if (isAstElement(tok)) continue;
+            switch (tok.type) {
+                case TokenType.OpenBrace:
+                    stack.push(TokenType.OpenBrace);
+                    break;
+                case TokenType.OpenParen:
+                    stack.push(TokenType.OpenParen);
+                    break;
+                case TokenType.CloseBrace:
+                    if (stack.pop() != TokenType.OpenBrace) return { matched: false, length: 0 };
+                    break;
+                case TokenType.CloseParen:
+                    if (stack.pop() != TokenType.OpenParen) return { matched: false, length: 0 };
+                    break;
+            }
+            if (stack.length == 0) return { matched: true, length: ptr };
+        }
+        return { matched: false, length: 0 };
+    };
+}
+
+export function BracesWithAngle(): Matcher {
+    return (stream: (Token | ASTElement)[]) => {
+        let ptr = 0;
+        const stack: TokenType[] = [];
+
+        while (ptr < stream.length) {
+            const tok = stream[ptr++];
+            if (isAstElement(tok)) continue;
+            switch (tok.type) {
+                case TokenType.OpenBrace:
+                    stack.push(TokenType.OpenBrace);
+                    break;
+                case TokenType.OpenParen:
+                    stack.push(TokenType.OpenParen);
+                    break;
+                case TokenType.OpenAngle:
+                    stack.push(TokenType.OpenAngle);
+                    break;
+                case TokenType.CloseBrace:
+                    if (stack.pop() != TokenType.OpenBrace) return { matched: false, length: 0 };
+                    break;
+                case TokenType.CloseParen:
+                    if (stack.pop() != TokenType.OpenParen) return { matched: false, length: 0 };
+                    break;
+                case TokenType.CloseAngle:
+                    if (stack.pop() != TokenType.OpenAngle) return { matched: false, length: 0 };
+                    break;
+            }
+            if (stack.length == 0) return { matched: true, length: ptr };
+        }
+        return { matched: false, length: 0 };
+    };
+}
