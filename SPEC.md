@@ -27,7 +27,7 @@ class Foo<0 | 0 = any> {
 
 /* This could also be specified as <0, 1 | 0 = i32, 1 = 0>, but this represents a more realistic
    parse if the original structure specified i32 explicitly for both fields. */
-class Point <0, 1 | 0 = i32, 1 = i32> {
+class Point<0, 1 | 0 = i32, 1 = i32> {
     x_position;
     y_position;
 }

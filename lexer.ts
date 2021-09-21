@@ -33,6 +33,7 @@ const PUNCTUATION_TABLE = {
     "<": TokenType.OpenAngle,
     ">": TokenType.CloseAngle,
     "+": TokenType.Plus,
+    "|": TokenType.Pipe,
 }
 
 export class Lexer {
@@ -52,7 +53,7 @@ export class Lexer {
             if (tok.type != TokenType.Comment) {
                 this.token_stream.push(tok);
             }
-            this.mark += tok.length;
+            this.mark += tok.text.length;
         } while (tok.type != TokenType.EOF);
     }
 
@@ -74,49 +75,49 @@ export class Lexer {
         const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|module|static|if|while)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
-        return { type: KEYWORD_TABLE[m[1]], length: m[0].length, start: this.mark, text: m[0] };
+        return { type: KEYWORD_TABLE[m[1]], length: m[1].length, start: this.mark, text: m[0] };
     }
 
     private match_punctuation(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^([{};(),.=\[\]*<>+])\s*/s);
+        const m = this.source.substr(this.mark).match(/^([{};(),.=\[\]*<>+|])\s*/s);
         if (!m) return undefined;
 
-        return { type: PUNCTUATION_TABLE[m[1]], length: m[0].length, start: this.mark, text: m[0] };
+        return { type: PUNCTUATION_TABLE[m[1]], length: m[1].length, start: this.mark, text: m[0] };
     }
 
     private match_name(): NameToken | undefined {
         const m = this.source.substr(this.mark).match(/^([_a-zA-Z][_a-zA-Z0-9-]*)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
-        return { type: TokenType.Name, name: m[1], length: m[0].length, start: this.mark, text: m[0] };
+        return { type: TokenType.Name, name: m[1], length: m[1].length, start: this.mark, text: m[0] };
     }
 
     private match_numeric(): NumericLiteralToken | undefined {
         const m = this.source.substr(this.mark).match(/^(\d+)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
-        return { type: TokenType.NumericLiteral, value: Number.parseInt(m[1]), length: m[0].length, start: this.mark, text: m[0] };
+        return { type: TokenType.NumericLiteral, value: Number.parseInt(m[1]), length: m[1].length, start: this.mark, text: m[0] };
     }
 
     private match_asm_literal(): AsmLiteralToken | undefined {
         const m = this.source.substr(this.mark).match(/^__asm__ ([^;]*)/s);
         if (!m) return undefined;
 
-        return { type: TokenType.AsmLiteral, source: m[1], length: m[0].length, start: this.mark, text: m[0] };
+        return { type: TokenType.AsmLiteral, source: m[1], length: m[1].length, start: this.mark, text: m[0] };
     }
 
     private match_string_literal(): StringLiteralToken | undefined {
         const m = this.source.substr(this.mark).match(/^"((?:\\.|[^"\\])*)"/);
         if (!m) return undefined;
 
-        return { type: TokenType.StringLiteral, str: m[1], length: m[0].length, start: this.mark, text: m[0] };
+        return { type: TokenType.StringLiteral, str: m[1], length: m[1].length, start: this.mark, text: m[0] };
     }
 
     private match_comment(): CommentToken | undefined {
         const m = this.source.substr(this.mark).match(/^\s*\/\/[^\n]*\n\s*/s);
         if (!m) return undefined;
 
-        return { type: TokenType.Comment, length: m[0].length, start: this.mark, text: m[0] };
+        return { type: TokenType.Comment, length: m[1].length, start: this.mark, text: m[0] };
     }
 
     private next_token(): Token | undefined {

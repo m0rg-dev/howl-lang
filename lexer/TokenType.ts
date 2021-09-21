@@ -24,6 +24,7 @@ export enum TokenType {
     Equals,
     Asterisk,
     Plus,
+    Pipe,
 
     Name,
     NumericLiteral,
