@@ -1,11 +1,14 @@
+import { randomUUID } from "crypto";
 
 export type SourceLocation = [number, number];
 
 export abstract class ASTElement {
     source_location: SourceLocation;
+    uuid: string;
 
     constructor(loc: SourceLocation) {
         this.source_location = loc;
+        this.uuid = randomUUID().replaceAll("-", "_");
     }
 
     abstract clone<T>(): ThisType<T>;

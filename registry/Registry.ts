@@ -1,7 +1,9 @@
+import { FunctionElement } from "../ast/FunctionElement";
 import { PartialFunctionElement } from "../ast/PartialFunctionElement";
 
 export var Types: Set<string> = new Set();
 export var PartialFunctions: Set<PartialFunctionElement> = new Set();
+export var Functions: Set<FunctionElement> = new Set();
 
 export function InitRegistry() {
     Types.add("i8");
