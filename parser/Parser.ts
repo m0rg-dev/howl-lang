@@ -1,19 +1,22 @@
 import { ASTElement, PartialElement, SourceLocation } from "../ast/ASTElement";
+import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { FunctionElement } from "../ast/FunctionElement";
 import { ModuleDefinitionElement } from "../ast/ModuleDefinitionElement";
 import { NameElement } from "../ast/NameElement";
 import { PartialArgumentListElement } from "../ast/PartialArgumentListElement";
 import { PartialClassElement } from "../ast/PartialClassElement";
+import { PartialFunctionElement } from "../ast/PartialFunctionElement";
 import { Scope } from "../ast/Scope";
 import { SignatureElement } from "../ast/SignatureElement";
 import { TokenElement } from "../ast/TokenElement";
 import { TypeElement } from "../ast/TypeElement";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { Functions, PartialFunctions, Types } from "../registry/Registry";
+import { Classes, Functions, PartialFunctions, Types } from "../registry/Registry";
 import { Any, AssertNegative, First, InOrder, Matcher, MatchToken, Star } from "./Matcher";
 import { FunctionRules } from "./rules/FunctionRules";
+import { ParseClassParts } from "./rules/ParseClassParts";
 import { ParseFunctionParts } from "./rules/ParseFunctionParts";
 import { TopLevelParse } from "./rules/TopLevelParse";
 
@@ -26,16 +29,56 @@ export function Parse(token_stream: Token[]): ASTElement[] {
             el.body = ApplyPass(el.body, {
                 name: "ExtractMethods",
                 rules: [
-                    ...FunctionRules
+                    ...FunctionRules(el.name),
                 ]
             })[0];
+
+            const fields: string[] = [];
+            const methods: string[] = [];
+
+            for (const sub of el.body) {
+                if (sub instanceof PartialFunctionElement) {
+                    methods.push(sub.name);
+                } else if (sub instanceof NameElement) {
+                    fields.push(sub.name);
+                }
+            }
         }
     }
 
     ExtractTypeDefinitions(ast_stream);
     ClassifyNames(ast_stream);
 
+    for (const el of ast_stream) {
+        if (el instanceof PartialClassElement) {
+            ClassifyNames(el.body);
+            el.body = ApplyPass(el.body, ParseClassParts)[0];
+
+            if (el.body[2] instanceof SignatureElement) {
+                const fields: string[] = [];
+                const methods: string[] = [];
+
+                for (const sub of el.body) {
+                    if (sub instanceof PartialFunctionElement) {
+                        methods.push(sub.name);
+                    } else if (sub instanceof NameElement) {
+                        fields.push(sub.name);
+                    }
+                }
+
+                Classes.add(new ClassElement(
+                    el.source_location,
+                    el.name,
+                    el.body[2],
+                    fields,
+                    methods
+                ));
+            }
+        }
+    }
+
     PartialFunctions.forEach(x => {
+        ClassifyNames(x.body);
         x.body = ApplyPass(x.body, ParseFunctionParts)[0];
         if (x.body[0] instanceof TokenElement && x.body[0].token.type == TokenType.Static) {
             // TODO
@@ -49,7 +92,7 @@ export function Parse(token_stream: Token[]): ASTElement[] {
             && x.body[4] instanceof CompoundStatementElement) {
             const n = new FunctionElement(
                 x.source_location,
-                x.body[1].name,
+                x.name,
                 x.body[2],
                 x.body[3],
                 x.body[4]

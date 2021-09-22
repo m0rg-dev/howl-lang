@@ -8,6 +8,6 @@ export const TopLevelParse: RuleList = {
     rules: [
         ...ModuleRules,
         ...ClassRules,
-        ...FunctionRules,
+        ...FunctionRules("module"),
     ]
 };
