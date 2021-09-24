@@ -7,13 +7,12 @@ import { NameElement } from "../ast/NameElement";
 import { PartialArgumentListElement } from "../ast/PartialArgumentListElement";
 import { PartialClassElement } from "../ast/PartialClassElement";
 import { PartialFunctionElement } from "../ast/PartialFunctionElement";
-import { Scope } from "../ast/Scope";
 import { SignatureElement } from "../ast/SignatureElement";
 import { TokenElement } from "../ast/TokenElement";
 import { TypeElement } from "../ast/TypeElement";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { Classes, Functions, PartialFunctions, Types } from "../registry/Registry";
+import { Classes, Functions, PartialFunctions, TypeNames } from "../registry/Registry";
 import { Any, AssertNegative, First, InOrder, Matcher, MatchToken, Star } from "./Matcher";
 import { FunctionRules } from "./rules/FunctionRules";
 import { ParseClassParts } from "./rules/ParseClassParts";
@@ -97,9 +96,6 @@ export function Parse(token_stream: Token[]): ASTElement[] {
                 x.body[3],
                 x.body[4]
             );
-            const scope = new Scope(n, n.scope);
-            n.body.type.expressions.forEach(x => scope.addType(x));
-            n.body.addScope(scope);
             Functions.add(n);
             PartialFunctions.delete(x);
         } else {
@@ -145,9 +141,9 @@ function FormatASTStream(ast_stream: ASTElement[]): string {
 function ExtractTypeDefinitions(ast_stream: ASTElement[]) {
     for (const el of ast_stream) {
         if (el instanceof PartialClassElement) {
-            Types.add(el.name);
+            TypeNames.add(el.name);
         } else if (el instanceof ModuleDefinitionElement) {
-            Types.add(el.name);
+            TypeNames.add(el.name);
         }
     }
 }
@@ -158,7 +154,7 @@ function ClassifyNames(ast_stream: ASTElement[]) {
         if (el instanceof PartialElement) {
             ClassifyNames(el.body);
         } else if (el instanceof TokenElement && el.token.type == TokenType.Name) {
-            if (Types.has(el.token.name)) {
+            if (TypeNames.has(el.token.name)) {
                 ast_stream[idx] = new TypeElement(el.source_location, el.token.name);
             } else {
                 ast_stream[idx] = new NameElement(el.source_location, el.token.name);

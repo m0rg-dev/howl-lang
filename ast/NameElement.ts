@@ -1,4 +1,5 @@
 import { ASTElement, SourceLocation } from "./ASTElement";
+import { Scope } from "./Scope";
 
 export class NameElement extends ASTElement {
     name: string;

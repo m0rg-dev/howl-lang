@@ -1,6 +1,11 @@
+import { TypeLocation } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
+import { Scope } from "./Scope";
 
-export abstract class ExpressionElement extends ASTElement { }
+export abstract class ExpressionElement extends ASTElement {
+    type: TypeLocation;
+    getTypeLocation(s: Scope): TypeLocation { return this.type; }
+}
 
 export class NameExpression extends ExpressionElement {
     name: string;
@@ -16,6 +21,10 @@ export class NameExpression extends ExpressionElement {
 
     clone() {
         return new NameExpression(this.source_location, this.name);
+    }
+
+    getTypeLocation(s: Scope) {
+        return s.lookupName(this.name);
     }
 }
 
@@ -98,5 +107,9 @@ export class ConstructorCallExpression extends ExpressionElement {
             this.source,
             this.args.map(x => x.clone()) as ExpressionElement[]
         );
+    }
+
+    getTypeLocation(s: Scope) {
+        return new TypeLocation(s, this.source);
     }
 }

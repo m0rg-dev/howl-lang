@@ -1,4 +1,6 @@
 import { randomUUID } from "crypto";
+import { Type } from "../type_inference/Type";
+import { Scope } from "./Scope";
 
 export type SourceLocation = [number, number];
 
