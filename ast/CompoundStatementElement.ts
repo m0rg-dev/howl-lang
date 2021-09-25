@@ -1,15 +1,12 @@
 import { ASTElement, SourceLocation } from "./ASTElement";
-import { Scope } from "./Scope";
-import { SignatureElement } from "./SignatureElement";
+import { Scope } from "../type_inference/Scope";
 
 export class CompoundStatementElement extends ASTElement {
-    type: SignatureElement;
     statements: ASTElement[];
     scope: Scope;
 
-    constructor(loc: SourceLocation, type: SignatureElement, statements: ASTElement[], scope: Scope) {
+    constructor(loc: SourceLocation, statements: ASTElement[], scope: Scope) {
         super(loc);
-        this.type = type;
         this.statements = statements;
         this.scope = scope;
     }
@@ -19,13 +16,12 @@ export class CompoundStatementElement extends ASTElement {
     }
 
     toString() {
-        return `CompoundStatement(${this.type}, ...${this.statements.length})`;
+        return `CompoundStatement(${this.statements.length})`;
     }
 
     clone() {
         return new CompoundStatementElement(
             this.source_location,
-            this.type.clone(),
             (this.statements.map(x => x.clone()) as ASTElement[]),
             this.scope.clone()
         );

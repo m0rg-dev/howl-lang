@@ -13,16 +13,15 @@ export function FunctionRules(prefix: string): ProductionRule[] {
                 Optional(MatchToken(TokenType.Static)),
                 MatchToken(TokenType.Function),
                 MatchToken(TokenType.Name),
-                Hug(TokenType.OpenAngle),
+                MatchToken(TokenType.Name),
                 Hug(TokenType.OpenParen),
-                Hug(TokenType.OpenAngle),
                 Hug(TokenType.OpenBrace)
             ),
             replace: (ast_stream: ASTElement[]) => {
                 let name: string;
-                if (ast_stream[1] instanceof TokenElement
-                    && ast_stream[1].token.type == TokenType.Name) {
-                    name = ast_stream[1].token.name;
+                if (ast_stream[3] instanceof TokenElement
+                    && ast_stream[3].token.type == TokenType.Name) {
+                    name = ast_stream[3].token.name;
                 } else if (ast_stream[2] instanceof TokenElement
                     && ast_stream[2].token.type == TokenType.Name) {
                     name = ast_stream[2].token.name;

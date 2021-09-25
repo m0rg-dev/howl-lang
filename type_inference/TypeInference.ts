@@ -2,10 +2,10 @@ import { ASTElement } from "../ast/ASTElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { ConstructorCallExpression, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
-import { Scope } from "../ast/Scope";
+import { Scope } from "./Scope";
 import { AssignmentStatement, LocalDefinitionStatement, NullaryReturnStatement, SimpleStatement, UnaryReturnStatement } from "../ast/StatementElement";
 import { Functions } from "../registry/Registry";
-import { BaseType, FromExpression, TypeLocation, UnionType } from "./Type";
+import { UnitType, TypeLocation, UnionType } from "./Type";
 
 export function RunTypeInference() {
     Functions.forEach(f => {
@@ -16,10 +16,10 @@ export function RunTypeInference() {
         Walk(f, (x, s) => {
             if (x instanceof NumberExpression) {
                 const idx = s.addType(new UnionType([
-                    new BaseType("i8"),
-                    new BaseType("i16"),
-                    new BaseType("i32"),
-                    new BaseType("i64"),
+                    new UnitType("i8"),
+                    new UnitType("i16"),
+                    new UnitType("i32"),
+                    new UnitType("i64"),
                 ]));
                 x.type = new TypeLocation(s, idx);
                 console.error(`(NumericLiteral) ${x.getTypeLocation(s)}`);
@@ -31,7 +31,6 @@ export function RunTypeInference() {
         Walk(f, (x, s) => {
             if (x instanceof AssignmentStatement) {
                 console.error(`(Assignment) ${x.lhs.getTypeLocation(s)} = ${x.rhs.getTypeLocation(s)}`);
-                s.constraints.push(`${x.lhs.getTypeLocation(s)} = ${x.rhs.getTypeLocation(s)}`);
             }
         })
     })
@@ -41,23 +40,23 @@ export function AddScopes(el: FunctionElement | CompoundStatementElement, root: 
     console.error(`(AddScopes) ${el}`);
     if (el instanceof FunctionElement) {
         const s = new Scope(el, undefined);
-        s.addName("__return");
-        s.addName("self");
+        s.addType(el.type, "__return");
+        s.addType(el.self_type, "self");
 
-        el.type.expressions.forEach(x => s.addType(FromExpression(x)));
-        el.args.forEach(x => s.addName(x));
+        el.args.forEach(x => {
+            s.addType(x.type, x.name);
+        });
 
         el.addScope(s);
         AddScopes(el.body, root, el.scope);
     } else {
         const s = new Scope(root, parent);
-        el.type.expressions.forEach(x => s.addType(FromExpression(x)));
         el.addScope(s);
         el.statements.forEach(x => {
             if (x instanceof CompoundStatementElement) {
                 AddScopes(x, root, el.scope);
             } else if (x instanceof LocalDefinitionStatement) {
-                el.scope.addName(x.name);
+                el.scope.addType(x.type, x.name);
             }
         })
     }

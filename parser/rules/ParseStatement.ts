@@ -1,10 +1,12 @@
 import { ExpressionElement, NameExpression } from "../../ast/ExpressionElement";
 import { AssignmentStatement, LocalDefinitionStatement, NullaryReturnStatement, SimpleStatement, UnaryReturnStatement } from "../../ast/StatementElement";
 import { TokenElement } from "../../ast/TokenElement";
+import { TypeElement } from "../../ast/TypeElement";
 import { TokenType } from "../../lexer/TokenType";
 import { AssertEnd, InOrder, MatchElementType, MatchToken } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
-import { MatchExpression, ParseExpression } from "./ParseExpression";
+import { MatchExpression, MatchType } from "./MatchUtils";
+import { ParseExpression } from "./ParseExpression";
 
 export const ParseStatement: RuleList = {
     name: "ParseStatement",
@@ -27,11 +29,12 @@ export const ParseStatement: RuleList = {
             name: "LocalDefinitionStatement",
             match: InOrder(
                 MatchToken(TokenType.Let),
-                MatchElementType("NameExpression"),
+                MatchType(),
+                MatchElementType("NameElement"),
                 AssertEnd()
             ),
-            replace: (ast_stream: [TokenElement<any>, NameExpression]) => {
-                return [new LocalDefinitionStatement(LocationFrom(ast_stream), ast_stream[1].name)];
+            replace: (ast_stream: [TokenElement<any>, TypeElement, NameExpression]) => {
+                return [new LocalDefinitionStatement(LocationFrom(ast_stream), ast_stream[2].name, ast_stream[1].asTypeObject())];
             },
             startOnly: true
         },

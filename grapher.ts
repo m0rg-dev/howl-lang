@@ -1,11 +1,11 @@
 import * as fs from 'fs';
+import * as sms from 'source-map-support';
+import { RenderElement } from './graphviz/Graphviz';
 import { Lexer } from './lexer';
 import { Parse } from './parser/Parser';
-
-import * as sms from 'source-map-support';
 import { Classes, Functions, InitRegistry } from './registry/Registry';
-import { RenderElement } from './graphviz/Graphviz';
 import { RunTypeInference } from './type_inference/TypeInference';
+
 sms.install();
 
 InitRegistry();

@@ -1,23 +1,25 @@
+import { Type } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { CompoundStatementElement } from "./CompoundStatementElement";
 import { NameElement } from "./NameElement";
 import { PartialArgumentListElement } from "./PartialArgumentListElement";
-import { Scope } from "./Scope";
-import { SignatureElement } from "./SignatureElement";
+import { Scope } from "../type_inference/Scope";
+import { TypedItemElement } from "./TypedItemElement";
 
 export class FunctionElement extends ASTElement {
     name: string;
-    type: SignatureElement;
-    args: string[];
+    type: Type;
+    self_type: Type;
+    args: TypedItemElement[];
     body: CompoundStatementElement;
     scope: Scope;
 
-    constructor(loc: SourceLocation, name: string, type: SignatureElement, args: PartialArgumentListElement, body: CompoundStatementElement) {
+    constructor(loc: SourceLocation, name: string, type: Type, self_type: Type, args: TypedItemElement[], body: CompoundStatementElement) {
         super(loc);
         this.name = name;
         this.type = type;
-        // TODO
-        this.args = args.body.filter(x => x instanceof NameElement).map(x => x['name']);
+        this.self_type = self_type;
+        this.args = args;
         this.body = body;
     }
 
@@ -33,8 +35,9 @@ export class FunctionElement extends ASTElement {
         const rc = new FunctionElement(
             this.source_location,
             this.name,
-            this.type.clone(),
-            undefined,
+            this.type,
+            this.self_type,
+            this.args.map(x => x.clone()),
             this.body.clone()
         );
         if (this.scope) rc.addScope(this.scope.clone());

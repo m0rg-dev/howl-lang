@@ -1,6 +1,6 @@
 import { TypeLocation } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
-import { Scope } from "./Scope";
+import { Scope } from "../type_inference/Scope";
 
 export abstract class ExpressionElement extends ASTElement {
     type: TypeLocation;

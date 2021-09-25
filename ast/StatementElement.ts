@@ -1,3 +1,4 @@
+import { Type } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { ExpressionElement } from "./ExpressionElement";
 
@@ -60,18 +61,20 @@ export class AssignmentStatement extends StatementElement {
 
 export class LocalDefinitionStatement extends StatementElement {
     name: string;
+    type: Type;
 
-    constructor(loc: SourceLocation, name: string) {
+    constructor(loc: SourceLocation, name: string, type: Type) {
         super(loc);
         this.name = name;
+        this.type = type;
     }
 
     clone() {
-        return new LocalDefinitionStatement(this.source_location, this.name);
+        return new LocalDefinitionStatement(this.source_location, this.name, this.type);
     }
 
     toString() {
-        return `let ${this.name}`;
+        return `let ${this.type} ${this.name}`;
     }
 }
 

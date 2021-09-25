@@ -1,29 +1,28 @@
 module Test;
 
-class Foo<any> {
-    value;
+class Foo<T> {
+    T value;
 
-    fn get<1[1], Foo>() <>{
+    fn T get() {
         return self.value;
     }
     
-    fn set<void, Foo, 1[1]>(value) <>{
+    fn void set(T value) {
         self.value = value;
         return;
     }
-
 }
 
-class Point<i32, i32> {
-    x_position;
-    y_position;
+class Point<> {
+    i32 x_position;
+    i32 y_position;
 }
 
-static fn main<i32, Test>() <i32, any, Foo>{
-    let val;
-    let obj;
+static fn i32 main() {
+    let i32 val;
+    let Foo obj;
     val = 42;
-    obj = new 2();
+    obj = new Foo();
     obj.set(val);
     return obj.get();
 }

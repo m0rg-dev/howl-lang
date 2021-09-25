@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { Type, TypeLocation } from "../type_inference/Type";
-import { TypeConstraint } from "../type_inference/TypeConstraint";
-import { FunctionElement } from "./FunctionElement";
+import { Type, TypeLocation } from "./Type";
+import { TypeConstraint } from "./TypeConstraint";
+import { FunctionElement } from "../ast/FunctionElement";
 
 var scope_index = 0;
 
@@ -23,18 +23,21 @@ export class Scope {
         this.n = scope_index++;
     }
 
-    addName(name: string) {
-        this.names.push(name);
-    }
 
-    addType(type: Type): number {
-        return this.types.push(type) - 1;
+    addType(type: Type, name?: string): number {
+        const idx = this.types.push(type) - 1;
+        this.names[idx] = name;
+        return idx;
     }
 
     clone(): Scope {
         const rc = new Scope(this.root, this.parent);
-        this.names.forEach(x => rc.addName(x));
-        this.types.forEach(x => rc.addType(x));
+
+        rc.names = [...this.names];
+        rc.types = [...this.types];
+        rc.constraints = [...this.constraints];
+        rc.n = this.n;
+
         return rc;
     }
 

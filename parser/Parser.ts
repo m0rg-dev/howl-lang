@@ -1,105 +1,72 @@
 import { ASTElement, PartialElement, SourceLocation } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
-import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { FunctionElement } from "../ast/FunctionElement";
+import { GenericElement } from "../ast/GenericElement";
 import { ModuleDefinitionElement } from "../ast/ModuleDefinitionElement";
 import { NameElement } from "../ast/NameElement";
-import { PartialArgumentListElement } from "../ast/PartialArgumentListElement";
 import { PartialClassElement } from "../ast/PartialClassElement";
 import { PartialFunctionElement } from "../ast/PartialFunctionElement";
-import { SignatureElement } from "../ast/SignatureElement";
 import { TokenElement } from "../ast/TokenElement";
 import { TypeElement } from "../ast/TypeElement";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { Classes, Functions, PartialFunctions, TypeNames } from "../registry/Registry";
+import { UnitType } from "../type_inference/Type";
 import { Any, AssertNegative, First, InOrder, Matcher, MatchToken, Star } from "./Matcher";
 import { FunctionRules } from "./rules/FunctionRules";
 import { ParseClassParts } from "./rules/ParseClassParts";
-import { ParseFunctionParts } from "./rules/ParseFunctionParts";
 import { TopLevelParse } from "./rules/TopLevelParse";
 
 export function Parse(token_stream: Token[]): ASTElement[] {
     let ast_stream: ASTElement[] = token_stream.map(x => new TokenElement(x));
     ast_stream = ApplyPass(ast_stream, TopLevelParse)[0];
 
+    ExtractTypeDefinitions(ast_stream);
+
     for (const el of ast_stream) {
         if (el instanceof PartialClassElement) {
+            console.error("~~~ Parsing class: " + el.toString() + " ~~~");
             el.body = ApplyPass(el.body, {
-                name: "ExtractMethods",
-                rules: [
-                    ...FunctionRules(el.name),
-                ]
+                name: "ParseMethods",
+                rules: FunctionRules(el.name)
             })[0];
+            ClassifyNames(el.body, new Set(el.generics));
+            el.body = ApplyPass(el.body, ParseClassParts)[0];
 
             const fields: string[] = [];
-            const methods: string[] = [];
+            const methods: FunctionElement[] = [];
 
             for (const sub of el.body) {
                 if (sub instanceof PartialFunctionElement) {
-                    methods.push(sub.name);
+                    const n = sub.parse(new UnitType(el.name));
+                    if (n) {
+                        methods.push(n);
+                    } else {
+                        console.error("(method didn't parse) " + FormatASTStream(sub.body));
+                    }
+                    PartialFunctions.delete(sub);
                 } else if (sub instanceof NameElement) {
                     fields.push(sub.name);
                 }
             }
-        }
-    }
 
-    ExtractTypeDefinitions(ast_stream);
-    ClassifyNames(ast_stream);
-
-    for (const el of ast_stream) {
-        if (el instanceof PartialClassElement) {
-            ClassifyNames(el.body);
-            el.body = ApplyPass(el.body, ParseClassParts)[0];
-
-            if (el.body[2] instanceof SignatureElement) {
-                const fields: string[] = [];
-                const methods: string[] = [];
-
-                for (const sub of el.body) {
-                    if (sub instanceof PartialFunctionElement) {
-                        methods.push(sub.name);
-                    } else if (sub instanceof NameElement) {
-                        fields.push(sub.name);
-                    }
-                }
-
-                Classes.add(new ClassElement(
-                    el.source_location,
-                    el.name,
-                    el.body[2],
-                    fields,
-                    methods
-                ));
-            }
+            Classes.add(new ClassElement(
+                el.source_location,
+                el.name,
+                fields,
+                methods,
+                el.generics
+            ));
         }
     }
 
     PartialFunctions.forEach(x => {
-        ClassifyNames(x.body);
-        x.body = ApplyPass(x.body, ParseFunctionParts)[0];
-        if (x.body[0] instanceof TokenElement && x.body[0].token.type == TokenType.Static) {
-            // TODO
-            x.body.shift();
-        }
-
-        if (x.body[0] instanceof TokenElement
-            && x.body[1] instanceof NameElement
-            && x.body[2] instanceof SignatureElement
-            && x.body[3] instanceof PartialArgumentListElement
-            && x.body[4] instanceof CompoundStatementElement) {
-            const n = new FunctionElement(
-                x.source_location,
-                x.name,
-                x.body[2],
-                x.body[3],
-                x.body[4]
-            );
+        const n = x.parse(new UnitType("void"));
+        if (n) {
             Functions.add(n);
             PartialFunctions.delete(x);
         } else {
-            console.error(FormatASTStream(x.body));
+            console.error("(function didn't parse) " + FormatASTStream(x.body));
         }
     });
 
@@ -110,7 +77,7 @@ export function ApplyPass(ast_stream: ASTElement[], rules: RuleList): [ASTElemen
     const s2 = [...ast_stream];
     let changed = false;
     let ever_changed = false;
-    console.error(`Pass: ${rules.name}`);
+    console.error(`Pass: ${rules.name} ${FormatASTStream(ast_stream)}`);
     outer: do {
         changed = false;
         let idx = 0;
@@ -134,7 +101,7 @@ export function ApplyPass(ast_stream: ASTElement[], rules: RuleList): [ASTElemen
     return [s2, ever_changed];
 }
 
-function FormatASTStream(ast_stream: ASTElement[]): string {
+export function FormatASTStream(ast_stream: ASTElement[]): string {
     return ast_stream.map(x => x.toString()).join(" ");
 }
 
@@ -148,13 +115,16 @@ function ExtractTypeDefinitions(ast_stream: ASTElement[]) {
     }
 }
 
-function ClassifyNames(ast_stream: ASTElement[]) {
+export function ClassifyNames(ast_stream: ASTElement[], generics?: Set<string>) {
+    if (generics) console.error(`Generics: ${[...generics].join(", ")}`);
     for (const idx in ast_stream) {
         const el = ast_stream[idx];
         if (el instanceof PartialElement) {
-            ClassifyNames(el.body);
+            ClassifyNames(el.body, generics);
         } else if (el instanceof TokenElement && el.token.type == TokenType.Name) {
-            if (TypeNames.has(el.token.name)) {
+            if (generics?.has(el.token.name)) {
+                ast_stream[idx] = new GenericElement(el.source_location, el.token.name);
+            } else if (TypeNames.has(el.token.name)) {
                 ast_stream[idx] = new TypeElement(el.source_location, el.token.name);
             } else {
                 ast_stream[idx] = new NameElement(el.source_location, el.token.name);

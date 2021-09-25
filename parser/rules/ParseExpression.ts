@@ -2,18 +2,13 @@ import { ASTElement } from "../../ast/ASTElement";
 import { ConstructorCallExpression, ExpressionElement, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../../ast/ExpressionElement";
 import { NameElement } from "../../ast/NameElement";
 import { TokenElement } from "../../ast/TokenElement";
+import { TypeElement } from "../../ast/TypeElement";
 import { NumericLiteralToken } from "../../lexer/NumericLiteralToken";
 import { Token } from "../../lexer/Token";
 import { TokenType } from "../../lexer/TokenType";
 import { InOrder, MatchElementType, Matcher, MatchToken, Optional, Star } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
-
-export function MatchExpression(): Matcher {
-    return (ast_stream: ASTElement[]) => {
-        if (ast_stream[0] instanceof ExpressionElement) return [true, 1];
-        return [false, 0];
-    }
-}
+import { MatchExpression, MatchType } from "./MatchUtils";
 
 export const ParseExpression: RuleList = {
     name: "ParseExpression",
@@ -43,7 +38,7 @@ export const ParseExpression: RuleList = {
             name: "ConstructorCall",
             match: InOrder(
                 MatchToken(TokenType.New),
-                MatchElementType("NumberExpression"),
+                MatchType(),
                 MatchToken(TokenType.OpenParen),
                 Optional(
                     InOrder(
@@ -58,8 +53,8 @@ export const ParseExpression: RuleList = {
                 ),
                 MatchToken(TokenType.CloseParen)
             ),
-            replace: (ast_stream: [TokenElement<any>, NumberExpression, ...ASTElement[]]) => {
-                const source = ast_stream[1].value;
+            replace: (ast_stream: [TokenElement<any>, TypeElement, ...ASTElement[]]) => {
+                const source = ast_stream[1].name;
                 const rest = ast_stream.slice(3, -1);
                 const args: ExpressionElement[] = [];
                 rest.forEach(x => {
@@ -67,7 +62,7 @@ export const ParseExpression: RuleList = {
                         args.push(x);
                     }
                 });
-                return [new ConstructorCallExpression(LocationFrom(ast_stream), source, args)];
+                return [new ConstructorCallExpression(LocationFrom(ast_stream), 0, args)];
             }
         },
         {

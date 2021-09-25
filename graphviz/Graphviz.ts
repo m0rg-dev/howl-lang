@@ -2,7 +2,7 @@ import { ASTElement } from "../ast/ASTElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { FunctionElement } from "../ast/FunctionElement";
 import { AssignmentStatement, PartialStatementElement, SimpleStatement, UnaryReturnStatement } from "../ast/StatementElement";
-import { Scope } from "../ast/Scope";
+import { Scope } from "../type_inference/Scope";
 import { ConstructorCallExpression, ExpressionElement, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../ast/ExpressionElement";
 import { ClassElement } from "../ast/ClassElement";
 
@@ -12,7 +12,12 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         const contents: RecordRow[] = [
             [{ text: "FunctionElement" }],
             [{ port: "name", text: "name: " + e.name }],
+            [{ port: "type", text: "returns: " + e.type.toString() }],
+            [{ port: "type", text: "self: " + e.self_type.toString() }],
         ];
+        e.args.forEach(x => {
+            contents.push([{ port: "arg", text: x.toString() }]);
+        })
         s.push((new Link("u" + e.uuid, "u" + e.body.uuid)).toString());
         s.push("{\n  rank=same");
         s.push((new RecordNode(e.uuid, contents)).toString());
@@ -100,9 +105,14 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
             s.push(RenderElement(x, _nearestScope));
         });
         s.push((new RecordNode(e.uuid, contents)).toString());
+    } else if (e instanceof ClassElement) {
+        s.push(`  u${e.uuid} [label="${escape(e.toString())}", shape=rect];`);
+        e.methods.forEach(x => {
+            s.push(RenderElement(x, _nearestScope));
+            s.push((new Link("u" + e.uuid, "u" + x.uuid)).toString());
+        })
     } else if (e instanceof NumberExpression
-        || e instanceof NameExpression
-        || e instanceof ClassElement) {
+        || e instanceof NameExpression) {
         s.push(`  u${e.uuid} [label="${escape(e.toString())}", shape=rect];`);
     } else if (e instanceof SimpleStatement) {
         s.push(`  u${e.uuid} [label="${escape(e.toString())}", shape=rect];`);
@@ -125,13 +135,8 @@ export function RenderScope(scope: Scope): string {
         [{ text: "Scope" }, { text: scope.n.toString() }]
     ];
 
-    scope.names.forEach((x, y) => {
-        contents[y + 1] ||= [];
-        contents[y + 1][0] = { text: x };
-    });
-
     scope.types.forEach((x, y) => {
-        contents[y + 1] ||= [{ text: `#${y}` }];
+        contents[y + 1] ||= [{ text: scope.names[y] || `#${y}` }];
         contents[y + 1][1] = { text: x.toString() };
     });
 

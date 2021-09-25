@@ -1,4 +1,4 @@
-import { Scope } from "../ast/Scope";
+import { Scope } from "./Scope";
 import { TypeExpressionElement, TypeIndexElement, TypeLiteralElement } from "../ast/TypeExpressionElement";
 
 export class TypeLocation {
@@ -17,10 +17,9 @@ export class TypeLocation {
 
 export abstract class Type {
     abstract toString(): string;
-    abstract evaluate(): Type;
 }
 
-export class BaseType extends Type {
+export class UnitType extends Type {
     name: string;
 
     constructor(name: string) {
@@ -29,8 +28,20 @@ export class BaseType extends Type {
     }
 
     toString() { return this.name; }
-    evaluate() { return this; }
 }
+
+export class GenericType extends Type {
+    name: string;
+
+    constructor(name: string) {
+        super();
+        this.name = name;
+    }
+
+    toString() { return this.name; }
+}
+
+// ---
 
 export class ReferencedIndexedType extends Type {
     source: number;
@@ -83,7 +94,7 @@ export class AnyType extends Type {
 export function FromExpression(e: TypeExpressionElement): Type {
     if (e instanceof TypeLiteralElement) {
         if (e.name == "any") return new AnyType();
-        return new BaseType(e.name);
+        return new UnitType(e.name);
     } else if (e instanceof TypeIndexElement) {
         return new ReferencedIndexedType(e.source, e.index);
     } else {

@@ -6,13 +6,14 @@ import { Token } from "../../lexer/Token";
 import { TokenType } from "../../lexer/TokenType";
 import { InOrder, MatchElementType, MatchToken } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
+import { MatchType } from "./MatchUtils";
 
 export const ParseTypeExpression: RuleList = {
     name: "ParseTypeExpression",
     rules: [
         {
             name: "ConvertLiterals",
-            match: MatchElementType("TypeElement"),
+            match: MatchType(),
             replace: (ast_stream: [TypeElement]) => {
                 return [new TypeLiteralElement(ast_stream[0].source_location, ast_stream[0].name)];
             }
