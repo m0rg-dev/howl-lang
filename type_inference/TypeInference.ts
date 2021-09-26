@@ -1,7 +1,12 @@
 import { ASTElement } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
-import { ConstructorCallExpression, ExpressionElement, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../ast/ExpressionElement";
+import { ExpressionElement } from "../ast/ExpressionElement";
+import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
+import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
+import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
+import { NumberExpression } from "../ast/expression/NumberExpression";
+import { NameExpression } from "../ast/expression/NameExpression";
 import { FunctionElement } from "../ast/FunctionElement";
 import { AssignmentStatement, LocalDefinitionStatement, NullaryReturnStatement, SimpleStatement, UnaryReturnStatement } from "../ast/StatementElement";
 import { TypedItemElement } from "../ast/TypedItemElement";

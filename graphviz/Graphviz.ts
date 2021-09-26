@@ -3,7 +3,12 @@ import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { FunctionElement } from "../ast/FunctionElement";
 import { AssignmentStatement, PartialStatementElement, SimpleStatement, UnaryReturnStatement } from "../ast/StatementElement";
 import { Scope } from "../type_inference/Scope";
-import { ConstructorCallExpression, ExpressionElement, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../ast/ExpressionElement";
+import { ExpressionElement } from "../ast/ExpressionElement";
+import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
+import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
+import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
+import { NumberExpression } from "../ast/expression/NumberExpression";
+import { NameExpression } from "../ast/expression/NameExpression";
 import { ClassElement } from "../ast/ClassElement";
 import { ConsumedType, UnitType } from "../type_inference/Type";
 

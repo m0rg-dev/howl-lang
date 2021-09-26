@@ -1,4 +1,5 @@
-import { ExpressionElement, NameExpression } from "../../ast/ExpressionElement";
+import { ExpressionElement } from "../../ast/ExpressionElement";
+import { NameExpression } from "../../ast/expression/NameExpression";
 import { AssignmentStatement, LocalDefinitionStatement, NullaryReturnStatement, SimpleStatement, UnaryReturnStatement } from "../../ast/StatementElement";
 import { TokenElement } from "../../ast/TokenElement";
 import { TypeElement } from "../../ast/TypeElement";

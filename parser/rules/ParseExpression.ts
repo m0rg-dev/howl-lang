@@ -1,5 +1,10 @@
 import { ASTElement } from "../../ast/ASTElement";
-import { ConstructorCallExpression, ExpressionElement, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../../ast/ExpressionElement";
+import { ExpressionElement } from "../../ast/ExpressionElement";
+import { ConstructorCallExpression } from "../../ast/expression/ConstructorCallExpression";
+import { FunctionCallExpression } from "../../ast/expression/FunctionCallExpression";
+import { FieldReferenceExpression } from "../../ast/expression/FieldReferenceExpression";
+import { NumberExpression } from "../../ast/expression/NumberExpression";
+import { NameExpression } from "../../ast/expression/NameExpression";
 import { NameElement } from "../../ast/NameElement";
 import { SyntaxErrorElement } from "../../ast/SyntaxErrorElement";
 import { TokenElement } from "../../ast/TokenElement";
