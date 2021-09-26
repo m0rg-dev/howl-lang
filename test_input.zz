@@ -13,11 +13,6 @@ class Foo<T> {
     }
 }
 
-class Point<> {
-    i32 x_position;
-    i32 y_position;
-}
-
 static fn i32 main() {
     let i32 val;
     let Foo obj;
