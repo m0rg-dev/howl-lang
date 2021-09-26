@@ -1,5 +1,4 @@
 import { ASTElement } from "../ast/ASTElement";
-import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
@@ -8,11 +7,8 @@ import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpres
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { FunctionElement } from "../ast/FunctionElement";
-import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
-import { NullaryReturnStatement } from "../ast/statement/NullaryReturnStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
-import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { Classes } from "../registry/Registry";
 import { Scope } from "./Scope";
@@ -29,6 +25,7 @@ import { AnyType } from "./AnyType";
 import { ConsumedType } from "./ConsumedType";
 import { GenericType } from "./GenericType";
 import { UnitType } from "./UnitType";
+import { WalkAST } from "../ast/WalkAST";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -36,7 +33,7 @@ export function RunTypeInference(f: FunctionElement) {
     // First, add types to any expression whose type can be determined at this
     // point. Numbers are always i8 | i16 | i32 | i64, constructor calls have
     // their own type, and names are already in the scope table from AddScopes.
-    Walk(f, (x, s) => {
+    WalkAST(f, (x, s) => {
         if (x instanceof NumberExpression) {
             const idx = s.addType(new UnionType([
                 new UnitType("i8"),
@@ -60,7 +57,7 @@ export function RunTypeInference(f: FunctionElement) {
     // determined. Assignments always generate intersections, field references
     // always have a known field name, and generating a FunctionCallType doesn't
     // require knowledge of the exact type of the source element.
-    Walk(f, (x, s) => {
+    WalkAST(f, (x, s) => {
         if (x instanceof AssignmentStatement) {
             console.error(`(Assignment) ${x.lhs.type} = ${x.rhs.type}`);
             const idx = s.addType(new IntersectionType(x.lhs.type, x.rhs.type));
@@ -85,7 +82,7 @@ export function RunTypeInference(f: FunctionElement) {
     let changed = true;
     while (changed) {
         changed = false;
-        Walk(f, (x) => {
+        WalkAST(f, (x) => {
             if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
                 // Type propagation and constraint evaluation at the scope level
                 // rather than the AST level. This is capable of handling most
@@ -121,13 +118,13 @@ export function RunTypeInference(f: FunctionElement) {
     }
 
     // Remove any un-referenced types from scopes to make the graph output a little cleaner.
-    Walk(f, (x) => {
+    WalkAST(f, (x) => {
         if (x instanceof ExpressionElement) {
             x.type.location.gc_temp.add(x.type.index);
         }
     });
 
-    Walk(f, (x) => {
+    WalkAST(f, (x) => {
         if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
             x.scope.types.forEach((type, index) => {
                 if (!x.scope.gc_temp.has(index)) {
@@ -175,7 +172,7 @@ function ApplyRulesToScope(s: Scope): boolean {
 
                 new_class.setName(`__${t.fqn.last()}_${generic_keys.map(x => (generic_map.get(x) as UnitType).name).join("_")}`);
                 // ...replace all the GenericTypes in its AST...
-                Walk(new_class, (x, s) => {
+                WalkAST(new_class, (x, s) => {
                     if (x instanceof FunctionElement) {
                         if (x.return_type instanceof GenericType) x.return_type = generic_map.get(x.return_type.name);
                         x.args.forEach((arg) => {
@@ -274,7 +271,7 @@ function SwivelIntersection(source: TypeLocation, new_type: TypeLocation) {
 // somewhere you probably want to use SwivelIntersection instead.
 function ReplaceTypes(el: ASTElement, from: TypeLocation, to: TypeLocation) {
     console.error(`(ReplaceTypes) ${from} -> ${to}`);
-    Walk(el, (x) => {
+    WalkAST(el, (x) => {
         if (x instanceof ExpressionElement) {
             if (x.type && x.type.location == from.location && x.type.index == from.index) {
                 x.type = to;
@@ -347,52 +344,4 @@ export function AddScopes(el: FunctionElement | CompoundStatementElement, root: 
     }
 }
 
-function Walk(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope) => void, _nearestScope?: Scope) {
-    if (root instanceof ClassElement) {
-        root.methods.forEach(x => {
-            Walk(x, cb, _nearestScope);
-        });
-        root.fields.forEach(x => {
-            Walk(x, cb, _nearestScope);
-        });
-        cb(root, _nearestScope);
-    } else if (root instanceof FunctionElement) {
-        Walk(root.body, cb, root.scope);
-        cb(root, root.scope);
-    } else if (root instanceof CompoundStatementElement) {
-        root.statements.forEach(x => {
-            Walk(x, cb, root.scope);
-        });
-        cb(root, root.scope);
-    } else if (root instanceof AssignmentStatement) {
-        Walk(root.lhs, cb, _nearestScope);
-        Walk(root.rhs, cb, _nearestScope);
-        cb(root, _nearestScope);
-    } else if (root instanceof FunctionCallExpression) {
-        Walk(root.source, cb, _nearestScope);
-        root.args.forEach(x => {
-            Walk(x, cb, _nearestScope);
-        });
-        cb(root, _nearestScope);
-    } else if (root instanceof ConstructorCallExpression) {
-        root.args.forEach(x => {
-            Walk(x, cb, _nearestScope);
-        });
-        cb(root, _nearestScope);
-    } else if (root instanceof FieldReferenceExpression
-        || root instanceof UnaryReturnStatement) {
-        Walk(root.source, cb, _nearestScope);
-        cb(root, _nearestScope);
-    } else if (root instanceof SimpleStatement) {
-        Walk(root.exp, cb, _nearestScope);
-        cb(root, _nearestScope);
-    } else if (root instanceof LocalDefinitionStatement
-        || root instanceof NullaryReturnStatement
-        || root instanceof NameExpression
-        || root instanceof NumberExpression
-        || root instanceof TypedItemElement) {
-        cb(root, _nearestScope);
-    } else {
-        throw new Error(`can't walk a ${root.constructor.name}`);
-    }
-}
+
