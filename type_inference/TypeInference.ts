@@ -12,6 +12,9 @@ import { AnyType, ConsumedType, FieldReferenceType, FunctionCallType, FunctionTy
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
 
+    // First, add types to any expression whose type can be determined at this
+    // point. Numbers are always i8 | i16 | i32 | i64, constructor calls have
+    // their own type, and names are already in the scope table from AddScopes.
     Walk(f, (x, s) => {
         if (x instanceof NumberExpression) {
             const idx = s.addType(new UnionType([
@@ -32,6 +35,10 @@ export function RunTypeInference(f: FunctionElement) {
         }
     });
 
+    // Now, add type constraints to any expression whose type constraints can be
+    // determined. Assignments always generate intersections, field references
+    // always have a known field name, and generating a FunctionCallType doesn't
+    // require knowledge of the exact type of the source element.
     Walk(f, (x, s) => {
         if (x instanceof AssignmentStatement) {
             console.error(`(Assignment) ${x.lhs.type} = ${x.rhs.type}`);
@@ -49,14 +56,23 @@ export function RunTypeInference(f: FunctionElement) {
         }
     })
 
+    // Propagate types and constraints.
     let changed = true;
     while (changed) {
         changed = false;
         Walk(f, (x) => {
             if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
-                changed ||= ApplyRulesToScope(x.scope, x);
+                // Type propagation and constraint evaluation at the scope level
+                // rather than the AST level. This is capable of handling most
+                // expression types, but stuff like function calls where the
+                // argument list is stored in the AST need to be handled
+                // separately.
+                changed ||= ApplyRulesToScope(x.scope);
             } else if (x instanceof FunctionCallExpression) {
                 if (x.source.type.get() instanceof FunctionType) {
+                    // This is the second half of function call handling. Once
+                    // we know the type of a function call's source, we can
+                    // back-propagate the type constraints on its arguments.
                     console.error(`(FunctionCall) ${x.source.type.get()}`);
                     const ft = x.source.type.get() as FunctionType;
                     if (!ft.args.every(x => x instanceof ScopeReferenceType)) return;
@@ -93,15 +109,24 @@ export function RunTypeInference(f: FunctionElement) {
     })
 }
 
-function ApplyRulesToScope(s: Scope, el: ASTElement): boolean {
+function ApplyRulesToScope(s: Scope): boolean {
     let rc = false;
     s.types.forEach((t, index) => {
         if (t instanceof ClosureType && t.evaluable()) {
+            // EvaluateClosure: Replace any evaluable ClosureType with its
+            // result.
             const new_type = t.evaluator()();
-            console.error(`(EvaluatePi) ${t} => ${new_type}`);
+            console.error(`(EvaluateClosure) ${t} => ${new_type}`);
             s.types[index] = new_type;
             rc = true;
         } else if (t instanceof StructureType) {
+            // A whole lot of StructureType-related stuff that probably should
+            // get split out.
+
+            // First, MapGenerics - replaces any generic elements within a
+            // StructureType with a reference to a type register in the local
+            // scope. In other words, this is what brings the T in Structure<T>
+            // out into the scope of whatever's referencing it.
             const generic_map = t.generic_map || new Map<string, Type>();
             if (MapGenerics(s, t, () => { }, generic_map)) {
                 rc = true;
@@ -109,13 +134,18 @@ function ApplyRulesToScope(s: Scope, el: ASTElement): boolean {
                 console.error(`(MapGenerics) ${t}`);
             }
 
+            // Now, see if we can monomorphize the type, if necessary. This is
+            // possible if it has generics (if it doesn't, it's already
+            // monomorphized and we need to *not* do so again), and all the
+            // generic fields are of known type.
             const generic_keys = [...generic_map.keys()];
             if (generic_keys.length && generic_keys.every(k => generic_map.get(k) instanceof UnitType) && Classes.has(t.name)) {
                 console.error(`(Monomorphize) ${t.name}<${generic_keys.map(x => generic_map.get(x).toString()).join(", ")}>`);
+                // This is basically a template evaluation. We'll clone the original class...
                 const new_class = Classes.get(t.name).clone();
 
                 new_class.name = `__${t.name}_${generic_keys.map(x => (generic_map.get(x) as UnitType).name).join("_")}`;
-
+                // ...replace all the GenericTypes in its AST...
                 Walk(new_class, (x, s) => {
                     if (x instanceof FunctionElement) {
                         if (x.return_type instanceof GenericType) x.return_type = generic_map.get(x.return_type.name);
@@ -127,33 +157,54 @@ function ApplyRulesToScope(s: Scope, el: ASTElement): boolean {
                     }
                 });
                 new_class.generics = [];
+                // ...update the type of `self` on all its methods...
                 new_class.methods.forEach(x => {
                     x.self_type = new_class.type();
                 });
+                // ...and run type checking on the result. I might eventually
+                // add support to the type checker for handling generic types
+                // directly, which would let us type-check classes prior to
+                // template substitution and probably result in better type
+                // error handling.
                 new_class.methods.forEach(RunTypeInference);
 
                 Classes.set(new_class.name, new_class);
 
+                // Now, we can just treat it as a concrete type.
                 s.types[index] = new UnitType(new_class.name);
                 rc = true;
             }
         } else if (t instanceof ScopeReferenceType) {
+            // LiftScope: Handles the case where you have a ScopeReferenceType
+            // directly in a Scope instead of as a sub-type. This just lets us
+            // not have to handle indirecting through ScopeReferenceTypes
+            // anytime we're using a type.
             console.error(`(LiftScope) ${index}@${s.n} => ${t.source}`);
             ReplaceTypes(s.root, new TypeLocation(s, index), t.source);
             s.types[index] = new ConsumedType();
             rc = true;
         } else if (t instanceof IntersectionType) {
+            // IntersectStructure: Handles intersections between structure
+            // types. This requires special handling because performing that
+            // intersection requires side effects (the SwivelIntersection call),
+            // so we can't just do it in IntersectionType.evaluator.
             const t0 = t.source0.get();
             const t1 = t.source1.get();
 
+            // The actual intersection is handled by intersecting the types'
+            // generic fields. We can assume that if two types have the same
+            // name, all their components will be identical (= intersectable)
+            // down to their generics, so we can distribute the intersection
+            // over the generic fields rather than having to interact with the
+            // types' contents.
             if (t0 instanceof StructureType && t1 instanceof StructureType
                 && t0.name == t1.name
                 && t0.generic_map && t1.generic_map) {
-                console.error(`(IntersectSigma) ${t0} ${t1}`);
+                console.error(`(IntersectStructure) ${t0} ${t1}`);
                 t0.generic_map.forEach((old_type, generic_key) => {
                     const ot1 = t1.generic_map.get(generic_key);
                     if (old_type instanceof ScopeReferenceType && ot1 instanceof ScopeReferenceType) {
-                        console.error(`  (IntersectSigma) ${generic_key} ${old_type}`);
+                        console.error(`  (IntersectStructure) ${generic_key} ${old_type}`);
                         SwivelIntersection(old_type.source, ot1.source);
                     }
                 });
@@ -174,8 +225,10 @@ function ApplyRulesToScope(s: Scope, el: ASTElement): boolean {
 // #3   i32
 // #4   (i32 | i64)
 //
-// The point of this is to avoid having to run ReplaceTypes, especially when there
-// might be StructureTypes in play that reference #2.
+// This allows you to intersect the type of #2 with #3 while keeping the result
+// of that intersection in #2. It's a bit of a hack, but that lets you take that
+// intersection without having to change references to #2 to point somewhere
+// else - very useful if there are ScopeReferenceTypes referencing #2 in play.
 function SwivelIntersection(source: TypeLocation, new_type: TypeLocation) {
     const orig_scope = source.location;
     const orig_index = source.index;
@@ -185,6 +238,10 @@ function SwivelIntersection(source: TypeLocation, new_type: TypeLocation) {
     orig_scope.types[orig_index] = t;
 }
 
+// Replaces any references to one TypeLocation with another. This only affects
+// types directly referenced by an Expression as its result location - if you
+// need to mess with types that might be referenced by a ScopeReferenceType
+// somewhere you probably want to use SwivelIntersection instead.
 function ReplaceTypes(el: ASTElement, from: TypeLocation, to: TypeLocation) {
     console.error(`(ReplaceTypes) ${from} -> ${to}`);
     Walk(el, (x) => {
@@ -196,6 +253,10 @@ function ReplaceTypes(el: ASTElement, from: TypeLocation, to: TypeLocation) {
     });
 }
 
+// Replace any generic types in `t` and its subtypes with ScopeReferenceTypes.
+// Each generic parameter will map to one register on the local scope. Also
+// replaces ScopeReferenceTypes referencing concrete types with the referenced
+// concrete type, mostly because it's a convenient place to do so.
 function MapGenerics(s: Scope, t: Type, repl: (n: Type) => void, map: Map<string, Type>): boolean {
     let rc = false;
     if (t instanceof GenericType) {
