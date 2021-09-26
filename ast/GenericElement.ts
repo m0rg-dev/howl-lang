@@ -1,4 +1,5 @@
-import { GenericType, Type } from "../type_inference/Type";
+import { Type } from "../type_inference/Type";
+import { GenericType } from "../type_inference/GenericType";
 import { SourceLocation } from "./ASTElement";
 import { TypeElement } from "./TypeElement";
 

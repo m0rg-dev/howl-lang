@@ -1,4 +1,5 @@
-import { FunctionType, StructureType } from "../type_inference/Type";
+import { FunctionType } from "../type_inference/FunctionType";
+import { StructureType } from "../type_inference/StructureType";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { FQN, HasFQN } from "./FQN";
 import { FunctionElement } from "./FunctionElement";

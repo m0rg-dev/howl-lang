@@ -1,5 +1,7 @@
 import { Scope } from "../type_inference/Scope";
-import { Type, UnitType, VoidType } from "../type_inference/Type";
+import { Type } from "../type_inference/Type";
+import { VoidType } from "../type_inference/VoidType";
+import { UnitType } from "../type_inference/UnitType";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { CompoundStatementElement } from "./CompoundStatementElement";
 import { FQN, HasFQN } from "./FQN";

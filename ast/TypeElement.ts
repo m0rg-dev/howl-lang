@@ -1,5 +1,7 @@
 import { Classes } from "../registry/Registry";
-import { UnitType, Type, ClassType } from "../type_inference/Type";
+import { Type } from "../type_inference/Type";
+import { ClassType } from "../type_inference/ClassType";
+import { UnitType } from "../type_inference/UnitType";
 import { ASTElement, SourceLocation } from "./ASTElement";
 
 export class TypeElement extends ASTElement {

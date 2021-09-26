@@ -1,4 +1,4 @@
-import { TypeLocation } from "../type_inference/Type";
+import { TypeLocation } from "../type_inference/TypeLocation";
 import { ASTElement } from "./ASTElement";
 
 export abstract class ExpressionElement extends ASTElement {

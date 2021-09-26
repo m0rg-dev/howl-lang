@@ -1,4 +1,4 @@
-import { ClassType } from "../../type_inference/Type";
+import { ClassType } from "../../type_inference/ClassType";
 import { SourceLocation } from "../ASTElement";
 import { ExpressionElement } from "../ExpressionElement";
 

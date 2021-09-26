@@ -13,7 +13,8 @@ import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpres
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { ClassElement } from "../ast/ClassElement";
-import { ConsumedType, UnitType } from "../type_inference/Type";
+import { ConsumedType } from "../type_inference/ConsumedType";
+import { UnitType } from "../type_inference/UnitType";
 
 export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
     let s: string[] = [];

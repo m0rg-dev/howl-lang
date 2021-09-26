@@ -16,7 +16,19 @@ import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { Classes } from "../registry/Registry";
 import { Scope } from "./Scope";
-import { AnyType, ConsumedType, FieldReferenceType, FunctionCallType, FunctionType, GenericType, IntersectionType, ClosureType, ScopeReferenceType, StructureType, Type, TypeLocation, UnionType, UnitType } from "./Type";
+import { ClosureType, Type } from "./Type";
+import { TypeLocation } from "./TypeLocation";
+import { FunctionCallType } from "./FunctionCallType";
+import { FieldReferenceType } from "./FieldReferenceType";
+import { FunctionType } from "./FunctionType";
+import { ScopeReferenceType } from "./ScopeReferenceType";
+import { IntersectionType } from "./IntersectionType";
+import { StructureType } from "./StructureType";
+import { UnionType } from "./UnionType";
+import { AnyType } from "./AnyType";
+import { ConsumedType } from "./ConsumedType";
+import { GenericType } from "./GenericType";
+import { UnitType } from "./UnitType";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);

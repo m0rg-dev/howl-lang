@@ -12,7 +12,7 @@ import { TypeElement } from "../../ast/TypeElement";
 import { NumericLiteralToken } from "../../lexer/NumericLiteralToken";
 import { Token } from "../../lexer/Token";
 import { TokenType } from "../../lexer/TokenType";
-import { ClassType } from "../../type_inference/Type";
+import { ClassType } from "../../type_inference/ClassType";
 import { InOrder, MatchElementType, Matcher, MatchToken, Optional, Star } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
 import { MatchExpression, MatchType } from "./MatchUtils";

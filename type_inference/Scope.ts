@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
-import { Type, TypeLocation } from "./Type";
+import { Type } from "./Type";
+import { TypeLocation } from "./TypeLocation";
 import { FunctionElement } from "../ast/FunctionElement";
 
 var scope_index = 0;
