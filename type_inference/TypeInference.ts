@@ -8,7 +8,11 @@ import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpres
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { FunctionElement } from "../ast/FunctionElement";
-import { AssignmentStatement, LocalDefinitionStatement, NullaryReturnStatement, SimpleStatement, UnaryReturnStatement } from "../ast/StatementElement";
+import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
+import { NullaryReturnStatement } from "../ast/statement/NullaryReturnStatement";
+import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
+import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
+import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { Classes } from "../registry/Registry";
 import { Scope } from "./Scope";

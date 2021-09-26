@@ -1,7 +1,10 @@
 import { ASTElement } from "../ast/ASTElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { FunctionElement } from "../ast/FunctionElement";
-import { AssignmentStatement, PartialStatementElement, SimpleStatement, UnaryReturnStatement } from "../ast/StatementElement";
+import { PartialStatementElement } from "../ast/StatementElement";
+import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
+import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
+import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { Scope } from "../type_inference/Scope";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";

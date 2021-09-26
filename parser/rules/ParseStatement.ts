@@ -1,6 +1,10 @@
 import { ExpressionElement } from "../../ast/ExpressionElement";
 import { NameExpression } from "../../ast/expression/NameExpression";
-import { AssignmentStatement, LocalDefinitionStatement, NullaryReturnStatement, SimpleStatement, UnaryReturnStatement } from "../../ast/StatementElement";
+import { UnaryReturnStatement } from "../../ast/statement/UnaryReturnStatement";
+import { NullaryReturnStatement } from "../../ast/statement/NullaryReturnStatement";
+import { LocalDefinitionStatement } from "../../ast/statement/LocalDefinitionStatement";
+import { AssignmentStatement } from "../../ast/statement/AssignmentStatement";
+import { SimpleStatement } from "../../ast/statement/SimpleStatement";
 import { TokenElement } from "../../ast/TokenElement";
 import { TypeElement } from "../../ast/TypeElement";
 import { TokenType } from "../../lexer/TokenType";
