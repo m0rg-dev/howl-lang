@@ -16,6 +16,10 @@ Parse(lexer.token_stream);
 
 Functions.forEach(RunTypeInference);
 
+Classes.forEach((cl, name) => {
+    if (cl.generics.length) Classes.delete(name);
+});
+
 console.log("digraph {\n  rankdir=LR;\n");
 Functions.forEach(x => console.log(RenderElement(x)));
 Classes.forEach(x => console.log(RenderElement(x)));
