@@ -1,3 +1,5 @@
+This describes an early attempt at formalizing the type system. It doesn't really apply anymore.
+
 Type system and scopes
 ---
 
