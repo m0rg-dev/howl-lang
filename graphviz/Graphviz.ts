@@ -125,11 +125,7 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
 
     if (e instanceof ExpressionElement && _nearestScope && e.type) {
         s.push((new Link("u" + e.uuid, "type_" + e.uuid)).toString());
-        if (e.type.get() instanceof UnitType) {
-            s.push(`  type_${e.uuid} [label="${escape(e.type.toString())} = ${escape(e.type.get().toString())}", shape=Mrecord, color=blue, fontcolor=blue]`);
-        } else {
-            s.push(`  type_${e.uuid} [label="${escape(e.type.toString())}", shape=Mrecord, color=blue, fontcolor=blue]`);
-        }
+        s.push(`  type_${e.uuid} [label="${escape(e.type.toString())} = ${escape(e.type.get().toString())}", shape=Mrecord, color=blue, fontcolor=blue]`);
     }
 
     return s.join("\n");
@@ -154,7 +150,9 @@ function escape(s: string): string {
         .replaceAll("'", "&#39;")
         .replaceAll("<", "&#60;")
         .replaceAll(">", "&#62;")
-        .replaceAll("|", "&#124;");
+        .replaceAll("{", "&#123;")
+        .replaceAll("|", "&#124;")
+        .replaceAll("}", "&#125;");
 }
 
 class RecordNode {

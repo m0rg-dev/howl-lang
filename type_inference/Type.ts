@@ -117,7 +117,11 @@ export class StructureType extends Type {
         if (this.generic_map) {
             this.generic_map.forEach((v, k) => generics.push(`${k} = ${v}`));
         }
-        return `${this.name}<${generics.join(", ")}>{ ${f.join(", ")} }`;
+        if (process.env.HOWL_LOG_FULL_STRUCTS) {
+            return `${this.name}<${generics.join(", ")}>{ ${f.join(", ")} }`;
+        } else {
+            return `${this.name}<${generics.join(", ")}>{ ${[...this.fields.keys()].join(", ")} }`;
+        }
     }
 
     equals(other: Type) {
