@@ -1,4 +1,4 @@
-import { FunctionType, GenericType, SigmaType } from "../type_inference/Type";
+import { FunctionType, GenericType, StructureType } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { FunctionElement } from "./FunctionElement";
 import { TypedItemElement } from "./TypedItemElement";
@@ -31,8 +31,8 @@ export class ClassElement extends ASTElement {
         );
     }
 
-    type(): SigmaType {
-        const t = new SigmaType(this.name);
+    type(): StructureType {
+        const t = new StructureType(this.name);
         this.fields.forEach((x) => t.fields.set(x.name, x.type));
         this.methods.forEach((x) => t.fields.set(x.name, new FunctionType(x)));
         return t;

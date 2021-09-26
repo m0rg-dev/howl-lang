@@ -3,12 +3,11 @@ import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { ConstructorCallExpression, ExpressionElement, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
-import { GenericElement } from "../ast/GenericElement";
 import { AssignmentStatement, LocalDefinitionStatement, NullaryReturnStatement, SimpleStatement, UnaryReturnStatement } from "../ast/StatementElement";
 import { TypedItemElement } from "../ast/TypedItemElement";
-import { Classes, Functions } from "../registry/Registry";
+import { Classes } from "../registry/Registry";
 import { Scope } from "./Scope";
-import { AnyType, ConsumedType, FieldReferenceType, FunctionCallType, FunctionType, GenericType, IntersectionType, PiType, ScopeReferenceType, SigmaType, Type, TypeLocation, UnionType, UnitType, VoidType } from "./Type";
+import { AnyType, ConsumedType, FieldReferenceType, FunctionCallType, FunctionType, GenericType, IntersectionType, ClosureType, ScopeReferenceType, StructureType, Type, TypeLocation, UnionType, UnitType } from "./Type";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -86,12 +85,12 @@ export function RunTypeInference(f: FunctionElement) {
 function ApplyRulesToScope(s: Scope, el: ASTElement): boolean {
     let rc = false;
     s.types.forEach((t, index) => {
-        if (t instanceof PiType && t.evaluable()) {
+        if (t instanceof ClosureType && t.evaluable()) {
             const new_type = t.evaluator()();
             console.error(`(EvaluatePi) ${t} => ${new_type}`);
             s.types[index] = new_type;
             rc = true;
-        } else if (t instanceof SigmaType) {
+        } else if (t instanceof StructureType) {
             const generic_map = t.generic_map || new Map<string, Type>();
             if (MapGenerics(s, t, () => { }, generic_map)) {
                 rc = true;
@@ -136,7 +135,7 @@ function ApplyRulesToScope(s: Scope, el: ASTElement): boolean {
             const t0 = t.source0.get();
             const t1 = t.source1.get();
 
-            if (t0 instanceof SigmaType && t1 instanceof SigmaType
+            if (t0 instanceof StructureType && t1 instanceof StructureType
                 && t0.name == t1.name
                 && t0.generic_map && t1.generic_map) {
                 console.error(`(IntersectSigma) ${t0} ${t1}`);
@@ -185,7 +184,7 @@ function MapGenerics(s: Scope, t: Type, repl: (n: Type) => void, map: Map<string
         console.error(`(LiftConcrete) ${t} => ${t.source.get()}`);
         repl(t.source.get());
         rc = true;
-    } else if (t instanceof SigmaType) {
+    } else if (t instanceof StructureType) {
         const updates = new Map<string, Type>();
         t.fields.forEach((old_type, field_name) => {
             if (MapGenerics(s, old_type, (n: Type) => updates.set(field_name, n), map)) rc = true;

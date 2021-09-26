@@ -98,7 +98,7 @@ export class UnionType extends Type {
     }
 }
 
-export class SigmaType extends Type {
+export class StructureType extends Type {
     name: string;
     fields: Map<string, Type> = new Map();
     generic_map: Map<string, Type>;
@@ -121,7 +121,7 @@ export class SigmaType extends Type {
     }
 
     equals(other: Type) {
-        if (other instanceof SigmaType) {
+        if (other instanceof StructureType) {
             if (this.name != other.name) return false;
             if (this.fields.size != other.fields.size) return false;
 
@@ -135,12 +135,12 @@ export class SigmaType extends Type {
     }
 }
 
-export abstract class PiType extends Type {
+export abstract class ClosureType extends Type {
     abstract evaluable(): boolean
     abstract evaluator(): () => Type;
 }
 
-export class ClassType extends PiType {
+export class ClassType extends ClosureType {
     name: string;
 
     constructor(name: string) {
@@ -168,7 +168,7 @@ export class ClassType extends PiType {
     }
 }
 
-export class IntersectionType extends PiType {
+export class IntersectionType extends ClosureType {
     source0: TypeLocation;
     source1: TypeLocation;
 
@@ -233,7 +233,7 @@ export class IntersectionType extends PiType {
     equals(other: Type) { return false; }
 }
 
-export class ScopeReferenceType extends PiType {
+export class ScopeReferenceType extends ClosureType {
     source: TypeLocation;
 
     constructor(source: TypeLocation) {
@@ -276,7 +276,7 @@ export class FunctionType extends Type {
     equals(other: Type) { return false; }
 }
 
-export class FieldReferenceType extends PiType {
+export class FieldReferenceType extends ClosureType {
     source: TypeLocation;
     field: string;
 
@@ -297,17 +297,17 @@ export class FieldReferenceType extends PiType {
     }
 
     evaluable() {
-        return this.source.get() instanceof SigmaType;
+        return this.source.get() instanceof StructureType;
     }
 
     evaluator() {
         return () => {
-            return (this.source.get() as SigmaType).fields.get(this.field);
+            return (this.source.get() as StructureType).fields.get(this.field);
         }
     }
 }
 
-export class FunctionCallType extends PiType {
+export class FunctionCallType extends ClosureType {
     source: TypeLocation;
 
     constructor(source: TypeLocation) {
