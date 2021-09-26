@@ -65,14 +65,8 @@ export function RunTypeInference(f: FunctionElement) {
 
                     x.args.forEach((arg, arg_index) => {
                         if (ft.args[arg_index] instanceof ScopeReferenceType) {
-                            const srt = ft.args[arg_index] as ScopeReferenceType;
-                            const orig_scope = srt.source.location;
-                            const orig_index = srt.source.index;
-
-                            const new_index = orig_scope.addType(srt.source.get());
-                            const t = new IntersectionType(arg.type, new TypeLocation(orig_scope, new_index));
-                            orig_scope.types[orig_index] = t;
-                            console.error(`(FunctionArgument) ${arg.type} ${ft.args[arg_index]} => ${t}`);
+                            SwivelIntersection((ft.args[arg_index] as ScopeReferenceType).source, arg.type);
+                            console.error(`(FunctionArgument) ${arg.type} ${ft.args[arg_index]}`);
                         }
                     });
                     changed = true;
@@ -143,12 +137,7 @@ function ApplyRulesToScope(s: Scope, el: ASTElement): boolean {
                     const ot1 = t1.generic_map.get(generic_key);
                     if (old_type instanceof ScopeReferenceType && ot1 instanceof ScopeReferenceType) {
                         console.error(`  (IntersectSigma) ${generic_key} ${old_type}`);
-                        const orig_scope = old_type.source.location;
-                        const orig_index = old_type.source.index;
-
-                        const new_index = orig_scope.addType(old_type.source.get());
-                        const t = new IntersectionType(ot1.source, new TypeLocation(orig_scope, new_index));
-                        orig_scope.types[orig_index] = t;
+                        SwivelIntersection(old_type.source, ot1.source);
                     }
                 });
                 s.types[index] = t0;
@@ -156,6 +145,27 @@ function ApplyRulesToScope(s: Scope, el: ASTElement): boolean {
         }
     });
     return rc;
+}
+
+// Helper function to replace a type register with an intersection between that
+// register and a new type.
+// For example, if you have:
+// #2   (i32 | i64)
+// #3   i32
+// and you call SwivelIntersection(#2, #3), that turns into
+// #2   #3 ∩ #4
+// #3   i32
+// #4   (i32 | i64)
+//
+// The point of this is to avoid having to run ReplaceTypes, especially when there
+// might be StructureTypes in play that reference #2.
+function SwivelIntersection(source: TypeLocation, new_type: TypeLocation) {
+    const orig_scope = source.location;
+    const orig_index = source.index;
+
+    const new_index = orig_scope.addType(source.get());
+    const t = new IntersectionType(new_type, new TypeLocation(orig_scope, new_index));
+    orig_scope.types[orig_index] = t;
 }
 
 function ReplaceTypes(el: ASTElement, from: TypeLocation, to: TypeLocation) {
