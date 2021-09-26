@@ -26,6 +26,7 @@ import { ConsumedType } from "./ConsumedType";
 import { GenericType } from "./GenericType";
 import { UnitType } from "./UnitType";
 import { WalkAST } from "../ast/WalkAST";
+import { ClassType } from "./ClassType";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -41,15 +42,15 @@ export function RunTypeInference(f: FunctionElement) {
                 new UnitType("i32"),
                 new UnitType("i64"),
             ]));
-            x.type = new TypeLocation(s, idx);
-            console.error(`(NumericLiteral) ${x.type}`);
+            x.type_location = new TypeLocation(s, idx);
+            console.error(`(NumericLiteral) ${x.type_location}`);
         } else if (x instanceof ConstructorCallExpression) {
             const idx = s.addType(x.source);
-            x.type = new TypeLocation(s, idx);
-            console.error(`(ConstructorCall) ${x.type}`);
+            x.type_location = new TypeLocation(s, idx);
+            console.error(`(ConstructorCall) ${x.type_location}`);
         } else if (x instanceof NameExpression) {
-            x.type = s.lookupName(x.name);
-            console.error(`(Name) ${x.type}`);
+            x.type_location = s.lookupName(x.name);
+            console.error(`(Name) ${x.type_location}`);
         }
     });
 
@@ -59,22 +60,22 @@ export function RunTypeInference(f: FunctionElement) {
     // require knowledge of the exact type of the source element.
     WalkAST(f, (x, s) => {
         if (x instanceof AssignmentStatement) {
-            console.error(`(Assignment) ${x.lhs.type} = ${x.rhs.type}`);
-            const idx = s.addType(new IntersectionType(x.lhs.type, x.rhs.type));
+            console.error(`(Assignment) ${x.lhs.type_location} = ${x.rhs.type_location}`);
+            const idx = s.addType(new IntersectionType(x.lhs.type_location, x.rhs.type_location));
             // This is the "easy" way to do back-propagation. We know at this
             // point that nothing references x.lhs.type or x.rhs.type from a
             // ScopeReferenceType (since there's no way to create one at this
             // point), so we can just run ReplaceTypes.
-            ReplaceTypes(s.root, x.lhs.type, new TypeLocation(s, idx));
-            ReplaceTypes(s.root, x.rhs.type, new TypeLocation(s, idx));
+            ReplaceTypes(s.root, x.lhs.type_location, new TypeLocation(s, idx));
+            ReplaceTypes(s.root, x.rhs.type_location, new TypeLocation(s, idx));
         } else if (x instanceof FieldReferenceExpression) {
-            const idx = s.addType(new FieldReferenceType(x.source.type, x.name));
-            x.type = new TypeLocation(s, idx);
-            console.error(`(FieldReference) ${x.type}`);
+            const idx = s.addType(new FieldReferenceType(x.source.type_location, x.name));
+            x.type_location = new TypeLocation(s, idx);
+            console.error(`(FieldReference) ${x.type_location}`);
         } else if (x instanceof FunctionCallExpression) {
-            const idx = s.addType(new FunctionCallType(x.source.type));
-            x.type = new TypeLocation(s, idx);
-            console.error(`(FunctionCall) ${x.type}`);
+            const idx = s.addType(new FunctionCallType(x.source.type_location));
+            x.type_location = new TypeLocation(s, idx);
+            console.error(`(FunctionCall) ${x.type_location}`);
         }
     })
 
@@ -91,12 +92,12 @@ export function RunTypeInference(f: FunctionElement) {
                 // separately.
                 changed ||= ApplyRulesToScope(x.scope);
             } else if (x instanceof FunctionCallExpression) {
-                if (x.source.type.get() instanceof FunctionType) {
+                if (x.source.type_location.get() instanceof FunctionType) {
                     // This is the second half of function call handling. Once
                     // we know the type of a function call's source, we can
                     // back-propagate the type constraints on its arguments.
-                    console.error(`(FunctionCall) ${x.source.type.get()}`);
-                    const ft = x.source.type.get() as FunctionType;
+                    console.error(`(FunctionCall) ${x.source.type_location.get()}`);
+                    const ft = x.source.type_location.get() as FunctionType;
                     if (!ft.args.every(x => x instanceof ScopeReferenceType)) return;
                     if (ft._propagated) return;
                     ft._propagated = true;
@@ -107,8 +108,8 @@ export function RunTypeInference(f: FunctionElement) {
                         // than ReplaceTypes - it doesn't let you merge type
                         // registers like we did for AssignmentExpressions.
                         if (ft.args[arg_index] instanceof ScopeReferenceType) {
-                            SwivelIntersection((ft.args[arg_index] as ScopeReferenceType).source, arg.type);
-                            console.error(`(FunctionArgument) ${arg.type} ${ft.args[arg_index]}`);
+                            SwivelIntersection((ft.args[arg_index] as ScopeReferenceType).source, arg.type_location);
+                            console.error(`(FunctionArgument) ${arg.type_location} ${ft.args[arg_index]}`);
                         }
                     });
                     changed = true;
@@ -120,7 +121,7 @@ export function RunTypeInference(f: FunctionElement) {
     // Remove any un-referenced types from scopes to make the graph output a little cleaner.
     WalkAST(f, (x) => {
         if (x instanceof ExpressionElement) {
-            x.type.location.gc_temp.add(x.type.index);
+            x.type_location.location.gc_temp.add(x.type_location.index);
         }
     });
 
@@ -132,7 +133,35 @@ export function RunTypeInference(f: FunctionElement) {
                 }
             });
         }
-    })
+    });
+
+    if (!process.env.HOWL_SKIP_FREEZE_TYPES) {
+        // Replace function types with concrete function pointers, and structure types with concrete structure names.
+        WalkAST(f, (x) => {
+            if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
+                x.scope.types.forEach((type, index) => {
+                    if (type instanceof FunctionType) {
+                        if (type.self_type instanceof ClassType) {
+                            x.scope.types[index] = new UnitType(`${type.self_type.name}->(${type.args.map(x => x.toString()).join(", ")}) => ${type.return_type}`);
+                        }
+                    } else if (type instanceof StructureType) {
+                        x.scope.types[index] = new UnitType(type.fqn.toString());
+                    }
+                });
+            }
+        });
+
+        WalkAST(f, (x) => {
+            if (x instanceof ExpressionElement) {
+                const rt = x.type_location.get();
+                if (rt instanceof UnitType) {
+                    x.resolved_type = rt;
+                } else {
+                    console.error(`(FreezeTypes) ${x} doesn't have a concrete type? (${x.type_location} ${x.type_location.get()})`);
+                }
+            }
+        });
+    }
 }
 
 function ApplyRulesToScope(s: Scope): boolean {
@@ -273,8 +302,8 @@ function ReplaceTypes(el: ASTElement, from: TypeLocation, to: TypeLocation) {
     console.error(`(ReplaceTypes) ${from} -> ${to}`);
     WalkAST(el, (x) => {
         if (x instanceof ExpressionElement) {
-            if (x.type && x.type.location == from.location && x.type.index == from.index) {
-                x.type = to;
+            if (x.type_location && x.type_location.location == from.location && x.type_location.index == from.index) {
+                x.type_location = to;
             }
         }
     });
@@ -343,5 +372,3 @@ export function AddScopes(el: FunctionElement | CompoundStatementElement, root: 
         })
     }
 }
-
-
