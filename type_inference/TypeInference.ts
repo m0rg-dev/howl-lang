@@ -152,7 +152,7 @@ function ApplyRulesToScope(s: Scope): boolean {
                 // This is basically a template evaluation. We'll clone the original class...
                 const new_class = Classes.get(t.name).clone();
 
-                new_class.name = `__${t.name}_${generic_keys.map(x => (generic_map.get(x) as UnitType).name).join("_")}`;
+                new_class.fqn[new_class.fqn.length - 1] = `__${t.name}_${generic_keys.map(x => (generic_map.get(x) as UnitType).name).join("_")}`;
                 // ...replace all the GenericTypes in its AST...
                 Walk(new_class, (x, s) => {
                     if (x instanceof FunctionElement) {
@@ -176,10 +176,10 @@ function ApplyRulesToScope(s: Scope): boolean {
                 // error handling.
                 new_class.methods.forEach(RunTypeInference);
 
-                Classes.set(new_class.name, new_class);
+                Classes.set(new_class.fqn[new_class.fqn.length - 1], new_class);
 
                 // Now, we can just treat it as a concrete type.
-                s.types[index] = new UnitType(new_class.name);
+                s.types[index] = new UnitType(new_class.fqn[new_class.fqn.length - 1]);
                 rc = true;
             }
         } else if (t instanceof ScopeReferenceType) {

@@ -20,7 +20,7 @@ import { TopLevelParse } from "./rules/TopLevelParse";
 
 export function Parse(token_stream: Token[]): ASTElement[] {
     let ast_stream: ASTElement[] = token_stream.map(x => new TokenElement(x));
-    ast_stream = ApplyPass(ast_stream, TopLevelParse)[0];
+    ast_stream = ApplyPass(ast_stream, TopLevelParse(["module"]))[0];
 
     ExtractTypeDefinitions(ast_stream);
 
@@ -29,7 +29,7 @@ export function Parse(token_stream: Token[]): ASTElement[] {
             console.error("~~~ Parsing class: " + el.toString() + " ~~~");
             el.body = ApplyPass(el.body, {
                 name: "ParseMethods",
-                rules: FunctionRules(el.name)
+                rules: FunctionRules(el.fqn)
             })[0];
             ClassifyNames(el.body, new Set(el.generics));
             el.body = ApplyPass(el.body, ParseClassParts)[0];
@@ -45,17 +45,17 @@ export function Parse(token_stream: Token[]): ASTElement[] {
 
             const ce = new ClassElement(
                 el.source_location,
-                el.name,
+                el.fqn,
                 fields,
                 [],
                 el.generics
             )
 
-            Classes.set(el.name, ce);
+            Classes.set(el.fqn[el.fqn.length - 1], ce);
 
             for (const sub of el.body) {
                 if (sub instanceof PartialFunctionElement) {
-                    const n = sub.parse(new ClassType(el.name));
+                    const n = sub.parse(new ClassType(el.fqn[el.fqn.length - 1]));
                     if (n) {
                         methods.push(n);
                     } else {
@@ -117,7 +117,7 @@ export function FormatASTStream(ast_stream: ASTElement[]): string {
 function ExtractTypeDefinitions(ast_stream: ASTElement[]) {
     for (const el of ast_stream) {
         if (el instanceof PartialClassElement) {
-            TypeNames.add(el.name);
+            TypeNames.add(el.fqn[el.fqn.length - 1],);
         } else if (el instanceof ModuleDefinitionElement) {
             TypeNames.add(el.name);
         }

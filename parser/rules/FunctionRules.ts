@@ -5,7 +5,7 @@ import { TokenType } from "../../lexer/TokenType";
 import { Hug, InOrder, MatchToken, Optional } from "../Matcher";
 import { LocationFrom, ProductionRule } from "../Parser";
 
-export function FunctionRules(prefix: string): ProductionRule[] {
+export function FunctionRules(parent: string[]): ProductionRule[] {
     return [
         {
             name: "FunctionConstruct",
@@ -28,7 +28,7 @@ export function FunctionRules(prefix: string): ProductionRule[] {
                 } else {
                     return undefined;
                 }
-                return [new PartialFunctionElement(LocationFrom(ast_stream), ast_stream, name)];
+                return [new PartialFunctionElement(LocationFrom(ast_stream), ast_stream, [...parent, name])];
             }
         }
     ]

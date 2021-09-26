@@ -6,12 +6,12 @@ import { TokenElement } from "./TokenElement";
 
 
 export class PartialClassElement extends PartialElement {
-    name: string;
+    fqn: string[];
     generics: string[] = [];
 
-    constructor(loc: SourceLocation, body: ASTElement[], name: string) {
+    constructor(loc: SourceLocation, body: ASTElement[], fqn: string[]) {
         super(loc, body);
-        this.name = name;
+        this.fqn = fqn;
 
         // TODO
         let i = 3;
@@ -25,6 +25,6 @@ export class PartialClassElement extends PartialElement {
     }
 
     toString() {
-        return `PartialClass<${this.generics.join(", ")}>(${this.name})`;
+        return `PartialClass<${this.generics.join(", ")}>(${this.fqn.join(".")})`;
     }
 }

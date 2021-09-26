@@ -13,21 +13,21 @@ import { TypeElement } from "./TypeElement";
 
 
 export class PartialFunctionElement extends PartialElement {
-    name: string;
+    fqn: string[];
 
-    constructor(loc: SourceLocation, body: ASTElement[], name: string) {
+    constructor(loc: SourceLocation, body: ASTElement[], fqn: string[]) {
         super(loc, body);
-        this.name = name;
+        this.fqn = fqn;
 
         PartialFunctions.add(this);
     }
 
     toString() {
-        return `PartialFunction(${this.name})`;
+        return `PartialFunction(${this.fqn.join(".")})`;
     }
 
     parse(self_type: Type): FunctionElement {
-        console.error("~~~ Parsing function: " + this.name + " ~~~");
+        console.error("~~~ Parsing function: " + this.fqn.join(".") + " ~~~");
         ClassifyNames(this.body);
         this.body = ApplyPass(this.body, ParseFunctionParts)[0];
         if (this.body[0] instanceof TokenElement && this.body[0].token.type == TokenType.Static) {
@@ -41,7 +41,7 @@ export class PartialFunctionElement extends PartialElement {
             && this.body[4] instanceof CompoundStatementElement) {
             return new FunctionElement(
                 this.source_location,
-                this.name,
+                [...this.fqn],
                 this.body[1].asTypeObject(),
                 self_type,
                 this.body[3].parse(),
