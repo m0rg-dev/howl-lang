@@ -6,6 +6,6 @@ export class AnyType extends Type {
         super();
     }
 
-    toString() { return "∀"; }
+    toString() { return "⊤"; }
     equals() { return true; }
 }
