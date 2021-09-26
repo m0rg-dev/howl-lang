@@ -43,6 +43,10 @@ export function RunTypeInference(f: FunctionElement) {
         if (x instanceof AssignmentStatement) {
             console.error(`(Assignment) ${x.lhs.type} = ${x.rhs.type}`);
             const idx = s.addType(new IntersectionType(x.lhs.type, x.rhs.type));
+            // This is the "easy" way to do back-propagation. We know at this
+            // point that nothing references x.lhs.type or x.rhs.type from a
+            // ScopeReferenceType (since there's no way to create one at this
+            // point), so we can just run ReplaceTypes.
             ReplaceTypes(s.root, x.lhs.type, new TypeLocation(s, idx));
             ReplaceTypes(s.root, x.rhs.type, new TypeLocation(s, idx));
         } else if (x instanceof FieldReferenceExpression) {
@@ -80,6 +84,10 @@ export function RunTypeInference(f: FunctionElement) {
                     ft._propagated = true;
 
                     x.args.forEach((arg, arg_index) => {
+                        // This is the "hard" way to do back-propagation.
+                        // SwivelIntersection is more powerful but less flexible
+                        // than ReplaceTypes - it doesn't let you merge type
+                        // registers like we did for AssignmentExpressions.
                         if (ft.args[arg_index] instanceof ScopeReferenceType) {
                             SwivelIntersection((ft.args[arg_index] as ScopeReferenceType).source, arg.type);
                             console.error(`(FunctionArgument) ${arg.type} ${ft.args[arg_index]}`);
