@@ -52,7 +52,7 @@ export function RunTypeInference(f: FunctionElement) {
     let changed = true;
     while (changed) {
         changed = false;
-        Walk(f, (x, s) => {
+        Walk(f, (x) => {
             if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
                 changed ||= ApplyRulesToScope(x.scope, x);
             } else if (x instanceof FunctionCallExpression) {
@@ -74,6 +74,23 @@ export function RunTypeInference(f: FunctionElement) {
             }
         })
     }
+
+    // Remove any un-referenced types from scopes to make the graph output a little cleaner.
+    Walk(f, (x) => {
+        if (x instanceof ExpressionElement) {
+            x.type.location.gc_temp.add(x.type.index);
+        }
+    });
+
+    Walk(f, (x) => {
+        if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
+            x.scope.types.forEach((type, index) => {
+                if (!x.scope.gc_temp.has(index)) {
+                    x.scope.types[index] = new ConsumedType();
+                }
+            });
+        }
+    })
 }
 
 function ApplyRulesToScope(s: Scope, el: ASTElement): boolean {

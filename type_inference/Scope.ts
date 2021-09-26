@@ -13,6 +13,8 @@ export class Scope {
     names: string[] = [];
     types: Type[] = [];
 
+    gc_temp: Set<number> = new Set();
+
     constructor(root: FunctionElement, parent: Scope) {
         this.uuid = randomUUID().replaceAll("-", "_");
         this.root = root;

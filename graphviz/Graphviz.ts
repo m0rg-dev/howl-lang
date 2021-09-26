@@ -5,7 +5,7 @@ import { AssignmentStatement, PartialStatementElement, SimpleStatement, UnaryRet
 import { Scope } from "../type_inference/Scope";
 import { ConstructorCallExpression, ExpressionElement, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../ast/ExpressionElement";
 import { ClassElement } from "../ast/ClassElement";
-import { UnitType } from "../type_inference/Type";
+import { ConsumedType, UnitType } from "../type_inference/Type";
 
 export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
     let s: string[] = [];
@@ -137,8 +137,9 @@ export function RenderScope(scope: Scope): string {
     ];
 
     scope.types.forEach((x, y) => {
-        contents[y + 1] ||= [{ text: scope.names[y] || `#${y}` }];
-        contents[y + 1][1] = { text: escape(x.toString()) };
+        if (!(x instanceof ConsumedType)) {
+            contents.push([{ text: scope.names[y] || `#${y}` }, { text: escape(x.toString()) }]);
+        }
     });
 
     return (new RecordNode(scope.uuid, contents)).toString();
