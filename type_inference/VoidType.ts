@@ -1,7 +1,7 @@
-import { UnitType } from "./UnitType";
+import { ConcreteType } from "./ConcreteType";
 
 
-export class VoidType extends UnitType {
+export class VoidType extends ConcreteType {
     constructor() {
         super("void");
     }

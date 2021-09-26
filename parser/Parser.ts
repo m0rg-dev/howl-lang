@@ -14,7 +14,7 @@ import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { Classes, Functions, PartialFunctions, TypeNames } from "../registry/Registry";
 import { ClassType } from "../type_inference/ClassType";
-import { UnitType } from "../type_inference/UnitType";
+import { ConcreteType } from "../type_inference/ConcreteType";
 import { Any, AssertNegative, First, InOrder, Matcher, MatchToken, Star } from "./Matcher";
 import { FunctionRules } from "./rules/FunctionRules";
 import { ParseClassParts } from "./rules/ParseClassParts";
@@ -76,7 +76,7 @@ export function Parse(token_stream: Token[]): ASTElement[] {
     }
 
     PartialFunctions.forEach(x => {
-        const n = x.parse(new UnitType("void"));
+        const n = x.parse(new ConcreteType("void"));
         if (n) {
             Functions.add(n);
             PartialFunctions.delete(x);

@@ -24,7 +24,7 @@ import { UnionType } from "./UnionType";
 import { AnyType } from "./AnyType";
 import { ConsumedType } from "./ConsumedType";
 import { GenericType } from "./GenericType";
-import { UnitType } from "./UnitType";
+import { ConcreteType } from "./ConcreteType";
 import { WalkAST } from "../ast/WalkAST";
 import { ClassType } from "./ClassType";
 
@@ -37,10 +37,10 @@ export function RunTypeInference(f: FunctionElement) {
     WalkAST(f, (x, s) => {
         if (x instanceof NumberExpression) {
             const idx = s.addType(new UnionType([
-                new UnitType("i8"),
-                new UnitType("i16"),
-                new UnitType("i32"),
-                new UnitType("i64"),
+                new ConcreteType("i8"),
+                new ConcreteType("i16"),
+                new ConcreteType("i32"),
+                new ConcreteType("i64"),
             ]));
             x.type_location = new TypeLocation(s, idx);
             console.error(`(NumericLiteral) ${x.type_location}`);
@@ -142,10 +142,10 @@ export function RunTypeInference(f: FunctionElement) {
                 x.scope.types.forEach((type, index) => {
                     if (type instanceof FunctionType) {
                         if (type.self_type instanceof ClassType) {
-                            x.scope.types[index] = new UnitType(`${type.self_type.name}->(${type.args.map(x => x.toString()).join(", ")}) => ${type.return_type}`);
+                            x.scope.types[index] = new ConcreteType(`${type.self_type.name}->(${type.args.map(x => x.toString()).join(", ")}) => ${type.return_type}`);
                         }
                     } else if (type instanceof StructureType) {
-                        x.scope.types[index] = new UnitType(type.fqn.toString());
+                        x.scope.types[index] = new ConcreteType(type.fqn.toString());
                     }
                 });
             }
@@ -154,7 +154,7 @@ export function RunTypeInference(f: FunctionElement) {
         WalkAST(f, (x) => {
             if (x instanceof ExpressionElement) {
                 const rt = x.type_location.get();
-                if (rt instanceof UnitType) {
+                if (rt instanceof ConcreteType) {
                     x.resolved_type = rt;
                 } else {
                     console.error(`(FreezeTypes) ${x} doesn't have a concrete type? (${x.type_location} ${x.type_location.get()})`);
@@ -200,12 +200,12 @@ function ApplyRulesToScope(s: Scope): boolean {
             // monomorphized and we need to *not* do so again), and all the
             // generic fields are of known type.
             const generic_keys = [...generic_map.keys()];
-            if (generic_keys.length && generic_keys.every(k => generic_map.get(k) instanceof UnitType) && Classes.has(t.fqn.toString())) {
+            if (generic_keys.length && generic_keys.every(k => generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString())) {
                 console.error(`(Monomorphize) ${t.fqn.toString()}<${generic_keys.map(x => generic_map.get(x).toString()).join(", ")}>`);
                 // This is basically a template evaluation. We'll clone the original class...
                 const new_class = Classes.get(t.fqn.toString()).clone();
 
-                new_class.setName(`__${t.fqn.last()}_${generic_keys.map(x => (generic_map.get(x) as UnitType).name).join("_")}`);
+                new_class.setName(`__${t.fqn.last()}_${generic_keys.map(x => (generic_map.get(x) as ConcreteType).name).join("_")}`);
                 // ...replace all the GenericTypes in its AST...
                 WalkAST(new_class, (x, s) => {
                     if (x instanceof FunctionElement) {
@@ -233,7 +233,7 @@ function ApplyRulesToScope(s: Scope): boolean {
                 Classes.set(new_class.getFQN().toString(), new_class);
 
                 // Now, we can just treat it as a concrete type.
-                s.types[index] = new UnitType(new_class.getFQN().toString());
+                s.types[index] = new ConcreteType(new_class.getFQN().toString());
                 rc = true;
             }
         } else if (t instanceof ScopeReferenceType) {
@@ -330,7 +330,7 @@ function MapGenerics(s: Scope, t: Type, repl: (n: Type) => void, map: Map<string
         console.error(`(LiftGenerics) ${t} => ${map.get(t.name)}`);
         repl(map.get(t.name));
         rc = true;
-    } else if (t instanceof ScopeReferenceType && t.source.get() instanceof UnitType) {
+    } else if (t instanceof ScopeReferenceType && t.source.get() instanceof ConcreteType) {
         console.error(`(LiftConcrete) ${t} => ${t.source.get()}`);
         repl(t.source.get());
         rc = true;

@@ -3,7 +3,7 @@ import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpres
 import { FunctionElement } from "../ast/FunctionElement";
 import { WalkAST } from "../ast/WalkAST";
 import { Classes } from "../registry/Registry";
-import { UnitType } from "../type_inference/UnitType";
+import { ConcreteType } from "../type_inference/ConcreteType";
 
 export function RunFunctionTransforms(f: FunctionElement) {
     WalkAST(f, (x) => {
@@ -12,7 +12,7 @@ export function RunFunctionTransforms(f: FunctionElement) {
             && Classes.get(x.source.resolved_type.name).methods.some(y => y.getFQN().last() == x.name)) {
             console.error(`{IndirectMethodReference} ${x}`);
             const new_source = new FieldReferenceExpression(x.source_location, x.source, "__stable");
-            new_source.resolved_type = new UnitType(`${x.source.resolved_type.name}_stable`);
+            new_source.resolved_type = new ConcreteType(`${x.source.resolved_type.name}_stable`);
             x.source = new_source;
         }
     });

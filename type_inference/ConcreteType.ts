@@ -1,7 +1,7 @@
 import { Type } from "./Type";
 
 
-export class UnitType extends Type {
+export class ConcreteType extends Type {
     name: string;
 
     constructor(name: string) {
@@ -11,7 +11,7 @@ export class UnitType extends Type {
 
     toString() { return "'" + this.name; }
     equals(other: Type) {
-        if (other instanceof UnitType)
+        if (other instanceof ConcreteType)
             return other.name == this.name;
         return false;
     }

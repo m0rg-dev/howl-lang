@@ -1,4 +1,4 @@
-import { UnitType } from "./UnitType";
+import { ConcreteType } from "./ConcreteType";
 import { ClosureType, Type } from "./Type";
 import { TypeLocation } from "./TypeLocation";
 
@@ -12,7 +12,7 @@ export class ScopeReferenceType extends ClosureType {
     }
 
     evaluable() {
-        return (this.source.get() instanceof UnitType);
+        return (this.source.get() instanceof ConcreteType);
     }
 
     evaluator() {

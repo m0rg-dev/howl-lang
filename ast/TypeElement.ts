@@ -1,7 +1,7 @@
 import { Classes } from "../registry/Registry";
 import { Type } from "../type_inference/Type";
 import { ClassType } from "../type_inference/ClassType";
-import { UnitType } from "../type_inference/UnitType";
+import { ConcreteType } from "../type_inference/ConcreteType";
 import { ASTElement, SourceLocation } from "./ASTElement";
 
 export class TypeElement extends ASTElement {
@@ -24,6 +24,6 @@ export class TypeElement extends ASTElement {
         if (Classes.has("module." + this.name)) {
             return new ClassType("module." + this.name);
         }
-        return new UnitType(this.name);
+        return new ConcreteType(this.name);
     }
 }
