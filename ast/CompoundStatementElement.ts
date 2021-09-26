@@ -23,7 +23,7 @@ export class CompoundStatementElement extends ASTElement {
         return new CompoundStatementElement(
             this.source_location,
             (this.statements.map(x => x.clone()) as ASTElement[]),
-            this.scope.clone()
+            this.scope?.clone()
         );
     }
 }

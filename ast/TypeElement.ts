@@ -1,4 +1,5 @@
-import { UnitType, Type } from "../type_inference/Type";
+import { Classes } from "../registry/Registry";
+import { UnitType, Type, ClassType } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
 
 export class TypeElement extends ASTElement {
@@ -18,6 +19,9 @@ export class TypeElement extends ASTElement {
     }
 
     asTypeObject(): Type {
+        if (Classes.has(this.name)) {
+            return new ClassType(this.name);
+        }
         return new UnitType(this.name);
     }
 }

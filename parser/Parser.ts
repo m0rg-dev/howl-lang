@@ -7,11 +7,12 @@ import { NameElement } from "../ast/NameElement";
 import { PartialClassElement } from "../ast/PartialClassElement";
 import { PartialFunctionElement } from "../ast/PartialFunctionElement";
 import { TokenElement } from "../ast/TokenElement";
+import { TypedItemElement } from "../ast/TypedItemElement";
 import { TypeElement } from "../ast/TypeElement";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { Classes, Functions, PartialFunctions, TypeNames } from "../registry/Registry";
-import { UnitType } from "../type_inference/Type";
+import { ClassType, UnitType } from "../type_inference/Type";
 import { Any, AssertNegative, First, InOrder, Matcher, MatchToken, Star } from "./Matcher";
 import { FunctionRules } from "./rules/FunctionRules";
 import { ParseClassParts } from "./rules/ParseClassParts";
@@ -33,30 +34,38 @@ export function Parse(token_stream: Token[]): ASTElement[] {
             ClassifyNames(el.body, new Set(el.generics));
             el.body = ApplyPass(el.body, ParseClassParts)[0];
 
-            const fields: string[] = [];
+            const fields: TypedItemElement[] = [];
             const methods: FunctionElement[] = [];
 
             for (const sub of el.body) {
+                if (sub instanceof TypedItemElement) {
+                    fields.push(sub);
+                }
+            }
+
+            const ce = new ClassElement(
+                el.source_location,
+                el.name,
+                fields,
+                [],
+                el.generics
+            )
+
+            Classes.set(el.name, ce);
+
+            for (const sub of el.body) {
                 if (sub instanceof PartialFunctionElement) {
-                    const n = sub.parse(new UnitType(el.name));
+                    const n = sub.parse(new ClassType(el.name));
                     if (n) {
                         methods.push(n);
                     } else {
                         console.error("(method didn't parse) " + FormatASTStream(sub.body));
                     }
                     PartialFunctions.delete(sub);
-                } else if (sub instanceof NameElement) {
-                    fields.push(sub.name);
                 }
             }
 
-            Classes.add(new ClassElement(
-                el.source_location,
-                el.name,
-                fields,
-                methods,
-                el.generics
-            ));
+            ce.methods = methods;
         }
     }
 

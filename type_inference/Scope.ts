@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import { Type, TypeLocation } from "./Type";
-import { TypeConstraint } from "./TypeConstraint";
 import { FunctionElement } from "../ast/FunctionElement";
 
 var scope_index = 0;
@@ -13,7 +12,6 @@ export class Scope {
 
     names: string[] = [];
     types: Type[] = [];
-    constraints: TypeConstraint[] = [];
 
     constructor(root: FunctionElement, parent: Scope) {
         this.uuid = randomUUID().replaceAll("-", "_");
@@ -35,7 +33,6 @@ export class Scope {
 
         rc.names = [...this.names];
         rc.types = [...this.types];
-        rc.constraints = [...this.constraints];
         rc.n = this.n;
 
         return rc;

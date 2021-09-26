@@ -6,6 +6,7 @@ import { TypeElement } from "../../ast/TypeElement";
 import { NumericLiteralToken } from "../../lexer/NumericLiteralToken";
 import { Token } from "../../lexer/Token";
 import { TokenType } from "../../lexer/TokenType";
+import { ClassType } from "../../type_inference/Type";
 import { InOrder, MatchElementType, Matcher, MatchToken, Optional, Star } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
 import { MatchExpression, MatchType } from "./MatchUtils";
@@ -54,7 +55,6 @@ export const ParseExpression: RuleList = {
                 MatchToken(TokenType.CloseParen)
             ),
             replace: (ast_stream: [TokenElement<any>, TypeElement, ...ASTElement[]]) => {
-                const source = ast_stream[1].name;
                 const rest = ast_stream.slice(3, -1);
                 const args: ExpressionElement[] = [];
                 rest.forEach(x => {
@@ -62,7 +62,9 @@ export const ParseExpression: RuleList = {
                         args.push(x);
                     }
                 });
-                return [new ConstructorCallExpression(LocationFrom(ast_stream), 0, args)];
+                const source_type = ast_stream[1].asTypeObject();
+                if (!(source_type instanceof ClassType)) return undefined;
+                return [new ConstructorCallExpression(LocationFrom(ast_stream), source_type, args)];
             }
         },
         {

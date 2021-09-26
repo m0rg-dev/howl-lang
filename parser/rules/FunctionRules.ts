@@ -28,7 +28,7 @@ export function FunctionRules(prefix: string): ProductionRule[] {
                 } else {
                     return undefined;
                 }
-                return [new PartialFunctionElement(LocationFrom(ast_stream), ast_stream, prefix + "." + name)];
+                return [new PartialFunctionElement(LocationFrom(ast_stream), ast_stream, name)];
             }
         }
     ]

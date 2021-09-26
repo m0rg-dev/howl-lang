@@ -5,7 +5,7 @@ import { PartialFunctionElement } from "../ast/PartialFunctionElement";
 export var TypeNames: Set<string> = new Set();
 export var PartialFunctions: Set<PartialFunctionElement> = new Set();
 export var Functions: Set<FunctionElement> = new Set();
-export var Classes: Set<ClassElement> = new Set();
+export var Classes: Map<string, ClassElement> = new Map();
 
 export function InitRegistry() {
     TypeNames.add("i8");

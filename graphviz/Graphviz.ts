@@ -5,6 +5,7 @@ import { AssignmentStatement, PartialStatementElement, SimpleStatement, UnaryRet
 import { Scope } from "../type_inference/Scope";
 import { ConstructorCallExpression, ExpressionElement, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../ast/ExpressionElement";
 import { ClassElement } from "../ast/ClassElement";
+import { UnitType } from "../type_inference/Type";
 
 export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
     let s: string[] = [];
@@ -12,8 +13,8 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         const contents: RecordRow[] = [
             [{ text: "FunctionElement" }],
             [{ port: "name", text: "name: " + e.name }],
-            [{ port: "type", text: "returns: " + e.type.toString() }],
-            [{ port: "type", text: "self: " + e.self_type.toString() }],
+            [{ port: "type", text: "returns: " + escape(e.return_type.toString()) }],
+            [{ port: "type", text: "self: " + escape(e.self_type.toString()) }],
         ];
         e.args.forEach(x => {
             contents.push([{ port: "arg", text: x.toString() }]);
@@ -122,9 +123,13 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push(`  u${e.uuid} [label="${escape(e.constructor.name)}", shape=rect];`);
     }
 
-    if (e instanceof ExpressionElement && _nearestScope && e.getTypeLocation(_nearestScope)) {
+    if (e instanceof ExpressionElement && _nearestScope && e.type) {
         s.push((new Link("u" + e.uuid, "type_" + e.uuid)).toString());
-        s.push(`  type_${e.uuid} [label="${e.getTypeLocation(_nearestScope)}", shape=Mrecord, color=blue, fontcolor=blue]`);
+        if (e.type.get() instanceof UnitType) {
+            s.push(`  type_${e.uuid} [label="${escape(e.type.toString())} = ${escape(e.type.get().toString())}", shape=Mrecord, color=blue, fontcolor=blue]`);
+        } else {
+            s.push(`  type_${e.uuid} [label="${escape(e.type.toString())}", shape=Mrecord, color=blue, fontcolor=blue]`);
+        }
     }
 
     return s.join("\n");
@@ -132,16 +137,12 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
 
 export function RenderScope(scope: Scope): string {
     const contents: RecordRow[] = [
-        [{ text: "Scope" }, { text: scope.n.toString() }]
+        [{ text: "Scope" }, { text: "id: " + scope.n.toString() }]
     ];
 
     scope.types.forEach((x, y) => {
         contents[y + 1] ||= [{ text: scope.names[y] || `#${y}` }];
-        contents[y + 1][1] = { text: x.toString() };
-    });
-
-    scope.constraints.forEach((x) => {
-        contents.push([{ text: escape(x.toString()) }]);
+        contents[y + 1][1] = { text: escape(x.toString()) };
     });
 
     return (new RecordNode(scope.uuid, contents)).toString();
@@ -150,6 +151,9 @@ export function RenderScope(scope: Scope): string {
 function escape(s: string): string {
     return s.replaceAll("\"", "&#34;")
         .replaceAll("&", "&#38;")
+        .replaceAll("'", "&#39;")
+        .replaceAll("<", "&#60;")
+        .replaceAll(">", "&#62;")
         .replaceAll("|", "&#124;");
 }
 

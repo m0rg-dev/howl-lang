@@ -14,7 +14,7 @@ const source = fs.readFileSync(process.argv[2]).toString();
 const lexer = new Lexer(source);
 Parse(lexer.token_stream);
 
-RunTypeInference();
+Functions.forEach(RunTypeInference);
 
 console.log("digraph {\n  rankdir=LR;\n");
 Functions.forEach(x => console.log(RenderElement(x)));
