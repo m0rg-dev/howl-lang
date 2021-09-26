@@ -161,6 +161,12 @@ export function RunTypeInference(f: FunctionElement) {
                 }
             }
         });
+
+        WalkAST(f, (x) => {
+            if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
+                x.scope = undefined;
+            }
+        });
     }
 }
 

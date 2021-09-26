@@ -1,20 +1,19 @@
 import { ASTElement } from "../ast/ASTElement";
+import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
+import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
+import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
+import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
+import { NameExpression } from "../ast/expression/NameExpression";
+import { NumberExpression } from "../ast/expression/NumberExpression";
+import { ExpressionElement } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
-import { PartialStatementElement } from "../ast/StatementElement";
-import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { SimpleStatement } from "../ast/statement/SimpleStatement";
-import { Scope } from "../type_inference/Scope";
-import { ExpressionElement } from "../ast/ExpressionElement";
-import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
-import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
-import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
-import { NumberExpression } from "../ast/expression/NumberExpression";
-import { NameExpression } from "../ast/expression/NameExpression";
-import { ClassElement } from "../ast/ClassElement";
+import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
+import { PartialStatementElement } from "../ast/StatementElement";
 import { ConsumedType } from "../type_inference/ConsumedType";
-import { UnitType } from "../type_inference/UnitType";
+import { Scope } from "../type_inference/Scope";
 
 export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
     let s: string[] = [];
