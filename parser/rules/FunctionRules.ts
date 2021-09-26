@@ -1,11 +1,12 @@
 import { ASTElement } from "../../ast/ASTElement";
+import { HasFQN } from "../../ast/FQN";
 import { PartialFunctionElement } from "../../ast/PartialFunctionElement";
 import { TokenElement } from "../../ast/TokenElement";
 import { TokenType } from "../../lexer/TokenType";
 import { Hug, InOrder, MatchToken, Optional } from "../Matcher";
 import { LocationFrom, ProductionRule } from "../Parser";
 
-export function FunctionRules(parent: string[]): ProductionRule[] {
+export function FunctionRules(parent: HasFQN): ProductionRule[] {
     return [
         {
             name: "FunctionConstruct",
@@ -28,7 +29,7 @@ export function FunctionRules(parent: string[]): ProductionRule[] {
                 } else {
                     return undefined;
                 }
-                return [new PartialFunctionElement(LocationFrom(ast_stream), ast_stream, [...parent, name])];
+                return [new PartialFunctionElement(LocationFrom(ast_stream), ast_stream, parent, name)];
             }
         }
     ]

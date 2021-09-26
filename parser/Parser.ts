@@ -1,5 +1,6 @@
 import { ASTElement, PartialElement, SourceLocation } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
+import { FQN } from "../ast/FQN";
 import { FunctionElement } from "../ast/FunctionElement";
 import { GenericElement } from "../ast/GenericElement";
 import { ModuleDefinitionElement } from "../ast/ModuleDefinitionElement";
@@ -20,7 +21,8 @@ import { TopLevelParse } from "./rules/TopLevelParse";
 
 export function Parse(token_stream: Token[]): ASTElement[] {
     let ast_stream: ASTElement[] = token_stream.map(x => new TokenElement(x));
-    ast_stream = ApplyPass(ast_stream, TopLevelParse(["module"]))[0];
+    // TODO
+    ast_stream = ApplyPass(ast_stream, TopLevelParse(new ModuleDefinitionElement([0, 0], "module")))[0];
 
     ExtractTypeDefinitions(ast_stream);
 
@@ -29,7 +31,7 @@ export function Parse(token_stream: Token[]): ASTElement[] {
             console.error("~~~ Parsing class: " + el.toString() + " ~~~");
             el.body = ApplyPass(el.body, {
                 name: "ParseMethods",
-                rules: FunctionRules(el.fqn)
+                rules: FunctionRules(undefined)
             })[0];
             ClassifyNames(el.body, new Set(el.generics));
             el.body = ApplyPass(el.body, ParseClassParts)[0];
@@ -45,18 +47,21 @@ export function Parse(token_stream: Token[]): ASTElement[] {
 
             const ce = new ClassElement(
                 el.source_location,
-                el.fqn,
+                el.parent as ModuleDefinitionElement,
+                el.name,
                 fields,
                 [],
                 el.generics
             )
 
-            Classes.set(el.fqn[el.fqn.length - 1], ce);
+            console.error(` Registering class: ${ce.getFQN()}`);
+            Classes.set(ce.getFQN().toString(), ce);
 
             for (const sub of el.body) {
                 if (sub instanceof PartialFunctionElement) {
-                    const n = sub.parse(new ClassType(el.fqn[el.fqn.length - 1]));
+                    const n = sub.parse(new ClassType(ce.getFQN().toString()));
                     if (n) {
+                        n.setParent(ce);
                         methods.push(n);
                     } else {
                         console.error("(method didn't parse) " + FormatASTStream(sub.body));
@@ -117,7 +122,7 @@ export function FormatASTStream(ast_stream: ASTElement[]): string {
 function ExtractTypeDefinitions(ast_stream: ASTElement[]) {
     for (const el of ast_stream) {
         if (el instanceof PartialClassElement) {
-            TypeNames.add(el.fqn[el.fqn.length - 1],);
+            TypeNames.add(el.name);
         } else if (el instanceof ModuleDefinitionElement) {
             TypeNames.add(el.name);
         }

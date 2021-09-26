@@ -1,3 +1,4 @@
+import { FQN } from "../ast/FQN";
 import { FunctionElement } from "../ast/FunctionElement";
 import { Classes } from "../registry/Registry";
 import { Scope } from "./Scope";
@@ -99,13 +100,13 @@ export class UnionType extends Type {
 }
 
 export class StructureType extends Type {
-    name: string;
+    fqn: FQN;
     fields: Map<string, Type> = new Map();
     generic_map: Map<string, Type>;
 
-    constructor(name: string) {
+    constructor(fqn: FQN) {
         super();
-        this.name = name;
+        this.fqn = fqn;
     }
 
     toString() {
@@ -118,15 +119,15 @@ export class StructureType extends Type {
             this.generic_map.forEach((v, k) => generics.push(`${k} = ${v}`));
         }
         if (process.env.HOWL_LOG_FULL_STRUCTS) {
-            return `${this.name}<${generics.join(", ")}>{ ${f.join(", ")} }`;
+            return `${this.fqn.toString()}<${generics.join(", ")}>{ ${f.join(", ")} }`;
         } else {
-            return `${this.name}<${generics.join(", ")}>{ ${[...this.fields.keys()].join(", ")} }`;
+            return `${this.fqn.toString()}<${generics.join(", ")}>{ ${[...this.fields.keys()].join(", ")} }`;
         }
     }
 
     equals(other: Type) {
         if (other instanceof StructureType) {
-            if (this.name != other.name) return false;
+            if (!this.fqn.equals(other.fqn)) return false;
             if (this.fields.size != other.fields.size) return false;
 
             let rc = true;

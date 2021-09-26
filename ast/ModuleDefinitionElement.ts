@@ -1,7 +1,8 @@
 import { ASTElement, SourceLocation } from "./ASTElement";
+import { FQN, HasFQN } from "./FQN";
 
 
-export class ModuleDefinitionElement extends ASTElement {
+export class ModuleDefinitionElement extends ASTElement implements HasFQN {
     name: string;
 
     constructor(loc: SourceLocation, name: string) {
@@ -15,5 +16,9 @@ export class ModuleDefinitionElement extends ASTElement {
 
     toString(): string {
         return `Module(${this.name})`;
+    }
+
+    getFQN() {
+        return new FQN(undefined, this.name);
     }
 }

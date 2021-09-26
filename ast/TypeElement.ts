@@ -19,8 +19,8 @@ export class TypeElement extends ASTElement {
     }
 
     asTypeObject(): Type {
-        if (Classes.has(this.name)) {
-            return new ClassType(this.name);
+        if (Classes.has("module." + this.name)) {
+            return new ClassType("module." + this.name);
         }
         return new UnitType(this.name);
     }

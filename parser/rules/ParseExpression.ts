@@ -1,6 +1,7 @@
 import { ASTElement } from "../../ast/ASTElement";
 import { ConstructorCallExpression, ExpressionElement, FieldReferenceExpression, FunctionCallExpression, NameExpression, NumberExpression } from "../../ast/ExpressionElement";
 import { NameElement } from "../../ast/NameElement";
+import { SyntaxErrorElement } from "../../ast/SyntaxErrorElement";
 import { TokenElement } from "../../ast/TokenElement";
 import { TypeElement } from "../../ast/TypeElement";
 import { NumericLiteralToken } from "../../lexer/NumericLiteralToken";
@@ -63,7 +64,7 @@ export const ParseExpression: RuleList = {
                     }
                 });
                 const source_type = ast_stream[1].asTypeObject();
-                if (!(source_type instanceof ClassType)) return undefined;
+                if (!(source_type instanceof ClassType)) return [new SyntaxErrorElement(LocationFrom(ast_stream), `Attempted to construct non-class ${ast_stream[1].name}`)];
                 return [new ConstructorCallExpression(LocationFrom(ast_stream), source_type, args)];
             }
         },

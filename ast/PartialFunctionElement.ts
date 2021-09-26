@@ -5,6 +5,7 @@ import { PartialFunctions } from "../registry/Registry";
 import { Type } from "../type_inference/Type";
 import { PartialElement, SourceLocation, ASTElement } from "./ASTElement";
 import { CompoundStatementElement } from "./CompoundStatementElement";
+import { FQN, HasFQN } from "./FQN";
 import { FunctionElement } from "./FunctionElement";
 import { NameElement } from "./NameElement";
 import { PartialArgumentListElement } from "./PartialArgumentListElement";
@@ -12,22 +13,24 @@ import { TokenElement } from "./TokenElement";
 import { TypeElement } from "./TypeElement";
 
 
-export class PartialFunctionElement extends PartialElement {
-    fqn: string[];
+export class PartialFunctionElement extends PartialElement implements HasFQN {
+    private parent: HasFQN;
+    private name: string;
 
-    constructor(loc: SourceLocation, body: ASTElement[], fqn: string[]) {
+    constructor(loc: SourceLocation, body: ASTElement[], parent: HasFQN, name: string) {
         super(loc, body);
-        this.fqn = fqn;
+        this.parent = parent;
+        this.name = name;
 
         PartialFunctions.add(this);
     }
 
     toString() {
-        return `PartialFunction(${this.fqn.join(".")})`;
+        return `PartialFunction(${this.getFQN()})`;
     }
 
     parse(self_type: Type): FunctionElement {
-        console.error("~~~ Parsing function: " + this.fqn.join(".") + " ~~~");
+        console.error("~~~ Parsing function: " + this.getFQN().toString() + " ~~~");
         ClassifyNames(this.body);
         this.body = ApplyPass(this.body, ParseFunctionParts)[0];
         if (this.body[0] instanceof TokenElement && this.body[0].token.type == TokenType.Static) {
@@ -41,7 +44,8 @@ export class PartialFunctionElement extends PartialElement {
             && this.body[4] instanceof CompoundStatementElement) {
             return new FunctionElement(
                 this.source_location,
-                [...this.fqn],
+                this.parent,
+                this.name,
                 this.body[1].asTypeObject(),
                 self_type,
                 this.body[3].parse(),
@@ -50,5 +54,9 @@ export class PartialFunctionElement extends PartialElement {
         } else {
             return undefined;
         }
+    }
+
+    getFQN() {
+        return new FQN(this.parent, this.name);
     }
 }

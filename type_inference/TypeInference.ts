@@ -147,12 +147,12 @@ function ApplyRulesToScope(s: Scope): boolean {
             // monomorphized and we need to *not* do so again), and all the
             // generic fields are of known type.
             const generic_keys = [...generic_map.keys()];
-            if (generic_keys.length && generic_keys.every(k => generic_map.get(k) instanceof UnitType) && Classes.has(t.name)) {
-                console.error(`(Monomorphize) ${t.name}<${generic_keys.map(x => generic_map.get(x).toString()).join(", ")}>`);
+            if (generic_keys.length && generic_keys.every(k => generic_map.get(k) instanceof UnitType) && Classes.has(t.fqn.toString())) {
+                console.error(`(Monomorphize) ${t.fqn.toString()}<${generic_keys.map(x => generic_map.get(x).toString()).join(", ")}>`);
                 // This is basically a template evaluation. We'll clone the original class...
-                const new_class = Classes.get(t.name).clone();
+                const new_class = Classes.get(t.fqn.toString()).clone();
 
-                new_class.fqn[new_class.fqn.length - 1] = `__${t.name}_${generic_keys.map(x => (generic_map.get(x) as UnitType).name).join("_")}`;
+                new_class.setName(`__${t.fqn.last()}_${generic_keys.map(x => (generic_map.get(x) as UnitType).name).join("_")}`);
                 // ...replace all the GenericTypes in its AST...
                 Walk(new_class, (x, s) => {
                     if (x instanceof FunctionElement) {
@@ -168,6 +168,7 @@ function ApplyRulesToScope(s: Scope): boolean {
                 // ...update the type of `self` on all its methods...
                 new_class.methods.forEach(x => {
                     x.self_type = new_class.type();
+                    x.setParent(new_class);
                 });
                 // ...and run type checking on the result. I might eventually
                 // add support to the type checker for handling generic types
@@ -176,10 +177,10 @@ function ApplyRulesToScope(s: Scope): boolean {
                 // error handling.
                 new_class.methods.forEach(RunTypeInference);
 
-                Classes.set(new_class.fqn[new_class.fqn.length - 1], new_class);
+                Classes.set(new_class.getFQN().toString(), new_class);
 
                 // Now, we can just treat it as a concrete type.
-                s.types[index] = new UnitType(new_class.fqn[new_class.fqn.length - 1]);
+                s.types[index] = new UnitType(new_class.getFQN().toString());
                 rc = true;
             }
         } else if (t instanceof ScopeReferenceType) {
@@ -206,7 +207,7 @@ function ApplyRulesToScope(s: Scope): boolean {
             // over the generic fields rather than having to interact with the
             // types' contents.
             if (t0 instanceof StructureType && t1 instanceof StructureType
-                && t0.name == t1.name
+                && t0.fqn.equals(t1.fqn)
                 && t0.generic_map && t1.generic_map) {
                 console.error(`(IntersectStructure) ${t0} ${t1}`);
                 t0.generic_map.forEach((old_type, generic_key) => {

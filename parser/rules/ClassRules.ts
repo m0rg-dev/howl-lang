@@ -1,4 +1,5 @@
 import { ASTElement } from "../../ast/ASTElement";
+import { HasFQN } from "../../ast/FQN";
 import { PartialClassElement } from "../../ast/PartialClassElement";
 import { SyntaxErrorElement } from "../../ast/SyntaxErrorElement";
 import { TokenElement } from "../../ast/TokenElement";
@@ -7,7 +8,7 @@ import { TokenType } from "../../lexer/TokenType";
 import { AssertNegative, Hug, InOrder, MatchToken } from "../Matcher";
 import { LocationFrom, ProductionRule, ResynchronizeTopLevel } from "../Parser";
 
-export function ClassRules(parent: string[]): ProductionRule[] {
+export function ClassRules(parent: HasFQN): ProductionRule[] {
     return [
         {
             name: "ClassConstruct",
@@ -18,7 +19,7 @@ export function ClassRules(parent: string[]): ProductionRule[] {
                 Hug(TokenType.OpenBrace)
             ),
             replace: (ast_stream: [any, TokenElement<NameToken>, ...ASTElement[]]) => {
-                return [new PartialClassElement(LocationFrom(ast_stream), ast_stream, [...parent, ast_stream[1].token.name])];
+                return [new PartialClassElement(LocationFrom(ast_stream), ast_stream, parent, ast_stream[1].token.name)];
             }
         },
         {

@@ -2,16 +2,19 @@ import { NameToken } from "../lexer/NameToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { PartialElement, SourceLocation, ASTElement } from "./ASTElement";
+import { HasFQN } from "./FQN";
 import { TokenElement } from "./TokenElement";
 
 
 export class PartialClassElement extends PartialElement {
-    fqn: string[];
+    parent: HasFQN;
+    name: string;
     generics: string[] = [];
 
-    constructor(loc: SourceLocation, body: ASTElement[], fqn: string[]) {
+    constructor(loc: SourceLocation, body: ASTElement[], parent: HasFQN, name: string) {
         super(loc, body);
-        this.fqn = fqn;
+        this.parent = parent;
+        this.name = name;
 
         // TODO
         let i = 3;
@@ -25,6 +28,6 @@ export class PartialClassElement extends PartialElement {
     }
 
     toString() {
-        return `PartialClass<${this.generics.join(", ")}>(${this.fqn.join(".")})`;
+        return `PartialClass<${this.generics.join(", ")}>(${this.parent.getFQN()}.${this.name})`;
     }
 }

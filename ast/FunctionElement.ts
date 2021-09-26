@@ -2,21 +2,25 @@ import { Scope } from "../type_inference/Scope";
 import { Type, UnitType, VoidType } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { CompoundStatementElement } from "./CompoundStatementElement";
+import { FQN, HasFQN } from "./FQN";
 import { TypedItemElement } from "./TypedItemElement";
 
-export class FunctionElement extends ASTElement {
-    fqn: string[];
+export class FunctionElement extends ASTElement implements HasFQN {
+    private parent: HasFQN;
+    private name: string;
+
     return_type: Type;
     self_type: Type;
     args: TypedItemElement[];
     body: CompoundStatementElement;
     scope: Scope;
 
-    constructor(loc: SourceLocation, fqn: string[], type: Type, self_type: Type, args: TypedItemElement[], body: CompoundStatementElement) {
+    constructor(loc: SourceLocation, parent: HasFQN, name: string, return_type: Type, self_type: Type, args: TypedItemElement[], body: CompoundStatementElement) {
         super(loc);
-        this.fqn = fqn;
-        if (type instanceof UnitType && type.name == "void") type = new VoidType();
-        this.return_type = type;
+        this.name = name;
+        this.parent = parent;
+        if (return_type instanceof UnitType && return_type.name == "void") return_type = new VoidType();
+        this.return_type = return_type;
         this.self_type = self_type;
         this.args = args;
         this.body = body;
@@ -27,13 +31,14 @@ export class FunctionElement extends ASTElement {
     }
 
     toString() {
-        return `FunctionElement(${this.fqn.join(".")}, ${this.return_type}, ${this.args}, ${this.body})`;
+        return `FunctionElement(${this.getFQN()}, ${this.return_type}, ${this.args}, ${this.body})`;
     }
 
     clone() {
         const rc = new FunctionElement(
             this.source_location,
-            [...this.fqn],
+            this.parent,
+            this.name,
             this.return_type,
             this.self_type,
             this.args.map(x => x.clone()),
@@ -41,5 +46,13 @@ export class FunctionElement extends ASTElement {
         );
         if (this.scope) rc.addScope(this.scope.clone());
         return rc;
+    }
+
+    getFQN() {
+        return new FQN(this.parent, this.name);
+    }
+
+    setParent(p: HasFQN) {
+        this.parent = p;
     }
 }
