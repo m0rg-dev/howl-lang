@@ -1,6 +1,5 @@
 import { Classes } from "../registry/Registry";
 import { Type } from "../type_inference/Type";
-import { ClassType } from "../type_inference/ClassType";
 import { ConcreteType } from "../type_inference/ConcreteType";
 import { ASTElement, SourceLocation } from "./ASTElement";
 
@@ -22,7 +21,7 @@ export class TypeElement extends ASTElement {
 
     asTypeObject(): Type {
         if (Classes.has("module." + this.name)) {
-            return new ClassType("module." + this.name);
+            return Classes.get("module." + this.name).type();
         }
         return new ConcreteType(this.name);
     }

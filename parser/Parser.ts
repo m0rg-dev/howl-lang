@@ -1,6 +1,5 @@
 import { ASTElement, PartialElement, SourceLocation } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
-import { FQN } from "../ast/FQN";
 import { FunctionElement } from "../ast/FunctionElement";
 import { GenericElement } from "../ast/GenericElement";
 import { ModuleDefinitionElement } from "../ast/ModuleDefinitionElement";
@@ -13,8 +12,7 @@ import { TypeElement } from "../ast/TypeElement";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { Classes, Functions, PartialFunctions, TypeNames } from "../registry/Registry";
-import { ClassType } from "../type_inference/ClassType";
-import { ConcreteType } from "../type_inference/ConcreteType";
+import { VoidType } from "../type_inference/VoidType";
 import { Any, AssertNegative, First, InOrder, Matcher, MatchToken, Star } from "./Matcher";
 import { FunctionRules } from "./rules/FunctionRules";
 import { ParseClassParts } from "./rules/ParseClassParts";
@@ -60,7 +58,7 @@ export function Parse(token_stream: Token[]): ASTElement[] {
 
             for (const sub of el.body) {
                 if (sub instanceof PartialFunctionElement) {
-                    const n = sub.parse(new ClassType(ce.getFQN().toString()));
+                    const n = sub.parse();
                     if (n) {
                         n.setParent(ce);
                         methods.push(n);
@@ -72,11 +70,13 @@ export function Parse(token_stream: Token[]): ASTElement[] {
             }
 
             ce.methods = methods;
+            methods.forEach((m) => m.self_type = ce.type());
         }
     }
 
     PartialFunctions.forEach(x => {
-        const n = x.parse(new ConcreteType("void"));
+        const n = x.parse();
+        n.self_type = new VoidType();
         if (n) {
             Functions.add(n);
             PartialFunctions.delete(x);

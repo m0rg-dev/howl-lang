@@ -21,8 +21,10 @@ Classes.forEach((cl, name) => {
     if (cl.generics.length) Classes.delete(name);
 });
 
-Classes.forEach(RunClassTransforms);
-Functions.forEach(RunFunctionTransforms);
+if (!process.env.HOWL_SKIP_FREEZE_TYPES) {
+    Classes.forEach(RunClassTransforms);
+    Functions.forEach(RunFunctionTransforms);
+}
 
 console.log("digraph {\n  rankdir=LR;\n");
 Functions.forEach(x => console.log(RenderElement(x)));

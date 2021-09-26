@@ -26,7 +26,6 @@ import { ConsumedType } from "./ConsumedType";
 import { GenericType } from "./GenericType";
 import { ConcreteType } from "./ConcreteType";
 import { WalkAST } from "../ast/WalkAST";
-import { ClassType } from "./ClassType";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -71,7 +70,7 @@ export function RunTypeInference(f: FunctionElement) {
         } else if (x instanceof FieldReferenceExpression) {
             const idx = s.addType(new FieldReferenceType(x.source.type_location, x.name));
             x.type_location = new TypeLocation(s, idx);
-            console.error(`(FieldReference) ${x.type_location}`);
+            console.error(`(FieldReference) ${x.type_location} = ${s.types[idx]}`);
         } else if (x instanceof FunctionCallExpression) {
             const idx = s.addType(new FunctionCallType(x.source.type_location));
             x.type_location = new TypeLocation(s, idx);
@@ -141,8 +140,10 @@ export function RunTypeInference(f: FunctionElement) {
             if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
                 x.scope.types.forEach((type, index) => {
                     if (type instanceof FunctionType) {
-                        if (type.self_type instanceof ClassType) {
-                            x.scope.types[index] = new ConcreteType(`${type.self_type.name}->(${type.args.map(x => x.toString()).join(", ")}) => ${type.return_type}`);
+                        if (type.self_type instanceof StructureType) {
+                            const all_args = [type.self_type, ...type.args];
+
+                            x.scope.types[index] = new ConcreteType(`${type.return_type}(${all_args.join(", ")})`);
                         }
                     } else if (type instanceof StructureType) {
                         x.scope.types[index] = new ConcreteType(type.fqn.toString());
@@ -177,7 +178,7 @@ function ApplyRulesToScope(s: Scope): boolean {
             // EvaluateClosure: Replace any evaluable ClosureType with its
             // result.
             const new_type = t.evaluator()();
-            console.error(`(EvaluateClosure) ${t} => ${new_type}`);
+            console.error(`(EvaluateClosure ${s.n} ${index}) ${t} => ${new_type}`);
             s.types[index] = new_type;
             rc = true;
         } else if (t instanceof StructureType) {
@@ -192,7 +193,7 @@ function ApplyRulesToScope(s: Scope): boolean {
             if (MapGenerics(s, t, () => { }, generic_map)) {
                 rc = true;
                 t.generic_map = generic_map;
-                console.error(`(MapGenerics) ${t}`);
+                console.error(`(MapGenerics ${s.n} ${index}) ${t}`);
             }
 
             // Now, see if we can monomorphize the type, if necessary. This is
@@ -201,7 +202,7 @@ function ApplyRulesToScope(s: Scope): boolean {
             // generic fields are of known type.
             const generic_keys = [...generic_map.keys()];
             if (generic_keys.length && generic_keys.every(k => generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString())) {
-                console.error(`(Monomorphize) ${t.fqn.toString()}<${generic_keys.map(x => generic_map.get(x).toString()).join(", ")}>`);
+                console.error(`(Monomorphize ${s.n} ${index}) ${t.fqn.toString()}<${generic_keys.map(x => generic_map.get(x).toString()).join(", ")}>`);
                 // This is basically a template evaluation. We'll clone the original class...
                 const new_class = Classes.get(t.fqn.toString()).clone();
 
@@ -241,7 +242,7 @@ function ApplyRulesToScope(s: Scope): boolean {
             // directly in a Scope instead of as a sub-type. This just lets us
             // not have to handle indirecting through ScopeReferenceTypes
             // anytime we're using a type.
-            console.error(`(LiftScope) ${index}@${s.n} => ${t.source}`);
+            console.error(`(LiftScope ${s.n} ${index}) ${index}@${s.n} => ${t.source}`);
             ReplaceTypes(s.root, new TypeLocation(s, index), t.source);
             s.types[index] = new ConsumedType();
             rc = true;
@@ -262,11 +263,11 @@ function ApplyRulesToScope(s: Scope): boolean {
             if (t0 instanceof StructureType && t1 instanceof StructureType
                 && t0.fqn.equals(t1.fqn)
                 && t0.generic_map && t1.generic_map) {
-                console.error(`(IntersectStructure) ${t0} ${t1}`);
+                console.error(`(IntersectStructure ${s.n} ${index}) ${t0} ${t1}`);
                 t0.generic_map.forEach((old_type, generic_key) => {
                     const ot1 = t1.generic_map.get(generic_key);
                     if (old_type instanceof ScopeReferenceType && ot1 instanceof ScopeReferenceType) {
-                        console.error(`  (IntersectStructure) ${generic_key} ${old_type}`);
+                        console.error(`  (IntersectStructure ${s.n} ${index}) ${generic_key} ${old_type}`);
                         SwivelIntersection(old_type.source, ot1.source);
                     }
                 });

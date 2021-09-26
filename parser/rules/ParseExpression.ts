@@ -12,10 +12,10 @@ import { TypeElement } from "../../ast/TypeElement";
 import { NumericLiteralToken } from "../../lexer/NumericLiteralToken";
 import { Token } from "../../lexer/Token";
 import { TokenType } from "../../lexer/TokenType";
-import { ClassType } from "../../type_inference/ClassType";
 import { InOrder, MatchElementType, Matcher, MatchToken, Optional, Star } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
 import { MatchExpression, MatchType } from "./MatchUtils";
+import { StructureType } from "../../type_inference/StructureType";
 
 export const ParseExpression: RuleList = {
     name: "ParseExpression",
@@ -69,7 +69,7 @@ export const ParseExpression: RuleList = {
                     }
                 });
                 const source_type = ast_stream[1].asTypeObject();
-                if (!(source_type instanceof ClassType)) return [new SyntaxErrorElement(LocationFrom(ast_stream), `Attempted to construct non-class ${ast_stream[1].name}`)];
+                if (!(source_type instanceof StructureType)) return [new SyntaxErrorElement(LocationFrom(ast_stream), `Attempted to construct non-class ${ast_stream[1].name}`)];
                 return [new ConstructorCallExpression(LocationFrom(ast_stream), source_type, args)];
             }
         },

@@ -29,7 +29,7 @@ export class PartialFunctionElement extends PartialElement implements HasFQN {
         return `PartialFunction(${this.getFQN()})`;
     }
 
-    parse(self_type: Type): FunctionElement {
+    parse(): FunctionElement {
         console.error("~~~ Parsing function: " + this.getFQN().toString() + " ~~~");
         ClassifyNames(this.body);
         this.body = ApplyPass(this.body, ParseFunctionParts)[0];
@@ -47,7 +47,7 @@ export class PartialFunctionElement extends PartialElement implements HasFQN {
                 this.parent,
                 this.name,
                 this.body[1].asTypeObject(),
-                self_type,
+                undefined,
                 this.body[3].parse(),
                 this.body[4]
             );

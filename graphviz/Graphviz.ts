@@ -21,8 +21,8 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         const contents: RecordRow[] = [
             [{ text: "FunctionElement" }],
             [{ port: "name", text: "fqn: " + e.getFQN().toString() }],
-            [{ port: "type", text: "returns: " + escape(e.return_type.toString()) }],
-            [{ port: "type", text: "self: " + escape(e.self_type.toString()) }],
+            [{ port: "type", text: "returns: " + e.return_type.toString() }],
+            [{ port: "type", text: "self: " + e.self_type.toString() }],
         ];
         e.args.forEach(x => {
             contents.push([{ port: "arg", text: x.toString() }]);
@@ -150,7 +150,7 @@ export function RenderScope(scope: Scope): string {
 
     scope.types.forEach((x, y) => {
         if (!(x instanceof ConsumedType)) {
-            contents.push([{ text: scope.names[y] || `#${y}` }, { text: escape(x.toString()) }]);
+            contents.push([{ text: scope.names[y] || `#${y}` }, { text: x.toString() }]);
         }
     });
 
@@ -179,7 +179,7 @@ class RecordNode {
 
     toString() {
         const label = "<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">"
-            + this.contents.map(x => "<TR>" + x.map(y => "<TD PORT=\"" + y.port + "\">" + y.text + "</TD>") + "</TR>")
+            + this.contents.map(x => "<TR>" + x.map(y => "<TD PORT=\"" + y.port + "\">" + escape(y.text) + "</TD>") + "</TR>")
             + "</TABLE>";
         return `  u${this.uuid} [label=<${label}> shape=plaintext];`
     }

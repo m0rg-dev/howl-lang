@@ -1,13 +1,13 @@
-import { ClassType } from "../../type_inference/ClassType";
+import { StructureType } from "../../type_inference/StructureType";
 import { SourceLocation } from "../ASTElement";
 import { ExpressionElement } from "../ExpressionElement";
 
 
 export class ConstructorCallExpression extends ExpressionElement {
-    source: ClassType;
+    source: StructureType;
     args: ExpressionElement[];
 
-    constructor(loc: SourceLocation, source: ClassType, args: ExpressionElement[]) {
+    constructor(loc: SourceLocation, source: StructureType, args: ExpressionElement[]) {
         super(loc);
         this.source = source;
         this.args = [...args];
