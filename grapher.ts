@@ -4,6 +4,7 @@ import { RenderElement } from './graphviz/Graphviz';
 import { Lexer } from './lexer';
 import { Parse } from './parser/Parser';
 import { Classes, Functions, InitRegistry } from './registry/Registry';
+import { RunClassTransforms, RunFunctionTransforms } from './transform/RunTransforms';
 import { RunTypeInference } from './type_inference/TypeInference';
 
 sms.install();
@@ -19,6 +20,9 @@ Functions.forEach(RunTypeInference);
 Classes.forEach((cl, name) => {
     if (cl.generics.length) Classes.delete(name);
 });
+
+Classes.forEach(RunClassTransforms);
+Functions.forEach(RunFunctionTransforms);
 
 console.log("digraph {\n  rankdir=LR;\n");
 Functions.forEach(x => console.log(RenderElement(x)));
