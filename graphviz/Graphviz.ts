@@ -134,7 +134,7 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
 
     if (e instanceof ExpressionElement && e.resolved_type) {
         s.push((new Link("u" + e.uuid, "type_" + e.uuid)).toString());
-        s.push(`  type_${e.uuid} [label="${escape(e.resolved_type.toString())}", shape=Mrecord, color=green, fontcolor=green]`);
+        s.push(`  type_${e.uuid} [label="${escape(e.resolved_type.ir_type())}", shape=Mrecord, color=green, fontcolor=green]`);
     } else if (e instanceof ExpressionElement && e.type_location) {
         s.push((new Link("u" + e.uuid, "type_" + e.uuid)).toString());
         s.push(`  type_${e.uuid} [label="${escape(e.type_location.toString())} = ${escape(e.type_location.get().toString())}", shape=Mrecord, color=blue, fontcolor=blue]`);

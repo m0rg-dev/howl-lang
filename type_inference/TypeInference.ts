@@ -24,7 +24,7 @@ import { UnionType } from "./UnionType";
 import { AnyType } from "./AnyType";
 import { ConsumedType } from "./ConsumedType";
 import { GenericType } from "./GenericType";
-import { ConcreteType } from "./ConcreteType";
+import { ConcreteFunctionType, ConcreteType } from "./ConcreteType";
 import { WalkAST } from "../ast/WalkAST";
 import { ClassElement } from "../ast/ClassElement";
 
@@ -143,9 +143,12 @@ export function RunTypeInference(f: FunctionElement) {
             if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
                 x.scope.types.forEach((type, index) => {
                     if (type instanceof FunctionType) {
-                        const all_args = [type.self_type, ...type.args];
-
-                        x.scope.types[index] = new ConcreteType(`${type.return_type}(${all_args.join(", ")})`);
+                        if (type.return_type instanceof ConcreteType
+                            && type.self_type instanceof ConcreteType
+                            && type.args.every(x => x instanceof ConcreteType)) {
+                            const all_args = [type.self_type, ...type.args] as ConcreteType[];
+                            x.scope.types[index] = new ConcreteFunctionType(type.return_type, all_args);
+                        }
                     } else if (type instanceof StructureType) {
                         x.scope.types[index] = new ConcreteType(type.fqn.toString());
                     }
