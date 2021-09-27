@@ -1,15 +1,18 @@
 import { FQN } from "../ast/FQN";
+import { FunctionType } from "./FunctionType";
+import { GenericType } from "./GenericType";
 import { Type } from "./Type";
 
 
 export class StructureType extends Type {
     fqn: FQN;
-    fields: Map<string, Type> = new Map();
-    generic_map: Map<string, Type>;
+    private fields: Map<string, Type> = new Map();
+    generic_map: Map<string, Type> = new Map();
 
-    constructor(fqn: FQN) {
+    constructor(fqn: FQN, generics: Set<string>) {
         super();
         this.fqn = fqn;
+        generics.forEach((x) => this.generic_map.set(x, new GenericType(x)));
     }
 
     toString() {
@@ -21,11 +24,7 @@ export class StructureType extends Type {
         if (this.generic_map) {
             this.generic_map.forEach((v, k) => generics.push(`${k} = ${v}`));
         }
-        if (process.env.HOWL_LOG_FULL_STRUCTS) {
-            return `${this.fqn.toString()}<${generics.join(", ")}>{ ${f.join(", ")} }`;
-        } else {
-            return `${this.fqn.toString()}<${generics.join(", ")}>{ ${[...this.fields.keys()].join(", ")} }`;
-        }
+        return `${this.fqn.toString()}<${generics.join(", ")}>`;
     }
 
     equals(other: Type) {
@@ -43,5 +42,38 @@ export class StructureType extends Type {
             return rc;
         }
         return false;
+    }
+
+    addField(name: string, type: Type) {
+        this.fields.set(name, type);
+    }
+
+    getFieldType(field: string): Type {
+        console.error(`  (GetType ${field})`);
+        const rc = this.applyGenericMap(this.fields.get(field));
+        console.error(`  (ApplyGenericMap ${rc})`);
+        return rc;
+    }
+
+    applyGenericMap(t: Type): Type {
+        if (t instanceof GenericType) {
+            console.error(`   (ApplyGenericMap) ${t} => ${this.generic_map.get(t.name)}`);
+            return this.generic_map.get(t.name);
+        } else if (t instanceof FunctionType) {
+            console.error(`   (ApplyGenericMap) ${t}`);
+            const u = new FunctionType(t);
+            u.return_type = this.applyGenericMap(t.return_type);
+            u.self_type = this.applyGenericMap(t.self_type);
+            u.args = u.args.map(x => this.applyGenericMap(x));
+            return u;
+        } else if (t instanceof StructureType) {
+            // TODO don't mutate here it's weird
+            if (t.fqn.equals(this.fqn)) {
+                t.generic_map = this.generic_map;
+            }
+            return t;
+        } else {
+            return t;
+        }
     }
 }

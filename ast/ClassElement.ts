@@ -39,9 +39,9 @@ export class ClassElement extends ASTElement implements HasFQN {
     }
 
     type(): StructureType {
-        const t = new StructureType(this.getFQN());
-        this.fields.forEach((x) => t.fields.set(x.name, x.type));
-        this.methods.forEach((x) => t.fields.set(x.getFQN().last(), new FunctionType(x)));
+        const t = new StructureType(this.getFQN(), new Set(this.generics));
+        this.fields.forEach((x) => t.addField(x.name, x.type));
+        this.methods.forEach((x) => t.addField(x.getFQN().last(), new FunctionType(x)));
         return t;
     }
 

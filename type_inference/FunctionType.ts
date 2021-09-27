@@ -8,11 +8,15 @@ export class FunctionType extends Type {
     args: Type[];
     _propagated = false;
 
-    constructor(source: FunctionElement) {
+    constructor(source: FunctionElement | FunctionType) {
         super();
         this.return_type = source.return_type;
         this.self_type = source.self_type;
-        this.args = source.args.map(x => x.type);
+        if (source instanceof FunctionElement) {
+            this.args = source.args.map(x => x.type);
+        } else {
+            this.args = [...source.args];
+        }
     }
 
     toString() {

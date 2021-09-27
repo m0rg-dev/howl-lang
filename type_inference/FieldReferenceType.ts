@@ -31,7 +31,7 @@ export class FieldReferenceType extends ClosureType {
 
     evaluator() {
         return () => {
-            return (this.source.get() as StructureType).fields.get(this.field);
+            return (this.source.get() as StructureType).getFieldType(this.field);
         };
     }
 }

@@ -26,6 +26,7 @@ import { ConsumedType } from "./ConsumedType";
 import { GenericType } from "./GenericType";
 import { ConcreteType } from "./ConcreteType";
 import { WalkAST } from "../ast/WalkAST";
+import { ClassElement } from "../ast/ClassElement";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -117,22 +118,24 @@ export function RunTypeInference(f: FunctionElement) {
         })
     }
 
-    // Remove any un-referenced types from scopes to make the graph output a little cleaner.
-    WalkAST(f, (x) => {
-        if (x instanceof ExpressionElement) {
-            x.type_location.location.gc_temp.add(x.type_location.index);
-        }
-    });
+    if (!process.env.HOWL_SKIP_SCOPE_GC) {
+        // Remove any un-referenced types from scopes to make the graph output a little cleaner.
+        WalkAST(f, (x) => {
+            if (x instanceof ExpressionElement) {
+                x.type_location.location.gc_temp.add(x.type_location.index);
+            }
+        });
 
-    WalkAST(f, (x) => {
-        if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
-            x.scope.types.forEach((type, index) => {
-                if (!x.scope.gc_temp.has(index)) {
-                    x.scope.types[index] = new ConsumedType();
-                }
-            });
-        }
-    });
+        WalkAST(f, (x) => {
+            if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
+                x.scope.types.forEach((type, index) => {
+                    if (!x.scope.gc_temp.has(index)) {
+                        x.scope.types[index] = new ConsumedType();
+                    }
+                });
+            }
+        });
+    }
 
     if (!process.env.HOWL_SKIP_FREEZE_TYPES) {
         // Replace function types with concrete function pointers, and structure types with concrete structure names.
@@ -140,11 +143,9 @@ export function RunTypeInference(f: FunctionElement) {
             if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
                 x.scope.types.forEach((type, index) => {
                     if (type instanceof FunctionType) {
-                        if (type.self_type instanceof StructureType) {
-                            const all_args = [type.self_type, ...type.args];
+                        const all_args = [type.self_type, ...type.args];
 
-                            x.scope.types[index] = new ConcreteType(`${type.return_type}(${all_args.join(", ")})`);
-                        }
+                        x.scope.types[index] = new ConcreteType(`${type.return_type}(${all_args.join(", ")})`);
                     } else if (type instanceof StructureType) {
                         x.scope.types[index] = new ConcreteType(type.fqn.toString());
                     }
@@ -181,57 +182,71 @@ function ApplyRulesToScope(s: Scope): boolean {
             console.error(`(EvaluateClosure ${s.n} ${index}) ${t} => ${new_type}`);
             s.types[index] = new_type;
             rc = true;
+        } else if (t instanceof FunctionType) {
+            if (LiftConcrete(t, () => { })) rc = true;
         } else if (t instanceof StructureType) {
             // A whole lot of StructureType-related stuff that probably should
             // get split out.
+
+            if (LiftConcrete(t, () => { })) rc = true;
 
             // First, MapGenerics - replaces any generic elements within a
             // StructureType with a reference to a type register in the local
             // scope. In other words, this is what brings the T in Structure<T>
             // out into the scope of whatever's referencing it.
-            const generic_map = t.generic_map || new Map<string, Type>();
-            if (MapGenerics(s, t, () => { }, generic_map)) {
-                rc = true;
-                t.generic_map = generic_map;
-                console.error(`(MapGenerics ${s.n} ${index}) ${t}`);
-            }
+            t.generic_map.forEach((old_type, generic_name) => {
+                if (old_type instanceof GenericType) {
+                    const idx = s.addType(new AnyType());
+                    const n = new ScopeReferenceType(new TypeLocation(s, idx));
+                    t.generic_map.set(generic_name, n);
+                    console.error(`(MapGenerics) ${old_type} -> ${n}`);
+                    rc = true;
+                }
+            })
 
             // Now, see if we can monomorphize the type, if necessary. This is
             // possible if it has generics (if it doesn't, it's already
             // monomorphized and we need to *not* do so again), and all the
             // generic fields are of known type.
-            const generic_keys = [...generic_map.keys()];
-            if (generic_keys.length && generic_keys.every(k => generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString())) {
-                console.error(`(Monomorphize ${s.n} ${index}) ${t.fqn.toString()}<${generic_keys.map(x => generic_map.get(x).toString()).join(", ")}>`);
-                // This is basically a template evaluation. We'll clone the original class...
-                const new_class = Classes.get(t.fqn.toString()).clone();
+            const generic_keys = [...t.generic_map.keys()];
+            if (generic_keys.length && generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString())) {
+                console.error(`(Monomorphize ${s.n} ${index}) ${t.fqn.toString()}<${generic_keys.map(x => t.generic_map.get(x).toString()).join(", ")}>`);
+                const mmn = `__${t.fqn.last()}_${generic_keys.map(x => (t.generic_map.get(x) as ConcreteType).name).join("_")}`;
+                const new_fqn = t.fqn.repl_last(mmn);
+                let new_class: ClassElement;
+                if (Classes.has(new_fqn.toString())) {
+                    new_class = Classes.get(new_fqn.toString());
+                } else {
+                    // This is basically a template evaluation. We'll clone the original class...
+                    new_class = Classes.get(t.fqn.toString()).clone();
 
-                new_class.setName(`__${t.fqn.last()}_${generic_keys.map(x => (generic_map.get(x) as ConcreteType).name).join("_")}`);
-                // ...replace all the GenericTypes in its AST...
-                WalkAST(new_class, (x, s) => {
-                    if (x instanceof FunctionElement) {
-                        if (x.return_type instanceof GenericType) x.return_type = generic_map.get(x.return_type.name);
-                        x.args.forEach((arg) => {
-                            if (arg.type instanceof GenericType) arg.type = generic_map.get(arg.type.name);
-                        });
-                    } else if (x instanceof TypedItemElement) {
-                        if (x.type instanceof GenericType) x.type = generic_map.get(x.type.name);
-                    }
-                });
-                new_class.generics = [];
-                // ...update the type of `self` on all its methods...
-                new_class.methods.forEach(x => {
-                    x.self_type = new_class.type();
-                    x.setParent(new_class);
-                });
-                // ...and run type checking on the result. I might eventually
-                // add support to the type checker for handling generic types
-                // directly, which would let us type-check classes prior to
-                // template substitution and probably result in better type
-                // error handling.
-                new_class.methods.forEach(RunTypeInference);
+                    new_class.setName(mmn);
+                    // ...replace all the GenericTypes in its AST...
+                    WalkAST(new_class, (x, s) => {
+                        if (x instanceof FunctionElement) {
+                            if (x.return_type instanceof GenericType) x.return_type = t.generic_map.get(x.return_type.name);
+                            x.args.forEach((arg) => {
+                                if (arg.type instanceof GenericType) arg.type = t.generic_map.get(arg.type.name);
+                            });
+                        } else if (x instanceof TypedItemElement) {
+                            if (x.type instanceof GenericType) x.type = t.generic_map.get(x.type.name);
+                        }
+                    });
+                    new_class.generics = [];
+                    // ...update the type of `self` on all its methods...
+                    new_class.methods.forEach(x => {
+                        x.self_type = new_class.type();
+                        x.setParent(new_class);
+                    });
+                    // ...and run type checking on the result. I might eventually
+                    // add support to the type checker for handling generic types
+                    // directly, which would let us type-check classes prior to
+                    // template substitution and probably result in better type
+                    // error handling.
+                    new_class.methods.forEach(RunTypeInference);
 
-                Classes.set(new_class.getFQN().toString(), new_class);
+                    Classes.set(new_class.getFQN().toString(), new_class);
+                }
 
                 // Now, we can just treat it as a concrete type.
                 s.types[index] = new ConcreteType(new_class.getFQN().toString());
@@ -316,39 +331,37 @@ function ReplaceTypes(el: ASTElement, from: TypeLocation, to: TypeLocation) {
     });
 }
 
-// Replace any generic types in `t` and its subtypes with ScopeReferenceTypes.
-// Each generic parameter will map to one register on the local scope. Also
-// replaces ScopeReferenceTypes referencing concrete types with the referenced
-// concrete type, mostly because it's a convenient place to do so.
-function MapGenerics(s: Scope, t: Type, repl: (n: Type) => void, map: Map<string, Type>): boolean {
+export function LiftConcrete(t: Type, repl: (n: Type) => void): boolean {
     let rc = false;
-    if (t instanceof GenericType) {
-        if (!map.has(t.name)) {
-            const new_idx = s.addType(new AnyType());
-            const new_type = new ScopeReferenceType(new TypeLocation(s, new_idx));
-            map.set(t.name, new_type);
-        }
-        console.error(`(LiftGenerics) ${t} => ${map.get(t.name)}`);
-        repl(map.get(t.name));
-        rc = true;
-    } else if (t instanceof ScopeReferenceType && t.source.get() instanceof ConcreteType) {
+    if (t instanceof ScopeReferenceType && t.source.get() instanceof ConcreteType) {
         console.error(`(LiftConcrete) ${t} => ${t.source.get()}`);
         repl(t.source.get());
         rc = true;
     } else if (t instanceof StructureType) {
-        const updates = new Map<string, Type>();
-        t.fields.forEach((old_type, field_name) => {
-            if (MapGenerics(s, old_type, (n: Type) => updates.set(field_name, n), map)) rc = true;
+        const generic_keys = [...t.generic_map.keys()];
+        if (generic_keys.length && generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString())) {
+            const mmn = `__${t.fqn.last()}_${generic_keys.map(x => (t.generic_map.get(x) as ConcreteType).name).join("_")}`;
+            const new_fqn = t.fqn.repl_last(mmn);
+            let new_class: ClassElement;
+            if (Classes.has(new_fqn.toString())) {
+                new_class = Classes.get(new_fqn.toString());
+                console.error(`(Monomorphize LC) ${t.fqn.toString()}<${generic_keys.map(x => t.generic_map.get(x).toString()).join(", ")}>`);
+                repl(new ConcreteType(new_class.getFQN().toString()));
+                rc = true;
+                return;
+            }
+        }
+
+        t.generic_map.forEach((old_type, generic_name) => {
+            if (LiftConcrete(old_type, (n: Type) => t.generic_map.set(generic_name, n))) {
+                rc = true;
+            }
         });
-        t.generic_map?.forEach((old_type, generic_name) => {
-            if (MapGenerics(s, old_type, (n: ScopeReferenceType) => t.generic_map.set(generic_name, n), map)) rc = true;
-        })
-        updates.forEach((x, y) => t.fields.set(y, x));
     } else if (t instanceof FunctionType) {
-        if (MapGenerics(s, t.return_type, (n: Type) => t.return_type = n, map)) rc = true;
-        if (MapGenerics(s, t.self_type, (n: Type) => t.self_type = n, map)) rc = true;
+        if (LiftConcrete(t.return_type, (n: Type) => t.return_type = n)) rc = true;
+        if (LiftConcrete(t.self_type, (n: Type) => t.self_type = n)) rc = true;
         t.args.forEach((old_type, index) => {
-            if (MapGenerics(s, old_type, (n: Type) => t.args[index] = n, map)) rc = true;
+            if (LiftConcrete(old_type, (n: Type) => t.args[index] = n)) rc = true;
         });
     }
     return rc;

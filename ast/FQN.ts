@@ -22,6 +22,10 @@ export class FQN {
     last() {
         return this.part;
     }
+
+    repl_last(n: string): FQN {
+        return new FQN(this.parent, n);
+    }
 }
 
 export interface HasFQN {
