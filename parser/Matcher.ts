@@ -115,7 +115,7 @@ export function Hug(what: TokenType): Matcher {
             if (!(el instanceof TokenElement)) continue;
             switch (el.token.type) {
                 case TokenType.OpenAngle:
-                    stack.push(TokenType.OpenAngle);
+                    if (what == TokenType.OpenAngle) stack.push(TokenType.OpenAngle);
                     break;
                 case TokenType.OpenBrace:
                     stack.push(TokenType.OpenBrace);
@@ -136,7 +136,7 @@ export function Hug(what: TokenType): Matcher {
                     if (stack.pop() != TokenType.OpenBrace) return [false, 0];
                     break;
                 case TokenType.CloseAngle:
-                    if (stack.pop() != TokenType.OpenAngle) return [false, 0];
+                    if (what == TokenType.OpenAngle && stack.pop() != TokenType.OpenAngle) return [false, 0];
                     break;
             }
 

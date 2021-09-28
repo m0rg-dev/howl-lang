@@ -78,8 +78,8 @@ export function Parse(token_stream: Token[]): ASTElement[] {
 
     PartialFunctions.forEach(x => {
         const n = x.parse();
-        n.self_type = new VoidType();
         if (n) {
+            n.self_type = new VoidType();
             Functions.add(n);
             PartialFunctions.delete(x);
         } else {

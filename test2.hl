@@ -16,6 +16,9 @@ class Vec<T> {
     }
 
     fn void __l_index__(i64 idx, T value) {
+        if (idx > self.length) {
+            self.value = fficall realloc(self.value, self.element_size * idx);
+        }
         self.value[idx] = value;
     }
 }
@@ -23,6 +26,6 @@ class Vec<T> {
 static fn i32 main() {
     let Vec<i32> foo;
     foo = new Vec<i32>();
-    foo[0] = 3;
-    return foo[0];
+    foo[420] = 69;
+    return foo[420];
 }

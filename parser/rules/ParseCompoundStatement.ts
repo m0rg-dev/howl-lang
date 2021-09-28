@@ -1,8 +1,14 @@
 import { ASTElement } from "../../ast/ASTElement";
+import { CompoundStatementElement } from "../../ast/CompoundStatementElement";
+import { ExpressionElement } from "../../ast/ExpressionElement";
+import { IfStatementElement } from "../../ast/IfStatementElement";
 import { PartialStatementElement, StatementElement } from "../../ast/StatementElement";
+import { TokenElement } from "../../ast/TokenElement";
 import { TokenType } from "../../lexer/TokenType";
 import { AssertNegative, Hug, InOrder, MatchElementType, Matcher, MatchToken, Until } from "../Matcher";
 import { ApplyPass, LocationFrom, Parse, RuleList } from "../Parser";
+import { MatchExpression } from "./MatchUtils";
+import { ConvertNamesExpression, ParseExpression } from "./ParseExpression";
 import { ParseStatement } from "./ParseStatement";
 import { ParseTypes } from "./ParseType";
 
@@ -27,6 +33,32 @@ export const ParseCompoundStatement: RuleList = {
             startOnly: true
         },
         {
+            name: "ExtractConditionalExpression",
+            match: InOrder(
+                MatchToken(TokenType.If),
+                Hug(TokenType.OpenParen)
+            ),
+            replace: (ast_stream: ASTElement[]) => {
+                const rest = ast_stream.slice(2, -1);
+                const parsed0 = ApplyPass(rest, ConvertNamesExpression)[0];
+                const parsed1 = ApplyPass(parsed0, ParseExpression)[0];
+                return [ast_stream[0], ...parsed1];
+            }
+        },
+        {
+            name: "IfStatement",
+            match: InOrder(
+                MatchToken(TokenType.If),
+                MatchExpression(),
+                Hug(TokenType.OpenBrace)
+            ),
+            replace: (ast_stream: [TokenElement<any>, ExpressionElement, ...ASTElement[]]) => {
+                const rest = ast_stream.slice(2);
+                const parsed = ApplyPass(rest, ParseCompoundStatement)[0];
+                return [new IfStatementElement(LocationFrom(ast_stream), ast_stream[1], new CompoundStatementElement(LocationFrom(parsed), parsed, undefined))];
+            }
+        },
+        {
             name: "ExtractSimpleStatement",
             match: InOrder(
                 AssertNegative(MatchStatement()),
@@ -43,7 +75,8 @@ export const ParseCompoundStatement: RuleList = {
             match: MatchElementType("PartialStatementElement"),
             replace: (ast_stream: [PartialStatementElement]) => {
                 let parsed = ApplyPass(ast_stream[0].body, ParseTypes)[0];
-                parsed = ApplyPass(ast_stream[0].body, ParseStatement)[0];
+                parsed = ApplyPass(parsed, ConvertNamesExpression)[0];
+                parsed = ApplyPass(parsed, ParseStatement)[0];
                 return parsed;
             }
         }

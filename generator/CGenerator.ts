@@ -1,6 +1,8 @@
 import { ASTElement } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
+import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
+import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
 import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
@@ -11,6 +13,7 @@ import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
+import { IfStatementElement } from "../ast/IfStatementElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 import { NullaryReturnStatement } from "../ast/statement/NullaryReturnStatement";
@@ -97,6 +100,10 @@ export function EmitC(root: ASTElement) {
         console.log(`${ConvertType(root.return_type)} ${SanitizeName(root.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")}) {`);
         EmitC(root.body);
         console.log(`}\n`);
+    } else if (root instanceof IfStatementElement) {
+        console.log(`if (${ExpressionToC(root.condition)}) {`);
+        EmitC(root.body);
+        console.log(`}`);
     } else if (root instanceof CompoundStatementElement) {
         root.statements.forEach(EmitC);
     } else if (root instanceof UnaryReturnStatement) {
@@ -130,6 +137,8 @@ function ExpressionToC(e: ExpressionElement): string {
         return `${e.source}(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof FunctionCallExpression) {
         return `${ExpressionToC(e.source)}(${e.args.map(ExpressionToC).join(", ")})`;
+    } else if (e instanceof ComparisonExpression || e instanceof ArithmeticExpression) {
+        return `${ExpressionToC(e.lhs)} ${e.what} ${ExpressionToC(e.rhs)}`;
     } else if (e instanceof IndexExpression) {
         if (e.generator_metadata["is_fake_index"]) {
             return ExpressionToC(e.source);

@@ -17,6 +17,9 @@ import { Scope } from "../type_inference/Scope";
 import { GeneratorTemporaryExpression } from "./expression/GeneratorTemporaryExpression";
 import { IndexExpression } from "./expression/IndexExpression";
 import { FFICallExpression } from "./expression/FFICallExpression";
+import { IfStatementElement } from "./IfStatementElement";
+import { ComparisonExpression } from "./expression/ComparisonExpression";
+import { ArithmeticExpression } from "./expression/ArithmeticExpression";
 
 export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope) => void, _nearestScope?: Scope) {
     if (root instanceof ClassElement) {
@@ -39,7 +42,9 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             WalkAST(x, cb, root.scope);
         });
         cb(root, root.scope);
-    } else if (root instanceof AssignmentStatement) {
+    } else if (root instanceof AssignmentStatement
+        || root instanceof ComparisonExpression
+        || root instanceof ArithmeticExpression) {
         WalkAST(root.lhs, cb, _nearestScope);
         WalkAST(root.rhs, cb, _nearestScope);
         cb(root, _nearestScope);
@@ -53,6 +58,10 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
         root.args.forEach(x => {
             WalkAST(x, cb, _nearestScope);
         });
+        cb(root, _nearestScope);
+    } else if (root instanceof IfStatementElement) {
+        WalkAST(root.condition, cb, _nearestScope);
+        WalkAST(root.body, cb, root.body.scope);
         cb(root, _nearestScope);
     } else if (root instanceof FieldReferenceExpression
         || root instanceof UnaryReturnStatement
@@ -69,6 +78,6 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
         || root instanceof TypedItemElement) {
         cb(root, _nearestScope);
     } else {
-        throw new Error(`can't walk a ${root.constructor.name}`);
+        throw new Error(`can't walk a ${root.constructor.name} (${root} ${root.source_location})`);
     }
 }

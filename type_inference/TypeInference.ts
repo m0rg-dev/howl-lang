@@ -30,6 +30,9 @@ import { ClassElement } from "../ast/ClassElement";
 import { IndexExpression } from "../ast/expression/IndexExpression";
 import { IndexType } from "./IndexType";
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
+import { IfStatementElement } from "../ast/IfStatementElement";
+import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
+import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -75,6 +78,12 @@ export function RunTypeInference(f: FunctionElement) {
             // point), so we can just run ReplaceTypes.
             ReplaceTypes(s.root, x.lhs.type_location, new TypeLocation(s, idx));
             ReplaceTypes(s.root, x.rhs.type_location, new TypeLocation(s, idx));
+        } else if (x instanceof ArithmeticExpression || x instanceof ComparisonExpression) {
+            console.error(`(Arithmetic) ${x.lhs.type_location} ${x.what} ${x.rhs.type_location}`);
+            const idx = s.addType(new IntersectionType(x.lhs.type_location, x.rhs.type_location));
+            ReplaceTypes(s.root, x.lhs.type_location, new TypeLocation(s, idx));
+            ReplaceTypes(s.root, x.rhs.type_location, new TypeLocation(s, idx));
+            x.type_location = new TypeLocation(s, idx);
         } else if (x instanceof FieldReferenceExpression) {
             const idx = s.addType(new FieldReferenceType(x.source.type_location, x.name));
             x.type_location = new TypeLocation(s, idx);
@@ -409,6 +418,8 @@ export function AddScopes(el: FunctionElement | CompoundStatementElement, root: 
         el.statements.forEach(x => {
             if (x instanceof CompoundStatementElement) {
                 AddScopes(x, root, el.scope);
+            } else if (x instanceof IfStatementElement) {
+                AddScopes(x.body, root, el.scope);
             } else if (x instanceof LocalDefinitionStatement) {
                 el.scope.addType(x.type, x.name);
             }

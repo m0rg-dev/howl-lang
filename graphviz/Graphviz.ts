@@ -10,6 +10,7 @@ import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
+import { IfStatementElement } from "../ast/IfStatementElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
@@ -77,6 +78,17 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push((new Link("u" + e.uuid + ":rhs", "u" + e.rhs.uuid)).toString());
         s.push(RenderElement(e.lhs, _nearestScope));
         s.push(RenderElement(e.rhs, _nearestScope));
+    } else if (e instanceof IfStatementElement) {
+        const contents: RecordRow[] = [
+            [{ text: "IfStatement" }],
+        ];
+        contents.push([{ text: "condition" }, { port: "condition", text: e.condition.toString() }]);
+        contents.push([{ text: "body" }, { port: "body", text: "body" }]);
+        s.push((new RecordNode(e.uuid, contents)).toString());
+        s.push((new Link("u" + e.uuid + ":condition", "u" + e.condition.uuid)).toString());
+        s.push((new Link("u" + e.uuid + ":body", "u" + e.body.uuid)).toString());
+        s.push(RenderElement(e.condition, _nearestScope));
+        s.push(RenderElement(e.body, e.body.scope));
     } else if (e instanceof UnaryReturnStatement) {
         const contents: RecordRow[] = [
             [{ text: "UnaryReturnStatement" }],

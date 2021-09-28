@@ -10,7 +10,7 @@ export class NameElement extends ASTElement {
     }
 
     toString() {
-        return `\$${this.name}`;
+        return `@${this.name}`;
     }
 
     clone() {

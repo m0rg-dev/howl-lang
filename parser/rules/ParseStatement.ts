@@ -35,7 +35,7 @@ export const ParseStatement: RuleList = {
             match: InOrder(
                 MatchToken(TokenType.Let),
                 MatchType(),
-                MatchElementType("NameElement"),
+                MatchElementType("NameExpression"),
                 AssertEnd()
             ),
             replace: (ast_stream: [TokenElement<any>, TypeElement, NameExpression]) => {
