@@ -24,7 +24,7 @@ import { UnionType } from "./UnionType";
 import { AnyType } from "./AnyType";
 import { ConsumedType } from "./ConsumedType";
 import { GenericType } from "./GenericType";
-import { ConcreteFunctionType, ConcreteRawPointerType, ConcreteType } from "./ConcreteType";
+import { ConcreteFunctionType, ConcreteRawPointerType, ConcreteStructureType, ConcreteType } from "./ConcreteType";
 import { WalkAST } from "../ast/WalkAST";
 import { ClassElement } from "../ast/ClassElement";
 import { IndexExpression } from "../ast/expression/IndexExpression";
@@ -264,6 +264,11 @@ function ApplyRulesToScope(s: Scope): boolean {
                             x.type = t.applyGenericMap(x.type);
                         }
                     });
+                    // ...and its fields...
+                    new_class.fields.forEach((x) => {
+                        console.error(`  (Monomorphize ${x.name}) ${x.type}`);
+                        x.type = t.applyGenericMap(x.type);
+                    });
                     new_class.generics = [];
                     // ...update the type of `self` on all its methods...
                     new_class.methods.forEach(x => {
@@ -281,7 +286,7 @@ function ApplyRulesToScope(s: Scope): boolean {
                 }
 
                 // Now, we can just treat it as a concrete type.
-                s.types[index] = new ConcreteType(new_class.getFQN().toString());
+                s.types[index] = new ConcreteStructureType(t, new_class.type());
                 rc = true;
             }
         } else if (t instanceof ScopeReferenceType) {
@@ -298,8 +303,11 @@ function ApplyRulesToScope(s: Scope): boolean {
             // types. This requires special handling because performing that
             // intersection requires side effects (the SwivelIntersection call),
             // so we can't just do it in IntersectionType.evaluator.
-            const t0 = t.source0.get();
-            const t1 = t.source1.get();
+            let t0 = t.source0.get();
+            let t1 = t.source1.get();
+
+            if (t0 instanceof ConcreteStructureType) t0 = t0.source_type;
+            if (t1 instanceof ConcreteStructureType) t1 = t1.source_type;
 
             // The actual intersection is handled by intersecting the types'
             // generic fields. We can assume that if two types have the same
@@ -312,7 +320,7 @@ function ApplyRulesToScope(s: Scope): boolean {
                 && t0.generic_map && t1.generic_map) {
                 console.error(`(IntersectStructure ${s.n} ${index}) ${t0} ${t1}`);
                 t0.generic_map.forEach((old_type, generic_key) => {
-                    const ot1 = t1.generic_map.get(generic_key);
+                    const ot1 = (t1 as StructureType).generic_map.get(generic_key);
                     if (old_type instanceof ScopeReferenceType && ot1 instanceof ScopeReferenceType) {
                         console.error(`  (IntersectStructure ${s.n} ${index}) ${generic_key} ${old_type}`);
                         SwivelIntersection(old_type.source, ot1.source);
@@ -378,7 +386,7 @@ export function LiftConcrete(t: Type, repl: (n: Type) => void): boolean {
             if (Classes.has(new_fqn.toString())) {
                 new_class = Classes.get(new_fqn.toString());
                 console.error(`(Monomorphize LC) ${t.fqn.toString()}<${generic_keys.map(x => t.generic_map.get(x).toString()).join(", ")}>`);
-                repl(new ConcreteType(new_class.getFQN().toString()));
+                repl(new ConcreteStructureType(t, new_class.type()));
                 rc = true;
                 return;
             }

@@ -1,3 +1,4 @@
+import { StructureType } from "./StructureType";
 import { Type } from "./Type";
 
 export class ConcreteType extends Type {
@@ -37,5 +38,14 @@ export class ConcreteRawPointerType extends ConcreteType {
     constructor(source_type: ConcreteType) {
         super(`*${source_type.name}`);
         this.source_type = source_type;
+    }
+}
+
+export class ConcreteStructureType extends ConcreteType {
+    source_type: StructureType;
+
+    constructor(source: StructureType, monomorphized: StructureType) {
+        super(monomorphized.fqn.toString());
+        this.source_type = source;
     }
 }

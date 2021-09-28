@@ -10,6 +10,8 @@ import { Classes } from "../registry/Registry";
 import { ConcreteType } from "../type_inference/ConcreteType";
 
 export function RunFunctionTransforms(f: FunctionElement) {
+    console.error(`~~~ RunFunctionTransforms ${f} ~~~`);
+
     WalkAST(f, (x) => {
         if (x instanceof AssignmentStatement
             && x.lhs instanceof IndexExpression
@@ -59,5 +61,5 @@ export function RunFunctionTransforms(f: FunctionElement) {
 }
 
 export function RunClassTransforms(c: ClassElement) {
-
+    c.methods.forEach(RunFunctionTransforms);
 }

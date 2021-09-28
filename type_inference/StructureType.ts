@@ -57,7 +57,7 @@ export class StructureType extends Type {
 
     applyGenericMap(t: Type): Type {
         if (t instanceof GenericType) {
-            console.error(`   (ApplyGenericMap) ${t} => ${this.generic_map.get(t.name)}`);
+            console.error(`   (ApplyGenericMap) ${t} -> ${this.generic_map.get(t.name)}`);
             return this.generic_map.get(t.name);
         } else if (t instanceof FunctionType) {
             console.error(`   (ApplyGenericMap) ${t}`);
@@ -70,6 +70,10 @@ export class StructureType extends Type {
             // TODO don't mutate here it's weird
             if (t.fqn.equals(this.fqn)) {
                 t.generic_map = this.generic_map;
+            } else {
+                t.generic_map.forEach((v, k) => {
+                    t.generic_map.set(k, this.applyGenericMap(v));
+                });
             }
             return t;
         } else if (t instanceof RawPointerType) {
