@@ -1,12 +1,12 @@
 import * as fs from 'fs';
+import * as sms from 'source-map-support';
+import { EmitC, EmitCPrologue } from './generator/CGenerator';
 import { Lexer } from './lexer';
 import { Parse } from './parser/Parser';
-
-import * as sms from 'source-map-support';
 import { Classes, Functions, InitRegistry } from './registry/Registry';
-import { RunTypeInference } from './type_inference/TypeInference';
 import { RunClassTransforms, RunFunctionTransforms } from './transform/RunTransforms';
-import { EmitJS } from './generator/JSGenerator';
+import { RunTypeInference } from './type_inference/TypeInference';
+
 sms.install();
 
 InitRegistry();
@@ -25,8 +25,8 @@ if (!process.env.HOWL_SKIP_FREEZE_TYPES) {
     Classes.forEach(RunClassTransforms);
     Functions.forEach(RunFunctionTransforms);
 
-    Classes.forEach(EmitJS);
-    Functions.forEach(EmitJS);
-    // crt0.js
-    console.log("process.exit(module_main(undefined));");
+    EmitCPrologue();
+    Classes.forEach(EmitC);
+    Functions.forEach(EmitC);
+    console.log(`int main(void) { return module_main(NULL); }`)
 }

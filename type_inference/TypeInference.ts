@@ -153,6 +153,12 @@ export function RunTypeInference(f: FunctionElement) {
                         x.scope.types[index] = new ConcreteType(type.fqn.toString());
                     }
                 });
+
+                if (x instanceof FunctionElement) {
+                    if (x.self_type instanceof StructureType) {
+                        x.self_type = new ConcreteType(x.self_type.fqn.toString());
+                    }
+                }
             }
         });
 
@@ -164,12 +170,6 @@ export function RunTypeInference(f: FunctionElement) {
                 } else {
                     console.error(`(FreezeTypes) ${x} doesn't have a concrete type? (${x.type_location} ${x.type_location.get()})`);
                 }
-            }
-        });
-
-        WalkAST(f, (x) => {
-            if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
-                x.scope = undefined;
             }
         });
     }
