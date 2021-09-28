@@ -14,6 +14,7 @@ import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatem
 import { NullaryReturnStatement } from "../ast/statement/NullaryReturnStatement";
 import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
+import { TypedItemElement } from "../ast/TypedItemElement";
 import { ConcreteType } from "../type_inference/ConcreteType";
 import { FunctionType } from "../type_inference/FunctionType";
 import { StructureType } from "../type_inference/StructureType";
@@ -32,15 +33,17 @@ export function EmitC(root: ASTElement) {
     if (root instanceof ClassElement) {
         console.log(`// Class: ${root.getFQN()}`);
 
+        // Forward declarations of structures and methods.
         console.log(`struct ${SanitizeName(root.getFQN().toString())}_t;`);
         console.log(`typedef struct ${SanitizeName(root.getFQN().toString())}_t* ${SanitizeName(root.getFQN().toString())};`);
 
         root.methods.forEach(m => {
-            const args = [{ t: (m.self_type as ConcreteType), n: "self" }];
-            m.args.forEach(e => args.push({ t: (e.type as ConcreteType), n: e.name }));
-            console.log(`${(m.return_type as ConcreteType).ir_type()} ${SanitizeName(m.getFQN().toString())}(${args.map(x => `${SanitizeName(x.t.ir_type())} ${x.n}`).join(", ")});`);
+            const args = [{ t: m.self_type, n: "self" }];
+            m.args.forEach(e => args.push({ t: e.type, n: e.name }));
+            console.log(`${ConvertType(m.return_type)} ${SanitizeName(m.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")});`);
         });
 
+        // Static table.
         console.log(`struct ${SanitizeName(root.getFQN().toString())}_stable_t {`);
         root.methods.forEach(m => {
             console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last())};`)
@@ -51,19 +54,31 @@ export function EmitC(root: ASTElement) {
         })
         console.log(`};\n`);
 
+        // Class structure itself.
         console.log(`struct ${SanitizeName(root.getFQN().toString())}_t {`);
         console.log(`  struct ${SanitizeName(root.getFQN().toString())}_stable_t *__stable;`);
         root.fields.forEach(f => {
-            console.log(`  ${(f.type as ConcreteType).ir_type()} ${f.name};`);
+            console.log(`  ${ConvertType(f.type)} ${f.name};`);
         });
         console.log(`};\n`);
 
-        console.log(`${SanitizeName(root.getFQN().toString())} ${SanitizeName(root.getFQN().toString())}_alloc() {`);
+        // Constructor.
+        let cargs: TypedItemElement[] = [];
+        const cidx = root.methods.findIndex(x => x.getFQN().last() == "constructor");
+        if (cidx >= 0) {
+            cargs = root.methods[cidx].args;
+        }
+
+        console.log(`${SanitizeName(root.getFQN().toString())} ${SanitizeName(root.getFQN().toString())}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")}) {`);
         console.log(`  ${SanitizeName(root.getFQN().toString())} rc = calloc(1, sizeof(struct ${SanitizeName(root.getFQN().toString())}_t));`);
         console.log(`  rc->__stable = &${SanitizeName(root.getFQN().toString())}_stable;`);
+        if (cidx >= 0) {
+            console.log(`  ${SanitizeName(root.getFQN().toString())}_constructor(${cargs.map(x => x.name).join(", ")});`);
+        }
         console.log(`  return rc;`);
         console.log(`}\n`);
 
+        // Methods.
         root.methods.forEach(EmitC);
     } else if (root instanceof FunctionElement) {
         console.log(`// Function: ${root.getFQN()} (${root.args.join(", ")})`);
@@ -72,9 +87,9 @@ export function EmitC(root: ASTElement) {
             root.self_type = new ConcreteType("void *");
         }
 
-        const args = [{ t: (root.self_type as ConcreteType), n: "self" }];
-        root.args.forEach(e => args.push({ t: (e.type as ConcreteType), n: e.name }));
-        console.log(`${(root.return_type as ConcreteType).ir_type()} ${SanitizeName(root.getFQN().toString())}(${args.map(x => `${SanitizeName(x.t.ir_type())} ${x.n}`).join(", ")}) {`);
+        const args = [{ t: root.self_type, n: "self" }];
+        root.args.forEach(e => args.push({ t: e.type, n: e.name }));
+        console.log(`${ConvertType(root.return_type)} ${SanitizeName(root.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")}) {`);
         EmitC(root.body);
         console.log(`}\n`);
     } else if (root instanceof CompoundStatementElement) {
@@ -131,6 +146,8 @@ function ConvertType(t: Type): string {
         if (generic_keys.length && generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType)) {
             const mmn = `${t.fqn.repl_last(`__${t.fqn.last()}`)}_${generic_keys.map(x => (t.generic_map.get(x) as ConcreteType).name).join("_")}`;
             return SanitizeName(mmn);
+        } else if (!generic_keys.length) {
+            return SanitizeName(t.fqn.toString());
         } else {
             throw new Error(`h ${t}`);
         }

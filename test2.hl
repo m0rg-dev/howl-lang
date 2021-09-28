@@ -1,0 +1,10 @@
+module Test2;
+
+class String<> {
+    fn void constructor() {
+    }
+}
+
+static fn i32 main() {
+
+}
