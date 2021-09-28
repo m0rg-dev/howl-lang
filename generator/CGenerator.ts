@@ -25,7 +25,10 @@ export function EmitCPrologue() {
     console.log(`#include <stdint.h>`);
     console.log(`#include <stdio.h>`);
     console.log(`#include <stdlib.h>`);
+    console.log(`typedef int8_t i8;`);
+    console.log(`typedef int16_t i16;`);
     console.log(`typedef int32_t i32;`);
+    console.log(`typedef int64_t i64;`);
     console.log("");
 }
 

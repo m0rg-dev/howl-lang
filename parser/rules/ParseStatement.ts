@@ -1,16 +1,16 @@
-import { ExpressionElement } from "../../ast/ExpressionElement";
 import { NameExpression } from "../../ast/expression/NameExpression";
-import { UnaryReturnStatement } from "../../ast/statement/UnaryReturnStatement";
-import { NullaryReturnStatement } from "../../ast/statement/NullaryReturnStatement";
-import { LocalDefinitionStatement } from "../../ast/statement/LocalDefinitionStatement";
+import { ExpressionElement } from "../../ast/ExpressionElement";
 import { AssignmentStatement } from "../../ast/statement/AssignmentStatement";
+import { LocalDefinitionStatement } from "../../ast/statement/LocalDefinitionStatement";
+import { NullaryReturnStatement } from "../../ast/statement/NullaryReturnStatement";
 import { SimpleStatement } from "../../ast/statement/SimpleStatement";
+import { UnaryReturnStatement } from "../../ast/statement/UnaryReturnStatement";
 import { TokenElement } from "../../ast/TokenElement";
 import { TypeElement } from "../../ast/TypeElement";
 import { TokenType } from "../../lexer/TokenType";
 import { AssertEnd, InOrder, MatchElementType, MatchToken } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
-import { MatchExpression, MatchType } from "./MatchUtils";
+import { MatchExpression } from "./MatchUtils";
 import { ParseExpression } from "./ParseExpression";
 
 export const ParseStatement: RuleList = {
@@ -34,7 +34,7 @@ export const ParseStatement: RuleList = {
             name: "LocalDefinitionStatement",
             match: InOrder(
                 MatchToken(TokenType.Let),
-                MatchType(),
+                MatchElementType("TypeElement"),
                 MatchElementType("NameElement"),
                 AssertEnd()
             ),

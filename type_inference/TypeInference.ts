@@ -185,7 +185,10 @@ function ApplyRulesToScope(s: Scope): boolean {
             console.error(`(EvaluateClosure ${s.n} ${index}) ${t} => ${new_type}`);
             s.types[index] = new_type;
             rc = true;
-        } else if (t instanceof FunctionType) {
+        }
+    });
+    s.types.forEach((t, index) => {
+        if (t instanceof FunctionType) {
             if (LiftConcrete(t, () => { })) rc = true;
         } else if (t instanceof StructureType) {
             // A whole lot of StructureType-related stuff that probably should

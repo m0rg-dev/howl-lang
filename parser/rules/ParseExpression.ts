@@ -8,14 +8,15 @@ import { NameExpression } from "../../ast/expression/NameExpression";
 import { NameElement } from "../../ast/NameElement";
 import { SyntaxErrorElement } from "../../ast/SyntaxErrorElement";
 import { TokenElement } from "../../ast/TokenElement";
-import { TypeElement } from "../../ast/TypeElement";
+import { SimpleTypeElement, TypeElement } from "../../ast/TypeElement";
 import { NumericLiteralToken } from "../../lexer/NumericLiteralToken";
 import { Token } from "../../lexer/Token";
 import { TokenType } from "../../lexer/TokenType";
 import { InOrder, MatchElementType, Matcher, MatchToken, Optional, Star } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
-import { MatchExpression, MatchType } from "./MatchUtils";
+import { MatchExpression } from "./MatchUtils";
 import { StructureType } from "../../type_inference/StructureType";
+import { ParseTypes } from "./ParseType";
 
 export const ParseExpression: RuleList = {
     name: "ParseExpression",
@@ -45,7 +46,7 @@ export const ParseExpression: RuleList = {
             name: "ConstructorCall",
             match: InOrder(
                 MatchToken(TokenType.New),
-                MatchType(),
+                MatchElementType("TypeElement"),
                 MatchToken(TokenType.OpenParen),
                 Optional(
                     InOrder(
@@ -69,7 +70,7 @@ export const ParseExpression: RuleList = {
                     }
                 });
                 const source_type = ast_stream[1].asTypeObject();
-                if (!(source_type instanceof StructureType)) return [new SyntaxErrorElement(LocationFrom(ast_stream), `Attempted to construct non-class ${ast_stream[1].name}`)];
+                if (!(source_type instanceof StructureType)) return [new SyntaxErrorElement(LocationFrom(ast_stream), `Attempted to construct non-class ${ast_stream[1]}`)];
                 return [new ConstructorCallExpression(LocationFrom(ast_stream), source_type, args)];
             }
         },

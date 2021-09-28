@@ -8,7 +8,7 @@ import { PartialClassElement } from "../ast/PartialClassElement";
 import { PartialFunctionElement } from "../ast/PartialFunctionElement";
 import { TokenElement } from "../ast/TokenElement";
 import { TypedItemElement } from "../ast/TypedItemElement";
-import { TypeElement } from "../ast/TypeElement";
+import { SimpleTypeElement } from "../ast/TypeElement";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { Classes, Functions, PartialFunctions, TypeNames } from "../registry/Registry";
@@ -16,6 +16,7 @@ import { VoidType } from "../type_inference/VoidType";
 import { Any, AssertNegative, First, InOrder, Matcher, MatchToken, Star } from "./Matcher";
 import { FunctionRules } from "./rules/FunctionRules";
 import { ParseClassParts } from "./rules/ParseClassParts";
+import { ParseTypes } from "./rules/ParseType";
 import { TopLevelParse } from "./rules/TopLevelParse";
 
 export function Parse(token_stream: Token[]): ASTElement[] {
@@ -33,6 +34,7 @@ export function Parse(token_stream: Token[]): ASTElement[] {
                 rules: FunctionRules(undefined)
             })[0];
             ClassifyNames(el.body, new Set(el.generics));
+            el.body = ApplyPass(el.body, ParseTypes)[0];
             el.body = ApplyPass(el.body, ParseClassParts)[0];
 
             const fields: TypedItemElement[] = [];
@@ -140,7 +142,7 @@ export function ClassifyNames(ast_stream: ASTElement[], generics?: Set<string>) 
             if (generics?.has(el.token.name)) {
                 ast_stream[idx] = new GenericElement(el.source_location, el.token.name);
             } else if (TypeNames.has(el.token.name)) {
-                ast_stream[idx] = new TypeElement(el.source_location, el.token.name);
+                ast_stream[idx] = new SimpleTypeElement(el.source_location, el.token.name);
             } else {
                 ast_stream[idx] = new NameElement(el.source_location, el.token.name);
             }

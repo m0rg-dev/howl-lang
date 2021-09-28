@@ -9,7 +9,6 @@ import { Token } from "../../lexer/Token";
 import { TokenType } from "../../lexer/TokenType";
 import { First, Hug, InOrder, MatchElementType, MatchToken } from "../Matcher";
 import { ApplyPass, LocationFrom, RuleList } from "../Parser";
-import { MatchType } from "./MatchUtils";
 import { ParseCompoundStatement } from "./ParseCompoundStatement";
 
 export const ParseFunctionParts: RuleList = {
@@ -19,7 +18,7 @@ export const ParseFunctionParts: RuleList = {
             name: "SplitArguments",
             match: InOrder(
                 MatchToken(TokenType.Function),
-                First(MatchType(), MatchElementType("NameElement")),
+                First(MatchElementType("TypeElement"), MatchElementType("NameElement")),
                 MatchElementType("NameElement"),
                 Hug(TokenType.OpenParen)
             ),
@@ -32,7 +31,7 @@ export const ParseFunctionParts: RuleList = {
             name: "SplitBody",
             match: InOrder(
                 MatchToken(TokenType.Function),
-                First(MatchType(), MatchElementType("NameElement")),
+                First(MatchElementType("TypeElement"), MatchElementType("NameElement")),
                 MatchElementType("NameElement"),
                 MatchElementType("PartialArgumentListElement"),
                 Hug(TokenType.OpenBrace)

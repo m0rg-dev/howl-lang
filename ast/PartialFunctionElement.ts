@@ -1,9 +1,9 @@
 import { TokenType } from "../lexer/TokenType";
-import { ClassifyNames, ApplyPass } from "../parser/Parser";
+import { ApplyPass, ClassifyNames } from "../parser/Parser";
 import { ParseFunctionParts } from "../parser/rules/ParseFunctionParts";
+import { ParseTypes } from "../parser/rules/ParseType";
 import { PartialFunctions } from "../registry/Registry";
-import { Type } from "../type_inference/Type";
-import { PartialElement, SourceLocation, ASTElement } from "./ASTElement";
+import { ASTElement, PartialElement, SourceLocation } from "./ASTElement";
 import { CompoundStatementElement } from "./CompoundStatementElement";
 import { FQN, HasFQN } from "./FQN";
 import { FunctionElement } from "./FunctionElement";
@@ -32,6 +32,7 @@ export class PartialFunctionElement extends PartialElement implements HasFQN {
     parse(): FunctionElement {
         console.error("~~~ Parsing function: " + this.getFQN().toString() + " ~~~");
         ClassifyNames(this.body);
+        this.body = ApplyPass(this.body, ParseTypes)[0];
         this.body = ApplyPass(this.body, ParseFunctionParts)[0];
         if (this.body[0] instanceof TokenElement && this.body[0].token.type == TokenType.Static) {
             // TODO

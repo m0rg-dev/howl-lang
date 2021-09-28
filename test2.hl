@@ -1,10 +1,10 @@
 module Test2;
 
-class String<> {
-    fn void constructor() {
-    }
+class Vec<T> {
+    T value;
 }
 
 static fn i32 main() {
-
+    let Vec<Vec<i8>> foo;
+    foo.value = 1;
 }

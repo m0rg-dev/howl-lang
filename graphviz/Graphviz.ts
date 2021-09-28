@@ -118,11 +118,18 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         });
         s.push((new RecordNode(e.uuid, contents)).toString());
     } else if (e instanceof ClassElement) {
-        s.push(`  u${e.uuid} [label="${escape(e.toString())}", shape=rect];`);
+        const contents: RecordRow[] = [
+            [{ text: e.toString() }],
+        ];
         e.methods.forEach(x => {
             s.push(RenderElement(x, _nearestScope));
             s.push((new Link("u" + e.uuid, "u" + x.uuid)).toString());
+        });
+        e.fields.forEach(f => {
+            contents.push([{ text: f.toString() }]);
         })
+        s.push((new RecordNode(e.uuid, contents)).toString());
+
     } else if (e instanceof NumberExpression
         || e instanceof NameExpression) {
         s.push(`  u${e.uuid} [label="${escape(e.toString())}", shape=rect];`);

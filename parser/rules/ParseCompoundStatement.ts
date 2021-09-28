@@ -2,8 +2,9 @@ import { ASTElement } from "../../ast/ASTElement";
 import { PartialStatementElement, StatementElement } from "../../ast/StatementElement";
 import { TokenType } from "../../lexer/TokenType";
 import { AssertNegative, Hug, InOrder, MatchElementType, Matcher, MatchToken, Until } from "../Matcher";
-import { ApplyPass, LocationFrom, RuleList } from "../Parser";
+import { ApplyPass, LocationFrom, Parse, RuleList } from "../Parser";
 import { ParseStatement } from "./ParseStatement";
+import { ParseTypes } from "./ParseType";
 
 export function MatchStatement(): Matcher {
     return (ast_stream: ASTElement[]) => {
@@ -41,7 +42,8 @@ export const ParseCompoundStatement: RuleList = {
             name: "ParseStatement",
             match: MatchElementType("PartialStatementElement"),
             replace: (ast_stream: [PartialStatementElement]) => {
-                const parsed = ApplyPass(ast_stream[0].body, ParseStatement)[0];
+                let parsed = ApplyPass(ast_stream[0].body, ParseTypes)[0];
+                parsed = ApplyPass(ast_stream[0].body, ParseStatement)[0];
                 return parsed;
             }
         }

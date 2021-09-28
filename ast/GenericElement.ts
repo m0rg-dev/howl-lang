@@ -1,9 +1,9 @@
 import { Type } from "../type_inference/Type";
 import { GenericType } from "../type_inference/GenericType";
 import { SourceLocation } from "./ASTElement";
-import { TypeElement } from "./TypeElement";
+import { SimpleTypeElement } from "./TypeElement";
 
-export class GenericElement extends TypeElement {
+export class GenericElement extends SimpleTypeElement {
     constructor(loc: SourceLocation, name: string) {
         super(loc, name);
     }
