@@ -1,6 +1,6 @@
 import { ASTElement } from "../../ast/ASTElement";
 import { ExpressionElement } from "../../ast/ExpressionElement";
-import { SimpleTypeElement } from "../../ast/TypeElement";
+import { SimpleTypeElement, TypeElement } from "../../ast/TypeElement";
 import { TokenType } from "../../lexer/TokenType";
 import { AssertNegative, InOrder, MatchElementType, Matcher, MatchToken, Optional, Star } from "../Matcher";
 
@@ -18,8 +18,9 @@ export function MatchSingleType(): Matcher {
     }
 }
 
-export function Defer(m: () => Matcher): Matcher {
+export function MatchType(): Matcher {
     return (ast_stream: ASTElement[]) => {
-        return m()(ast_stream);
+        if (ast_stream[0] instanceof TypeElement) return [true, 1];
+        return [false, 0];
     }
 }

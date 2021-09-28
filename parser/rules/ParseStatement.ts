@@ -10,7 +10,7 @@ import { TypeElement } from "../../ast/TypeElement";
 import { TokenType } from "../../lexer/TokenType";
 import { AssertEnd, InOrder, MatchElementType, MatchToken } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
-import { MatchExpression } from "./MatchUtils";
+import { MatchExpression, MatchType } from "./MatchUtils";
 import { ParseExpression } from "./ParseExpression";
 
 export const ParseStatement: RuleList = {
@@ -34,7 +34,7 @@ export const ParseStatement: RuleList = {
             name: "LocalDefinitionStatement",
             match: InOrder(
                 MatchToken(TokenType.Let),
-                MatchElementType("TypeElement"),
+                MatchType(),
                 MatchElementType("NameElement"),
                 AssertEnd()
             ),

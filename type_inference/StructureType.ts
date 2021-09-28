@@ -1,7 +1,7 @@
 import { FQN } from "../ast/FQN";
 import { FunctionType } from "./FunctionType";
 import { GenericType } from "./GenericType";
-import { Type } from "./Type";
+import { RawPointerType, Type } from "./Type";
 
 
 export class StructureType extends Type {
@@ -72,6 +72,9 @@ export class StructureType extends Type {
                 t.generic_map = this.generic_map;
             }
             return t;
+        } else if (t instanceof RawPointerType) {
+            const u = new RawPointerType(this.applyGenericMap(t.source));
+            return u;
         } else {
             return t;
         }

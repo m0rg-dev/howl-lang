@@ -1,5 +1,5 @@
 import { Classes } from "../registry/Registry";
-import { Type } from "../type_inference/Type";
+import { RawPointerType, Type } from "../type_inference/Type";
 import { ConcreteType } from "../type_inference/ConcreteType";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { StructureType } from "../type_inference/StructureType";
@@ -58,5 +58,19 @@ export class TypeElement extends ASTElement {
         }
 
         return rctype;
+    }
+
+    asRawPointer(): RawPointerElement {
+        return new RawPointerElement(this.source_location, this.source.clone(), this.generics.map(x => x.clone()));
+    }
+}
+
+export class RawPointerElement extends TypeElement {
+    toString() {
+        return `*${super.toString()}`;
+    }
+
+    asTypeObject(): RawPointerType {
+        return new RawPointerType(super.asTypeObject());
     }
 }

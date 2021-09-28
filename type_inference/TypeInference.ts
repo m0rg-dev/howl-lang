@@ -12,7 +12,7 @@ import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { Classes } from "../registry/Registry";
 import { Scope } from "./Scope";
-import { ClosureType, Type } from "./Type";
+import { ClosureType, RawPointerType, Type } from "./Type";
 import { TypeLocation } from "./TypeLocation";
 import { FunctionCallType } from "./FunctionCallType";
 import { FieldReferenceType } from "./FieldReferenceType";
@@ -24,9 +24,11 @@ import { UnionType } from "./UnionType";
 import { AnyType } from "./AnyType";
 import { ConsumedType } from "./ConsumedType";
 import { GenericType } from "./GenericType";
-import { ConcreteFunctionType, ConcreteType } from "./ConcreteType";
+import { ConcreteFunctionType, ConcreteRawPointerType, ConcreteType } from "./ConcreteType";
 import { WalkAST } from "../ast/WalkAST";
 import { ClassElement } from "../ast/ClassElement";
+import { IndexExpression } from "../ast/expression/IndexExpression";
+import { IndexType } from "./IndexType";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -72,6 +74,14 @@ export function RunTypeInference(f: FunctionElement) {
             const idx = s.addType(new FieldReferenceType(x.source.type_location, x.name));
             x.type_location = new TypeLocation(s, idx);
             console.error(`(FieldReference) ${x.type_location} = ${s.types[idx]}`);
+        } else if (x instanceof IndexExpression) {
+            const idx = s.addType(new IndexType(x.source.type_location));
+            x.type_location = new TypeLocation(s, idx);
+
+            const idx2 = s.addType(new ConcreteType("i64"));
+            SwivelIntersection(x.index.type_location, new TypeLocation(s, idx2));
+
+            console.error(`(Index) ${x.type_location} = ${s.types[idx]}`);
         } else if (x instanceof FunctionCallExpression) {
             const idx = s.addType(new FunctionCallType(x.source.type_location));
             x.type_location = new TypeLocation(s, idx);
@@ -151,6 +161,8 @@ export function RunTypeInference(f: FunctionElement) {
                         }
                     } else if (type instanceof StructureType) {
                         x.scope.types[index] = new ConcreteType(type.fqn.toString());
+                    } else if (type instanceof RawPointerType && type.source instanceof ConcreteType) {
+                        x.scope.types[index] = new ConcreteRawPointerType(type.source);
                     }
                 });
 
@@ -230,12 +242,12 @@ function ApplyRulesToScope(s: Scope): boolean {
                     // ...replace all the GenericTypes in its AST...
                     WalkAST(new_class, (x, s) => {
                         if (x instanceof FunctionElement) {
-                            if (x.return_type instanceof GenericType) x.return_type = t.generic_map.get(x.return_type.name);
+                            x.return_type = t.applyGenericMap(x.return_type);
                             x.args.forEach((arg) => {
-                                if (arg.type instanceof GenericType) arg.type = t.generic_map.get(arg.type.name);
+                                arg.type = t.applyGenericMap(arg.type);
                             });
                         } else if (x instanceof TypedItemElement) {
-                            if (x.type instanceof GenericType) x.type = t.generic_map.get(x.type.name);
+                            x.type = t.applyGenericMap(x.type);
                         }
                     });
                     new_class.generics = [];

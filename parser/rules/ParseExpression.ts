@@ -1,22 +1,22 @@
 import { ASTElement } from "../../ast/ASTElement";
-import { ExpressionElement } from "../../ast/ExpressionElement";
 import { ConstructorCallExpression } from "../../ast/expression/ConstructorCallExpression";
-import { FunctionCallExpression } from "../../ast/expression/FunctionCallExpression";
 import { FieldReferenceExpression } from "../../ast/expression/FieldReferenceExpression";
-import { NumberExpression } from "../../ast/expression/NumberExpression";
+import { FunctionCallExpression } from "../../ast/expression/FunctionCallExpression";
+import { IndexExpression } from "../../ast/expression/IndexExpression";
 import { NameExpression } from "../../ast/expression/NameExpression";
+import { NumberExpression } from "../../ast/expression/NumberExpression";
+import { ExpressionElement } from "../../ast/ExpressionElement";
 import { NameElement } from "../../ast/NameElement";
 import { SyntaxErrorElement } from "../../ast/SyntaxErrorElement";
 import { TokenElement } from "../../ast/TokenElement";
-import { SimpleTypeElement, TypeElement } from "../../ast/TypeElement";
+import { TypeElement } from "../../ast/TypeElement";
 import { NumericLiteralToken } from "../../lexer/NumericLiteralToken";
 import { Token } from "../../lexer/Token";
 import { TokenType } from "../../lexer/TokenType";
-import { InOrder, MatchElementType, Matcher, MatchToken, Optional, Star } from "../Matcher";
-import { LocationFrom, RuleList } from "../Parser";
-import { MatchExpression } from "./MatchUtils";
 import { StructureType } from "../../type_inference/StructureType";
-import { ParseTypes } from "./ParseType";
+import { InOrder, MatchElementType, MatchToken, Optional, Star } from "../Matcher";
+import { LocationFrom, RuleList } from "../Parser";
+import { MatchExpression, MatchType } from "./MatchUtils";
 
 export const ParseExpression: RuleList = {
     name: "ParseExpression",
@@ -43,10 +43,22 @@ export const ParseExpression: RuleList = {
             }
         },
         {
+            name: "Index",
+            match: InOrder(
+                MatchExpression(),
+                MatchToken(TokenType.OpenBracket),
+                MatchExpression(),
+                MatchToken(TokenType.CloseBracket)
+            ),
+            replace: (ast_stream: [ExpressionElement, TokenElement<any>, ExpressionElement]) => {
+                return [new IndexExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[2])];
+            }
+        },
+        {
             name: "ConstructorCall",
             match: InOrder(
                 MatchToken(TokenType.New),
-                MatchElementType("TypeElement"),
+                MatchType(),
                 MatchToken(TokenType.OpenParen),
                 Optional(
                     InOrder(

@@ -15,6 +15,7 @@ import { SimpleStatement } from "./statement/SimpleStatement";
 import { TypedItemElement } from "./TypedItemElement";
 import { Scope } from "../type_inference/Scope";
 import { GeneratorTemporaryExpression } from "./expression/GeneratorTemporaryExpression";
+import { IndexExpression } from "./expression/IndexExpression";
 
 export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope) => void, _nearestScope?: Scope) {
     if (root instanceof ClassElement) {
@@ -28,6 +29,10 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
     } else if (root instanceof FunctionElement) {
         WalkAST(root.body, cb, root.scope);
         cb(root, root.scope);
+    } else if (root instanceof IndexExpression) {
+        WalkAST(root.source, cb, _nearestScope);
+        WalkAST(root.index, cb, _nearestScope);
+        cb(root, _nearestScope);
     } else if (root instanceof CompoundStatementElement) {
         root.statements.forEach(x => {
             WalkAST(x, cb, root.scope);

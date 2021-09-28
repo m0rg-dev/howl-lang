@@ -30,3 +30,12 @@ export class ConcreteFunctionType extends ConcreteType {
         this.arg_types = arg_types;
     }
 }
+
+export class ConcreteRawPointerType extends ConcreteType {
+    source_type: ConcreteType;
+
+    constructor(source_type: ConcreteType) {
+        super(`*${source_type.name}`);
+        this.source_type = source_type;
+    }
+}

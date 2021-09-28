@@ -5,6 +5,7 @@ import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpr
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
 import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
 import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTemporaryExpression";
+import { IndexExpression } from "../ast/expression/IndexExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
@@ -93,6 +94,17 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push((new RecordNode(e.uuid, contents)).toString());
         s.push((new Link("u" + e.uuid + ":source", "u" + e.source.uuid)).toString());
         s.push(RenderElement(e.source, _nearestScope));
+    } else if (e instanceof IndexExpression) {
+        const contents: RecordRow[] = [
+            [{ text: "IndexExpression" }],
+        ];
+        contents.push([{ text: "source" }, { port: "source", text: e.source.toString() }]);
+        contents.push([{ text: "index" }, { port: "index", text: e.index.toString() }]);
+        s.push((new RecordNode(e.uuid, contents)).toString());
+        s.push((new Link("u" + e.uuid + ":source", "u" + e.source.uuid)).toString());
+        s.push((new Link("u" + e.uuid + ":index", "u" + e.index.uuid)).toString());
+        s.push(RenderElement(e.source, _nearestScope));
+        s.push(RenderElement(e.index, _nearestScope));
     } else if (e instanceof FunctionCallExpression) {
         const contents: RecordRow[] = [
             [{ text: "FunctionCallExpression" }]

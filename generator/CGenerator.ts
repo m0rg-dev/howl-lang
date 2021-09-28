@@ -5,6 +5,7 @@ import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpr
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
 import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
 import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTemporaryExpression";
+import { IndexExpression } from "../ast/expression/IndexExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
@@ -18,7 +19,7 @@ import { TypedItemElement } from "../ast/TypedItemElement";
 import { ConcreteType } from "../type_inference/ConcreteType";
 import { FunctionType } from "../type_inference/FunctionType";
 import { StructureType } from "../type_inference/StructureType";
-import { Type } from "../type_inference/Type";
+import { RawPointerType, Type } from "../type_inference/Type";
 import { VoidType } from "../type_inference/VoidType";
 
 export function EmitCPrologue() {
@@ -125,6 +126,12 @@ function ExpressionToC(e: ExpressionElement): string {
         return `${SanitizeName(e.resolved_type.ir_type())}_alloc()`;
     } else if (e instanceof FunctionCallExpression) {
         return `${ExpressionToC(e.source)}(${e.args.map(ExpressionToC).join(", ")})`;
+    } else if (e instanceof IndexExpression) {
+        if (e.generator_metadata["is_fake_index"]) {
+            return ExpressionToC(e.source);
+        } else {
+            return `${ExpressionToC(e.source)}[${ExpressionToC(e.index)}]`;
+        }
     } else if (e instanceof GeneratorTemporaryExpression) {
         if (!(genexes_emitted.has(e.uuid))) {
             // TODO
@@ -154,6 +161,8 @@ function ConvertType(t: Type): string {
         } else {
             throw new Error(`h ${t}`);
         }
+    } else if (t instanceof RawPointerType) {
+        return ConvertType(t.source) + "*";
     } else {
         throw new Error(`Don't know how to emit C for ${t.constructor.name} ${t}`);
     }
