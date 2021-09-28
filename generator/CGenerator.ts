@@ -93,7 +93,7 @@ export function EmitC(root: ASTElement) {
         console.log(`  ${SanitizeName(root.getFQN().toString())} rc = calloc(1, sizeof(struct ${SanitizeName(root.getFQN().toString())}_t));`);
         console.log(`  rc->__stable = &${SanitizeName(root.getFQN().toString())}_stable;`);
         if (cidx >= 0) {
-            console.log(`  ${SanitizeName(root.getFQN().toString())}_constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
+            console.log(`  ${SanitizeName(root.getFQN().toString())}$constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
         }
         console.log(`  return rc;`);
         console.log(`}\n`);
@@ -173,7 +173,7 @@ function ExpressionToC(e: ExpressionElement): string {
 }
 
 function SanitizeName(n: string): string {
-    return n.replaceAll(".", "_");
+    return n.replaceAll(".", "$");
 }
 
 function ConvertType(t: Type): string {

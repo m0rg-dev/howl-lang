@@ -41,5 +41,5 @@ if (!process.env.HOWL_SKIP_FREEZE_TYPES) {
         }
     });
     Functions.forEach(EmitC);
-    console.log(`int main(void) { return module_main(); }`)
+    console.log(`int main(void) { return module$main(); }`)
 }
