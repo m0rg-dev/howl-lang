@@ -14,6 +14,7 @@ import { AssignmentStatement } from "./statement/AssignmentStatement";
 import { SimpleStatement } from "./statement/SimpleStatement";
 import { TypedItemElement } from "./TypedItemElement";
 import { Scope } from "../type_inference/Scope";
+import { GeneratorTemporaryExpression } from "./expression/GeneratorTemporaryExpression";
 
 export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope) => void, _nearestScope?: Scope) {
     if (root instanceof ClassElement) {
@@ -48,7 +49,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
         });
         cb(root, _nearestScope);
     } else if (root instanceof FieldReferenceExpression
-        || root instanceof UnaryReturnStatement) {
+        || root instanceof UnaryReturnStatement
+        || root instanceof GeneratorTemporaryExpression) {
         WalkAST(root.source, cb, _nearestScope);
         cb(root, _nearestScope);
     } else if (root instanceof SimpleStatement) {

@@ -8,6 +8,8 @@ export abstract class ASTElement {
     source_location: SourceLocation;
     uuid: string;
 
+    generator_metadata: { [key: string]: any } = {};
+
     constructor(loc: SourceLocation) {
         this.source_location = loc;
         this.uuid = randomUUID().replaceAll("-", "_");

@@ -1,11 +1,24 @@
 import { ClassElement } from "../ast/ClassElement";
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
+import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
+import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTemporaryExpression";
 import { FunctionElement } from "../ast/FunctionElement";
 import { WalkAST } from "../ast/WalkAST";
 import { Classes } from "../registry/Registry";
 import { ConcreteType } from "../type_inference/ConcreteType";
 
 export function RunFunctionTransforms(f: FunctionElement) {
+    WalkAST(f, (x) => {
+        if (x instanceof FunctionCallExpression
+            && x.source instanceof FieldReferenceExpression
+            && Classes.has(x.source.source.resolved_type.name)) {
+            console.error(`{AddSelfToMethodCall} ${x}`);
+            const new_source = new GeneratorTemporaryExpression(x.source.source);
+            x.source.source = new_source;
+            x.args.unshift(new_source);
+        }
+    });
+
     WalkAST(f, (x) => {
         if (x instanceof FieldReferenceExpression
             && Classes.has(x.source.resolved_type.name)

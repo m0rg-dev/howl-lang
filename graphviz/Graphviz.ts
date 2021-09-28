@@ -4,6 +4,7 @@ import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
 import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
+import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTemporaryExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
@@ -14,6 +15,8 @@ import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
 import { PartialStatementElement } from "../ast/StatementElement";
 import { ConsumedType } from "../type_inference/ConsumedType";
 import { Scope } from "../type_inference/Scope";
+
+const genexes_drawn = new Set<string>();
 
 export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
     let s: string[] = [];
@@ -127,6 +130,13 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push(`  u${e.uuid} [label="${escape(e.toString())}", shape=rect];`);
         s.push(RenderElement(e.exp, _nearestScope));
         s.push((new Link("u" + e.uuid, "u" + e.exp.uuid)).toString());
+    } else if (e instanceof GeneratorTemporaryExpression) {
+        s.push(`  u${e.uuid} [label="${escape(e.constructor.name)}", shape=rect];`);
+        if (!(genexes_drawn.has(e.uuid))) {
+            genexes_drawn.add(e.uuid);
+            s.push(RenderElement(e.source, _nearestScope));
+            s.push((new Link("u" + e.uuid, "u" + e.source.uuid)).toString());
+        }
     } else {
         s.push(`  u${e.uuid} [label="${escape(e.constructor.name)}", shape=rect];`);
     }
