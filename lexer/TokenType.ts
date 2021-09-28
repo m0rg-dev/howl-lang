@@ -9,6 +9,7 @@ export enum TokenType {
     Static,
     If,
     While,
+    FFICall,
 
     OpenBrace,
     CloseBrace,

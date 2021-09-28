@@ -2,18 +2,27 @@ module Test2;
 
 class Vec<T> {
     *T value;
+    i64 length;
+    i64 element_size;
 
     fn void constructor() {
-        
+        self.value = fficall malloc(0);
+        self.element_size = fficall sizeof(self.value[0]);
+        self.length = 0;
     }
 
     fn T __index__(i64 idx) {
         return self.value[idx];
+    }
+
+    fn void __l_index__(i64 idx, T value) {
+        self.value[idx] = value;
     }
 }
 
 static fn i32 main() {
     let Vec<i32> foo;
     foo = new Vec<i32>();
+    foo[0] = 3;
     return foo[0];
 }

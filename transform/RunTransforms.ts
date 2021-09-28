@@ -4,16 +4,30 @@ import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression
 import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTemporaryExpression";
 import { IndexExpression } from "../ast/expression/IndexExpression";
 import { FunctionElement } from "../ast/FunctionElement";
+import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { WalkAST } from "../ast/WalkAST";
 import { Classes } from "../registry/Registry";
 import { ConcreteType } from "../type_inference/ConcreteType";
 
 export function RunFunctionTransforms(f: FunctionElement) {
     WalkAST(f, (x) => {
+        if (x instanceof AssignmentStatement
+            && x.lhs instanceof IndexExpression
+            && Classes.has(x.lhs.source.resolved_type.name)) {
+            console.error(`{Replace__L_Index__} ${x}`);
+            // TODO this is really ugly
+            x.lhs = new FunctionCallExpression(x.source_location,
+                new FieldReferenceExpression(x.source_location, x.lhs.source, "__l_index__"),
+                [x.lhs.index, x.rhs]);
+            x.generator_metadata["is_fake_assignment"] = true;
+        }
+    })
+
+    WalkAST(f, (x) => {
         if (x instanceof IndexExpression
             && Classes.has(x.source.resolved_type.name)) {
             console.error(`{Replace__Index__} ${x}`);
-            // TODO this is really ugly
+            // TODO this is also really ugly
             x.source = new FunctionCallExpression(x.source_location,
                 new FieldReferenceExpression(x.source_location, x.source, "__index__"),
                 [x.index]);

@@ -16,6 +16,7 @@ import { TypedItemElement } from "./TypedItemElement";
 import { Scope } from "../type_inference/Scope";
 import { GeneratorTemporaryExpression } from "./expression/GeneratorTemporaryExpression";
 import { IndexExpression } from "./expression/IndexExpression";
+import { FFICallExpression } from "./expression/FFICallExpression";
 
 export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope) => void, _nearestScope?: Scope) {
     if (root instanceof ClassElement) {
@@ -48,7 +49,7 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             WalkAST(x, cb, _nearestScope);
         });
         cb(root, _nearestScope);
-    } else if (root instanceof ConstructorCallExpression) {
+    } else if (root instanceof ConstructorCallExpression || root instanceof FFICallExpression) {
         root.args.forEach(x => {
             WalkAST(x, cb, _nearestScope);
         });

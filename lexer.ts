@@ -16,6 +16,7 @@ const KEYWORD_TABLE = {
     "static": TokenType.Static,
     "if": TokenType.If,
     "while": TokenType.While,
+    "fficall": TokenType.FFICall,
 }
 
 const PUNCTUATION_TABLE = {
@@ -72,7 +73,7 @@ export class Lexer {
     }
 
     private match_keyword(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|module|static|if|while)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
+        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|module|static|if|while|fficall)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
         return { type: KEYWORD_TABLE[m[1]], length: m[1].length, start: this.mark, text: m[0] };
@@ -138,7 +139,7 @@ export class Lexer {
         if (asm) return asm;
 
         const str = this.match_string_literal();
-        if(str) return str;
+        if (str) return str;
 
         const name = this.match_name();
         if (name) return name;

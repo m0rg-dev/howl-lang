@@ -1,5 +1,6 @@
 import { ASTElement } from "../../ast/ASTElement";
 import { ConstructorCallExpression } from "../../ast/expression/ConstructorCallExpression";
+import { FFICallExpression } from "../../ast/expression/FFICallExpression";
 import { FieldReferenceExpression } from "../../ast/expression/FieldReferenceExpression";
 import { FunctionCallExpression } from "../../ast/expression/FunctionCallExpression";
 import { IndexExpression } from "../../ast/expression/IndexExpression";
@@ -84,6 +85,37 @@ export const ParseExpression: RuleList = {
                 const source_type = ast_stream[1].asTypeObject();
                 if (!(source_type instanceof StructureType)) return [new SyntaxErrorElement(LocationFrom(ast_stream), `Attempted to construct non-class ${ast_stream[1]}`)];
                 return [new ConstructorCallExpression(LocationFrom(ast_stream), source_type, args)];
+            }
+        },
+        {
+            name: "FFICall",
+            match: InOrder(
+                MatchToken(TokenType.FFICall),
+                MatchElementType("NameExpression"),
+                MatchToken(TokenType.OpenParen),
+                Optional(
+                    InOrder(
+                        MatchExpression(),
+                        Star(
+                            InOrder(
+                                MatchToken(TokenType.Comma),
+                                MatchExpression()
+                            )
+                        )
+                    )
+                ),
+                MatchToken(TokenType.CloseParen)
+            ),
+            replace: (ast_stream: [TokenElement<any>, NameExpression, ...ASTElement[]]) => {
+                const source = ast_stream[1];
+                const rest = ast_stream.slice(3, -1);
+                const args: ExpressionElement[] = [];
+                rest.forEach(x => {
+                    if (x instanceof ExpressionElement) {
+                        args.push(x);
+                    }
+                });
+                return [new FFICallExpression(LocationFrom(ast_stream), source.name, args)];
             }
         },
         {

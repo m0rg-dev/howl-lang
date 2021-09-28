@@ -29,6 +29,7 @@ import { WalkAST } from "../ast/WalkAST";
 import { ClassElement } from "../ast/ClassElement";
 import { IndexExpression } from "../ast/expression/IndexExpression";
 import { IndexType } from "./IndexType";
+import { FFICallExpression } from "../ast/expression/FFICallExpression";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -53,6 +54,10 @@ export function RunTypeInference(f: FunctionElement) {
         } else if (x instanceof NameExpression) {
             x.type_location = s.lookupName(x.name);
             console.error(`(Name) ${x.type_location}`);
+        } else if (x instanceof FFICallExpression) {
+            const idx = s.addType(new AnyType());
+            x.type_location = new TypeLocation(s, idx);
+            console.error(`(FFICall) ${x.type_location}`);
         }
     });
 

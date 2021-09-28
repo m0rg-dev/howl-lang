@@ -2,6 +2,7 @@ import { ASTElement } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
+import { FFICallExpression } from "../ast/expression/FFICallExpression";
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
 import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
 import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTemporaryExpression";
@@ -77,7 +78,7 @@ export function EmitC(root: ASTElement) {
         console.log(`  ${SanitizeName(root.getFQN().toString())} rc = calloc(1, sizeof(struct ${SanitizeName(root.getFQN().toString())}_t));`);
         console.log(`  rc->__stable = &${SanitizeName(root.getFQN().toString())}_stable;`);
         if (cidx >= 0) {
-            console.log(`  ${SanitizeName(root.getFQN().toString())}_constructor(${cargs.map(x => x.name).join(", ")});`);
+            console.log(`  ${SanitizeName(root.getFQN().toString())}_constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
         }
         console.log(`  return rc;`);
         console.log(`}\n`);
@@ -101,7 +102,8 @@ export function EmitC(root: ASTElement) {
     } else if (root instanceof UnaryReturnStatement) {
         console.log(`  return ${ExpressionToC(root.source)};`);
     } else if (root instanceof AssignmentStatement) {
-        console.log(`  ${ExpressionToC(root.lhs)} = ${ExpressionToC(root.rhs)};`);
+        if (root.generator_metadata["is_fake_assignment"]) console.log(`  ${ExpressionToC(root.lhs)};`);
+        else console.log(`  ${ExpressionToC(root.lhs)} = ${ExpressionToC(root.rhs)};`);
     } else if (root instanceof NullaryReturnStatement) {
         console.log(`  return;`);
     } else if (root instanceof LocalDefinitionStatement) {
@@ -123,7 +125,9 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof NumberExpression) {
         return e.value.toString();
     } else if (e instanceof ConstructorCallExpression) {
-        return `${SanitizeName(e.resolved_type.ir_type())}_alloc()`;
+        return `${SanitizeName(e.resolved_type.ir_type())}_alloc(${e.args.map(ExpressionToC).join(", ")})`;
+    } else if (e instanceof FFICallExpression) {
+        return `${e.source}(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof FunctionCallExpression) {
         return `${ExpressionToC(e.source)}(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof IndexExpression) {
