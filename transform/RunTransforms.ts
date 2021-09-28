@@ -1,39 +1,57 @@
 import { ClassElement } from "../ast/ClassElement";
+import { FFICallExpression } from "../ast/expression/FFICallExpression";
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
 import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
 import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTemporaryExpression";
 import { IndexExpression } from "../ast/expression/IndexExpression";
+import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
+import { TypeExpression } from "../ast/expression/TypeExpression";
 import { FunctionElement } from "../ast/FunctionElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { WalkAST } from "../ast/WalkAST";
 import { Classes } from "../registry/Registry";
-import { ConcreteType } from "../type_inference/ConcreteType";
+import { ConcreteRawPointerType, ConcreteType } from "../type_inference/ConcreteType";
 
 export function RunFunctionTransforms(f: FunctionElement) {
     console.error(`~~~ RunFunctionTransforms ${f} ~~~`);
 
     WalkAST(f, (x) => {
+        if (x instanceof StringConstantExpression) {
+            console.error(`{ConvertStringConstant} ${x}`);
+            const source = new GeneratorTemporaryExpression(x.clone());
+            source.resolved_type = new ConcreteType("u8*");
+            const loc = x.source_location;
+            x.generator_metadata["replace"] = "rep";
+            x["rep"] = new FunctionCallExpression(loc,
+                new FieldReferenceExpression(loc, new TypeExpression(loc, new ConcreteType("module.String")), "fromBytes"),
+                [
+                    source,
+                    new FFICallExpression(loc, "strlen", [source])
+                ]
+            );
+        }
+    });
+
+    WalkAST(f, (x) => {
         if (x instanceof AssignmentStatement
             && x.lhs instanceof IndexExpression
-            && Classes.has(x.lhs.source.resolved_type.name)) {
+            && Classes.has(x.lhs.source.resolved_type?.name)) {
             console.error(`{Replace__L_Index__} ${x}`);
-            // TODO this is really ugly
+            x.generator_metadata["replace"] = "lhs";
             x.lhs = new FunctionCallExpression(x.source_location,
                 new FieldReferenceExpression(x.source_location, x.lhs.source, "__l_index__"),
                 [x.lhs.index, x.rhs]);
-            x.generator_metadata["is_fake_assignment"] = true;
         }
     })
 
     WalkAST(f, (x) => {
         if (x instanceof IndexExpression
-            && Classes.has(x.source.resolved_type.name)) {
+            && Classes.has(x.source.resolved_type?.name)) {
             console.error(`{Replace__Index__} ${x}`);
-            // TODO this is also really ugly
+            x.generator_metadata["replace"] = "source";
             x.source = new FunctionCallExpression(x.source_location,
                 new FieldReferenceExpression(x.source_location, x.source, "__index__"),
                 [x.index]);
-            x.generator_metadata["is_fake_index"] = true;
         }
     });
 

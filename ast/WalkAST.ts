@@ -17,10 +17,12 @@ import { Scope } from "../type_inference/Scope";
 import { GeneratorTemporaryExpression } from "./expression/GeneratorTemporaryExpression";
 import { IndexExpression } from "./expression/IndexExpression";
 import { FFICallExpression } from "./expression/FFICallExpression";
-import { IfStatementElement } from "./IfStatementElement";
+import { IfStatement } from "./statement/IfStatement";
 import { ComparisonExpression } from "./expression/ComparisonExpression";
 import { ArithmeticExpression } from "./expression/ArithmeticExpression";
 import { TypeExpression } from "./expression/TypeExpression";
+import { StringConstantExpression } from "./expression/StringConstantExpression";
+import { WhileStatement } from "./statement/WhileStatement";
 
 export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope) => void, _nearestScope?: Scope) {
     if (root instanceof ClassElement) {
@@ -60,7 +62,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             WalkAST(x, cb, _nearestScope);
         });
         cb(root, _nearestScope);
-    } else if (root instanceof IfStatementElement) {
+    } else if (root instanceof IfStatement
+        || root instanceof WhileStatement) {
         WalkAST(root.condition, cb, _nearestScope);
         WalkAST(root.body, cb, root.body.scope);
         cb(root, _nearestScope);
@@ -77,6 +80,7 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
         || root instanceof NameExpression
         || root instanceof TypeExpression
         || root instanceof NumberExpression
+        || root instanceof StringConstantExpression
         || root instanceof TypedItemElement) {
         cb(root, _nearestScope);
     } else {

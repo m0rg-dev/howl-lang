@@ -30,10 +30,12 @@ import { ClassElement } from "../ast/ClassElement";
 import { IndexExpression } from "../ast/expression/IndexExpression";
 import { IndexType } from "./IndexType";
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
-import { IfStatementElement } from "../ast/IfStatementElement";
+import { IfStatement } from "../ast/statement/IfStatement";
 import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
 import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
 import { TypeExpression } from "../ast/expression/TypeExpression";
+import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
+import { WhileStatement } from "../ast/statement/WhileStatement";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -48,9 +50,17 @@ export function RunTypeInference(f: FunctionElement) {
                 new ConcreteType("i16"),
                 new ConcreteType("i32"),
                 new ConcreteType("i64"),
+                new ConcreteType("u8"),
+                new ConcreteType("u16"),
+                new ConcreteType("u32"),
+                new ConcreteType("u64"),
             ]));
             x.type_location = new TypeLocation(s, idx);
             console.error(`(NumericLiteral) ${x.type_location}`);
+        } else if (x instanceof StringConstantExpression) {
+            const idx = s.addType(new RawPointerType(new ConcreteType("u8")));
+            x.type_location = new TypeLocation(s, idx);
+            console.error(`(StringLiteral) ${x.type_location}`);
         } else if (x instanceof ConstructorCallExpression) {
             const idx = s.addType(x.source);
             x.type_location = new TypeLocation(s, idx);
@@ -345,6 +355,8 @@ function ApplyRulesToScope(s: Scope): boolean {
                 });
                 s.types[index] = t0;
             }
+        } else if (t instanceof RawPointerType) {
+            if (LiftConcrete(t, (n: Type) => { s.types[index] = n })) rc = true;
         }
     });
     return rc;
@@ -407,6 +419,10 @@ export function LiftConcrete(t: Type, repl: (n: Type) => void): boolean {
                 rc = true;
                 return;
             }
+        } else if (Classes.has(t.fqn.toString()) && Classes.get(t.fqn.toString()).is_monomorphization) {
+            repl(new ConcreteStructureType(t, t));
+            rc = true;
+            return;
         }
 
         t.generic_map.forEach((old_type, generic_name) => {
@@ -422,6 +438,7 @@ export function LiftConcrete(t: Type, repl: (n: Type) => void): boolean {
             if (LiftConcrete(old_type, (n: Type) => t.args[index] = n)) rc = true;
         });
     } else if (t instanceof RawPointerType && t.source instanceof ConcreteType) {
+        console.error(`(LiftConcrete) ${t} -> ${new ConcreteRawPointerType(t.source)}`);
         repl(new ConcreteRawPointerType(t.source));
         rc = true;
     }
@@ -447,7 +464,7 @@ export function AddScopes(el: FunctionElement | CompoundStatementElement, root: 
         el.statements.forEach(x => {
             if (x instanceof CompoundStatementElement) {
                 AddScopes(x, root, el.scope);
-            } else if (x instanceof IfStatementElement) {
+            } else if (x instanceof IfStatement || x instanceof WhileStatement) {
                 AddScopes(x.body, root, el.scope);
             } else if (x instanceof LocalDefinitionStatement) {
                 el.scope.addType(x.type, x.name);

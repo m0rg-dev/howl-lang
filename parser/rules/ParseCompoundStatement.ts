@@ -1,11 +1,12 @@
 import { ASTElement } from "../../ast/ASTElement";
 import { CompoundStatementElement } from "../../ast/CompoundStatementElement";
 import { ExpressionElement } from "../../ast/ExpressionElement";
-import { IfStatementElement } from "../../ast/IfStatementElement";
+import { IfStatement } from "../../ast/statement/IfStatement";
+import { WhileStatement } from "../../ast/statement/WhileStatement";
 import { PartialStatementElement, StatementElement } from "../../ast/StatementElement";
 import { TokenElement } from "../../ast/TokenElement";
 import { TokenType } from "../../lexer/TokenType";
-import { AssertNegative, Hug, InOrder, MatchElementType, Matcher, MatchToken, Until } from "../Matcher";
+import { AssertNegative, First, Hug, InOrder, MatchElementType, Matcher, MatchToken, Until } from "../Matcher";
 import { ApplyPass, LocationFrom, Parse, RuleList } from "../Parser";
 import { MatchExpression } from "./MatchUtils";
 import { ConvertNamesExpression, ParseExpression } from "./ParseExpression";
@@ -35,7 +36,10 @@ export const ParseCompoundStatement: RuleList = {
         {
             name: "ExtractConditionalExpression",
             match: InOrder(
-                MatchToken(TokenType.If),
+                First(
+                    MatchToken(TokenType.If),
+                    MatchToken(TokenType.While)
+                ),
                 Hug(TokenType.OpenParen)
             ),
             replace: (ast_stream: ASTElement[]) => {
@@ -55,7 +59,20 @@ export const ParseCompoundStatement: RuleList = {
             replace: (ast_stream: [TokenElement<any>, ExpressionElement, ...ASTElement[]]) => {
                 const rest = ast_stream.slice(2);
                 const parsed = ApplyPass(rest, ParseCompoundStatement)[0];
-                return [new IfStatementElement(LocationFrom(ast_stream), ast_stream[1], new CompoundStatementElement(LocationFrom(parsed), parsed, undefined))];
+                return [new IfStatement(LocationFrom(ast_stream), ast_stream[1], new CompoundStatementElement(LocationFrom(parsed), parsed, undefined))];
+            }
+        },
+        {
+            name: "WhileStatement",
+            match: InOrder(
+                MatchToken(TokenType.While),
+                MatchExpression(),
+                Hug(TokenType.OpenBrace)
+            ),
+            replace: (ast_stream: [TokenElement<any>, ExpressionElement, ...ASTElement[]]) => {
+                const rest = ast_stream.slice(2);
+                const parsed = ApplyPass(rest, ParseCompoundStatement)[0];
+                return [new WhileStatement(LocationFrom(ast_stream), ast_stream[1], new CompoundStatementElement(LocationFrom(parsed), parsed, undefined))];
             }
         },
         {

@@ -15,7 +15,7 @@ export class RawPointerType extends Type {
         this.source = source;
     }
 
-    toString() { return "*" + this.source.toString(); }
+    toString() { return "!*" + this.source.toString(); }
     equals(other: Type) {
         if (!(other instanceof RawPointerType)) return false;
         return other.source.equals(this.source);

@@ -8,6 +8,7 @@ import { FunctionCallExpression } from "../../ast/expression/FunctionCallExpress
 import { IndexExpression } from "../../ast/expression/IndexExpression";
 import { NameExpression } from "../../ast/expression/NameExpression";
 import { NumberExpression } from "../../ast/expression/NumberExpression";
+import { StringConstantExpression } from "../../ast/expression/StringConstantExpression";
 import { TypeExpression } from "../../ast/expression/TypeExpression";
 import { ExpressionElement } from "../../ast/ExpressionElement";
 import { NameElement } from "../../ast/NameElement";
@@ -15,11 +16,12 @@ import { SyntaxErrorElement } from "../../ast/SyntaxErrorElement";
 import { TokenElement } from "../../ast/TokenElement";
 import { TypeElement } from "../../ast/TypeElement";
 import { NumericLiteralToken } from "../../lexer/NumericLiteralToken";
+import { StringLiteralToken } from "../../lexer/StringLiteralToken";
 import { Token } from "../../lexer/Token";
 import { TokenType } from "../../lexer/TokenType";
 import { StructureType } from "../../type_inference/StructureType";
 import { AssertEnd, InOrder, MatchElementType, MatchToken, Optional, Star } from "../Matcher";
-import { LocationFrom, RuleList } from "../Parser";
+import { LocationFrom, ProductionRule, RuleList } from "../Parser";
 import { MatchExpression, MatchType } from "./MatchUtils";
 
 export const ConvertNamesExpression: RuleList = {
@@ -32,10 +34,40 @@ export const ConvertNamesExpression: RuleList = {
         },
         {
             name: "ConvertTypeLiterals",
-            match: MatchElementType("TypeElement"),
+            match: MatchType(),
             replace: (ast_stream: [TypeElement]) => [new TypeExpression(LocationFrom(ast_stream), ast_stream[0].asTypeObject())]
         }
     ]
+}
+
+function Arithmetic(name: string, op: string, ...tokens: TokenType[]): ProductionRule {
+    return {
+        name: name,
+        match: InOrder(
+            MatchExpression(),
+            ...tokens.map(x => MatchToken(x)),
+            MatchExpression(),
+        ),
+        replace: (ast_stream: [ExpressionElement, TokenElement<any>, ExpressionElement]) => {
+            return [new ArithmeticExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[2], op)];
+        },
+    };
+}
+
+function Comparison(name: string, op: string, ...tokens: TokenType[]): ProductionRule {
+    return {
+        name: name,
+        match: InOrder(
+            MatchExpression(),
+            ...tokens.map(x => MatchToken(x)),
+            MatchExpression(),
+            AssertEnd()
+        ),
+        replace: (ast_stream: [ExpressionElement, TokenElement<any>, ExpressionElement]) => {
+            return [new ComparisonExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[2], op)];
+        },
+        startOnly: true
+    };
 }
 
 export const ParseExpression: RuleList = {
@@ -45,6 +77,11 @@ export const ParseExpression: RuleList = {
             name: "ConvertNumbers",
             match: MatchToken(TokenType.NumericLiteral),
             replace: (ast_stream: [TokenElement<NumericLiteralToken>]) => [new NumberExpression(LocationFrom(ast_stream), ast_stream[0].token.value)]
+        },
+        {
+            name: "ConvertStringConstants",
+            match: MatchToken(TokenType.StringLiteral),
+            replace: (ast_stream: [TokenElement<StringLiteralToken>]) => [new StringConstantExpression(LocationFrom(ast_stream), ast_stream[0].token.str)]
         },
         {
             name: "FieldReference",
@@ -162,29 +199,9 @@ export const ParseExpression: RuleList = {
                 return [new FunctionCallExpression(LocationFrom(ast_stream), source, args)];
             }
         },
-        {
-            name: "Multiply",
-            match: InOrder(
-                MatchExpression(),
-                MatchToken(TokenType.Asterisk),
-                MatchExpression()
-            ),
-            replace: (ast_stream: [ExpressionElement, TokenElement<any>, ExpressionElement]) => {
-                return [new ArithmeticExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[2], "*")];
-            }
-        },
-        {
-            name: "GreaterThan",
-            match: InOrder(
-                MatchExpression(),
-                MatchToken(TokenType.CloseAngle),
-                MatchExpression(),
-                AssertEnd()
-            ),
-            replace: (ast_stream: [ExpressionElement, TokenElement<any>, ExpressionElement]) => {
-                return [new ComparisonExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[2], ">")];
-            },
-            startOnly: true
-        },
+        Arithmetic("Multiply", "*", TokenType.Asterisk),
+        Arithmetic("Add", "+", TokenType.Plus),
+        Comparison("GreaterThan", ">", TokenType.CloseAngle),
+        Comparison("LessThan", "<", TokenType.OpenAngle),
     ]
 };

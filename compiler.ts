@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as sms from 'source-map-support';
-import { EmitC, EmitCPrologue, EmitForwardDeclarations } from './generator/CGenerator';
+import { EmitC, EmitCPrologue, EmitForwardDeclarations, EmitStructures } from './generator/CGenerator';
 import { Lexer } from './lexer';
 import { Parse } from './parser/Parser';
 import { Classes, Functions, InitRegistry } from './registry/Registry';
@@ -15,10 +15,17 @@ const source = fs.readFileSync(process.argv[2]).toString();
 const lexer = new Lexer(source);
 Parse(lexer.token_stream);
 
+Classes.forEach((cl) => {
+    if (!cl.generics.length) {
+        cl.is_monomorphization = true;
+        cl.methods.forEach(RunTypeInference);
+    }
+});
+
 Functions.forEach(RunTypeInference);
 
 Classes.forEach((cl, name) => {
-    if (cl.generics.length) Classes.delete(name);
+    if (!cl.is_monomorphization) Classes.delete(name);
 });
 
 if (!process.env.HOWL_SKIP_FREEZE_TYPES) {
@@ -29,17 +36,10 @@ if (!process.env.HOWL_SKIP_FREEZE_TYPES) {
 
     EmitCPrologue();
 
-    Classes.forEach(x => {
-        if (x.is_monomorphization) {
-            EmitForwardDeclarations(x);
-        }
-    });
+    Classes.forEach(EmitForwardDeclarations);
+    Classes.forEach(EmitStructures);
+    Classes.forEach(EmitC);
 
-    Classes.forEach(x => {
-        if (x.is_monomorphization) {
-            EmitC(x);
-        }
-    });
     Functions.forEach(EmitC);
     console.log(`int main(void) { return module$main(); }`)
 }

@@ -11,10 +11,11 @@ import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTempora
 import { IndexExpression } from "../ast/expression/IndexExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
+import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
 import { TypeExpression } from "../ast/expression/TypeExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
-import { IfStatementElement } from "../ast/IfStatementElement";
+import { IfStatement } from "../ast/statement/IfStatement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 import { NullaryReturnStatement } from "../ast/statement/NullaryReturnStatement";
@@ -26,15 +27,23 @@ import { FunctionType } from "../type_inference/FunctionType";
 import { StructureType } from "../type_inference/StructureType";
 import { RawPointerType, Type } from "../type_inference/Type";
 import { VoidType } from "../type_inference/VoidType";
+import { WhileStatement } from "../ast/statement/WhileStatement";
 
 export function EmitCPrologue() {
     console.log(`#include <stdint.h>`);
     console.log(`#include <stdio.h>`);
     console.log(`#include <stdlib.h>`);
+    console.log(`#include <string.h>`);
+    console.log(`#include <unistd.h>`);
+    console.log(``);
     console.log(`typedef int8_t i8;`);
     console.log(`typedef int16_t i16;`);
     console.log(`typedef int32_t i32;`);
     console.log(`typedef int64_t i64;`);
+    console.log(`typedef uint8_t u8;`);
+    console.log(`typedef uint16_t u16;`);
+    console.log(`typedef uint32_t u32;`);
+    console.log(`typedef uint64_t u64;`);
     console.log("");
 }
 
@@ -59,28 +68,40 @@ export function EmitForwardDeclarations(root: ClassElement) {
     console.log("\n");
 }
 
+export function EmitStructures(root: ClassElement) {
+    // Static table.
+    console.log(`struct ${SanitizeName(root.getFQN().toString())}_stable_t {`);
+    root.methods.forEach(m => {
+        console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last())};`)
+    });
+    console.log(`} ${SanitizeName(root.getFQN().toString())}_stable = {`);
+    root.methods.forEach(m => {
+        console.log(`  ${SanitizeName(m.getFQN().toString())},`);
+    })
+    console.log(`};\n`);
+
+    // Class structure itself.
+    console.log(`struct ${SanitizeName(root.getFQN().toString())}_t {`);
+    console.log(`  struct ${SanitizeName(root.getFQN().toString())}_stable_t *__stable;`);
+    root.fields.forEach(f => {
+        console.log(`  ${ConvertType(f.type)} ${f.name};`);
+    });
+    console.log(`};\n`);
+}
+
 export function EmitC(root: ASTElement) {
+    if (root.generator_metadata["replace"]) {
+        const rep = root[root.generator_metadata["replace"]];
+        if (rep instanceof ExpressionElement) {
+            EmitC(new SimpleStatement(rep.source_location, rep));
+        } else {
+            EmitC(rep);
+        }
+        return;
+    }
+
     if (root instanceof ClassElement) {
         console.log(`// Class: ${root.getFQN()}`);
-
-        // Static table.
-        console.log(`struct ${SanitizeName(root.getFQN().toString())}_stable_t {`);
-        root.methods.forEach(m => {
-            console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last())};`)
-        });
-        console.log(`} ${SanitizeName(root.getFQN().toString())}_stable = {`);
-        root.methods.forEach(m => {
-            console.log(`  ${SanitizeName(m.getFQN().toString())},`);
-        })
-        console.log(`};\n`);
-
-        // Class structure itself.
-        console.log(`struct ${SanitizeName(root.getFQN().toString())}_t {`);
-        console.log(`  struct ${SanitizeName(root.getFQN().toString())}_stable_t *__stable;`);
-        root.fields.forEach(f => {
-            console.log(`  ${ConvertType(f.type)} ${f.name};`);
-        });
-        console.log(`};\n`);
 
         // Constructor.
         let cargs: TypedItemElement[] = [];
@@ -113,8 +134,12 @@ export function EmitC(root: ASTElement) {
         console.log(`${ConvertType(root.return_type)} ${SanitizeName(root.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")}) {`);
         EmitC(root.body);
         console.log(`}\n`);
-    } else if (root instanceof IfStatementElement) {
+    } else if (root instanceof IfStatement) {
         console.log(`if (${ExpressionToC(root.condition)}) {`);
+        EmitC(root.body);
+        console.log(`}`);
+    } else if (root instanceof WhileStatement) {
+        console.log(`while (${ExpressionToC(root.condition)}) {`);
         EmitC(root.body);
         console.log(`}`);
     } else if (root instanceof CompoundStatementElement) {
@@ -138,14 +163,23 @@ export function EmitC(root: ASTElement) {
 const genexes_emitted = new Set<string>();
 
 function ExpressionToC(e: ExpressionElement): string {
+    if (e.generator_metadata["replace"]) {
+        const rep = e[e.generator_metadata["replace"]];
+        if (rep instanceof ExpressionElement) {
+            return ExpressionToC(rep);
+        }
+    }
+    // console.error(`{ExpressionToC} ${e}`);
     if (e instanceof FieldReferenceExpression) {
         return `${ExpressionToC(e.source)}->${e.name}`;
     } else if (e instanceof NameExpression) {
         return e.name;
     } else if (e instanceof NumberExpression) {
         return e.value.toString();
+    } else if (e instanceof StringConstantExpression) {
+        return `((u8 *) "${e.value}")`;
     } else if (e instanceof ConstructorCallExpression) {
-        return `${ConvertType(e.type_location.get())}_alloc(${e.args.map(ExpressionToC).join(", ")})`;
+        return `${ConvertType(e.type_location?.get() || e.resolved_type)}_alloc(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof FFICallExpression) {
         return `${e.source}(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof FunctionCallExpression) {
@@ -155,15 +189,11 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof TypeExpression) {
         return `(&${ConvertType(e.source)}_stable)`;
     } else if (e instanceof IndexExpression) {
-        if (e.generator_metadata["is_fake_index"]) {
-            return ExpressionToC(e.source);
-        } else {
-            return `${ExpressionToC(e.source)}[${ExpressionToC(e.index)}]`;
-        }
+        return `${ExpressionToC(e.source)}[${ExpressionToC(e.index)}]`;
     } else if (e instanceof GeneratorTemporaryExpression) {
         if (!(genexes_emitted.has(e.uuid))) {
             // TODO
-            console.log(`  const ${ConvertType(e.type_location.get())} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
+            console.log(`  ${ConvertType(e.resolved_type)} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
             genexes_emitted.add(e.uuid);
         }
         return `temp_${e.uuid}`;
@@ -181,7 +211,7 @@ function ConvertType(t: Type): string {
         return SanitizeName(t.ir_type());
     } else if (t instanceof StructureType) {
         const generic_keys = [...t.generic_map.keys()];
-        if (generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType)) {
+        if (generic_keys.length && generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType)) {
             return SanitizeName(t.fqn.repl_last(t.MonomorphizedName()).toString());
         } else if (!generic_keys.length) {
             return SanitizeName(t.fqn.toString());

@@ -12,6 +12,10 @@ export function InitRegistry() {
     TypeNames.add("i16");
     TypeNames.add("i32");
     TypeNames.add("i64");
+    TypeNames.add("u8");
+    TypeNames.add("u16");
+    TypeNames.add("u32");
+    TypeNames.add("u64");
     TypeNames.add("void");
     TypeNames.add("any");
 }

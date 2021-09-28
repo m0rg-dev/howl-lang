@@ -10,13 +10,14 @@ import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
-import { IfStatementElement } from "../ast/IfStatementElement";
+import { IfStatement } from "../ast/statement/IfStatement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
 import { PartialStatementElement } from "../ast/StatementElement";
 import { ConsumedType } from "../type_inference/ConsumedType";
 import { Scope } from "../type_inference/Scope";
+import { WhileStatement } from "../ast/statement/WhileStatement";
 
 const genexes_drawn = new Set<string>();
 
@@ -78,9 +79,9 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push((new Link("u" + e.uuid + ":rhs", "u" + e.rhs.uuid)).toString());
         s.push(RenderElement(e.lhs, _nearestScope));
         s.push(RenderElement(e.rhs, _nearestScope));
-    } else if (e instanceof IfStatementElement) {
+    } else if (e instanceof IfStatement || e instanceof WhileStatement) {
         const contents: RecordRow[] = [
-            [{ text: "IfStatement" }],
+            [{ text: e.constructor.name }],
         ];
         contents.push([{ text: "condition" }, { port: "condition", text: e.condition.toString() }]);
         contents.push([{ text: "body" }, { port: "body", text: "body" }]);
