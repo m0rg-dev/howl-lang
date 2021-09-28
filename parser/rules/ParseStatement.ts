@@ -1,4 +1,5 @@
 import { NameExpression } from "../../ast/expression/NameExpression";
+import { TypeExpression } from "../../ast/expression/TypeExpression";
 import { ExpressionElement } from "../../ast/ExpressionElement";
 import { AssignmentStatement } from "../../ast/statement/AssignmentStatement";
 import { LocalDefinitionStatement } from "../../ast/statement/LocalDefinitionStatement";
@@ -34,12 +35,12 @@ export const ParseStatement: RuleList = {
             name: "LocalDefinitionStatement",
             match: InOrder(
                 MatchToken(TokenType.Let),
-                MatchType(),
+                MatchElementType("TypeExpression"),
                 MatchElementType("NameExpression"),
                 AssertEnd()
             ),
-            replace: (ast_stream: [TokenElement<any>, TypeElement, NameExpression]) => {
-                return [new LocalDefinitionStatement(LocationFrom(ast_stream), ast_stream[2].name, ast_stream[1].asTypeObject())];
+            replace: (ast_stream: [TokenElement<any>, TypeExpression, NameExpression]) => {
+                return [new LocalDefinitionStatement(LocationFrom(ast_stream), ast_stream[2].name, ast_stream[1].source)];
             },
             startOnly: true
         },

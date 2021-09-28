@@ -1,4 +1,4 @@
-module Test2;
+module Test3;
 
 class Vec<T> {
     *T value;
@@ -24,9 +24,20 @@ class Vec<T> {
     }
 }
 
+class String<> {
+    Vec<i32> code_points;
+
+    fn void constructor() {
+        self.code_points = new Vec();
+    }
+
+    static fn String fromBytes(*i8 bytes, i64 length) {
+        return new String();
+    }
+}
+
 static fn i32 main() {
-    let Vec<i32> foo;
-    foo = new Vec<i32>();
-    foo.__l_index__(2, 42);
+    String.fromBytes(fficall malloc(0), 0);
+
     return 0;
 }

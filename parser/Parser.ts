@@ -146,6 +146,10 @@ export function ClassifyNames(ast_stream: ASTElement[], generics?: Set<string>) 
             } else {
                 ast_stream[idx] = new NameElement(el.source_location, el.token.name);
             }
+        } else if (el instanceof NameElement) {
+            if (TypeNames.has(el.name)) {
+                ast_stream[idx] = new SimpleTypeElement(el.source_location, el.name);
+            }
         }
     }
     console.error(`After name classification: [${FormatASTStream(ast_stream)}]`);

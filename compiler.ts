@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as sms from 'source-map-support';
-import { EmitC, EmitCPrologue } from './generator/CGenerator';
+import { EmitC, EmitCPrologue, EmitForwardDeclarations } from './generator/CGenerator';
 import { Lexer } from './lexer';
 import { Parse } from './parser/Parser';
 import { Classes, Functions, InitRegistry } from './registry/Registry';
@@ -22,11 +22,24 @@ Classes.forEach((cl, name) => {
 });
 
 if (!process.env.HOWL_SKIP_FREEZE_TYPES) {
-    Classes.forEach(RunClassTransforms);
+    Classes.forEach(x => {
+        RunClassTransforms(x);
+    });
     Functions.forEach(RunFunctionTransforms);
 
     EmitCPrologue();
-    Classes.forEach(EmitC);
+
+    Classes.forEach(x => {
+        if (x.is_monomorphization) {
+            EmitForwardDeclarations(x);
+        }
+    });
+
+    Classes.forEach(x => {
+        if (x.is_monomorphization) {
+            EmitC(x);
+        }
+    });
     Functions.forEach(EmitC);
-    console.log(`int main(void) { return module_main(NULL); }`)
+    console.log(`int main(void) { return module_main(); }`)
 }

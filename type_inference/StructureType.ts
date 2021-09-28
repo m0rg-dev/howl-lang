@@ -1,4 +1,6 @@
+import { ClassElement } from "../ast/ClassElement";
 import { FQN } from "../ast/FQN";
+import { ConcreteType } from "./ConcreteType";
 import { FunctionType } from "./FunctionType";
 import { GenericType } from "./GenericType";
 import { RawPointerType, Type } from "./Type";
@@ -82,5 +84,24 @@ export class StructureType extends Type {
         } else {
             return t;
         }
+    }
+
+    MonomorphizedName(): string {
+        const generic_keys = [...this.generic_map.keys()];
+        return `M${this.fqn.last()}_${generic_keys.map(x => (this.generic_map.get(x) as ConcreteType).name).join("_")}`;
+    }
+}
+
+export class StaticTableType extends StructureType {
+    constructor(source: ClassElement) {
+        super(source.getFQN().repl_last(`${source.getFQN().last()}_stable`), new Set());
+
+        source.methods.forEach(m => {
+            super.addField(m.getFQN().last(), new FunctionType(m));
+        });
+    }
+
+    toString() {
+        return `${super.toString()} stable`;
     }
 }

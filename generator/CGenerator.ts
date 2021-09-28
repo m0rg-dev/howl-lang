@@ -11,6 +11,7 @@ import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTempora
 import { IndexExpression } from "../ast/expression/IndexExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
+import { TypeExpression } from "../ast/expression/TypeExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
 import { IfStatementElement } from "../ast/IfStatementElement";
@@ -37,19 +38,30 @@ export function EmitCPrologue() {
     console.log("");
 }
 
+export function EmitForwardDeclarations(root: ClassElement) {
+    console.log(`// Forward declarations for class: ${root.getFQN()}`);
+    console.log(`struct ${SanitizeName(root.getFQN().toString())}_t;`);
+    console.log(`typedef struct ${SanitizeName(root.getFQN().toString())}_t* ${SanitizeName(root.getFQN().toString())};`);
+    let cargs: TypedItemElement[] = [];
+    const cidx = root.methods.findIndex(x => x.getFQN().last() == "constructor");
+    if (cidx >= 0) {
+        cargs = root.methods[cidx].args;
+    }
+    console.log(`${SanitizeName(root.getFQN().toString())} ${SanitizeName(root.getFQN().toString())}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")});`);
+
+    root.methods.forEach(m => {
+        const args = [{ t: m.self_type, n: "self" }];
+        if (m.is_static) args.shift();
+        m.args.forEach(e => args.push({ t: e.type, n: e.name }));
+        console.log(`${ConvertType(m.return_type)} ${SanitizeName(m.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")});`);
+    });
+
+    console.log("\n");
+}
+
 export function EmitC(root: ASTElement) {
     if (root instanceof ClassElement) {
         console.log(`// Class: ${root.getFQN()}`);
-
-        // Forward declarations of structures and methods.
-        console.log(`struct ${SanitizeName(root.getFQN().toString())}_t;`);
-        console.log(`typedef struct ${SanitizeName(root.getFQN().toString())}_t* ${SanitizeName(root.getFQN().toString())};`);
-
-        root.methods.forEach(m => {
-            const args = [{ t: m.self_type, n: "self" }];
-            m.args.forEach(e => args.push({ t: e.type, n: e.name }));
-            console.log(`${ConvertType(m.return_type)} ${SanitizeName(m.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")});`);
-        });
 
         // Static table.
         console.log(`struct ${SanitizeName(root.getFQN().toString())}_stable_t {`);
@@ -96,6 +108,7 @@ export function EmitC(root: ASTElement) {
         }
 
         const args = [{ t: root.self_type, n: "self" }];
+        if (root.is_static) args.shift();
         root.args.forEach(e => args.push({ t: e.type, n: e.name }));
         console.log(`${ConvertType(root.return_type)} ${SanitizeName(root.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")}) {`);
         EmitC(root.body);
@@ -132,13 +145,15 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof NumberExpression) {
         return e.value.toString();
     } else if (e instanceof ConstructorCallExpression) {
-        return `${SanitizeName(e.resolved_type.ir_type())}_alloc(${e.args.map(ExpressionToC).join(", ")})`;
+        return `${ConvertType(e.type_location.get())}_alloc(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof FFICallExpression) {
         return `${e.source}(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof FunctionCallExpression) {
         return `${ExpressionToC(e.source)}(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof ComparisonExpression || e instanceof ArithmeticExpression) {
         return `${ExpressionToC(e.lhs)} ${e.what} ${ExpressionToC(e.rhs)}`;
+    } else if (e instanceof TypeExpression) {
+        return `(&${ConvertType(e.source)}_stable)`;
     } else if (e instanceof IndexExpression) {
         if (e.generator_metadata["is_fake_index"]) {
             return ExpressionToC(e.source);
@@ -148,7 +163,7 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof GeneratorTemporaryExpression) {
         if (!(genexes_emitted.has(e.uuid))) {
             // TODO
-            console.log(`  const ${SanitizeName(e.resolved_type.ir_type())} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
+            console.log(`  const ${ConvertType(e.type_location.get())} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
             genexes_emitted.add(e.uuid);
         }
         return `temp_${e.uuid}`;
@@ -166,9 +181,8 @@ function ConvertType(t: Type): string {
         return SanitizeName(t.ir_type());
     } else if (t instanceof StructureType) {
         const generic_keys = [...t.generic_map.keys()];
-        if (generic_keys.length && generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType)) {
-            const mmn = `${t.fqn.repl_last(`__${t.fqn.last()}`)}_${generic_keys.map(x => (t.generic_map.get(x) as ConcreteType).name).join("_")}`;
-            return SanitizeName(mmn);
+        if (generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType)) {
+            return SanitizeName(t.fqn.repl_last(t.MonomorphizedName()).toString());
         } else if (!generic_keys.length) {
             return SanitizeName(t.fqn.toString());
         } else {
@@ -183,5 +197,6 @@ function ConvertType(t: Type): string {
 
 function GenerateFunctionPointerType(t: FunctionType, name: string): string {
     const args = [t.self_type, ...t.args];
+    if (t.is_static) args.shift();
     return `${ConvertType(t.return_type)}(*${name})(${args.map(ConvertType).join(", ")})`;
 }

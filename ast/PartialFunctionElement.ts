@@ -34,8 +34,9 @@ export class PartialFunctionElement extends PartialElement implements HasFQN {
         ClassifyNames(this.body);
         this.body = ApplyPass(this.body, ParseTypes)[0];
         this.body = ApplyPass(this.body, ParseFunctionParts)[0];
+        let is_static = false;
         if (this.body[0] instanceof TokenElement && this.body[0].token.type == TokenType.Static) {
-            // TODO
+            is_static = true;
             this.body.shift();
         }
         if (this.body[0] instanceof TokenElement
@@ -50,6 +51,7 @@ export class PartialFunctionElement extends PartialElement implements HasFQN {
                 this.body[1].asTypeObject(),
                 undefined,
                 this.body[3].parse(),
+                is_static,
                 this.body[4]
             );
         } else {

@@ -20,6 +20,7 @@ import { FFICallExpression } from "./expression/FFICallExpression";
 import { IfStatementElement } from "./IfStatementElement";
 import { ComparisonExpression } from "./expression/ComparisonExpression";
 import { ArithmeticExpression } from "./expression/ArithmeticExpression";
+import { TypeExpression } from "./expression/TypeExpression";
 
 export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope) => void, _nearestScope?: Scope) {
     if (root instanceof ClassElement) {
@@ -74,6 +75,7 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
     } else if (root instanceof LocalDefinitionStatement
         || root instanceof NullaryReturnStatement
         || root instanceof NameExpression
+        || root instanceof TypeExpression
         || root instanceof NumberExpression
         || root instanceof TypedItemElement) {
         cb(root, _nearestScope);

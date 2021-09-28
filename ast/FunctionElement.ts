@@ -16,8 +16,9 @@ export class FunctionElement extends ASTElement implements HasFQN {
     args: TypedItemElement[];
     body: CompoundStatementElement;
     scope: Scope;
+    is_static: boolean;
 
-    constructor(loc: SourceLocation, parent: HasFQN, name: string, return_type: Type, self_type: Type, args: TypedItemElement[], body: CompoundStatementElement) {
+    constructor(loc: SourceLocation, parent: HasFQN, name: string, return_type: Type, self_type: Type, args: TypedItemElement[], is_static: boolean, body: CompoundStatementElement) {
         super(loc);
         this.name = name;
         this.parent = parent;
@@ -26,6 +27,7 @@ export class FunctionElement extends ASTElement implements HasFQN {
         this.self_type = self_type;
         this.args = args;
         this.body = body;
+        this.is_static = is_static;
     }
 
     addScope(s: Scope) {
@@ -44,7 +46,8 @@ export class FunctionElement extends ASTElement implements HasFQN {
             this.return_type,
             this.self_type,
             this.args.map(x => x.clone()),
-            this.body.clone()
+            this.is_static,
+            this.body.clone(),
         );
         if (this.scope) rc.addScope(this.scope.clone());
         return rc;

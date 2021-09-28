@@ -8,6 +8,7 @@ import { FunctionCallExpression } from "../../ast/expression/FunctionCallExpress
 import { IndexExpression } from "../../ast/expression/IndexExpression";
 import { NameExpression } from "../../ast/expression/NameExpression";
 import { NumberExpression } from "../../ast/expression/NumberExpression";
+import { TypeExpression } from "../../ast/expression/TypeExpression";
 import { ExpressionElement } from "../../ast/ExpressionElement";
 import { NameElement } from "../../ast/NameElement";
 import { SyntaxErrorElement } from "../../ast/SyntaxErrorElement";
@@ -29,6 +30,11 @@ export const ConvertNamesExpression: RuleList = {
             match: MatchElementType("NameElement"),
             replace: (ast_stream: [NameElement]) => [new NameExpression(LocationFrom(ast_stream), ast_stream[0].name)]
         },
+        {
+            name: "ConvertTypeLiterals",
+            match: MatchElementType("TypeElement"),
+            replace: (ast_stream: [TypeElement]) => [new TypeExpression(LocationFrom(ast_stream), ast_stream[0].asTypeObject())]
+        }
     ]
 }
 
@@ -67,7 +73,7 @@ export const ParseExpression: RuleList = {
             name: "ConstructorCall",
             match: InOrder(
                 MatchToken(TokenType.New),
-                MatchType(),
+                MatchElementType("TypeExpression"),
                 MatchToken(TokenType.OpenParen),
                 Optional(
                     InOrder(
@@ -82,7 +88,7 @@ export const ParseExpression: RuleList = {
                 ),
                 MatchToken(TokenType.CloseParen)
             ),
-            replace: (ast_stream: [TokenElement<any>, TypeElement, ...ASTElement[]]) => {
+            replace: (ast_stream: [TokenElement<any>, TypeExpression, ...ASTElement[]]) => {
                 const rest = ast_stream.slice(3, -1);
                 const args: ExpressionElement[] = [];
                 rest.forEach(x => {
@@ -90,7 +96,7 @@ export const ParseExpression: RuleList = {
                         args.push(x);
                     }
                 });
-                const source_type = ast_stream[1].asTypeObject();
+                const source_type = ast_stream[1].source;
                 if (!(source_type instanceof StructureType)) return [new SyntaxErrorElement(LocationFrom(ast_stream), `Attempted to construct non-class ${ast_stream[1]}`)];
                 return [new ConstructorCallExpression(LocationFrom(ast_stream), source_type, args)];
             }

@@ -13,7 +13,7 @@ export class FunctionCallType extends ClosureType {
     }
 
     toString() {
-        return `${this.source}()`;
+        return `${this.source}(*)`;
     }
 
     equals() {

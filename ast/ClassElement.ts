@@ -13,6 +13,7 @@ export class ClassElement extends ASTElement implements HasFQN {
     fields: TypedItemElement[];
     methods: FunctionElement[];
     generics: string[];
+    is_monomorphization = false;
 
     constructor(loc: SourceLocation, parent: ModuleDefinitionElement, name: string, fields: TypedItemElement[], methods: FunctionElement[], generics: string[]) {
         super(loc);

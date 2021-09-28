@@ -19,7 +19,7 @@ import { FieldReferenceType } from "./FieldReferenceType";
 import { FunctionType } from "./FunctionType";
 import { ScopeReferenceType } from "./ScopeReferenceType";
 import { IntersectionType } from "./IntersectionType";
-import { StructureType } from "./StructureType";
+import { StaticTableType, StructureType } from "./StructureType";
 import { UnionType } from "./UnionType";
 import { AnyType } from "./AnyType";
 import { ConsumedType } from "./ConsumedType";
@@ -33,6 +33,7 @@ import { FFICallExpression } from "../ast/expression/FFICallExpression";
 import { IfStatementElement } from "../ast/IfStatementElement";
 import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
 import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
+import { TypeExpression } from "../ast/expression/TypeExpression";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -57,6 +58,14 @@ export function RunTypeInference(f: FunctionElement) {
         } else if (x instanceof NameExpression) {
             x.type_location = s.lookupName(x.name);
             console.error(`(Name) ${x.type_location}`);
+        } else if (x instanceof FieldReferenceExpression
+            && x.source instanceof TypeExpression
+            && x.source.source instanceof StructureType) {
+            const ct = Classes.get(x.source.source.fqn.toString());
+            const stable = new StaticTableType(ct);
+            const idx = s.addType(stable);
+            x.source.type_location = new TypeLocation(s, idx);
+            console.error(`(StaticReference) ${x} ${ct.getFQN()} ${x.source.type_location} ${stable}`);
         } else if (x instanceof FFICallExpression) {
             const idx = s.addType(new AnyType());
             x.type_location = new TypeLocation(s, idx);
@@ -87,7 +96,7 @@ export function RunTypeInference(f: FunctionElement) {
         } else if (x instanceof FieldReferenceExpression) {
             const idx = s.addType(new FieldReferenceType(x.source.type_location, x.name));
             x.type_location = new TypeLocation(s, idx);
-            console.error(`(FieldReference) ${x.type_location} = ${s.types[idx]}`);
+            console.error(`(FieldReference) ${x} ${x.type_location} = ${s.types[idx]}`);
         } else if (x instanceof IndexExpression) {
             const idx = s.addType(new IndexType(x.source.type_location));
             x.type_location = new TypeLocation(s, idx);
@@ -99,15 +108,15 @@ export function RunTypeInference(f: FunctionElement) {
         } else if (x instanceof FunctionCallExpression) {
             const idx = s.addType(new FunctionCallType(x.source.type_location));
             x.type_location = new TypeLocation(s, idx);
-            console.error(`(FunctionCall) ${x.type_location}`);
+            console.error(`(FunctionCallExpression) ${x.type_location} ${x.type_location.get()} ${x.source} ${x.source.type_location}`);
         }
-    })
+    });
 
     // Propagate types and constraints.
     let changed = true;
     while (changed) {
         changed = false;
-        WalkAST(f, (x) => {
+        WalkAST(f, (x, s) => {
             if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
                 // Type propagation and constraint evaluation at the scope level
                 // rather than the AST level. This is capable of handling most
@@ -120,11 +129,10 @@ export function RunTypeInference(f: FunctionElement) {
                     // This is the second half of function call handling. Once
                     // we know the type of a function call's source, we can
                     // back-propagate the type constraints on its arguments.
-                    console.error(`(FunctionCall) ${x.source.type_location.get()}`);
                     const ft = x.source.type_location.get() as FunctionType;
-                    if (!ft.args.every(x => x instanceof ScopeReferenceType)) return;
                     if (ft._propagated) return;
                     ft._propagated = true;
+                    console.error(`(FunctionCall) ${x.source.type_location.get()} (${ft.args.map(x => x.toString())})`);
 
                     x.args.forEach((arg, arg_index) => {
                         // This is the "hard" way to do back-propagation.
@@ -133,7 +141,12 @@ export function RunTypeInference(f: FunctionElement) {
                         // registers like we did for AssignmentExpressions.
                         if (ft.args[arg_index] instanceof ScopeReferenceType) {
                             SwivelIntersection((ft.args[arg_index] as ScopeReferenceType).source, arg.type_location);
-                            console.error(`(FunctionArgument) ${arg.type_location} ${ft.args[arg_index]}`);
+                            console.error(`  (FunctionArgument) ${arg.type_location} ${ft.args[arg_index]}`);
+                        } else {
+                            const idx = s.addType(ft.args[arg_index]);
+                            ft.args[arg_index] = new ScopeReferenceType(new TypeLocation(s, idx));
+                            SwivelIntersection(arg.type_location, (ft.args[arg_index] as ScopeReferenceType).source);
+                            console.error(`  (FunctionArgument) ${arg.type_location} ${ft.args[arg_index]} ${arg}`);
                         }
                     });
                     changed = true;
@@ -146,6 +159,9 @@ export function RunTypeInference(f: FunctionElement) {
         // Remove any un-referenced types from scopes to make the graph output a little cleaner.
         WalkAST(f, (x) => {
             if (x instanceof ExpressionElement) {
+                if (!x.type_location) {
+                    throw new Error(`no type location for ${x}?`);
+                }
                 x.type_location.location.gc_temp.add(x.type_location.index);
             }
         });
@@ -194,7 +210,7 @@ export function RunTypeInference(f: FunctionElement) {
                 if (rt instanceof ConcreteType) {
                     x.resolved_type = rt;
                 } else {
-                    console.error(`(FreezeTypes) ${x} doesn't have a concrete type? (${x.type_location} ${x.type_location.get()})`);
+                    console.error(`(FreezeTypes) ${x} (${x.uuid}) doesn't have a concrete type? (${x.type_location} ${x.type_location.get()})`);
                 }
             }
         });
@@ -208,7 +224,7 @@ function ApplyRulesToScope(s: Scope): boolean {
             // EvaluateClosure: Replace any evaluable ClosureType with its
             // result.
             const new_type = t.evaluator()();
-            console.error(`(EvaluateClosure ${s.n} ${index}) ${t} => ${new_type}`);
+            console.error(`(EvaluateClosure ${s.n} ${index}) ${t}  =>  ${new_type}`);
             s.types[index] = new_type;
             rc = true;
         }
@@ -241,9 +257,9 @@ function ApplyRulesToScope(s: Scope): boolean {
             // monomorphized and we need to *not* do so again), and all the
             // generic fields are of known type.
             const generic_keys = [...t.generic_map.keys()];
-            if (generic_keys.length && generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString())) {
-                console.error(`(Monomorphize ${s.n} ${index}) ${t.fqn.toString()}<${generic_keys.map(x => t.generic_map.get(x).toString()).join(", ")}>`);
-                const mmn = `__${t.fqn.last()}_${generic_keys.map(x => (t.generic_map.get(x) as ConcreteType).name).join("_")}`;
+            if (generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString()) && !Classes.get(t.fqn.toString()).is_monomorphization) {
+                const mmn = t.MonomorphizedName();
+                console.error(`(Monomorphize ${s.n} ${index}) ${t.fqn.toString()}<${generic_keys.map(x => t.generic_map.get(x).toString()).join(", ")}> ${mmn}`);
                 const new_fqn = t.fqn.repl_last(mmn);
                 let new_class: ClassElement;
                 if (Classes.has(new_fqn.toString())) {
@@ -251,7 +267,7 @@ function ApplyRulesToScope(s: Scope): boolean {
                 } else {
                     // This is basically a template evaluation. We'll clone the original class...
                     new_class = Classes.get(t.fqn.toString()).clone();
-
+                    new_class.is_monomorphization = true;
                     new_class.setName(mmn);
                     // ...replace all the GenericTypes in its AST...
                     WalkAST(new_class, (x, s) => {
@@ -275,14 +291,15 @@ function ApplyRulesToScope(s: Scope): boolean {
                         x.self_type = new_class.type();
                         x.setParent(new_class);
                     });
+
+                    Classes.set(new_class.getFQN().toString(), new_class);
+
                     // ...and run type checking on the result. I might eventually
                     // add support to the type checker for handling generic types
                     // directly, which would let us type-check classes prior to
                     // template substitution and probably result in better type
                     // error handling.
                     new_class.methods.forEach(RunTypeInference);
-
-                    Classes.set(new_class.getFQN().toString(), new_class);
                 }
 
                 // Now, we can just treat it as a concrete type.
@@ -379,8 +396,8 @@ export function LiftConcrete(t: Type, repl: (n: Type) => void): boolean {
         rc = true;
     } else if (t instanceof StructureType) {
         const generic_keys = [...t.generic_map.keys()];
-        if (generic_keys.length && generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString())) {
-            const mmn = `__${t.fqn.last()}_${generic_keys.map(x => (t.generic_map.get(x) as ConcreteType).name).join("_")}`;
+        if (generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString()) && !Classes.get(t.fqn.toString()).is_monomorphization) {
+            const mmn = `M${t.fqn.last()}_${generic_keys.map(x => (t.generic_map.get(x) as ConcreteType).name).join("_")}`;
             const new_fqn = t.fqn.repl_last(mmn);
             let new_class: ClassElement;
             if (Classes.has(new_fqn.toString())) {
@@ -398,11 +415,15 @@ export function LiftConcrete(t: Type, repl: (n: Type) => void): boolean {
             }
         });
     } else if (t instanceof FunctionType) {
+        console.error(`(LiftConcrete) ${t}`);
         if (LiftConcrete(t.return_type, (n: Type) => t.return_type = n)) rc = true;
         if (LiftConcrete(t.self_type, (n: Type) => t.self_type = n)) rc = true;
         t.args.forEach((old_type, index) => {
             if (LiftConcrete(old_type, (n: Type) => t.args[index] = n)) rc = true;
         });
+    } else if (t instanceof RawPointerType && t.source instanceof ConcreteType) {
+        repl(new ConcreteRawPointerType(t.source));
+        rc = true;
     }
     return rc;
 }
