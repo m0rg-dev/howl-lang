@@ -21,8 +21,8 @@ export class SimpleTypeElement extends ASTElement {
     }
 
     asTypeObject(): Type {
-        if (Classes.has("module." + this.name)) {
-            return Classes.get("module." + this.name).type();
+        if (Classes.has(this.name)) {
+            return Classes.get(this.name).type();
         }
         return new ConcreteType(this.name);
     }

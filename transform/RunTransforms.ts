@@ -23,7 +23,7 @@ export function RunFunctionTransforms(f: FunctionElement) {
             const loc = x.source_location;
             x.generator_metadata["replace"] = "rep";
             x["rep"] = new FunctionCallExpression(loc,
-                new FieldReferenceExpression(loc, new TypeExpression(loc, new ConcreteType("module.String")), "fromBytes"),
+                new FieldReferenceExpression(loc, new TypeExpression(loc, new ConcreteType("lib.String")), "fromBytes"),
                 [
                     source,
                     new FFICallExpression(loc, "strlen", [source])

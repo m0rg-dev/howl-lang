@@ -1,4 +1,4 @@
-module Test;
+module main;
 
 class Foo<T> {
     T value;
@@ -13,7 +13,7 @@ class Foo<T> {
     }
 }
 
-static fn i32 main() {
+static fn i32 Main() {
     let i32 val;
     let Foo obj;
     val = 42;

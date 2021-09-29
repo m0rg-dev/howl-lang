@@ -67,7 +67,7 @@ export function RunTypeInference(f: FunctionElement) {
             console.error(`(ConstructorCall) ${x.type_location}`);
         } else if (x instanceof NameExpression) {
             x.type_location = s.lookupName(x.name);
-            console.error(`(Name) ${x.type_location}`);
+            console.error(`(Name ${x.name}) ${x.type_location}`);
         } else if (x instanceof FieldReferenceExpression
             && x.source instanceof TypeExpression
             && x.source.source instanceof StructureType) {

@@ -11,6 +11,10 @@ sms.install();
 
 InitRegistry();
 
+const lib_source = fs.readFileSync("lib/lib.hl").toString();
+const lib_lexer = new Lexer(lib_source);
+Parse(lib_lexer.token_stream);
+
 const source = fs.readFileSync(process.argv[2]).toString();
 const lexer = new Lexer(source);
 Parse(lexer.token_stream);

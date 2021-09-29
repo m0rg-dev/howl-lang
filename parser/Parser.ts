@@ -9,20 +9,34 @@ import { PartialFunctionElement } from "../ast/PartialFunctionElement";
 import { TokenElement } from "../ast/TokenElement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { SimpleTypeElement } from "../ast/TypeElement";
+import { NameToken } from "../lexer/NameToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
-import { Classes, Functions, PartialFunctions, TypeNames } from "../registry/Registry";
+import { BaseTypes, Classes, CurrentModule, Functions, PartialFunctions, SetCurrentModule, TypeNames } from "../registry/Registry";
 import { VoidType } from "../type_inference/VoidType";
 import { Any, AssertNegative, First, InOrder, Matcher, MatchToken, Star } from "./Matcher";
 import { FunctionRules } from "./rules/FunctionRules";
+import { ModuleRules } from "./rules/ModuleRules";
 import { ParseClassParts } from "./rules/ParseClassParts";
 import { ParseTypes } from "./rules/ParseType";
 import { TopLevelParse } from "./rules/TopLevelParse";
 
 export function Parse(token_stream: Token[]): ASTElement[] {
+    console.error(TypeNames);
     let ast_stream: ASTElement[] = token_stream.map(x => new TokenElement(x));
     // TODO
-    ast_stream = ApplyPass(ast_stream, TopLevelParse(new ModuleDefinitionElement([0, 0], "module")))[0];
+
+    ast_stream = ApplyPass(ast_stream, {
+        name: "GetModule",
+        rules: ModuleRules
+    })[0];
+
+    if (!(ast_stream[0] instanceof ModuleDefinitionElement)) {
+        throw new Error("file needs to start with a module definition");
+    }
+
+    SetCurrentModule(ast_stream[0].getFQN());
+    ast_stream = ApplyPass(ast_stream, TopLevelParse(ast_stream[0]))[0];
 
     ExtractTypeDefinitions(ast_stream);
 
@@ -124,10 +138,9 @@ export function FormatASTStream(ast_stream: ASTElement[]): string {
 
 function ExtractTypeDefinitions(ast_stream: ASTElement[]) {
     for (const el of ast_stream) {
-        if (el instanceof PartialClassElement) {
-            TypeNames.add(el.name);
-        } else if (el instanceof ModuleDefinitionElement) {
-            TypeNames.add(el.name);
+        if (el instanceof PartialClassElement || el instanceof ModuleDefinitionElement) {
+            console.error(`  Extracted type: ${el.getFQN()}`);
+            TypeNames.add(el.getFQN().toString());
         }
     }
 }
@@ -143,6 +156,8 @@ export function ClassifyNames(ast_stream: ASTElement[], generics?: Set<string>) 
                 ast_stream[idx] = new GenericElement(el.source_location, el.token.name);
             } else if (TypeNames.has(el.token.name)) {
                 ast_stream[idx] = new SimpleTypeElement(el.source_location, el.token.name);
+            } else if (TypeNames.has(CurrentModule.toString() + "." + el.token.name)) {
+                ast_stream[idx] = new SimpleTypeElement(el.source_location, CurrentModule.toString() + "." + el.token.name);
             } else {
                 ast_stream[idx] = new NameElement(el.source_location, el.token.name);
             }

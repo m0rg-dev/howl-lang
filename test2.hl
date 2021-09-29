@@ -1,4 +1,4 @@
-module Test2;
+module main;
 
 class Vec<T> {
     *T value;
@@ -24,7 +24,7 @@ class Vec<T> {
     }
 }
 
-static fn i32 main() {
+static fn i32 Main() {
     let Vec<i32> foo;
     foo = new Vec<i32>();
     foo.__l_index__(2, 42);

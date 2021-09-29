@@ -1,14 +1,24 @@
 import { ASTElement } from "../../ast/ASTElement";
+import { NameElement } from "../../ast/NameElement";
 import { TokenElement } from "../../ast/TokenElement";
 import { SimpleTypeElement, TypeElement } from "../../ast/TypeElement";
 import { TokenType } from "../../lexer/TokenType";
-import { AssertNegative, InOrder, MatchToken, Star } from "../Matcher";
+import { TypeNames } from "../../registry/Registry";
+import { AssertNegative, InOrder, MatchElementType, MatchToken, Star } from "../Matcher";
 import { LocationFrom, RuleList } from "../Parser";
 import { MatchSingleType, MatchType } from "./MatchUtils";
 
 export const ParseTypes: RuleList = {
     name: "ParseTypes",
     rules: [
+        {
+            name: "Subtype",
+            match: InOrder(MatchSingleType(), MatchToken(TokenType.Period), MatchElementType("NameElement")),
+            replace: (ast_stream: [SimpleTypeElement, any, NameElement]) => {
+                if (!TypeNames.has(ast_stream[0].name + "." + ast_stream[2].name)) return undefined;
+                return [new SimpleTypeElement(LocationFrom(ast_stream), ast_stream[0].name + "." + ast_stream[2].name)];
+            }
+        },
         {
             name: "BaseCase",
             match: InOrder(MatchSingleType(), AssertNegative(MatchToken(TokenType.OpenAngle))),
@@ -45,6 +55,6 @@ export const ParseTypes: RuleList = {
             replace: (ast_stream: [TokenElement<any>, TypeElement]) => {
                 return [ast_stream[1].asRawPointer()];
             }
-        }
+        },
     ]
 };

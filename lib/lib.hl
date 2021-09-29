@@ -1,4 +1,4 @@
-module Test3;
+module lib;
 
 class Vec<T> {
     *T value;
@@ -50,9 +50,4 @@ class IO<> {
     static fn void print(String s) {
         fficall write(1, s.contents.value, s.contents.length);
     }
-}
-
-static fn i32 main() {
-    IO.print("Awoooooooo~!\n");
-    return 0;
 }

@@ -2,7 +2,7 @@ import { NameToken } from "../lexer/NameToken";
 import { Token } from "../lexer/Token";
 import { TokenType } from "../lexer/TokenType";
 import { PartialElement, SourceLocation, ASTElement } from "./ASTElement";
-import { HasFQN } from "./FQN";
+import { FQN, HasFQN } from "./FQN";
 import { TokenElement } from "./TokenElement";
 
 
@@ -29,5 +29,9 @@ export class PartialClassElement extends PartialElement {
 
     toString() {
         return `PartialClass<${this.generics.join(", ")}>(${this.parent.getFQN()}.${this.name})`;
+    }
+
+    getFQN() {
+        return new FQN(this.parent, this.name);
     }
 }

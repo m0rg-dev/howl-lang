@@ -1,5 +1,4 @@
 import { ASTElement, SourceLocation } from "./ASTElement";
-import { Scope } from "../type_inference/Scope";
 
 export class NameElement extends ASTElement {
     name: string;
