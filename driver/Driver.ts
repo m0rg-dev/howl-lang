@@ -10,6 +10,8 @@ import { MarkFunctionsPass } from './MarkFunctionsPass';
 import { ParseClassHeadersPass } from './ParseClassHeadersPass';
 import { DropTagsPass } from './DropTagsPass';
 import { ReplaceClassGenericsPass } from './ReplaceClassGenericsPass';
+import { ReplaceTypesPass } from './ReplaceTypesPass';
+import { ParseTypesPass } from './ParseTypesPass';
 
 export function SetupDriver() {
     InitRegistry();
@@ -37,6 +39,10 @@ export function ParseFile(file: string) {
     if (!cu.valid) return cu.logFailure();
     new DropTagsPass(cu, "cdecl").apply();
     new ReplaceClassGenericsPass(cu).apply();
+
+    // Types are the same everywhere, so these passes aren't bounded.
+    new ReplaceTypesPass(cu).apply();
+    new ParseTypesPass(cu).apply();
 
     console.error(cu.ast_stream.map(x => x.toString()).join(" "));
 }
