@@ -1,13 +1,12 @@
-import * as fs from 'fs';
 import * as sms from 'source-map-support';
-import { EmitC, EmitCPrologue, EmitForwardDeclarations, EmitStructures } from './generator/CGenerator';
-import { Lexer } from './lexer';
-import { Parse } from './parser/Parser';
-import { Classes, Functions, InitRegistry } from './registry/Registry';
-import { RunClassTransforms, RunFunctionTransforms } from './transform/RunTransforms';
-import { RunTypeInference } from './type_inference/TypeInference';
+import { ParseFile, SetupDriver } from './driver/Driver';
 
 sms.install();
+
+SetupDriver();
+ParseFile(process.argv[2]);
+
+/*
 
 InitRegistry();
 
@@ -47,3 +46,5 @@ if (!process.env.HOWL_SKIP_FREEZE_TYPES) {
     Functions.forEach(EmitC);
     console.log(`int main(void) { return main$Main(); }`)
 }
+
+*/

@@ -24,7 +24,7 @@ class Vec<T> {
     }
 }
 
-class String<> {
+class String {
     Vec<u8> contents;
 
     fn void constructor() {
@@ -46,7 +46,7 @@ class String<> {
     }
 }
 
-class IO<> {
+class IO {
     static fn void print(String s) {
         fficall write(1, s.contents.value, s.contents.length);
     }

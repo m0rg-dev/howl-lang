@@ -149,3 +149,7 @@ export function Hug(what: TokenType): Matcher {
 export function Until(what: Matcher): Matcher {
     return Plus(InOrder(AssertNegative(what), Any()));
 }
+
+export function Not(what: Matcher): Matcher {
+    return InOrder(AssertNegative(what), Any());
+}

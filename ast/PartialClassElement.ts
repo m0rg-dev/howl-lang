@@ -17,13 +17,15 @@ export class PartialClassElement extends PartialElement {
         this.name = name;
 
         // TODO
-        let i = 3;
-        while ((body[i] as TokenElement<Token>).token?.type != TokenType.CloseAngle) {
-            if (body[i] instanceof TokenElement
-                && (body[i] as TokenElement<NameToken>).token.name) {
-                this.generics.push((body[i] as TokenElement<NameToken>).token.name);
+        if (body[2] instanceof TokenElement && body[2].token.type == TokenType.OpenAngle) {
+            let i = 3;
+            while ((body[i] as TokenElement<Token>).token?.type != TokenType.CloseAngle) {
+                if (body[i] instanceof TokenElement
+                    && (body[i] as TokenElement<NameToken>).token.name) {
+                    this.generics.push((body[i] as TokenElement<NameToken>).token.name);
+                }
+                i++;
             }
-            i++;
         }
     }
 

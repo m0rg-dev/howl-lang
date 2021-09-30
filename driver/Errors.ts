@@ -1,0 +1,6 @@
+export enum Errors {
+    EXPECTED_MODULE = 1,
+    NO_CLASS_BODY,
+    JUNK_BEFORE_CLASS_BODY,
+    NO_CLASS_NAME,
+}
