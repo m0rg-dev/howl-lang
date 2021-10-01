@@ -7,6 +7,6 @@ export class NullaryReturnStatement extends StatementElement {
     }
 
     toString() {
-        return `return`;
+        return `return;`;
     }
 }

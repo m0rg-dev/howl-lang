@@ -62,7 +62,7 @@ export function RunTypeInference(f: FunctionElement) {
             x.type_location = new TypeLocation(s, idx);
             console.error(`(StringLiteral) ${x.type_location}`);
         } else if (x instanceof ConstructorCallExpression) {
-            const idx = s.addType(x.source);
+            const idx = s.addType(x.source.source);
             x.type_location = new TypeLocation(s, idx);
             console.error(`(ConstructorCall) ${x.type_location}`);
         } else if (x instanceof NameExpression) {
@@ -467,7 +467,7 @@ export function AddScopes(el: FunctionElement | CompoundStatementElement, root: 
             } else if (x instanceof IfStatement || x instanceof WhileStatement) {
                 AddScopes(x.body, root, el.scope);
             } else if (x instanceof LocalDefinitionStatement) {
-                el.scope.addType(x.type, x.name);
+                el.scope.addType(x.type.source, x.name);
             }
         })
     }

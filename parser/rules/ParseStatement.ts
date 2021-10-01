@@ -40,7 +40,7 @@ export const ParseStatement: RuleList = {
                 AssertEnd()
             ),
             replace: (ast_stream: [TokenElement<any>, TypeExpression, NameExpression]) => {
-                return [new LocalDefinitionStatement(LocationFrom(ast_stream), ast_stream[2].name, ast_stream[1].source)];
+                return [/* new LocalDefinitionStatement(LocationFrom(ast_stream), ast_stream[2].name, ast_stream[1].source) */];
             },
             startOnly: true
         },

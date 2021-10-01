@@ -13,7 +13,7 @@ export class FFICallExpression extends ExpressionElement {
     }
 
     toString() {
-        return `${this.source}(${this.args.map(x => x.toString()).join(", ")})`;
+        return `fficall ${this.source}(${this.args.map(x => x.toString()).join(", ")})`;
     }
 
     clone() {

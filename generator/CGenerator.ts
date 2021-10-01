@@ -152,7 +152,7 @@ export function EmitC(root: ASTElement) {
     } else if (root instanceof NullaryReturnStatement) {
         console.log(`  return;`);
     } else if (root instanceof LocalDefinitionStatement) {
-        console.log(`  ${ConvertType(root.type)} ${root.name};`);
+        console.log(`  ${ConvertType(root.type.source)} ${root.name};`);
     } else if (root instanceof SimpleStatement) {
         console.log(`  ${ExpressionToC(root.exp)};`);
     } else {

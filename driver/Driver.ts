@@ -12,6 +12,8 @@ import { DropTagsPass } from './DropTagsPass';
 import { ReplaceClassGenericsPass } from './ReplaceClassGenericsPass';
 import { ReplaceTypesPass } from './ReplaceTypesPass';
 import { ParseTypesPass } from './ParseTypesPass';
+import { ExpressionPass } from './ExpressionPass';
+import { StatementPass } from './StatementPass';
 
 export function SetupDriver() {
     InitRegistry();
@@ -43,6 +45,12 @@ export function ParseFile(file: string) {
     // Types are the same everywhere, so these passes aren't bounded.
     new ReplaceTypesPass(cu).apply();
     new ParseTypesPass(cu).apply();
+
+    // Bail out before expression parsing just so we don't print absolute nonsense.
+    if (!cu.valid) return cu.logFailure();
+
+    new ExpressionPass(cu).apply();
+    new StatementPass(cu).apply();
 
     console.error(cu.ast_stream.map(x => x.toString()).join(" "));
 }

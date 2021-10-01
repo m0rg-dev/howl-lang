@@ -16,7 +16,7 @@ class Vec<T> {
     }
 
     fn void __l_index__(i64 idx, T value) {
-        if (idx > self.length) {
+        if idx > self.length {
             self.value = fficall realloc(self.value, self.element_size * idx);
             self.length = idx;
         }
@@ -37,7 +37,7 @@ class String {
 
         let i64 i;
         i = 0;
-        while(i < length + 1) {
+        while i < length + 1 {
             rc.contents[i] = bytes[i];
             i = i + 1;
         }

@@ -15,7 +15,7 @@ export class ComparisonExpression extends ExpressionElement {
     }
 
     toString() {
-        return `${this.lhs} ${this.what} ${this.rhs}`;
+        return `(${this.lhs}) ${this.what} (${this.rhs})`;
     }
 
     clone() {

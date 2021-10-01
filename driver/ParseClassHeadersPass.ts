@@ -1,12 +1,11 @@
-import { ASTElement } from "../ast/ASTElement"
+import { ASTElement } from "../ast/ASTElement";
 import { ClassHeaderElement } from "../ast/ClassHeaderElement";
-import { NameElement } from "../ast/NameElement";
 import { TokenElement } from "../ast/TokenElement";
 import { NameToken } from "../lexer/NameToken";
 import { TokenType } from "../lexer/TokenType";
 import { LocationFrom } from "../parser/Parser";
 import { CompilationUnit } from "./CompilationUnit";
-import { LogLevel, Pass } from "./Pass"
+import { LogLevel, Pass } from "./Pass";
 
 export class ParseClassHeadersPass extends Pass {
     apply() {

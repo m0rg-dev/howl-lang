@@ -48,7 +48,7 @@ export const ParseFunctionParts: RuleList = {
                 const [rc, changed] = ApplyPass(ast_stream[0].body, ParseCompoundStatement);
                 if (!changed) return undefined;
 
-                return [new CompoundStatementElement(LocationFrom(ast_stream), rc, undefined)];
+                return [/* new CompoundStatementElement(LocationFrom(ast_stream), rc, undefined) */];
             }
         }
     ]

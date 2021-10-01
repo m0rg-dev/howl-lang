@@ -135,7 +135,7 @@ export const ParseExpression: RuleList = {
                 });
                 const source_type = ast_stream[1].source;
                 if (!(source_type instanceof StructureType)) return [new SyntaxErrorElement(LocationFrom(ast_stream), `Attempted to construct non-class ${ast_stream[1]}`)];
-                return [new ConstructorCallExpression(LocationFrom(ast_stream), source_type, args)];
+                return [/* new ConstructorCallExpression(LocationFrom(ast_stream), source_type, args) */];
             }
         },
         {

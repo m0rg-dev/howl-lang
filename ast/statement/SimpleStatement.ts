@@ -16,6 +16,6 @@ export class SimpleStatement extends StatementElement {
     }
 
     toString() {
-        return this.exp.toString();
+        return this.exp.toString() + ";";
     }
 }

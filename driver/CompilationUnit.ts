@@ -74,8 +74,12 @@ export class CompilationUnit {
                     const prev = stack.pop();
                     if (prev && selector.some(x => x == prev.selector)) {
                         const slice = ast_stream.slice(prev.started, i);
+                        const l1 = slice.length;
                         callback(slice);
+                        const l2 = slice.length;
                         ast_stream.splice(prev.started, i - prev.started, ...slice);
+                        const ldiff = l2 - l1; // positive if the slice got longer
+                        i += ldiff;
                     }
                 } else {
                     stack.push({

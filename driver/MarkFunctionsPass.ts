@@ -28,9 +28,9 @@ export class MarkFunctionsPass extends Pass {
                     new MarkerElement(ast_stream[0].source_location, "fdecl", false),
                     ...ast_stream.slice(0, start_idx),
                     new MarkerElement(ast_stream[start_idx].source_location, "fdecl", true),
-                    new MarkerElement(ast_stream[start_idx].source_location, "fbody", false),
+                    new MarkerElement(ast_stream[start_idx].source_location, "compound", false),
                     ...ast_stream.slice(start_idx),
-                    new MarkerElement(ast_stream[ast_stream.length - 1].source_location, "fbody", true)];
+                    new MarkerElement(ast_stream[ast_stream.length - 1].source_location, "compound", true)];
             }
         })
     }

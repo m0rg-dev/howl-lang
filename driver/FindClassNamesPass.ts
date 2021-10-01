@@ -75,7 +75,7 @@ export class FindClassNamesPass extends Pass {
                 ResynchronizeTopLevel
             ),
             replace: (ast_stream: ASTElement[]) => {
-                this.emitCompilationError(Errors.NO_CLASS_NAME, `Expected class name`, ast_stream[1].source_location);
+                this.emitCompilationError(Errors.EXPECTED_NAME, `Expected name`, ast_stream[1].source_location);
                 return [];
             }
         });

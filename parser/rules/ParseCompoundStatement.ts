@@ -59,7 +59,7 @@ export const ParseCompoundStatement: RuleList = {
             replace: (ast_stream: [TokenElement<any>, ExpressionElement, ...ASTElement[]]) => {
                 const rest = ast_stream.slice(2);
                 const parsed = ApplyPass(rest, ParseCompoundStatement)[0];
-                return [new IfStatement(LocationFrom(ast_stream), ast_stream[1], new CompoundStatementElement(LocationFrom(parsed), parsed, undefined))];
+                return [/* new IfStatement(LocationFrom(ast_stream), ast_stream[1], new CompoundStatementElement(LocationFrom(parsed), parsed, undefined)) */];
             }
         },
         {
@@ -72,7 +72,7 @@ export const ParseCompoundStatement: RuleList = {
             replace: (ast_stream: [TokenElement<any>, ExpressionElement, ...ASTElement[]]) => {
                 const rest = ast_stream.slice(2);
                 const parsed = ApplyPass(rest, ParseCompoundStatement)[0];
-                return [new WhileStatement(LocationFrom(ast_stream), ast_stream[1], new CompoundStatementElement(LocationFrom(parsed), parsed, undefined))];
+                return [/* new WhileStatement(LocationFrom(ast_stream), ast_stream[1], new CompoundStatementElement(LocationFrom(parsed), parsed, undefined)) */];
             }
         },
         {
