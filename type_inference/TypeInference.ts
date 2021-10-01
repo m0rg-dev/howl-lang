@@ -284,16 +284,16 @@ function ApplyRulesToScope(s: Scope): boolean {
                         if (x instanceof FunctionElement) {
                             x.return_type = t.applyGenericMap(x.return_type);
                             x.args.forEach((arg) => {
-                                arg.type = t.applyGenericMap(arg.type);
+                                arg.type.override = t.applyGenericMap(arg.type.asTypeObject());
                             });
                         } else if (x instanceof TypedItemElement) {
-                            x.type = t.applyGenericMap(x.type);
+                            x.type.override = t.applyGenericMap(x.type.asTypeObject());
                         }
                     });
                     // ...and its fields...
                     new_class.fields.forEach((x) => {
                         console.error(`  (Monomorphize ${x.name}) ${x.type}`);
-                        x.type = t.applyGenericMap(x.type);
+                        x.type.override = t.applyGenericMap(x.type.asTypeObject());
                     });
                     new_class.generics = [];
                     // ...update the type of `self` on all its methods...
@@ -453,7 +453,7 @@ export function AddScopes(el: FunctionElement | CompoundStatementElement, root: 
         s.addType(el.self_type, "self");
 
         el.args.forEach(x => {
-            s.addType(x.type, x.name);
+            s.addType(x.type.asTypeObject(), x.name);
         });
 
         el.addScope(s);

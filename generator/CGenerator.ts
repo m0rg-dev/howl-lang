@@ -56,12 +56,12 @@ export function EmitForwardDeclarations(root: ClassElement) {
     if (cidx >= 0) {
         cargs = root.methods[cidx].args;
     }
-    console.log(`${SanitizeName(root.getFQN().toString())} ${SanitizeName(root.getFQN().toString())}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")});`);
+    console.log(`${SanitizeName(root.getFQN().toString())} ${SanitizeName(root.getFQN().toString())}_alloc(${cargs.map(x => `${ConvertType(x.type.asTypeObject())} ${x.name}`).join(", ")});`);
 
     root.methods.forEach(m => {
         const args = [{ t: m.self_type, n: "self" }];
         if (m.is_static) args.shift();
-        m.args.forEach(e => args.push({ t: e.type, n: e.name }));
+        m.args.forEach(e => args.push({ t: e.type.asTypeObject(), n: e.name }));
         console.log(`${ConvertType(m.return_type)} ${SanitizeName(m.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")});`);
     });
 
@@ -84,7 +84,7 @@ export function EmitStructures(root: ClassElement) {
     console.log(`struct ${SanitizeName(root.getFQN().toString())}_t {`);
     console.log(`  struct ${SanitizeName(root.getFQN().toString())}_stable_t *__stable;`);
     root.fields.forEach(f => {
-        console.log(`  ${ConvertType(f.type)} ${f.name};`);
+        console.log(`  ${ConvertType(f.type.asTypeObject())} ${f.name};`);
     });
     console.log(`};\n`);
 }
@@ -110,7 +110,7 @@ export function EmitC(root: ASTElement) {
             cargs = root.methods[cidx].args;
         }
 
-        console.log(`${SanitizeName(root.getFQN().toString())} ${SanitizeName(root.getFQN().toString())}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")}) {`);
+        console.log(`${SanitizeName(root.getFQN().toString())} ${SanitizeName(root.getFQN().toString())}_alloc(${cargs.map(x => `${ConvertType(x.type.asTypeObject())} ${x.name}`).join(", ")}) {`);
         console.log(`  ${SanitizeName(root.getFQN().toString())} rc = calloc(1, sizeof(struct ${SanitizeName(root.getFQN().toString())}_t));`);
         console.log(`  rc->__stable = &${SanitizeName(root.getFQN().toString())}_stable;`);
         if (cidx >= 0) {
@@ -130,7 +130,7 @@ export function EmitC(root: ASTElement) {
 
         const args = [{ t: root.self_type, n: "self" }];
         if (root.is_static) args.shift();
-        root.args.forEach(e => args.push({ t: e.type, n: e.name }));
+        root.args.forEach(e => args.push({ t: e.type.asTypeObject(), n: e.name }));
         console.log(`${ConvertType(root.return_type)} ${SanitizeName(root.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")}) {`);
         EmitC(root.body);
         console.log(`}\n`);

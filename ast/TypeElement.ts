@@ -31,6 +31,7 @@ export class SimpleTypeElement extends ASTElement {
 export class TypeElement extends ASTElement {
     source: SimpleTypeElement;
     generics: TypeElement[];
+    override: Type;
 
     constructor(loc: SourceLocation, source: SimpleTypeElement, generics: TypeElement[]) {
         super(loc);
@@ -47,6 +48,7 @@ export class TypeElement extends ASTElement {
     }
 
     asTypeObject(): Type {
+        if (this.override) return this.override;
         const rctype = this.source.asTypeObject();
         if (rctype instanceof StructureType && Classes.has(rctype.fqn.toString())) {
             const cl = Classes.get(rctype.fqn.toString());

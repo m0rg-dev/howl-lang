@@ -12,7 +12,7 @@ export const ParseArgumentList: RuleList = {
             name: "ParseArgument",
             match: InOrder(MatchType(), MatchElementType("NameElement")),
             replace: (ast_stream: [TypeElement, NameElement]) => {
-                return [new TypedItemElement(LocationFrom(ast_stream), ast_stream[1].name, ast_stream[0].asTypeObject())];
+                return []; //[new TypedItemElement(LocationFrom(ast_stream), ast_stream[1].name, ast_stream[0].asTypeObject())];
             }
         }
     ]

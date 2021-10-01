@@ -15,7 +15,7 @@ export class FunctionType extends Type {
         this.self_type = source.self_type;
         this.is_static = source.is_static;
         if (source instanceof FunctionElement) {
-            this.args = source.args.map(x => x.type);
+            this.args = source.args.map(x => x.type.asTypeObject());
         } else {
             this.args = [...source.args];
         }

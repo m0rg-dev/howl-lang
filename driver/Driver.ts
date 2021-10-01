@@ -14,6 +14,7 @@ import { ReplaceTypesPass } from './ReplaceTypesPass';
 import { ParseTypesPass } from './ParseTypesPass';
 import { ExpressionPass } from './ExpressionPass';
 import { StatementPass } from './StatementPass';
+import { ParseFunctionHeadersPass } from './ParseFunctionHeadersPass';
 
 export function SetupDriver() {
     InitRegistry();
@@ -46,11 +47,15 @@ export function ParseFile(file: string) {
     new ReplaceTypesPass(cu).apply();
     new ParseTypesPass(cu).apply();
 
+    new ParseFunctionHeadersPass(cu).apply();
+    new DropTagsPass(cu, "fdecl").apply();
+
     // Bail out before expression parsing just so we don't print absolute nonsense.
     if (!cu.valid) return cu.logFailure();
 
     new ExpressionPass(cu).apply();
     new StatementPass(cu).apply();
+    new DropTagsPass(cu, "compound").apply();
 
     console.error(cu.ast_stream.map(x => x.toString()).join(" "));
 }
