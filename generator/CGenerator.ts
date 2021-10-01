@@ -169,7 +169,6 @@ function ExpressionToC(e: ExpressionElement): string {
             return ExpressionToC(rep);
         }
     }
-    // console.error(`{ExpressionToC} ${e}`);
     if (e instanceof FieldReferenceExpression) {
         return `${ExpressionToC(e.source)}->${e.name}`;
     } else if (e instanceof NameExpression) {

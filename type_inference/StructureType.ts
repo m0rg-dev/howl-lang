@@ -1,4 +1,6 @@
+import { log } from "../driver/Driver";
 import { ClassElement } from "../ast/ClassElement";
+import { LogLevel } from "../driver/Pass";
 import { AnyType } from "./AnyType";
 import { ConcreteType } from "./ConcreteType";
 import { FunctionType } from "./FunctionType";
@@ -51,19 +53,19 @@ export class StructureType extends Type {
     }
 
     getFieldType(field: string): Type {
-        console.error(`  (GetType ${field})`);
+        log(LogLevel.TRACE, `${this}`, `  (GetType ${field})`);
         const rc = this.applyGenericMap(this.fields.get(field));
-        console.error(`  (ApplyGenericMap ${rc})`);
+        log(LogLevel.TRACE, `${this}`, `  (ApplyGenericMap ${rc})`);
         return rc;
     }
 
     applyGenericMap(t: Type): Type {
         if (t instanceof GenericType) {
             const rc = this.generic_map.get(t.name) || new AnyType();
-            console.error(`   (ApplyGenericMap) ${t} -> ${rc}`);
+            log(LogLevel.TRACE, `${this}`, `   (ApplyGenericMap) ${t} -> ${rc}`);
             return rc;
         } else if (t instanceof FunctionType) {
-            console.error(`   (ApplyGenericMap) ${t}`);
+            log(LogLevel.TRACE, `${this}`, `   (ApplyGenericMap) ${t}`);
             const u = new FunctionType(t);
             u.return_type = this.applyGenericMap(t.return_type);
             u.self_type = this.applyGenericMap(t.self_type);

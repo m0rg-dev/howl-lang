@@ -101,7 +101,6 @@ export function ParseFile(file: string) {
     new MakeClassesPass(cu).apply();
 
     if (!cu.valid) return cu.logFailure();
-    console.error(cu.ast_stream.map(x => x.toString()).join(" "));
 
     cu.ast_stream.forEach(x => {
         if (x instanceof ClassElement) {
