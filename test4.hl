@@ -1,11 +1,6 @@
 module main;
 
-static fn i32 foo(i32 i) {
-    return i + 1;
-}
-
 static fn i32 Main() {
     lib.IO.print("Awoooooooo~!\n");
-    1 + foo(2);
     return 0;
 }

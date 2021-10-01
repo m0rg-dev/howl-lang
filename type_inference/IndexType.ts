@@ -47,12 +47,12 @@ export class IndexType extends ClosureType {
             if (source instanceof RawPointerType) return source.source;
             if (source instanceof StructureType) {
                 const ct = Classes.get(source.name);
-                return source.applyGenericMap(ct.methods.find(x => x.getFQN().last() == "__index__")?.return_type.asTypeObject());
+                return source.applyGenericMap(ct.methods.find(x => x.getFQN().last() == "__index__")?.return_type);
             }
             if (source instanceof ConcreteType) {
                 const ct = Classes.get(source.name);
                 if (ct && ct.methods.some(x => x.getFQN().last() == "__index__")) {
-                    return ct.methods.find(x => x.getFQN().last() == "__index__")?.return_type.asTypeObject();
+                    return ct.methods.find(x => x.getFQN().last() == "__index__")?.return_type;
                 }
             }
         };

@@ -4,6 +4,7 @@ import { TokenElement } from "../ast/TokenElement";
 import { NameToken } from "../lexer/NameToken";
 import { TokenType } from "../lexer/TokenType";
 import { LocationFrom } from "../parser/Parser";
+import { Classes } from "../registry/Registry";
 import { CompilationUnit } from "./CompilationUnit";
 import { LogLevel, Pass } from "./Pass";
 

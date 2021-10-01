@@ -1,41 +1,43 @@
 import { ASTElement } from "../ast/ASTElement";
-import { CompoundStatementElement } from "../ast/CompoundStatementElement";
-import { ExpressionElement } from "../ast/ExpressionElement";
-import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
-import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
-import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
-import { NumberExpression } from "../ast/expression/NumberExpression";
-import { NameExpression } from "../ast/expression/NameExpression";
-import { FunctionElement } from "../ast/FunctionElement";
-import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
-import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
-import { TypedItemElement } from "../ast/TypedItemElement";
-import { Classes } from "../registry/Registry";
-import { Scope } from "./Scope";
-import { ClosureType, RawPointerType, Type } from "./Type";
-import { TypeLocation } from "./TypeLocation";
-import { FunctionCallType } from "./FunctionCallType";
-import { FieldReferenceType } from "./FieldReferenceType";
-import { FunctionType } from "./FunctionType";
-import { ScopeReferenceType } from "./ScopeReferenceType";
-import { IntersectionType } from "./IntersectionType";
-import { StaticTableType, StructureType } from "./StructureType";
-import { UnionType } from "./UnionType";
-import { AnyType } from "./AnyType";
-import { ConsumedType } from "./ConsumedType";
-import { GenericType } from "./GenericType";
-import { ConcreteFunctionType, ConcreteRawPointerType, ConcreteStructureType, ConcreteType } from "./ConcreteType";
-import { WalkAST } from "../ast/WalkAST";
 import { ClassElement } from "../ast/ClassElement";
-import { IndexExpression } from "../ast/expression/IndexExpression";
-import { IndexType } from "./IndexType";
-import { FFICallExpression } from "../ast/expression/FFICallExpression";
-import { IfStatement } from "../ast/statement/IfStatement";
+import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
 import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
-import { TypeExpression } from "../ast/expression/TypeExpression";
+import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
+import { FFICallExpression } from "../ast/expression/FFICallExpression";
+import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
+import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
+import { IndexExpression } from "../ast/expression/IndexExpression";
+import { NameExpression } from "../ast/expression/NameExpression";
+import { NumberExpression } from "../ast/expression/NumberExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
+import { TypeExpression } from "../ast/expression/TypeExpression";
+import { ExpressionElement } from "../ast/ExpressionElement";
+import { FunctionElement } from "../ast/FunctionElement";
+import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
+import { IfStatement } from "../ast/statement/IfStatement";
+import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 import { WhileStatement } from "../ast/statement/WhileStatement";
+import { TypedItemElement } from "../ast/TypedItemElement";
+import { WalkAST } from "../ast/WalkAST";
+import { Errors } from "../driver/Errors";
+import { Pass } from "../driver/Pass";
+import { Classes } from "../registry/Registry";
+import { AnyType } from "./AnyType";
+import { ConcreteFunctionType, ConcreteRawPointerType, ConcreteStructureType, ConcreteType } from "./ConcreteType";
+import { ConsumedType } from "./ConsumedType";
+import { FieldReferenceType } from "./FieldReferenceType";
+import { FunctionCallType } from "./FunctionCallType";
+import { FunctionType } from "./FunctionType";
+import { GenericType } from "./GenericType";
+import { IndexType } from "./IndexType";
+import { IntersectionType } from "./IntersectionType";
+import { Scope } from "./Scope";
+import { ScopeReferenceType } from "./ScopeReferenceType";
+import { StaticTableType, StructureType } from "./StructureType";
+import { ClosureType, RawPointerType, Type } from "./Type";
+import { TypeLocation } from "./TypeLocation";
+import { UnionType } from "./UnionType";
 
 export function RunTypeInference(f: FunctionElement) {
     AddScopes(f, f);
@@ -62,9 +64,9 @@ export function RunTypeInference(f: FunctionElement) {
             x.type_location = new TypeLocation(s, idx);
             console.error(`(StringLiteral) ${x.type_location}`);
         } else if (x instanceof ConstructorCallExpression) {
-            const idx = s.addType(x.source.source);
+            const idx = s.addType(x.source);
             x.type_location = new TypeLocation(s, idx);
-            console.error(`(ConstructorCall) ${x.type_location}`);
+            console.error(`(ConstructorCall) ${x.type_location} ${s.types[idx]}`);
         } else if (x instanceof NameExpression) {
             x.type_location = s.lookupName(x.name);
             console.error(`(Name ${x.name}) ${x.type_location}`);
@@ -104,6 +106,10 @@ export function RunTypeInference(f: FunctionElement) {
             ReplaceTypes(s.root, x.rhs.type_location, new TypeLocation(s, idx));
             x.type_location = new TypeLocation(s, idx);
         } else if (x instanceof FieldReferenceExpression) {
+            if (!x.source.type_location) {
+                Pass.emitError(f.source, Errors.COMPILER_BUG, `undefined type location on ${x.source} ${x.source.constructor.name}`, x.source.source_location);
+            }
+
             const idx = s.addType(new FieldReferenceType(x.source.type_location, x.name));
             x.type_location = new TypeLocation(s, idx);
             console.error(`(FieldReference) ${x} ${x.type_location} = ${s.types[idx]}`);
@@ -122,6 +128,16 @@ export function RunTypeInference(f: FunctionElement) {
         }
     });
 
+    WalkAST(f, (x) => {
+        if (x instanceof FunctionElement || x instanceof CompoundStatementElement) {
+            x.scope.types.forEach((type, index) => {
+                if (type instanceof ConcreteType && Classes.has(type.name)) {
+                    x.scope.types[index] = Classes.get(type.name).type();
+                }
+            });
+        }
+    });
+
     // Propagate types and constraints.
     let changed = true;
     while (changed) {
@@ -135,6 +151,10 @@ export function RunTypeInference(f: FunctionElement) {
                 // separately.
                 changed ||= ApplyRulesToScope(x.scope);
             } else if (x instanceof FunctionCallExpression) {
+                if (!x.source.type_location) {
+                    Pass.emitError(f.source, Errors.COMPILER_BUG, `undefined type location on ${x.source}`, x.source.source_location);
+                }
+
                 if (x.source.type_location.get() instanceof FunctionType) {
                     // This is the second half of function call handling. Once
                     // we know the type of a function call's source, we can
@@ -208,7 +228,7 @@ export function RunTypeInference(f: FunctionElement) {
 
                 if (x instanceof FunctionElement) {
                     if (x.self_type instanceof StructureType) {
-                        x.self_type.override = new ConcreteType(x.self_type.name);
+                        x.self_type = new ConcreteType(x.self_type.name);
                     }
                 }
             }
@@ -281,23 +301,23 @@ function ApplyRulesToScope(s: Scope): boolean {
                     // ...replace all the GenericTypes in its AST...
                     WalkAST(new_class, (x, s) => {
                         if (x instanceof FunctionElement) {
-                            x.return_type.override = t.applyGenericMap(x.return_type.asTypeObject());
+                            x.return_type = t.applyGenericMap(x.return_type);
                             x.args.forEach((arg) => {
-                                arg.type.override = t.applyGenericMap(arg.type.asTypeObject());
+                                arg.type = t.applyGenericMap(arg.type);
                             });
                         } else if (x instanceof TypedItemElement) {
-                            x.type.override = t.applyGenericMap(x.type.asTypeObject());
+                            x.type = t.applyGenericMap(x.type);
                         }
                     });
                     // ...and its fields...
                     new_class.fields.forEach((x) => {
                         console.error(`  (Monomorphize ${x.name}) ${x.type}`);
-                        x.type.override = t.applyGenericMap(x.type.asTypeObject());
+                        x.type = t.applyGenericMap(x.type);
                     });
                     new_class.generics = [];
                     // ...update the type of `self` on all its methods...
                     new_class.methods.forEach(x => {
-                        x.self_type.override = new_class.type();
+                        x.self_type = new_class.type();
                     });
 
                     Classes.set(new_class.name, new_class);
@@ -446,11 +466,11 @@ export function AddScopes(el: FunctionElement | CompoundStatementElement, root: 
     console.error(`(AddScopes) ${el}`);
     if (el instanceof FunctionElement) {
         const s = new Scope(el, undefined);
-        s.addType(el.return_type.asTypeObject(), "__return");
-        s.addType(el.self_type.asTypeObject(), "self");
+        s.addType(el.return_type, "__return");
+        s.addType(el.self_type, "self");
 
         el.args.forEach(x => {
-            s.addType(x.type.asTypeObject(), x.name);
+            s.addType(x.type, x.name);
         });
 
         el.addScope(s);

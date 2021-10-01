@@ -92,7 +92,7 @@ export class ExpressionPass extends Pass {
                     }
                     return [new ConstructorCallExpression(
                         ast_stream[1].source_location,
-                        ast_stream[1].source,
+                        (ast_stream[1].source as TypeExpression).source,
                         ast_stream[1].args
                     )];
                 }

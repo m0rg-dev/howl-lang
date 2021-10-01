@@ -1,14 +1,13 @@
-import { StructureType } from "../../type_inference/StructureType";
+import { Type } from "../../type_inference/Type";
 import { SourceLocation } from "../ASTElement";
 import { ExpressionElement } from "../ExpressionElement";
-import { TypeExpression } from "./TypeExpression";
 
 
 export class ConstructorCallExpression extends ExpressionElement {
-    source: TypeExpression;
+    source: Type;
     args: ExpressionElement[];
 
-    constructor(loc: SourceLocation, source: TypeExpression, args: ExpressionElement[]) {
+    constructor(loc: SourceLocation, source: Type, args: ExpressionElement[]) {
         super(loc);
         this.source = source;
         this.args = [...args];
@@ -21,7 +20,7 @@ export class ConstructorCallExpression extends ExpressionElement {
     clone() {
         return new ConstructorCallExpression(
             this.source_location,
-            this.source.clone(),
+            this.source,
             this.args.map(x => x.clone()) as ExpressionElement[]
         );
     }

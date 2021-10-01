@@ -44,7 +44,7 @@ export class ParseFunctionHeadersPass extends Pass {
                     if (name instanceof TokenElement && name.token.type == TokenType.Name) {
                         if (!rest.length || (rest[0] instanceof TokenElement && rest[0].token.type == TokenType.Comma)) {
                             rest.shift();
-                            args.push(new TypedItemElement(LocationFrom([type, name]), name.token.name, type));
+                            args.push(new TypedItemElement(LocationFrom([type, name]), name.token.name, type.asTypeObject()));
                         } else {
                             this.emitCompilationError(Errors.EXPECTED_COMMA, "Expected comma", rest[0].source_location);
                             return;

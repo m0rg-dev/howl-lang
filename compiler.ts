@@ -1,10 +1,34 @@
 import * as sms from 'source-map-support';
 import { ParseFile, SetupDriver } from './driver/Driver';
+import { RenderElement } from './graphviz/Graphviz';
+import { Classes, Functions } from './registry/Registry';
+import { RunTypeInference } from './type_inference/TypeInference';
 
 sms.install();
 
 SetupDriver();
 ParseFile(process.argv[2]);
+
+Classes.forEach((cl) => {
+    if (!cl.generics.length) {
+        cl.is_monomorphization = true;
+        cl.methods.forEach(RunTypeInference);
+    }
+});
+
+Functions.forEach(RunTypeInference);
+
+Classes.forEach((cl, name) => {
+    if (!cl.is_monomorphization) Classes.delete(name);
+});
+
+if (process.env["HOWL_OUTPUT_GRAPHVIZ"]) {
+    console.log("digraph {\n  rankdir=LR;\n");
+    Functions.forEach(x => console.log(RenderElement(x)));
+    Classes.forEach(x => console.log(RenderElement(x)));
+    console.log("}");
+}
+
 
 /*
 

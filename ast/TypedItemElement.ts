@@ -4,9 +4,9 @@ import { TypeElement } from "./TypeElement";
 
 export class TypedItemElement extends ASTElement {
     name: string;
-    type: TypeElement;
+    type: Type;
 
-    constructor(loc: SourceLocation, name: string, type: TypeElement) {
+    constructor(loc: SourceLocation, name: string, type: Type) {
         super(loc);
         this.name = name;
         this.type = type;
@@ -17,6 +17,6 @@ export class TypedItemElement extends ASTElement {
     }
 
     clone() {
-        return new TypedItemElement(this.source_location, this.name, this.type.clone());
+        return new TypedItemElement(this.source_location, this.name, this.type);
     }
 }

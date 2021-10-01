@@ -1,5 +1,5 @@
 import { Classes } from "../registry/Registry";
-import { RawPointerType, Type } from "../type_inference/Type";
+import { ClassReferenceType, RawPointerType, Type } from "../type_inference/Type";
 import { ConcreteType } from "../type_inference/ConcreteType";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { StructureType } from "../type_inference/StructureType";
@@ -21,7 +21,7 @@ export class SimpleTypeElement extends ASTElement {
     }
 
     asTypeObject(): Type {
-        if (Classes.has(this.name)) {
+        if (Classes.has(this.name) && Classes.get(this.name)) {
             return Classes.get(this.name).type();
         }
         return new ConcreteType(this.name);

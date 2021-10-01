@@ -1,5 +1,4 @@
 import { ClassElement } from "../ast/ClassElement";
-import { FQN } from "../ast/FQN";
 import { ConcreteType } from "./ConcreteType";
 import { FunctionType } from "./FunctionType";
 import { GenericType } from "./GenericType";

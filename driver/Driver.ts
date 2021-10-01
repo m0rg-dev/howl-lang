@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { InitRegistry } from "../registry/Registry";
+import { Classes, Functions, InitRegistry } from "../registry/Registry";
 import { CompilationUnit } from "./CompilationUnit";
 import { FindClassNamesPass } from './FindClassNamesPass';
 import { FindModuleNamePass } from './FindModuleNamePass';
@@ -18,6 +18,9 @@ import { ParseFunctionHeadersPass } from './ParseFunctionHeadersPass';
 import { MakeFunctionsPass } from './MakeFunctionsPass';
 import { ParseClassFieldsPass } from './ParseClassFieldsPass';
 import { MakeClassesPass } from './MakeClassesPass';
+import { ClassElement } from '../ast/ClassElement';
+import { FunctionElement } from '../ast/FunctionElement';
+import { RenderElement } from '../graphviz/Graphviz';
 
 export function SetupDriver() {
     InitRegistry();
@@ -69,4 +72,12 @@ export function ParseFile(file: string) {
 
     if (!cu.valid) return cu.logFailure();
     console.error(cu.ast_stream.map(x => x.toString()).join(" "));
+
+    cu.ast_stream.forEach(x => {
+        if (x instanceof ClassElement) {
+            Classes.set(x.name, x);
+        } else if (x instanceof FunctionElement) {
+            Functions.add(x);
+        }
+    });
 }

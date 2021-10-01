@@ -27,7 +27,7 @@ export class ParseClassFieldsPass extends Pass {
                     if (name instanceof TokenElement && name.token.type == TokenType.Name) {
                         const semi = segment.shift();
                         if (semi instanceof TokenElement && semi.token.type == TokenType.Semicolon) {
-                            s2.push(new TypedItemElement(LocationFrom([el, name, semi]), name.token.name, el));
+                            s2.push(new TypedItemElement(LocationFrom([el, name, semi]), name.token.name, el.asTypeObject()));
                         } else {
                             this.emitCompilationError(Errors.EXPECTED_SEMICOLON, "Expected semicolon", semi.source_location);
                         }

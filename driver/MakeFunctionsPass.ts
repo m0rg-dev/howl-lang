@@ -18,11 +18,12 @@ export class MakeFunctionsPass extends Pass {
                     LocationFrom(ast_stream),
                     this.cu.module,
                     ast_stream[0].name,
-                    ast_stream[0].returns,
+                    ast_stream[0].returns.asTypeObject(),
                     undefined,
                     ast_stream[0].args,
                     ast_stream[0].is_static,
-                    ast_stream[1]
+                    ast_stream[1],
+                    this.cu
                 )];
             }
         })

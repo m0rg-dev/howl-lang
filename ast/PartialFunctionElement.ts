@@ -44,16 +44,16 @@ export class PartialFunctionElement extends PartialElement implements HasFQN {
             && this.body[2] instanceof NameElement
             && this.body[3] instanceof PartialArgumentListElement
             && this.body[4] instanceof CompoundStatementElement) {
-            return new FunctionElement(
-                this.source_location,
-                this.parent,
-                this.name,
-                this.body[1],
-                undefined,
-                this.body[3].parse(),
-                is_static,
-                this.body[4]
-            );
+            // return new FunctionElement(
+            //     this.source_location,
+            //     this.parent,
+            //     this.name,
+            //     this.body[1].asTypeObject(),
+            //     undefined,
+            //     this.body[3].parse(),
+            //     is_static,
+            //     this.body[4]
+            // );
         } else {
             return undefined;
         }

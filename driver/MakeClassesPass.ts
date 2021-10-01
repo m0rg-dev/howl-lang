@@ -5,6 +5,7 @@ import { FunctionElement } from "../ast/FunctionElement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { SimpleTypeElement, TypeElement } from "../ast/TypeElement";
 import { InOrder, MatchElementType, Until } from "../parser/Matcher";
+import { ClassReferenceType } from "../type_inference/Type";
 import { Errors } from "./Errors";
 import { Pass } from "./Pass";
 
@@ -30,9 +31,7 @@ export class MakeClassesPass extends Pass {
                     if (x instanceof TypedItemElement) {
                         fields.push(x);
                     } else if (x instanceof FunctionElement) {
-                        x.self_type = new TypeElement(ast_stream[0].source_location,
-                            new SimpleTypeElement(ast_stream[0].source_location, ast_stream[0].name),
-                            []);
+                        x.self_type = new ClassReferenceType(ast_stream[0].name);
                         methods.push(x);
                     } else {
                         this.emitCompilationError(Errors.COMPILER_BUG, "not TypedItem or Function?", x.source_location);

@@ -18,6 +18,7 @@ import { PartialStatementElement } from "../ast/StatementElement";
 import { ConsumedType } from "../type_inference/ConsumedType";
 import { Scope } from "../type_inference/Scope";
 import { WhileStatement } from "../ast/statement/WhileStatement";
+import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
 
 const genexes_drawn = new Set<string>();
 
@@ -68,9 +69,10 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
             s.push(RenderElement(x, _nearestScope));
         });
         s.push((new RecordNode(e.uuid, contents)).toString());
-    } else if (e instanceof AssignmentStatement) {
+    } else if (e instanceof AssignmentStatement
+        || e instanceof ArithmeticExpression) {
         const contents: RecordRow[] = [
-            [{ text: "AssignmentStatement" }],
+            [{ text: e.constructor.name }],
         ];
         contents.push([{ text: "lhs" }, { port: "lhs", text: e.lhs.toString() }]);
         contents.push([{ text: "rhs" }, { port: "rhs", text: e.rhs.toString() }]);

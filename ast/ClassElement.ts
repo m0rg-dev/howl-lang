@@ -1,9 +1,7 @@
 import { FunctionType } from "../type_inference/FunctionType";
 import { StructureType } from "../type_inference/StructureType";
 import { ASTElement, SourceLocation } from "./ASTElement";
-import { FQN, HasFQN } from "./FQN";
 import { FunctionElement } from "./FunctionElement";
-import { ModuleDefinitionElement } from "./ModuleDefinitionElement";
 import { TypedItemElement } from "./TypedItemElement";
 
 export class ClassElement extends ASTElement {
@@ -38,7 +36,7 @@ export class ClassElement extends ASTElement {
 
     type(): StructureType {
         const t = new StructureType(this.name, new Set(this.generics));
-        this.fields.forEach((x) => t.addField(x.name, x.type.asTypeObject()));
+        this.fields.forEach((x) => t.addField(x.name, x.type));
         this.methods.forEach((x) => t.addField(x.getFQN().last(), new FunctionType(x)));
         return t;
     }
