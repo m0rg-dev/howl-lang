@@ -50,8 +50,8 @@ export class TypeElement extends ASTElement {
     asTypeObject(): Type {
         if (this.override) return this.override;
         const rctype = this.source.asTypeObject();
-        if (rctype instanceof StructureType && Classes.has(rctype.fqn.toString())) {
-            const cl = Classes.get(rctype.fqn.toString());
+        if (rctype instanceof StructureType && Classes.has(rctype.name)) {
+            const cl = Classes.get(rctype.name);
             cl.generics.forEach((x, y) => {
                 if (this.generics[y]) {
                     rctype.generic_map.set(x, this.generics[y].asTypeObject());

@@ -6,23 +6,23 @@ import { ASTElement, SourceLocation } from "./ASTElement";
 import { CompoundStatementElement } from "./CompoundStatementElement";
 import { FQN, HasFQN } from "./FQN";
 import { TypedItemElement } from "./TypedItemElement";
+import { TypeElement } from "./TypeElement";
 
 export class FunctionElement extends ASTElement implements HasFQN {
     private parent: HasFQN;
     private name: string;
 
-    return_type: Type;
-    self_type: Type;
+    return_type: TypeElement;
+    self_type: TypeElement;
     args: TypedItemElement[];
     body: CompoundStatementElement;
     scope: Scope;
     is_static: boolean;
 
-    constructor(loc: SourceLocation, parent: HasFQN, name: string, return_type: Type, self_type: Type, args: TypedItemElement[], is_static: boolean, body: CompoundStatementElement) {
+    constructor(loc: SourceLocation, parent: HasFQN, name: string, return_type: TypeElement, self_type: TypeElement, args: TypedItemElement[], is_static: boolean, body: CompoundStatementElement) {
         super(loc);
         this.name = name;
         this.parent = parent;
-        if (return_type instanceof ConcreteType && return_type.name == "void") return_type = new VoidType();
         this.return_type = return_type;
         this.self_type = self_type;
         this.args = args;

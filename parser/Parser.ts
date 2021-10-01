@@ -59,40 +59,40 @@ export function Parse(token_stream: Token[]): ASTElement[] {
                 }
             }
 
-            const ce = new ClassElement(
-                el.source_location,
-                el.parent as ModuleDefinitionElement,
-                el.name,
-                fields,
-                [],
-                el.generics
-            )
+            // const ce = new ClassElement(
+            //     el.source_location,
+            //     el.parent as ModuleDefinitionElement,
+            //     el.name,
+            //     fields,
+            //     [],
+            //     el.generics
+            // )
 
-            console.error(` Registering class: ${ce.getFQN()}`);
-            Classes.set(ce.getFQN().toString(), ce);
+            // console.error(` Registering class: ${ce.getFQN()}`);
+            // Classes.set(ce.getFQN().toString(), ce);
 
-            for (const sub of el.body) {
-                if (sub instanceof PartialFunctionElement) {
-                    const n = sub.parse();
-                    if (n) {
-                        n.setParent(ce);
-                        methods.push(n);
-                    } else {
-                        console.error("(method didn't parse) " + FormatASTStream(sub.body));
-                    }
-                    PartialFunctions.delete(sub);
-                }
-            }
+            // for (const sub of el.body) {
+            //     if (sub instanceof PartialFunctionElement) {
+            //         const n = sub.parse();
+            //         if (n) {
+            //             n.setParent(ce);
+            //             methods.push(n);
+            //         } else {
+            //             console.error("(method didn't parse) " + FormatASTStream(sub.body));
+            //         }
+            //         PartialFunctions.delete(sub);
+            //     }
+            // }
 
-            ce.methods = methods;
-            methods.forEach((m) => m.self_type = ce.type());
+            // ce.methods = methods;
+            //methods.forEach((m) => m.self_type = ce.type());
         }
     }
 
     PartialFunctions.forEach(x => {
         const n = x.parse();
         if (n) {
-            n.self_type = new VoidType();
+            //n.self_type = new VoidType();
             Functions.add(n);
             PartialFunctions.delete(x);
         } else {

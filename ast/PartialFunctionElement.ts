@@ -48,7 +48,7 @@ export class PartialFunctionElement extends PartialElement implements HasFQN {
                 this.source_location,
                 this.parent,
                 this.name,
-                this.body[1].asTypeObject(),
+                this.body[1],
                 undefined,
                 this.body[3].parse(),
                 is_static,

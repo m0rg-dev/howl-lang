@@ -15,6 +15,9 @@ import { ParseTypesPass } from './ParseTypesPass';
 import { ExpressionPass } from './ExpressionPass';
 import { StatementPass } from './StatementPass';
 import { ParseFunctionHeadersPass } from './ParseFunctionHeadersPass';
+import { MakeFunctionsPass } from './MakeFunctionsPass';
+import { ParseClassFieldsPass } from './ParseClassFieldsPass';
+import { MakeClassesPass } from './MakeClassesPass';
 
 export function SetupDriver() {
     InitRegistry();
@@ -57,5 +60,13 @@ export function ParseFile(file: string) {
     new StatementPass(cu).apply();
     new DropTagsPass(cu, "compound").apply();
 
+    if (!cu.valid) return cu.logFailure();
+
+    new MakeFunctionsPass(cu).apply();
+
+    new ParseClassFieldsPass(cu).apply();
+    new MakeClassesPass(cu).apply();
+
+    if (!cu.valid) return cu.logFailure();
     console.error(cu.ast_stream.map(x => x.toString()).join(" "));
 }

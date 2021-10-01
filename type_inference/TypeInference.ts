@@ -71,11 +71,11 @@ export function RunTypeInference(f: FunctionElement) {
         } else if (x instanceof FieldReferenceExpression
             && x.source instanceof TypeExpression
             && x.source.source instanceof StructureType) {
-            const ct = Classes.get(x.source.source.fqn.toString());
+            const ct = Classes.get(x.source.source.name);
             const stable = new StaticTableType(ct);
             const idx = s.addType(stable);
             x.source.type_location = new TypeLocation(s, idx);
-            console.error(`(StaticReference) ${x} ${ct.getFQN()} ${x.source.type_location} ${stable}`);
+            console.error(`(StaticReference) ${x} ${ct.name} ${x.source.type_location} ${stable}`);
         } else if (x instanceof FFICallExpression) {
             const idx = s.addType(new AnyType());
             x.type_location = new TypeLocation(s, idx);
@@ -200,7 +200,7 @@ export function RunTypeInference(f: FunctionElement) {
                             x.scope.types[index] = new ConcreteFunctionType(type.return_type, all_args);
                         }
                     } else if (type instanceof StructureType) {
-                        x.scope.types[index] = new ConcreteType(type.fqn.toString());
+                        x.scope.types[index] = new ConcreteType(type.name);
                     } else if (type instanceof RawPointerType && type.source instanceof ConcreteType) {
                         x.scope.types[index] = new ConcreteRawPointerType(type.source);
                     }
@@ -208,7 +208,7 @@ export function RunTypeInference(f: FunctionElement) {
 
                 if (x instanceof FunctionElement) {
                     if (x.self_type instanceof StructureType) {
-                        x.self_type = new ConcreteType(x.self_type.fqn.toString());
+                        x.self_type.override = new ConcreteType(x.self_type.name);
                     }
                 }
             }
@@ -267,22 +267,21 @@ function ApplyRulesToScope(s: Scope): boolean {
             // monomorphized and we need to *not* do so again), and all the
             // generic fields are of known type.
             const generic_keys = [...t.generic_map.keys()];
-            if (generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString()) && !Classes.get(t.fqn.toString()).is_monomorphization) {
+            if (generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.name) && !Classes.get(t.name).is_monomorphization) {
                 const mmn = t.MonomorphizedName();
-                console.error(`(Monomorphize ${s.n} ${index}) ${t.fqn.toString()}<${generic_keys.map(x => t.generic_map.get(x).toString()).join(", ")}> ${mmn}`);
-                const new_fqn = t.fqn.repl_last(mmn);
+                console.error(`(Monomorphize ${s.n} ${index}) ${t.name}<${generic_keys.map(x => t.generic_map.get(x).toString()).join(", ")}> ${mmn}`);
                 let new_class: ClassElement;
-                if (Classes.has(new_fqn.toString())) {
-                    new_class = Classes.get(new_fqn.toString());
+                if (Classes.has(mmn)) {
+                    new_class = Classes.get(mmn);
                 } else {
                     // This is basically a template evaluation. We'll clone the original class...
-                    new_class = Classes.get(t.fqn.toString()).clone();
+                    new_class = Classes.get(t.name).clone();
                     new_class.is_monomorphization = true;
                     new_class.setName(mmn);
                     // ...replace all the GenericTypes in its AST...
                     WalkAST(new_class, (x, s) => {
                         if (x instanceof FunctionElement) {
-                            x.return_type = t.applyGenericMap(x.return_type);
+                            x.return_type.override = t.applyGenericMap(x.return_type.asTypeObject());
                             x.args.forEach((arg) => {
                                 arg.type.override = t.applyGenericMap(arg.type.asTypeObject());
                             });
@@ -298,11 +297,10 @@ function ApplyRulesToScope(s: Scope): boolean {
                     new_class.generics = [];
                     // ...update the type of `self` on all its methods...
                     new_class.methods.forEach(x => {
-                        x.self_type = new_class.type();
-                        x.setParent(new_class);
+                        x.self_type.override = new_class.type();
                     });
 
-                    Classes.set(new_class.getFQN().toString(), new_class);
+                    Classes.set(new_class.name, new_class);
 
                     // ...and run type checking on the result. I might eventually
                     // add support to the type checker for handling generic types
@@ -343,7 +341,7 @@ function ApplyRulesToScope(s: Scope): boolean {
             // over the generic fields rather than having to interact with the
             // types' contents.
             if (t0 instanceof StructureType && t1 instanceof StructureType
-                && t0.fqn.equals(t1.fqn)
+                && t0.name == t1.name
                 && t0.generic_map && t1.generic_map) {
                 console.error(`(IntersectStructure ${s.n} ${index}) ${t0} ${t1}`);
                 t0.generic_map.forEach((old_type, generic_key) => {
@@ -408,18 +406,17 @@ export function LiftConcrete(t: Type, repl: (n: Type) => void): boolean {
         rc = true;
     } else if (t instanceof StructureType) {
         const generic_keys = [...t.generic_map.keys()];
-        if (generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.fqn.toString()) && !Classes.get(t.fqn.toString()).is_monomorphization) {
-            const mmn = `M${t.fqn.last()}_${generic_keys.map(x => (t.generic_map.get(x) as ConcreteType).name).join("_")}`;
-            const new_fqn = t.fqn.repl_last(mmn);
+        if (generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType) && Classes.has(t.name) && !Classes.get(t.name).is_monomorphization) {
+            const mmn = `M${t.name}_${generic_keys.map(x => (t.generic_map.get(x) as ConcreteType).name).join("_")}`;
             let new_class: ClassElement;
-            if (Classes.has(new_fqn.toString())) {
-                new_class = Classes.get(new_fqn.toString());
-                console.error(`(Monomorphize LC) ${t.fqn.toString()}<${generic_keys.map(x => t.generic_map.get(x).toString()).join(", ")}>`);
+            if (Classes.has(mmn)) {
+                new_class = Classes.get(mmn);
+                console.error(`(Monomorphize LC) ${t.name}<${generic_keys.map(x => t.generic_map.get(x).toString()).join(", ")}>`);
                 repl(new ConcreteStructureType(t, new_class.type()));
                 rc = true;
                 return;
             }
-        } else if (Classes.has(t.fqn.toString()) && Classes.get(t.fqn.toString()).is_monomorphization) {
+        } else if (Classes.has(t.name) && Classes.get(t.name).is_monomorphization) {
             repl(new ConcreteStructureType(t, t));
             rc = true;
             return;
@@ -449,8 +446,8 @@ export function AddScopes(el: FunctionElement | CompoundStatementElement, root: 
     console.error(`(AddScopes) ${el}`);
     if (el instanceof FunctionElement) {
         const s = new Scope(el, undefined);
-        s.addType(el.return_type, "__return");
-        s.addType(el.self_type, "self");
+        s.addType(el.return_type.asTypeObject(), "__return");
+        s.addType(el.self_type.asTypeObject(), "self");
 
         el.args.forEach(x => {
             s.addType(x.type.asTypeObject(), x.name);

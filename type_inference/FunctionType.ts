@@ -11,12 +11,14 @@ export class FunctionType extends Type {
 
     constructor(source: FunctionElement | FunctionType) {
         super();
-        this.return_type = source.return_type;
-        this.self_type = source.self_type;
         this.is_static = source.is_static;
         if (source instanceof FunctionElement) {
+            this.return_type = source.return_type.asTypeObject();
+            this.self_type = source.self_type.asTypeObject();
             this.args = source.args.map(x => x.type.asTypeObject());
         } else {
+            this.return_type = source.return_type;
+            this.self_type = source.self_type;
             this.args = [...source.args];
         }
     }
