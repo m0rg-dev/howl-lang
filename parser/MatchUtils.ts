@@ -1,7 +1,7 @@
-import { ASTElement } from "../../ast/ASTElement";
-import { ExpressionElement } from "../../ast/ExpressionElement";
-import { SimpleTypeElement, TypeElement } from "../../ast/TypeElement";
-import { Matcher } from "../Matcher";
+import { ASTElement } from "../ast/ASTElement";
+import { ExpressionElement } from "../ast/ExpressionElement";
+import { SimpleTypeElement, TypeElement } from "../ast/TypeElement";
+import { Matcher } from "./Matcher";
 
 export function MatchExpression(): Matcher {
     return (ast_stream: ASTElement[]) => {

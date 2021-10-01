@@ -19,7 +19,7 @@ import { StringLiteralToken } from "../lexer/StringLiteralToken";
 import { TokenType } from "../lexer/TokenType";
 import { Hug, InOrder, MatchElementType, MatchToken } from "../parser/Matcher";
 import { LocationFrom, ProductionRule } from "../parser/Parser";
-import { MatchExpression } from "../parser/rules/MatchUtils";
+import { MatchExpression } from "../parser/MatchUtils";
 import { CompilationUnit } from "./CompilationUnit";
 import { Errors } from "./Errors";
 import { Pass } from "./Pass";

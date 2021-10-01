@@ -4,7 +4,7 @@ import { SimpleTypeElement, TypeElement } from "../ast/TypeElement";
 import { TokenType } from "../lexer/TokenType";
 import { AssertNegative, InOrder, MatchToken, Star } from "../parser/Matcher";
 import { LocationFrom } from "../parser/Parser";
-import { MatchSingleType, MatchType } from "../parser/rules/MatchUtils";
+import { MatchSingleType, MatchType } from "../parser/MatchUtils";
 import { Pass } from "./Pass";
 
 export class ParseTypesPass extends Pass {

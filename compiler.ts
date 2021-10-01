@@ -15,7 +15,6 @@ ParseFile(process.argv[2]);
 
 Classes.forEach((cl) => {
     cl.fields.forEach(f => {
-        console.error(f);
         if (f.type instanceof ConcreteType && Classes.has(f.type.name)) {
             const cl = Classes.get(f.type.name);
             f.type = cl.type();
