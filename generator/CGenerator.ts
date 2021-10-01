@@ -48,15 +48,15 @@ export function EmitCPrologue() {
 }
 
 export function EmitForwardDeclarations(root: ClassElement) {
-    console.log(`// Forward declarations for class: ${root.getFQN()}`);
-    console.log(`struct ${SanitizeName(root.getFQN().toString())}_t;`);
-    console.log(`typedef struct ${SanitizeName(root.getFQN().toString())}_t* ${SanitizeName(root.getFQN().toString())};`);
+    console.log(`// Forward declarations for class: ${root.name}`);
+    console.log(`struct ${SanitizeName(root.name)}_t;`);
+    console.log(`typedef struct ${SanitizeName(root.name)}_t* ${SanitizeName(root.name)};`);
     let cargs: TypedItemElement[] = [];
     const cidx = root.methods.findIndex(x => x.getFQN().last() == "constructor");
     if (cidx >= 0) {
         cargs = root.methods[cidx].args;
     }
-    console.log(`${SanitizeName(root.getFQN().toString())} ${SanitizeName(root.getFQN().toString())}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")});`);
+    console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")});`);
 
     root.methods.forEach(m => {
         const args = [{ t: m.self_type, n: "self" }];
@@ -70,19 +70,19 @@ export function EmitForwardDeclarations(root: ClassElement) {
 
 export function EmitStructures(root: ClassElement) {
     // Static table.
-    console.log(`struct ${SanitizeName(root.getFQN().toString())}_stable_t {`);
+    console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
     root.methods.forEach(m => {
-        console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last())};`)
+        console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
     });
-    console.log(`} ${SanitizeName(root.getFQN().toString())}_stable = {`);
+    console.log(`} ${SanitizeName(root.name)}_stable = {`);
     root.methods.forEach(m => {
         console.log(`  ${SanitizeName(m.getFQN().toString())},`);
     })
     console.log(`};\n`);
 
     // Class structure itself.
-    console.log(`struct ${SanitizeName(root.getFQN().toString())}_t {`);
-    console.log(`  struct ${SanitizeName(root.getFQN().toString())}_stable_t *__stable;`);
+    console.log(`struct ${SanitizeName(root.name)}_t {`);
+    console.log(`  struct ${SanitizeName(root.name)}_stable_t *__stable;`);
     root.fields.forEach(f => {
         console.log(`  ${ConvertType(f.type)} ${f.name};`);
     });
@@ -101,20 +101,20 @@ export function EmitC(root: ASTElement) {
     }
 
     if (root instanceof ClassElement) {
-        console.log(`// Class: ${root.getFQN()}`);
+        console.log(`// Class: ${root.name}`);
 
         // Constructor.
         let cargs: TypedItemElement[] = [];
-        const cidx = root.methods.findIndex(x => x.getFQN().last() == "constructor");
+        const cidx = root.methods.findIndex(x => x.getFQN().last().split(".").pop() == "constructor");
         if (cidx >= 0) {
             cargs = root.methods[cidx].args;
         }
 
-        console.log(`${SanitizeName(root.getFQN().toString())} ${SanitizeName(root.getFQN().toString())}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")}) {`);
-        console.log(`  ${SanitizeName(root.getFQN().toString())} rc = calloc(1, sizeof(struct ${SanitizeName(root.getFQN().toString())}_t));`);
-        console.log(`  rc->__stable = &${SanitizeName(root.getFQN().toString())}_stable;`);
+        console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")}) {`);
+        console.log(`  ${SanitizeName(root.name)} rc = calloc(1, sizeof(struct ${SanitizeName(root.name)}_t));`);
+        console.log(`  rc->__stable = &${SanitizeName(root.name)}_stable;`);
         if (cidx >= 0) {
-            console.log(`  ${SanitizeName(root.getFQN().toString())}$constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
+            console.log(`  ${SanitizeName(root.name)}$constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
         }
         console.log(`  return rc;`);
         console.log(`}\n`);
@@ -123,10 +123,10 @@ export function EmitC(root: ASTElement) {
         root.methods.forEach(EmitC);
     } else if (root instanceof FunctionElement) {
         console.log(`// Function: ${root.getFQN()} (${root.args.join(", ")})`);
-        // TODO 
-        if (root.self_type instanceof VoidType) {
-            root.self_type = new ConcreteType("void *");
-        }
+        // // TODO 
+        // if (root.self_type instanceof VoidType) {
+        //     root.self_type = new ConcreteType("void *");
+        // }
 
         const args = [{ t: root.self_type, n: "self" }];
         if (root.is_static) args.shift();
@@ -152,7 +152,7 @@ export function EmitC(root: ASTElement) {
     } else if (root instanceof NullaryReturnStatement) {
         console.log(`  return;`);
     } else if (root instanceof LocalDefinitionStatement) {
-        console.log(`  ${ConvertType(root.type)} ${root.name};`);
+        console.log(`  ${ConvertType(root.type.source)} ${root.name};`);
     } else if (root instanceof SimpleStatement) {
         console.log(`  ${ExpressionToC(root.exp)};`);
     } else {
@@ -169,7 +169,6 @@ function ExpressionToC(e: ExpressionElement): string {
             return ExpressionToC(rep);
         }
     }
-    // console.error(`{ExpressionToC} ${e}`);
     if (e instanceof FieldReferenceExpression) {
         return `${ExpressionToC(e.source)}->${e.name}`;
     } else if (e instanceof NameExpression) {
@@ -212,9 +211,9 @@ function ConvertType(t: Type): string {
     } else if (t instanceof StructureType) {
         const generic_keys = [...t.generic_map.keys()];
         if (generic_keys.length && generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType)) {
-            return SanitizeName(t.fqn.repl_last(t.MonomorphizedName()).toString());
+            return SanitizeName(t.MonomorphizedName());
         } else if (!generic_keys.length) {
-            return SanitizeName(t.fqn.toString());
+            return SanitizeName(t.name);
         } else {
             throw new Error(`h ${t}`);
         }

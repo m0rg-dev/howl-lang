@@ -45,7 +45,7 @@ export class ConcreteStructureType extends ConcreteType {
     source_type: StructureType;
 
     constructor(source: StructureType, monomorphized: StructureType) {
-        super(monomorphized.fqn.toString());
+        super(monomorphized.name);
         this.source_type = source;
     }
 }

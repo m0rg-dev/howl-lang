@@ -1,6 +1,4 @@
 import { randomUUID } from "crypto";
-import { Type } from "../type_inference/Type";
-import { Scope } from "../type_inference/Scope";
 
 export type SourceLocation = [number, number];
 
@@ -30,4 +28,22 @@ export abstract class PartialElement extends ASTElement {
     clone(): undefined { return undefined; }
 }
 
+export class MarkerElement extends ASTElement {
+    type: string;
+    is_closer: boolean;
 
+    constructor(loc: SourceLocation, type: string, is_closer: boolean) {
+        super(loc);
+        this.type = type;
+        this.is_closer = is_closer;
+    }
+
+    toString() {
+        if (this.is_closer) {
+            return ">>" + this.type;
+        } else {
+            return this.type + "<<";
+        }
+    }
+    clone(): undefined { return undefined; }
+}

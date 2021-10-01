@@ -1,8 +1,8 @@
 import { Classes } from "../registry/Registry";
-import { RawPointerType, Type } from "../type_inference/Type";
 import { ConcreteType } from "../type_inference/ConcreteType";
-import { ASTElement, SourceLocation } from "./ASTElement";
 import { StructureType } from "../type_inference/StructureType";
+import { RawPointerType, Type } from "../type_inference/Type";
+import { ASTElement, SourceLocation } from "./ASTElement";
 
 export class SimpleTypeElement extends ASTElement {
     name: string;
@@ -21,7 +21,7 @@ export class SimpleTypeElement extends ASTElement {
     }
 
     asTypeObject(): Type {
-        if (Classes.has(this.name)) {
+        if (Classes.has(this.name) && Classes.get(this.name)) {
             return Classes.get(this.name).type();
         }
         return new ConcreteType(this.name);
@@ -31,6 +31,7 @@ export class SimpleTypeElement extends ASTElement {
 export class TypeElement extends ASTElement {
     source: SimpleTypeElement;
     generics: TypeElement[];
+    override: Type;
 
     constructor(loc: SourceLocation, source: SimpleTypeElement, generics: TypeElement[]) {
         super(loc);
@@ -47,12 +48,13 @@ export class TypeElement extends ASTElement {
     }
 
     asTypeObject(): Type {
+        if (this.override) return this.override;
         const rctype = this.source.asTypeObject();
-        if (rctype instanceof StructureType && Classes.has(rctype.fqn.toString())) {
-            const cl = Classes.get(rctype.fqn.toString());
+        if (rctype instanceof StructureType && Classes.has(rctype.name)) {
+            const cl = Classes.get(rctype.name);
             cl.generics.forEach((x, y) => {
                 if (this.generics[y]) {
-                    rctype.generic_map.set(x, this.generics[y].asTypeObject());
+                    (rctype as StructureType).generic_map.set(x, this.generics[y].asTypeObject());
                 }
             });
         }

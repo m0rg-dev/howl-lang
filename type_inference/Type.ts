@@ -1,3 +1,5 @@
+import { Classes } from "../registry/Registry";
+
 export abstract class Type {
     abstract toString(): string;
     abstract equals(other: Type): boolean;

@@ -19,6 +19,9 @@ export class IntersectionType extends ClosureType {
     evaluable() {
         const t0 = this.source0.get();
         const t1 = this.source1.get();
+        if (!t0) return false;
+        if (!t1) return false;
+
         if (t0.equals(t1))
             return true;
         if (t0 instanceof AnyType || t1 instanceof AnyType)

@@ -27,7 +27,7 @@ export class IndexType extends ClosureType {
         if (this.source.get() instanceof RawPointerType) return true;
         if (this.source.get() instanceof StructureType) {
             const st = this.source.get() as StructureType;
-            const ct = Classes.get(st.fqn.toString());
+            const ct = Classes.get(st.name);
             if (ct && ct.methods.some(x => x.getFQN().last() == "__index__")) {
                 return true;
             }
@@ -46,7 +46,7 @@ export class IndexType extends ClosureType {
             const source = this.source.get();
             if (source instanceof RawPointerType) return source.source;
             if (source instanceof StructureType) {
-                const ct = Classes.get(source.fqn.toString());
+                const ct = Classes.get(source.name);
                 return source.applyGenericMap(ct.methods.find(x => x.getFQN().last() == "__index__")?.return_type);
             }
             if (source instanceof ConcreteType) {

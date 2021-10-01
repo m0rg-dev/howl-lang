@@ -5,6 +5,8 @@ export class TypedItemElement extends ASTElement {
     name: string;
     type: Type;
 
+    generics: Type[];
+
     constructor(loc: SourceLocation, name: string, type: Type) {
         super(loc);
         this.name = name;

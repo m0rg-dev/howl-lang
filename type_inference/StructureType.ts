@@ -1,5 +1,7 @@
+import { log } from "../driver/Driver";
 import { ClassElement } from "../ast/ClassElement";
-import { FQN } from "../ast/FQN";
+import { LogLevel } from "../driver/Pass";
+import { AnyType } from "./AnyType";
 import { ConcreteType } from "./ConcreteType";
 import { FunctionType } from "./FunctionType";
 import { GenericType } from "./GenericType";
@@ -7,13 +9,13 @@ import { RawPointerType, Type } from "./Type";
 
 
 export class StructureType extends Type {
-    fqn: FQN;
+    name: string;
     private fields: Map<string, Type> = new Map();
     generic_map: Map<string, Type> = new Map();
 
-    constructor(fqn: FQN, generics: Set<string>) {
+    constructor(name: string, generics: Set<string>) {
         super();
-        this.fqn = fqn;
+        this.name = name;
         generics.forEach((x) => this.generic_map.set(x, new GenericType(x)));
     }
 
@@ -26,12 +28,12 @@ export class StructureType extends Type {
         if (this.generic_map) {
             this.generic_map.forEach((v, k) => generics.push(`${k} = ${v}`));
         }
-        return `${this.fqn.toString()}<${generics.join(", ")}>`;
+        return `${this.name}<${generics.join(", ")}>`;
     }
 
     equals(other: Type) {
         if (other instanceof StructureType) {
-            if (!this.fqn.equals(other.fqn))
+            if (!(this.name == other.name))
                 return false;
             if (this.fields.size != other.fields.size)
                 return false;
@@ -51,18 +53,19 @@ export class StructureType extends Type {
     }
 
     getFieldType(field: string): Type {
-        console.error(`  (GetType ${field})`);
+        log(LogLevel.TRACE, `${this}`, `  (GetType ${field})`);
         const rc = this.applyGenericMap(this.fields.get(field));
-        console.error(`  (ApplyGenericMap ${rc})`);
+        log(LogLevel.TRACE, `${this}`, `  (ApplyGenericMap ${rc})`);
         return rc;
     }
 
     applyGenericMap(t: Type): Type {
         if (t instanceof GenericType) {
-            console.error(`   (ApplyGenericMap) ${t} -> ${this.generic_map.get(t.name)}`);
-            return this.generic_map.get(t.name);
+            const rc = this.generic_map.get(t.name) || new AnyType();
+            log(LogLevel.TRACE, `${this}`, `   (ApplyGenericMap) ${t} -> ${rc}`);
+            return rc;
         } else if (t instanceof FunctionType) {
-            console.error(`   (ApplyGenericMap) ${t}`);
+            log(LogLevel.TRACE, `${this}`, `   (ApplyGenericMap) ${t}`);
             const u = new FunctionType(t);
             u.return_type = this.applyGenericMap(t.return_type);
             u.self_type = this.applyGenericMap(t.self_type);
@@ -70,7 +73,7 @@ export class StructureType extends Type {
             return u;
         } else if (t instanceof StructureType) {
             // TODO don't mutate here it's weird
-            if (t.fqn.equals(this.fqn)) {
+            if (t.name == this.name) {
                 t.generic_map = this.generic_map;
             } else {
                 t.generic_map.forEach((v, k) => {
@@ -88,16 +91,18 @@ export class StructureType extends Type {
 
     MonomorphizedName(): string {
         const generic_keys = [...this.generic_map.keys()];
-        return `M${this.fqn.last()}_${generic_keys.map(x => (this.generic_map.get(x) as ConcreteType).name).join("_")}`;
+        const parts = this.name.split(".");
+        parts[parts.length - 1] = "M" + parts[parts.length - 1];
+        return `${parts.join(".")}_${generic_keys.map(x => (this.generic_map.get(x) as ConcreteType).name).join("_")}`;
     }
 }
 
 export class StaticTableType extends StructureType {
     constructor(source: ClassElement) {
-        super(source.getFQN().repl_last(`${source.getFQN().last()}_stable`), new Set());
+        super(`${source.name}_stable`, new Set());
 
         source.methods.forEach(m => {
-            super.addField(m.getFQN().last(), new FunctionType(m));
+            super.addField(m.getFQN().last().split(".").pop(), new FunctionType(m));
         });
     }
 

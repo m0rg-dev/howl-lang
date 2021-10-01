@@ -20,6 +20,6 @@ export class AssignmentStatement extends StatementElement {
     }
 
     toString() {
-        return `${this.lhs} = ${this.rhs}`;
+        return `${this.lhs} = ${this.rhs};`;
     }
 }

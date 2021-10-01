@@ -19,6 +19,6 @@ export class UnaryReturnStatement extends StatementElement {
     }
 
     toString() {
-        return `return ${this.source}`;
+        return `return ${this.source};`;
     }
 }
