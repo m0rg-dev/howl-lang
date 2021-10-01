@@ -1,10 +1,11 @@
 import { Type } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
-import { TypeElement } from "./TypeElement";
 
 export class TypedItemElement extends ASTElement {
     name: string;
     type: Type;
+
+    generics: Type[];
 
     constructor(loc: SourceLocation, name: string, type: Type) {
         super(loc);

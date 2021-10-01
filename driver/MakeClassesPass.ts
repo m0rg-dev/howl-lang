@@ -3,11 +3,10 @@ import { ClassElement } from "../ast/ClassElement";
 import { ClassHeaderElement } from "../ast/ClassHeaderElement";
 import { FunctionElement } from "../ast/FunctionElement";
 import { TypedItemElement } from "../ast/TypedItemElement";
-import { SimpleTypeElement, TypeElement } from "../ast/TypeElement";
 import { InOrder, MatchElementType, Until } from "../parser/Matcher";
-import { ClassReferenceType } from "../type_inference/Type";
+import { ConcreteType } from "../type_inference/ConcreteType";
 import { Errors } from "./Errors";
-import { Pass } from "./Pass";
+import { LogLevel, Pass } from "./Pass";
 
 export class MakeClassesPass extends Pass {
     apply() {
@@ -31,7 +30,8 @@ export class MakeClassesPass extends Pass {
                     if (x instanceof TypedItemElement) {
                         fields.push(x);
                     } else if (x instanceof FunctionElement) {
-                        x.self_type = new ClassReferenceType(ast_stream[0].name);
+                        x.self_type = new ConcreteType(ast_stream[0].name);
+                        x.name = `${ast_stream[0].name.split(".").pop()}.${x.name}`;
                         methods.push(x);
                     } else {
                         this.emitCompilationError(Errors.COMPILER_BUG, "not TypedItem or Function?", x.source_location);

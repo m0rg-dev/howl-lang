@@ -178,10 +178,10 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
 
     if (e instanceof ExpressionElement && e.resolved_type) {
         s.push((new Link("u" + e.uuid, "type_" + e.uuid)).toString());
-        s.push(`  type_${e.uuid} [label="${escape(e.resolved_type.ir_type())}", shape=Mrecord, color=green, fontcolor=green]`);
+        s.push(`  type_${e.uuid} [label="${escape(e.resolved_type.ir_type())}", shape=Mrecord, color="#007700", fontcolor="#007700"]`);
     } else if (e instanceof ExpressionElement && e.type_location) {
         s.push((new Link("u" + e.uuid, "type_" + e.uuid)).toString());
-        s.push(`  type_${e.uuid} [label="${escape(e.type_location.toString())} = ${escape(e.type_location.get().toString())}", shape=Mrecord, color=blue, fontcolor=blue]`);
+        s.push(`  type_${e.uuid} [label="${escape(e.type_location.toString())} = ${escape(e.type_location.get()?.toString())}", shape=Mrecord, color=blue, fontcolor=blue]`);
     }
 
     return s.join("\n");
@@ -194,7 +194,7 @@ export function RenderScope(scope: Scope): string {
 
     scope.types.forEach((x, y) => {
         if (!(x instanceof ConsumedType)) {
-            contents.push([{ text: scope.names[y] || `#${y}` }, { text: x.toString() }]);
+            contents.push([{ text: scope.names[y] || `#${y}` }, { text: x?.toString() }]);
         }
     });
 
@@ -202,6 +202,7 @@ export function RenderScope(scope: Scope): string {
 }
 
 function escape(s: string): string {
+    if (s === undefined) return "undefined";
     return s.replaceAll("\"", "&#34;")
         .replaceAll("&", "&#38;")
         .replaceAll("'", "&#39;")

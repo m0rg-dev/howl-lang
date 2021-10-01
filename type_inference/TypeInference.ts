@@ -20,6 +20,7 @@ import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatem
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { WalkAST } from "../ast/WalkAST";
+import { emitError } from "../driver/Driver";
 import { Errors } from "../driver/Errors";
 import { Pass } from "../driver/Pass";
 import { Classes } from "../registry/Registry";
@@ -107,7 +108,7 @@ export function RunTypeInference(f: FunctionElement) {
             x.type_location = new TypeLocation(s, idx);
         } else if (x instanceof FieldReferenceExpression) {
             if (!x.source.type_location) {
-                Pass.emitError(f.source, Errors.COMPILER_BUG, `undefined type location on ${x.source} ${x.source.constructor.name}`, x.source.source_location);
+                emitError(f.source, Errors.COMPILER_BUG, `undefined type location on ${x.source} ${x.source.constructor.name}`, x.source.source_location);
             }
 
             const idx = s.addType(new FieldReferenceType(x.source.type_location, x.name));
@@ -152,7 +153,7 @@ export function RunTypeInference(f: FunctionElement) {
                 changed ||= ApplyRulesToScope(x.scope);
             } else if (x instanceof FunctionCallExpression) {
                 if (!x.source.type_location) {
-                    Pass.emitError(f.source, Errors.COMPILER_BUG, `undefined type location on ${x.source}`, x.source.source_location);
+                    emitError(f.source, Errors.COMPILER_BUG, `undefined type location on ${x.source}`, x.source.source_location);
                 }
 
                 if (x.source.type_location.get() instanceof FunctionType) {
@@ -255,6 +256,9 @@ function ApplyRulesToScope(s: Scope): boolean {
             // result.
             const new_type = t.evaluator()();
             console.error(`(EvaluateClosure ${s.n} ${index}) ${t}  =>  ${new_type}`);
+            if (!new_type) {
+                emitError(s.root.source, Errors.COMPILER_BUG, `${t} evaluated to undefined`, s.root.source_location);
+            }
             s.types[index] = new_type;
             rc = true;
         }
@@ -305,6 +309,7 @@ function ApplyRulesToScope(s: Scope): boolean {
                             x.args.forEach((arg) => {
                                 arg.type = t.applyGenericMap(arg.type);
                             });
+                            x.name = `${new_class.name.split(".").pop()}.${x.name.split(".").pop()}`;
                         } else if (x instanceof TypedItemElement) {
                             x.type = t.applyGenericMap(x.type);
                         }

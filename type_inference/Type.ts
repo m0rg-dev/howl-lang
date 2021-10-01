@@ -23,24 +23,3 @@ export class RawPointerType extends Type {
         return other.source.equals(this.source);
     }
 }
-
-
-export class ClassReferenceType extends ClosureType {
-    name: string;
-
-    constructor(name: string) {
-        super();
-        this.name = name;
-    }
-
-    evaluable() { return true; }
-    evaluator() {
-        return () => {
-            return Classes.get(this.name).type();
-        }
-    }
-    toString() { return `class[${this.name}]` }
-    equals(other: Type) {
-        return false;
-    }
-}

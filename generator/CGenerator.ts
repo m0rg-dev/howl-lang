@@ -72,7 +72,7 @@ export function EmitStructures(root: ClassElement) {
     // Static table.
     console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
     root.methods.forEach(m => {
-        console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last())};`)
+        console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
     });
     console.log(`} ${SanitizeName(root.name)}_stable = {`);
     root.methods.forEach(m => {
@@ -105,7 +105,7 @@ export function EmitC(root: ASTElement) {
 
         // Constructor.
         let cargs: TypedItemElement[] = [];
-        const cidx = root.methods.findIndex(x => x.getFQN().last() == "constructor");
+        const cidx = root.methods.findIndex(x => x.getFQN().last().split(".").pop() == "constructor");
         if (cidx >= 0) {
             cargs = root.methods[cidx].args;
         }

@@ -37,7 +37,7 @@ export class ClassElement extends ASTElement {
     type(): StructureType {
         const t = new StructureType(this.name, new Set(this.generics));
         this.fields.forEach((x) => t.addField(x.name, x.type));
-        this.methods.forEach((x) => t.addField(x.getFQN().last(), new FunctionType(x)));
+        this.methods.forEach((x) => t.addField(x.getFQN().last().split(".").pop(), new FunctionType(x)));
         return t;
     }
 

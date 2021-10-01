@@ -7,9 +7,9 @@ import { CompoundStatementElement } from "./CompoundStatementElement";
 import { FQN, HasFQN } from "./FQN";
 import { TypedItemElement } from "./TypedItemElement";
 
-export class FunctionElement extends ASTElement implements HasFQN {
+export class FunctionElement extends ASTElement {
     private parent: HasFQN;
-    private name: string;
+    name: string;
 
     source: CompilationUnit;
 

@@ -1,4 +1,5 @@
 import { ClassElement } from "../ast/ClassElement";
+import { AnyType } from "./AnyType";
 import { ConcreteType } from "./ConcreteType";
 import { FunctionType } from "./FunctionType";
 import { GenericType } from "./GenericType";
@@ -58,8 +59,9 @@ export class StructureType extends Type {
 
     applyGenericMap(t: Type): Type {
         if (t instanceof GenericType) {
-            console.error(`   (ApplyGenericMap) ${t} -> ${this.generic_map.get(t.name)}`);
-            return this.generic_map.get(t.name);
+            const rc = this.generic_map.get(t.name) || new AnyType();
+            console.error(`   (ApplyGenericMap) ${t} -> ${rc}`);
+            return rc;
         } else if (t instanceof FunctionType) {
             console.error(`   (ApplyGenericMap) ${t}`);
             const u = new FunctionType(t);
@@ -87,7 +89,9 @@ export class StructureType extends Type {
 
     MonomorphizedName(): string {
         const generic_keys = [...this.generic_map.keys()];
-        return `M${this.name}_${generic_keys.map(x => (this.generic_map.get(x) as ConcreteType).name).join("_")}`;
+        const parts = this.name.split(".");
+        parts[parts.length - 1] = "M" + parts[parts.length - 1];
+        return `${parts.join(".")}_${generic_keys.map(x => (this.generic_map.get(x) as ConcreteType).name).join("_")}`;
     }
 }
 
@@ -96,7 +100,7 @@ export class StaticTableType extends StructureType {
         super(`${source.name}_stable`, new Set());
 
         source.methods.forEach(m => {
-            super.addField(m.getFQN().last(), new FunctionType(m));
+            super.addField(m.getFQN().last().split(".").pop(), new FunctionType(m));
         });
     }
 

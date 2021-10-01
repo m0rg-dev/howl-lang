@@ -1,8 +1,8 @@
 import { Classes } from "../registry/Registry";
-import { ClassReferenceType, RawPointerType, Type } from "../type_inference/Type";
 import { ConcreteType } from "../type_inference/ConcreteType";
-import { ASTElement, SourceLocation } from "./ASTElement";
 import { StructureType } from "../type_inference/StructureType";
+import { RawPointerType, Type } from "../type_inference/Type";
+import { ASTElement, SourceLocation } from "./ASTElement";
 
 export class SimpleTypeElement extends ASTElement {
     name: string;
@@ -54,7 +54,7 @@ export class TypeElement extends ASTElement {
             const cl = Classes.get(rctype.name);
             cl.generics.forEach((x, y) => {
                 if (this.generics[y]) {
-                    rctype.generic_map.set(x, this.generics[y].asTypeObject());
+                    (rctype as StructureType).generic_map.set(x, this.generics[y].asTypeObject());
                 }
             });
         }
