@@ -32,11 +32,9 @@ class String {
     }
 
     static fn String fromBytes(*u8 bytes, i64 length) {
-        let String rc;
-        rc = new String();
+        let String rc = new String();
 
-        let i64 i;
-        i = 0;
+        let i64 i = 0;
         while i < length + 1 {
             rc.contents[i] = bytes[i];
             i = i + 1;

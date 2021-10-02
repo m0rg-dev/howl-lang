@@ -16,7 +16,7 @@ import { Hug } from "../parser/Matcher";
 import { LocationFrom } from "../parser/Parser";
 import { CompilationUnit } from "./CompilationUnit";
 import { Errors } from "./Errors";
-import { Pass } from "./Pass";
+import { LogLevel, Pass } from "./Pass";
 
 export class StatementPass extends Pass {
     parseCompound(segment: ASTElement[]) {
@@ -50,26 +50,43 @@ export class StatementPass extends Pass {
                         this.resynchronize(segment);
                     }
                 } else if (el.token.type == TokenType.Let) {
-                    // let type name ;
+                    // let type name = initializer;
                     const maybe_type = segment.shift();
-                    if (maybe_type instanceof TypeExpression) {
-                        const maybe_name = segment.shift();
-                        if (maybe_name instanceof NameExpression) {
-                            const semi = segment.shift();
-                            if (semi instanceof TokenElement && semi.token.type == TokenType.Semicolon) {
-                                s2.push(new LocalDefinitionStatement(LocationFrom([el, semi]), maybe_name.name, maybe_type));
-                            } else {
-                                this.emitCompilationError(Errors.EXPECTED_SEMICOLON, "Expected semicolon", semi.source_location);
-                                this.resynchronize(segment);
-                            }
-                        } else {
-                            this.emitCompilationError(Errors.EXPECTED_NAME, "Expected name", maybe_name.source_location);
-                            this.resynchronize(segment);
-                        }
-                    } else {
+                    if (!(maybe_type instanceof TypeExpression)) {
                         this.emitCompilationError(Errors.EXPECTED_TYPE, "Expected type", maybe_type.source_location);
                         this.resynchronize(segment);
+                        continue;
                     }
+
+                    const maybe_name = segment.shift();
+                    if (!(maybe_name instanceof NameExpression)) {
+                        this.emitCompilationError(Errors.EXPECTED_NAME, "Expected name", maybe_name.source_location);
+                        this.resynchronize(segment);
+                        continue;
+                    }
+
+                    const equals = segment.shift();
+                    if (!(equals instanceof TokenElement && equals.token.type == TokenType.Equals)) {
+                        this.emitCompilationError(Errors.EXPECTED_EQUALS, "Expected equals sign", equals.source_location);
+                        this.resynchronize(segment);
+                        continue;
+                    }
+
+                    const initializer = segment.shift();
+                    if (!(initializer instanceof ExpressionElement)) {
+                        this.emitCompilationError(Errors.EXPECTED_EXPRESSION, "Expected expression", initializer.source_location);
+                        this.resynchronize(segment);
+                        continue;
+                    }
+
+                    const semi = segment.shift();
+                    if (!(semi instanceof TokenElement && semi.token.type == TokenType.Semicolon)) {
+                        this.emitCompilationError(Errors.EXPECTED_SEMICOLON, "Expected semicolon", semi.source_location);
+                        this.resynchronize(segment);
+                        continue;
+                    }
+
+                    s2.push(new LocalDefinitionStatement(LocationFrom([el, equals]), maybe_name.name, maybe_type, initializer));
                 } else if (el.token.type == TokenType.If || el.token.type == TokenType.While) {
                     // if/while exp { statements }
                     const maybe_exp = segment.shift();
@@ -126,6 +143,7 @@ export class StatementPass extends Pass {
             }
         }
 
+        this.log(LogLevel.TRACE, `${s2.map(x => x.toString()).join(" ")}`);
         segment.splice(0, segment.length, new CompoundStatementElement(LocationFrom(s2), s2));
     }
 

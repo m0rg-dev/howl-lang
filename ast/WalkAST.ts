@@ -75,8 +75,10 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
     } else if (root instanceof SimpleStatement) {
         WalkAST(root.exp, cb, _nearestScope);
         cb(root, _nearestScope);
-    } else if (root instanceof LocalDefinitionStatement
-        || root instanceof NullaryReturnStatement
+    } else if (root instanceof LocalDefinitionStatement) {
+        WalkAST(root.initializer, cb, _nearestScope);
+        cb(root, _nearestScope);
+    } else if (root instanceof NullaryReturnStatement
         || root instanceof NameExpression
         || root instanceof TypeExpression
         || root instanceof NumberExpression

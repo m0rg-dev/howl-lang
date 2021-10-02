@@ -14,10 +14,8 @@ class Foo<T> {
 }
 
 static fn i32 Main() {
-    let i32 val;
-    let Foo obj;
-    val = 42;
-    obj = new Foo();
+    let i32 val = 42;
+    let Foo obj = new Foo();
     obj.set(val);
     return obj.get();
 }
