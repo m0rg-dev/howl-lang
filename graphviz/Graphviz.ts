@@ -22,6 +22,7 @@ import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
 import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
 import { TypeExpression } from "../ast/expression/TypeExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
+import { FFICallExpression } from "../ast/expression/FFICallExpression";
 
 const genexes_drawn = new Set<string>();
 
@@ -140,6 +141,17 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
     } else if (e instanceof ConstructorCallExpression) {
         const contents: RecordRow[] = [
             [{ text: "ConstructorCallExpression" }]
+        ];
+        contents.push([{ text: "source" }, { port: "source", text: e.source.toString() }]);
+        e.args.forEach((x, y) => {
+            contents.push([{ text: `arg${y}` }, { port: `arg${y}`, text: x.toString() }]);
+            s.push((new Link("u" + e.uuid + `:arg${y}`, "u" + x.uuid)).toString());
+            s.push(RenderElement(x, _nearestScope));
+        });
+        s.push((new RecordNode(e.uuid, contents)).toString());
+    } else if (e instanceof FFICallExpression) {
+        const contents: RecordRow[] = [
+            [{ text: "FFICalExpression" }]
         ];
         contents.push([{ text: "source" }, { port: "source", text: e.source.toString() }]);
         e.args.forEach((x, y) => {
