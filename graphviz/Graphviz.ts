@@ -23,6 +23,7 @@ import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
 import { TypeExpression } from "../ast/expression/TypeExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
+import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 
 const genexes_drawn = new Set<string>();
 
@@ -105,6 +106,16 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push((new RecordNode(e.uuid, contents)).toString());
         s.push((new Link("u" + e.uuid + ":source", "u" + e.source.uuid)).toString());
         s.push(RenderElement(e.source, _nearestScope));
+    } else if (e instanceof LocalDefinitionStatement) {
+        const contents: RecordRow[] = [
+            [{ text: "LocalDefinitionStatement" }],
+        ];
+        contents.push([{ text: "name" }, { text: e.name }]);
+        contents.push([{ text: "type" }, { text: e.type.toString() }]);
+        contents.push([{ text: "initializer" }, { port: "initializer", text: e.initializer.toString() }]);
+        s.push((new RecordNode(e.uuid, contents)).toString());
+        s.push((new Link("u" + e.uuid + ":initializer", "u" + e.initializer.uuid)).toString());
+        s.push(RenderElement(e.initializer, _nearestScope));
     } else if (e instanceof FieldReferenceExpression) {
         const contents: RecordRow[] = [
             [{ text: "FieldReferenceExpression" }],
