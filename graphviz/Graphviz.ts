@@ -162,7 +162,7 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push((new RecordNode(e.uuid, contents)).toString());
     } else if (e instanceof FFICallExpression) {
         const contents: RecordRow[] = [
-            [{ text: "FFICalExpression" }]
+            [{ text: "FFICallExpression" }]
         ];
         contents.push([{ text: "source" }, { port: "source", text: e.source.toString() }]);
         e.args.forEach((x, y) => {
