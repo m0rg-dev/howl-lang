@@ -23,68 +23,178 @@ import { ArithmeticExpression } from "./expression/ArithmeticExpression";
 import { TypeExpression } from "./expression/TypeExpression";
 import { StringConstantExpression } from "./expression/StringConstantExpression";
 import { WhileStatement } from "./statement/WhileStatement";
+import { log } from "../driver/Driver";
+import { LogLevel } from "../driver/Pass";
+import { ExpressionElement } from "./ExpressionElement";
 
-export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope) => void, _nearestScope?: Scope) {
+export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope, repl: (n: ASTElement) => void) => void, _nearestScope?: Scope, repl = (n: ASTElement) => { }) {
     if (root instanceof ClassElement) {
-        root.methods.forEach(x => {
-            WalkAST(x, cb, _nearestScope);
+        root.methods.forEach((method, index) => {
+            WalkAST(method, cb, _nearestScope, (n: ASTElement) => {
+                if (n instanceof FunctionElement) {
+                    root.methods[index] = n;
+                } else {
+                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace method ${method} on ${root} with non-FunctionElement ${n}`);
+                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                }
+            });
         });
-        root.fields.forEach(x => {
-            WalkAST(x, cb, _nearestScope);
+        root.fields.forEach((field, index) => {
+            WalkAST(field, cb, _nearestScope, (n: ASTElement) => {
+                if (n instanceof TypedItemElement) {
+                    root.fields[index] = n;
+                } else {
+                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace field ${field} on ${root} with non-TypedItemElement ${n}`);
+                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                }
+            });
         });
-        cb(root, _nearestScope);
+        cb(root, _nearestScope, repl);
     } else if (root instanceof FunctionElement) {
-        WalkAST(root.body, cb, root.scope);
-        cb(root, root.scope);
-    } else if (root instanceof IndexExpression) {
-        WalkAST(root.source, cb, _nearestScope);
-        WalkAST(root.index, cb, _nearestScope);
-        cb(root, _nearestScope);
-    } else if (root instanceof CompoundStatementElement) {
-        root.statements.forEach(x => {
-            WalkAST(x, cb, root.scope);
+        WalkAST(root.body, cb, root.scope, (n: ASTElement) => {
+            if (n instanceof CompoundStatementElement) {
+                root.body = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
         });
-        cb(root, root.scope);
+        cb(root, root.scope, repl);
+    } else if (root instanceof IndexExpression) {
+        WalkAST(root.source, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof ExpressionElement) {
+                root.source = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+        WalkAST(root.index, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof ExpressionElement) {
+                root.index = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace index of ${root} with non-ExpressionElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+        cb(root, _nearestScope, repl);
+    } else if (root instanceof CompoundStatementElement) {
+        root.statements.forEach((statement, index) => {
+            WalkAST(statement, cb, root.scope, (n: ASTElement) => {
+                root.statements[index] = n;
+            });
+        });
+        cb(root, root.scope, repl);
     } else if (root instanceof AssignmentStatement
         || root instanceof ComparisonExpression
         || root instanceof ArithmeticExpression) {
-        WalkAST(root.lhs, cb, _nearestScope);
-        WalkAST(root.rhs, cb, _nearestScope);
-        cb(root, _nearestScope);
+        WalkAST(root.lhs, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof ExpressionElement) {
+                root.lhs = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace lhs of ${root} with non-ExpressionElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+        WalkAST(root.rhs, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof ExpressionElement) {
+                root.rhs = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace rhs of ${root} with non-ExpressionElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+        cb(root, _nearestScope, repl);
     } else if (root instanceof FunctionCallExpression) {
-        WalkAST(root.source, cb, _nearestScope);
-        root.args.forEach(x => {
-            WalkAST(x, cb, _nearestScope);
+        WalkAST(root.source, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof ExpressionElement) {
+                root.source = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
         });
-        cb(root, _nearestScope);
+        root.args.forEach((argument, index) => {
+            WalkAST(argument, cb, _nearestScope, (n: ASTElement) => {
+                if (n instanceof ExpressionElement) {
+                    root.args[index] = n;
+                } else {
+                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace argument ${index} of ${root} with non-ExpressionElement ${n}`);
+                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                }
+            });
+        });
+        cb(root, _nearestScope, repl);
     } else if (root instanceof ConstructorCallExpression || root instanceof FFICallExpression) {
-        root.args.forEach(x => {
-            WalkAST(x, cb, _nearestScope);
+        root.args.forEach((argument, index) => {
+            WalkAST(argument, cb, _nearestScope, (n: ASTElement) => {
+                if (n instanceof ExpressionElement) {
+                    root.args[index] = n;
+                } else {
+                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace argument ${index} of ${root} with non-ExpressionElement ${n}`);
+                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                }
+            });
         });
-        cb(root, _nearestScope);
+        cb(root, _nearestScope, repl);
     } else if (root instanceof IfStatement
         || root instanceof WhileStatement) {
-        WalkAST(root.condition, cb, _nearestScope);
-        WalkAST(root.body, cb, root.body.scope);
-        cb(root, _nearestScope);
+        WalkAST(root.condition, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof ExpressionElement) {
+                root.condition = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace condition of ${root} with non-ExpressionElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+        WalkAST(root.body, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof CompoundStatementElement) {
+                root.body = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+        cb(root, _nearestScope, repl);
     } else if (root instanceof FieldReferenceExpression
         || root instanceof UnaryReturnStatement
         || root instanceof GeneratorTemporaryExpression) {
-        WalkAST(root.source, cb, _nearestScope);
-        cb(root, _nearestScope);
+        WalkAST(root.source, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof ExpressionElement) {
+                root.source = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+        cb(root, _nearestScope, repl);
     } else if (root instanceof SimpleStatement) {
-        WalkAST(root.exp, cb, _nearestScope);
-        cb(root, _nearestScope);
+        WalkAST(root.exp, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof ExpressionElement) {
+                root.exp = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+        cb(root, _nearestScope, repl);
     } else if (root instanceof LocalDefinitionStatement) {
-        WalkAST(root.initializer, cb, _nearestScope);
-        cb(root, _nearestScope);
+        WalkAST(root.initializer, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof ExpressionElement) {
+                root.initializer = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace initializer of ${root} with non-ExpressionElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+        cb(root, _nearestScope, repl);
     } else if (root instanceof NullaryReturnStatement
         || root instanceof NameExpression
         || root instanceof TypeExpression
         || root instanceof NumberExpression
         || root instanceof StringConstantExpression
         || root instanceof TypedItemElement) {
-        cb(root, _nearestScope);
+        cb(root, _nearestScope, repl);
     } else {
         throw new Error(`can't walk a ${root.constructor.name} (${root} ${root.source_location})`);
     }

@@ -69,7 +69,7 @@ export function RunTypeInference(f: FunctionElement) {
             x.type_location = new TypeLocation(s, idx);
             log(LogLevel.TRACE, `TypeInference ${f}`, `(ConstructorCall) ${x.type_location} ${s.types[idx]}`);
         } else if (x instanceof NameExpression) {
-            x.type_location = s.lookupName(x.name);
+            x.type_location = s.lookupName_old(x.name);
             log(LogLevel.TRACE, `TypeInference ${f}`, `(Name ${x.name}) ${x.type_location}`);
         } else if (x instanceof FieldReferenceExpression
             && x.source instanceof TypeExpression
