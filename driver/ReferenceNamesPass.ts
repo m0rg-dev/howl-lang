@@ -30,7 +30,7 @@ export class ReferenceNamesPass extends Pass {
                             length: new_name.length,
                             text: new_name,
                             name: new_name
-                        });
+                        }, this.cu);
 
                         return [new_element, ...ast_stream.slice(idx_n * 2 - 1)];
                     }

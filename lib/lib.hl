@@ -28,7 +28,7 @@ class String {
     Vec<u8> contents;
 
     fn void constructor() {
-        self.contents = new Vec();
+        self.contents = new Vec<u8>();
     }
 
     static fn String fromBytes(*u8 bytes, i64 length) {

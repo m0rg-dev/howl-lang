@@ -20,10 +20,10 @@ import { Scope } from "../type_inference/Scope";
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
 import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
-import { TypeExpression } from "../ast/expression/TypeExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
+import { TypeElement } from "../ast/TypeElement";
 
 const genexes_drawn = new Set<string>();
 
@@ -186,7 +186,7 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
 
     } else if (e instanceof NumberExpression
         || e instanceof NameExpression
-        || e instanceof TypeExpression
+        || e instanceof TypeElement
         || e instanceof StringConstantExpression) {
         s.push(`  u${e.uuid} [label="${escape(e.toString())}", shape=rect];`);
     } else if (e instanceof SimpleStatement) {

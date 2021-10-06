@@ -19,7 +19,7 @@ export class CompilationUnit {
         this.filename = filename;
         this.raw_source = source;
         this.lexer = new Lexer(source);
-        this.ast_stream = this.lexer.token_stream.map(x => new TokenElement(x));
+        this.ast_stream = this.lexer.token_stream.map(x => new TokenElement(x, this));
     }
 
     source_location(offset: number): string {

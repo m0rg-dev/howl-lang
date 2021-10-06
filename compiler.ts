@@ -2,6 +2,7 @@ import * as sms from 'source-map-support';
 import { ParseFile, SetupDriver } from './driver/Driver';
 import { RenderElement } from './graphviz/Graphviz';
 import { Classes, Functions } from './registry/Registry';
+import { RunClassTransforms, RunFunctionTransforms } from './transform/RunTransforms';
 import { ConcreteType } from './type_inference/ConcreteType';
 import { StructureType } from './type_inference/StructureType';
 
@@ -19,6 +20,13 @@ Classes.forEach((cl) => {
         }
     })
 });
+
+Classes.forEach(RunClassTransforms);
+Functions.forEach(RunFunctionTransforms);
+
+Classes.forEach((cl) => {
+    if (!cl.is_monomorphization) Classes.delete(cl.name);
+})
 
 console.log("digraph {\n  rankdir=LR;\n");
 Functions.forEach(x => console.log(RenderElement(x)));

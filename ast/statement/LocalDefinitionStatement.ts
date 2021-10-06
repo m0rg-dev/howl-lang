@@ -1,15 +1,15 @@
 import { SourceLocation } from "../ASTElement";
-import { TypeExpression } from "../expression/TypeExpression";
 import { ExpressionElement } from "../ExpressionElement";
 import { StatementElement } from "../StatementElement";
+import { TypeElement } from "../TypeElement";
 
 
 export class LocalDefinitionStatement extends StatementElement {
     name: string;
-    type: TypeExpression;
+    type: TypeElement;
     initializer: ExpressionElement;
 
-    constructor(loc: SourceLocation, name: string, type: TypeExpression, initializer: ExpressionElement) {
+    constructor(loc: SourceLocation, name: string, type: TypeElement, initializer: ExpressionElement) {
         super(loc);
         this.name = name;
         this.type = type;

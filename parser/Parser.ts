@@ -3,8 +3,8 @@ import { TokenType } from "../lexer/TokenType";
 import { Any, AssertNegative, First, InOrder, Matcher, MatchToken, Star } from "./Matcher";
 
 export function LocationFrom(ast_stream: ASTElement[]): SourceLocation {
-    if (!ast_stream.length) return [0, 0];
-    return [ast_stream[0].source_location[0], ast_stream[ast_stream.length - 1].source_location[1]];
+    if (!ast_stream.length) return [undefined, 0, 0];
+    return [ast_stream[0].source_location[0], ast_stream[0].source_location[1], ast_stream[ast_stream.length - 1].source_location[2]];
 }
 
 export type ProductionRule = {

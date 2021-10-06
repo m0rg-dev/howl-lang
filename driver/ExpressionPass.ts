@@ -9,7 +9,6 @@ import { IndexExpression } from "../ast/expression/IndexExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
-import { TypeExpression } from "../ast/expression/TypeExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { TokenElement } from "../ast/TokenElement";
 import { TypeElement } from "../ast/TypeElement";
@@ -18,8 +17,8 @@ import { NumericLiteralToken } from "../lexer/NumericLiteralToken";
 import { StringLiteralToken } from "../lexer/StringLiteralToken";
 import { TokenType } from "../lexer/TokenType";
 import { Hug, InOrder, MatchElementType, MatchToken } from "../parser/Matcher";
-import { LocationFrom, ProductionRule } from "../parser/Parser";
 import { MatchExpression } from "../parser/MatchUtils";
+import { LocationFrom, ProductionRule } from "../parser/Parser";
 import { CompilationUnit } from "./CompilationUnit";
 import { Errors } from "./Errors";
 import { Pass } from "./Pass";
@@ -86,13 +85,13 @@ export class ExpressionPass extends Pass {
                 name: "ConstructorCall",
                 match: InOrder(MatchToken(TokenType.New), MatchElementType("FunctionCallExpression")),
                 replace: (ast_stream: [any, FunctionCallExpression]) => {
-                    if (!(ast_stream[1].source instanceof TypeExpression)) {
+                    if (!(ast_stream[1].source instanceof TypeElement)) {
                         this.emitCompilationError(Errors.EXPECTED_TYPE, "Expected type", ast_stream[1].source.source_location);
                         return [];
                     }
                     return [new ConstructorCallExpression(
                         ast_stream[1].source_location,
-                        (ast_stream[1].source as TypeExpression).source,
+                        ast_stream[1].source as TypeElement,
                         ast_stream[1].args
                     )];
                 }
@@ -171,14 +170,6 @@ export class ExpressionPass extends Pass {
                 match: MatchToken(TokenType.StringLiteral),
                 replace: (ast_stream: [TokenElement<StringLiteralToken>]) => {
                     return [new StringConstantExpression(ast_stream[0].source_location, ast_stream[0].token.str)];
-                }
-            }, segment);
-
-            this.ApplySingleProductionRule({
-                name: "TypeExpression",
-                match: MatchElementType("TypeElement"),
-                replace: (ast_stream: [TypeElement]) => {
-                    return [new TypeExpression(ast_stream[0].source_location, ast_stream[0].asTypeObject())];
                 }
             }, segment);
 

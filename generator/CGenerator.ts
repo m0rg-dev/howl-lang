@@ -12,22 +12,21 @@ import { IndexExpression } from "../ast/expression/IndexExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
-import { TypeExpression } from "../ast/expression/TypeExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
-import { IfStatement } from "../ast/statement/IfStatement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
+import { IfStatement } from "../ast/statement/IfStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 import { NullaryReturnStatement } from "../ast/statement/NullaryReturnStatement";
 import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
+import { WhileStatement } from "../ast/statement/WhileStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
+import { TypeElement } from "../ast/TypeElement";
 import { ConcreteType } from "../type_inference/ConcreteType";
 import { FunctionType } from "../type_inference/FunctionType";
 import { StructureType } from "../type_inference/StructureType";
 import { RawPointerType, Type } from "../type_inference/Type";
-import { VoidType } from "../type_inference/VoidType";
-import { WhileStatement } from "../ast/statement/WhileStatement";
 
 export function EmitCPrologue() {
     console.log(`#include <stdint.h>`);
@@ -152,7 +151,7 @@ export function EmitC(root: ASTElement) {
     } else if (root instanceof NullaryReturnStatement) {
         console.log(`  return;`);
     } else if (root instanceof LocalDefinitionStatement) {
-        console.log(`  ${ConvertType(root.type.source)} ${root.name} = ${ExpressionToC(root.initializer)};`);
+        console.log(`  ${ConvertType(root.type.asTypeObject())} ${root.name} = ${ExpressionToC(root.initializer)};`);
     } else if (root instanceof SimpleStatement) {
         console.log(`  ${ExpressionToC(root.exp)};`);
     } else {
@@ -185,8 +184,8 @@ function ExpressionToC(e: ExpressionElement): string {
         return `${ExpressionToC(e.source)}(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof ComparisonExpression || e instanceof ArithmeticExpression) {
         return `${ExpressionToC(e.lhs)} ${e.what} ${ExpressionToC(e.rhs)}`;
-    } else if (e instanceof TypeExpression) {
-        return `(&${ConvertType(e.source)}_stable)`;
+    } else if (e instanceof TypeElement) {
+        return `(&${ConvertType(e.asTypeObject())}_stable)`;
     } else if (e instanceof IndexExpression) {
         return `${ExpressionToC(e.source)}[${ExpressionToC(e.index)}]`;
     } else if (e instanceof GeneratorTemporaryExpression) {

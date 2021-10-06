@@ -3,6 +3,7 @@ import { ExpressionElement } from "../ExpressionElement";
 
 export class StringConstantExpression extends ExpressionElement {
     value: string;
+    generated = false;
 
     constructor(loc: SourceLocation, value: string) {
         super(loc);

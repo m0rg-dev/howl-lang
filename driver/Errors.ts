@@ -18,5 +18,8 @@ export enum Errors {
 
     UNEXPECTED_EXPRESSION = 300,
 
+    TYPE_MISMATCH = 400,
+    NO_SUCH_FIELD = 401,
+
     COMPILER_BUG = 9999
 }
