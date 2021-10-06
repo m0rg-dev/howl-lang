@@ -25,7 +25,7 @@ import { TypedItemElement } from "../ast/TypedItemElement";
 import { TypeElement } from "../ast/TypeElement";
 import { ConcreteType } from "../type_inference/ConcreteType";
 import { FunctionType } from "../type_inference/FunctionType";
-import { StructureType } from "../type_inference/StructureType";
+import { StaticTableType, StructureType } from "../type_inference/StructureType";
 import { RawPointerType, Type } from "../type_inference/Type";
 
 export function EmitCPrologue() {
@@ -45,7 +45,7 @@ export function EmitForwardDeclarations(root: ClassElement) {
 
     console.log(`// Forward declarations for class: ${root.name}`);
     console.log(`struct ${SanitizeName(root.name)}_t;`);
-    console.log(`typedef struct ${SanitizeName(root.name)}_t* ${SanitizeName(root.name)};`);
+    console.log(`typedef struct {struct ${SanitizeName(root.name)}_t *obj; struct ${SanitizeName(root.name)}_stable_t *stable; } ${SanitizeName(root.name)};`);
     let cargs: TypedItemElement[] = [];
     const cidx = method_list.findIndex(x => x.getFQN().last() == "constructor");
     if (cidx >= 0) {
@@ -83,7 +83,7 @@ export function EmitStructures(root: ClassElement) {
 
     // Class structure itself.
     console.log(`struct ${SanitizeName(root.name)}_t {`);
-    field_list.forEach(f => {
+    field_list.slice(1).forEach(f => {
         console.log(`  ${ConvertType(f.type)} ${f.name};`);
     });
     console.log(`};\n`);
@@ -113,8 +113,9 @@ export function EmitC(root: ASTElement) {
         }
 
         console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")}) {`);
-        console.log(`  ${SanitizeName(root.name)} rc = calloc(1, sizeof(struct ${SanitizeName(root.name)}_t));`);
-        console.log(`  rc->__stable = &${SanitizeName(root.name)}_stable_obj;`);
+        console.log(`  ${SanitizeName(root.name)} rc;`);
+        console.log(`  rc.obj = calloc(1, sizeof(struct ${SanitizeName(root.name)}_t));`);
+        console.log(`  rc.stable = &${SanitizeName(root.name)}_stable_obj;`);
         if (cidx >= 0) {
             console.log(`  ${SanitizeName(root.name)}__constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
         }
@@ -154,7 +155,6 @@ export function EmitC(root: ASTElement) {
     } else if (root instanceof NullaryReturnStatement) {
         console.log(`  return;`);
     } else if (root instanceof LocalDefinitionStatement) {
-        console.error(root.type.asTypeObject());
         console.log(`  ${ConvertType(root.type.asTypeObject())} ${root.name} = ${ExpressionToC(root.initializer)};`);
     } else if (root instanceof SimpleStatement) {
         console.log(`  ${ExpressionToC(root.exp)};`);
@@ -173,7 +173,13 @@ function ExpressionToC(e: ExpressionElement): string {
         }
     }
     if (e instanceof FieldReferenceExpression) {
-        return `${ExpressionToC(e.source)}->${e.name}`;
+        if (e.name == "__stable") {
+            return `${ExpressionToC(e.source)}.stable`;
+        } else if (e.source.resolved_type instanceof StaticTableType) {
+            return `${ExpressionToC(e.source)}->${e.name}`;
+        } else {
+            return `${ExpressionToC(e.source)}.obj->${e.name}`;
+        }
     } else if (e instanceof NameExpression) {
         return e.name;
     } else if (e instanceof NumberExpression) {
