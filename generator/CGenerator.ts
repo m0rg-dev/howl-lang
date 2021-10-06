@@ -35,17 +35,8 @@ export function EmitCPrologue() {
     console.log(`#include <string.h>`);
     console.log(`#include <unistd.h>`);
     console.log(``);
-    console.log(`typedef int8_t i8;`);
-    console.log(`typedef int16_t i16;`);
-    console.log(`typedef int32_t i32;`);
-    console.log(`typedef int64_t i64;`);
-    console.log(`typedef uint8_t u8;`);
-    console.log(`typedef uint16_t u16;`);
-    console.log(`typedef uint32_t u32;`);
-    console.log(`typedef uint64_t u64;`);
-    console.log(``);
-    console.log(`i32 main$Main(); `)
-    console.log(`i32 main() { return main$Main(); }`);
+    console.log(`int32_t main$Main(); `)
+    console.log(`int32_t main() { return main$Main(); }`);
 }
 
 export function EmitForwardDeclarations(root: ClassElement) {
@@ -71,6 +62,7 @@ export function EmitForwardDeclarations(root: ClassElement) {
 
 export function EmitStructures(root: ClassElement) {
     // Static table.
+    console.log(`// Structures for class: ${root.name}`);
     console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
     root.methods.forEach(m => {
         console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
@@ -177,7 +169,7 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof NumberExpression) {
         return e.value.toString();
     } else if (e instanceof StringConstantExpression) {
-        return `((u8 *) "${e.value}")`;
+        return `((uint8_t *) "${e.value}")`;
     } else if (e instanceof ConstructorCallExpression) {
         return `${ConvertType(e.type_location?.get() || e.resolved_type)}_alloc(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof FFICallExpression) {
@@ -208,6 +200,9 @@ function SanitizeName(n: string): string {
 
 function ConvertType(t: Type): string {
     if (t instanceof ConcreteType) {
+        if (t.name.match(/^[iu](8|16|32|64)$/)) {
+            return ((t.name.startsWith("u")) ? "u" : "") + "int" + t.name.substr(1) + "_t";
+        }
         return SanitizeName(t.ir_type());
     } else if (t instanceof StructureType) {
         const generic_keys = [...t.generic_map.keys()];
