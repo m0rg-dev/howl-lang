@@ -17,6 +17,10 @@ export class FindClassNamesPass extends Pass {
                 MatchToken(TokenType.Class),
                 MatchToken(TokenType.Name),
                 Optional(Hug(TokenType.OpenAngle)),
+                Optional(InOrder(
+                    MatchToken(TokenType.Extends),
+                    MatchToken(TokenType.Name)
+                )),
                 Hug(TokenType.OpenBrace)
             ),
             replace: (ast_stream: [any, TokenElement<NameToken>, ...ASTElement[]]) => {
@@ -35,6 +39,10 @@ export class FindClassNamesPass extends Pass {
                 MatchToken(TokenType.Class),
                 MatchToken(TokenType.Name),
                 Optional(Hug(TokenType.OpenAngle)),
+                Optional(InOrder(
+                    MatchToken(TokenType.Extends),
+                    MatchToken(TokenType.Name)
+                )),
                 Until(MatchToken(TokenType.OpenBrace)),
                 ResynchronizeTopLevel
             ),
@@ -58,6 +66,10 @@ export class FindClassNamesPass extends Pass {
                 MatchToken(TokenType.Class),
                 MatchToken(TokenType.Name),
                 Optional(Hug(TokenType.OpenAngle)),
+                Optional(InOrder(
+                    MatchToken(TokenType.Extends),
+                    MatchToken(TokenType.Name)
+                )),
                 AssertNegative(Hug(TokenType.OpenBrace)),
                 ResynchronizeTopLevel
             ),

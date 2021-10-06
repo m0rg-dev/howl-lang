@@ -12,6 +12,10 @@ export class MarkClassesPass extends Pass {
                 MatchToken(TokenType.Class),
                 MatchToken(TokenType.Name),
                 Optional(Hug(TokenType.OpenAngle)),
+                Optional(InOrder(
+                    MatchToken(TokenType.Extends),
+                    MatchToken(TokenType.Name)
+                )),
                 Hug(TokenType.OpenBrace)
             ),
             replace: (ast_stream: ASTElement[]) => {
@@ -20,6 +24,10 @@ export class MarkClassesPass extends Pass {
                     // get rid of the generic list, if it's there
                     const [_, l] = Hug(TokenType.OpenAngle)(ast_stream.slice(2));
                     start_idx += l;
+                }
+
+                if (ast_stream[start_idx] instanceof TokenElement && ast_stream[start_idx]["token"].type == TokenType.Extends) {
+                    start_idx += 2;
                 }
 
                 return [

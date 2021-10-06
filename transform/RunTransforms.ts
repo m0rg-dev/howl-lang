@@ -192,7 +192,7 @@ function makeConcrete(t: Type): ConcreteType {
         }
     }
 
-    log(LogLevel.ERROR, `makeConcrete`, `COMPILER BUG: Don't know how to makeConcrete on ${t} (${t.constructor.name})`);
+    log(LogLevel.ERROR, `makeConcrete`, `COMPILER BUG: Don't know how to makeConcrete on ${t} (${t?.constructor.name})`);
 
     return undefined;
 }
@@ -223,6 +223,9 @@ function lowestCommonType(a: Type, b: Type): Type {
         const target = Math.min(ba, bb);
         return new ConcreteType(a.name.charAt(0) + target.toString());
     }
+
+    if (Classes.has(a.name) && Classes.get(a.name).hierarchyIncludes(b.name)) return b;
+    if (Classes.has(b.name) && Classes.get(b.name).hierarchyIncludes(a.name)) return a;
 
     return undefined;
 }

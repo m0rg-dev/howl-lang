@@ -3,7 +3,7 @@ A prototype programming language. Shades of Java, but compiles to LLVM IR.
 ```
 $ npm install
 $ npx tsc --build
-$ node compiler.js hello.hl | clang -Wno-pointer-sign -xc - -o hello
+$ node compiler.js hello.hl | clang -xc - -o hello
 $ ./hello
 Awoooooooo~!
 ```

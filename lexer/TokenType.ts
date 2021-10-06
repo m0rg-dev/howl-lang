@@ -10,6 +10,8 @@ export enum TokenType {
     If,
     While,
     FFICall,
+    Extends,
+    Override,
 
     OpenBrace,
     CloseBrace,

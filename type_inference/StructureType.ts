@@ -1,17 +1,16 @@
-import { log } from "../driver/Driver";
 import { ClassElement } from "../ast/ClassElement";
+import { FunctionElement } from "../ast/FunctionElement";
+import { TypedItemElement } from "../ast/TypedItemElement";
+import { WalkAST } from "../ast/WalkAST";
+import { log } from "../driver/Driver";
 import { LogLevel } from "../driver/Pass";
+import { Classes } from "../registry/Registry";
+import { RunFunctionTransforms } from "../transform/RunTransforms";
 import { AnyType } from "./AnyType";
 import { ConcreteType } from "./ConcreteType";
 import { FunctionType } from "./FunctionType";
 import { GenericType } from "./GenericType";
 import { RawPointerType, Type } from "./Type";
-import { Classes } from "../registry/Registry";
-import { FunctionElement } from "../ast/FunctionElement";
-import { TypedItemElement } from "../ast/TypedItemElement";
-import { WalkAST } from "../ast/WalkAST";
-import { RunTypeInference } from "./TypeInference";
-import { RunFunctionTransforms } from "../transform/RunTransforms";
 
 
 export class StructureType extends Type {

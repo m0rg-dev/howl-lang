@@ -39,7 +39,7 @@ export class MakeClassesPass extends Pass {
                     }
                 });
 
-                const cl = new ClassElement(ast_stream[0].source_location, ast_stream[0].name, fields, methods, ast_stream[0].generics);
+                const cl = new ClassElement(ast_stream[0].source_location, ast_stream[0].name, fields, methods, ast_stream[0].generics, ast_stream[0].parent);
                 return [cl];
             }
         });

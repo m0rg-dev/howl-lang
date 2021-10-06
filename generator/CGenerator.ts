@@ -40,17 +40,19 @@ export function EmitCPrologue() {
 }
 
 export function EmitForwardDeclarations(root: ClassElement) {
+    const method_list = root.synthesizeMethods();
+
     console.log(`// Forward declarations for class: ${root.name}`);
     console.log(`struct ${SanitizeName(root.name)}_t;`);
     console.log(`typedef struct ${SanitizeName(root.name)}_t* ${SanitizeName(root.name)};`);
     let cargs: TypedItemElement[] = [];
-    const cidx = root.methods.findIndex(x => x.getFQN().last() == "constructor");
+    const cidx = method_list.findIndex(x => x.getFQN().last() == "constructor");
     if (cidx >= 0) {
-        cargs = root.methods[cidx].args;
+        cargs = method_list[cidx].args;
     }
     console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")});`);
 
-    root.methods.forEach(m => {
+    method_list.forEach(m => {
         const args = [{ t: m.self_type, n: "self" }];
         if (m.is_static) args.shift();
         m.args.forEach(e => args.push({ t: e.type, n: e.name }));
@@ -61,14 +63,17 @@ export function EmitForwardDeclarations(root: ClassElement) {
 }
 
 export function EmitStructures(root: ClassElement) {
+    const field_list = root.synthesizeFields();
+    const method_list = root.synthesizeMethods();
+
     // Static table.
     console.log(`// Structures for class: ${root.name}`);
     console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
-    root.methods.forEach(m => {
+    method_list.forEach(m => {
         console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
     });
     console.log(`} ${SanitizeName(root.name)}_stable_obj = {`);
-    root.methods.forEach(m => {
+    method_list.forEach(m => {
         console.log(`  ${SanitizeName(m.getFQN().toString())},`);
     })
     console.log(`};\n`);
@@ -76,7 +81,7 @@ export function EmitStructures(root: ClassElement) {
 
     // Class structure itself.
     console.log(`struct ${SanitizeName(root.name)}_t {`);
-    root.fields.forEach(f => {
+    field_list.forEach(f => {
         console.log(`  ${ConvertType(f.type)} ${f.name};`);
     });
     console.log(`};\n`);
