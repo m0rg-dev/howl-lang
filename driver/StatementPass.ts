@@ -1,7 +1,6 @@
-import { ASTElement, MarkerElement } from "../ast/ASTElement";
+import { ASTElement } from "../ast/ASTElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { NameExpression } from "../ast/expression/NameExpression";
-import { TypeExpression } from "../ast/expression/TypeExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { IfStatement } from "../ast/statement/IfStatement";
@@ -11,6 +10,7 @@ import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { TokenElement } from "../ast/TokenElement";
+import { TypeElement } from "../ast/TypeElement";
 import { TokenType } from "../lexer/TokenType";
 import { Hug } from "../parser/Matcher";
 import { LocationFrom } from "../parser/Parser";
@@ -52,7 +52,7 @@ export class StatementPass extends Pass {
                 } else if (el.token.type == TokenType.Let) {
                     // let type name = initializer;
                     const maybe_type = segment.shift();
-                    if (!(maybe_type instanceof TypeExpression)) {
+                    if (!(maybe_type instanceof TypeElement)) {
                         this.emitCompilationError(Errors.EXPECTED_TYPE, "Expected type", maybe_type.source_location);
                         this.resynchronize(segment);
                         continue;

@@ -28,10 +28,10 @@ export function emitError(cu: CompilationUnit, id: Errors, message: string, sour
     cu.valid = false;
 
     console.error(`\x1b[1;31mError:\x1b[0m HL${id.toString().padStart(4, '0')} \x1b[1m${message}\x1b[0m`);
-    console.error(`    \x1b[3;90mat ${cu.source_location(source_location[0])} - ${cu.source_location(source_location[1])}\x1b[0m`);
+    console.error(`    \x1b[3mat ${cu.source_location(source_location[1])} - ${cu.source_location(source_location[2])}\x1b[0m`);
 
-    const start_loc = cu.getSourceLocation(source_location[0]);
-    const end_loc = cu.getSourceLocation(source_location[1]);
+    const start_loc = cu.getSourceLocation(source_location[1]);
+    const end_loc = cu.getSourceLocation(source_location[2]);
 
     if (start_loc.line == end_loc.line) {
         const line = cu.getSourceLine(start_loc.line);

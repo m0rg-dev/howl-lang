@@ -18,6 +18,8 @@ export class ClassElement extends ASTElement {
         this.fields = fields;
         this.methods = methods;
         this.generics = generics;
+
+        if (!generics.length) this.is_monomorphization = true;
     }
 
     toString() {

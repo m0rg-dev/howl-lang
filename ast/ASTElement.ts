@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
+import { CompilationUnit } from "../driver/CompilationUnit";
 
-export type SourceLocation = [number, number];
+export type SourceLocation = [CompilationUnit, number, number];
 
 export abstract class ASTElement {
     source_location: SourceLocation;

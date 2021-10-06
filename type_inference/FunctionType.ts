@@ -1,8 +1,9 @@
 import { FunctionElement } from "../ast/FunctionElement";
+import { ConcreteType } from "./ConcreteType";
 import { Type } from "./Type";
 
 
-export class FunctionType extends Type {
+export class FunctionType extends ConcreteType {
     return_type: Type;
     self_type: Type;
     args: Type[];
@@ -10,7 +11,7 @@ export class FunctionType extends Type {
     is_static = false;
 
     constructor(source: FunctionElement | FunctionType) {
-        super();
+        super(undefined);
         this.is_static = source.is_static;
         if (source instanceof FunctionElement) {
             this.return_type = source.return_type;
@@ -21,6 +22,8 @@ export class FunctionType extends Type {
             this.self_type = source.self_type;
             this.args = [...source.args];
         }
+
+        this.name = `${this.return_type}(*)(${[this.self_type, ...this.args].join(", ")})`;
     }
 
     toString() {

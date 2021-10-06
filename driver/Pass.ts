@@ -22,7 +22,7 @@ export abstract class Pass {
     log(level: LogLevel, message: string, source_location?: SourceLocation) {
         let s = `[`;
         if (source_location) {
-            s += " " + this.cu.source_location(source_location[0]);
+            s += " " + this.cu.source_location(source_location[1]);
         } else {
             s += " " + this.cu.filename;
         }

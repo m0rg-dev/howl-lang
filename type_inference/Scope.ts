@@ -41,9 +41,16 @@ export class Scope {
         return rc;
     }
 
-    lookupName(name: string): TypeLocation {
+    lookupName(name: string): Type {
         const idx = this.names.indexOf(name);
         if (idx < 0) return this.parent?.lookupName(name);
+        return this.types[idx];
+    }
+
+    /** @deprecated */
+    lookupName_old(name: string): TypeLocation {
+        const idx = this.names.indexOf(name);
+        if (idx < 0) return this.parent?.lookupName_old(name);
         return new TypeLocation(this, idx);
     }
 }

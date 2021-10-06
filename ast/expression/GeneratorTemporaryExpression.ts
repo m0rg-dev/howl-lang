@@ -14,6 +14,6 @@ export class GeneratorTemporaryExpression extends ExpressionElement {
     }
 
     toString() {
-        return `GENEX(${this.uuid.substr(0, 4)}) ${this.source}`;
+        return `GTE(${this.uuid.substr(0, 4)} ${this.source})`;
     }
 }

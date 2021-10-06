@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { ASTElement } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
@@ -11,7 +13,6 @@ import { IndexExpression } from "../ast/expression/IndexExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
-import { TypeExpression } from "../ast/expression/TypeExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { FunctionElement } from "../ast/FunctionElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
@@ -22,7 +23,7 @@ import { TypedItemElement } from "../ast/TypedItemElement";
 import { WalkAST } from "../ast/WalkAST";
 import { emitError, log } from "../driver/Driver";
 import { Errors } from "../driver/Errors";
-import { LogLevel, Pass } from "../driver/Pass";
+import { LogLevel } from "../driver/Pass";
 import { Classes } from "../registry/Registry";
 import { AnyType } from "./AnyType";
 import { ConcreteFunctionType, ConcreteRawPointerType, ConcreteStructureType, ConcreteType } from "./ConcreteType";
@@ -35,7 +36,7 @@ import { IndexType } from "./IndexType";
 import { IntersectionType } from "./IntersectionType";
 import { Scope } from "./Scope";
 import { ScopeReferenceType } from "./ScopeReferenceType";
-import { StaticTableType, StructureType } from "./StructureType";
+import { StructureType } from "./StructureType";
 import { ClosureType, RawPointerType, Type } from "./Type";
 import { TypeLocation } from "./TypeLocation";
 import { UnionType } from "./UnionType";
@@ -69,16 +70,8 @@ export function RunTypeInference(f: FunctionElement) {
             x.type_location = new TypeLocation(s, idx);
             log(LogLevel.TRACE, `TypeInference ${f}`, `(ConstructorCall) ${x.type_location} ${s.types[idx]}`);
         } else if (x instanceof NameExpression) {
-            x.type_location = s.lookupName(x.name);
+            x.type_location = s.lookupName_old(x.name);
             log(LogLevel.TRACE, `TypeInference ${f}`, `(Name ${x.name}) ${x.type_location}`);
-        } else if (x instanceof FieldReferenceExpression
-            && x.source instanceof TypeExpression
-            && x.source.source instanceof StructureType) {
-            const ct = Classes.get(x.source.source.name);
-            const stable = new StaticTableType(ct);
-            const idx = s.addType(stable);
-            x.source.type_location = new TypeLocation(s, idx);
-            log(LogLevel.TRACE, `TypeInference ${f}`, `(StaticReference) ${x} ${ct.name} ${x.source.type_location} ${stable}`);
         } else if (x instanceof FFICallExpression) {
             const idx = s.addType(new AnyType());
             x.type_location = new TypeLocation(s, idx);
@@ -465,32 +458,4 @@ export function LiftConcrete(t: Type, repl: (n: Type) => void): boolean {
         rc = true;
     }
     return rc;
-}
-
-export function AddScopes(el: FunctionElement | CompoundStatementElement, root: FunctionElement, parent?: Scope) {
-    log(LogLevel.TRACE, `TypeInference ${el}`, `(AddScopes) ${el}`);
-    if (el instanceof FunctionElement) {
-        const s = new Scope(el, undefined);
-        s.addType(el.return_type, "__return");
-        s.addType(el.self_type, "self");
-
-        el.args.forEach(x => {
-            s.addType(x.type, x.name);
-        });
-
-        el.addScope(s);
-        AddScopes(el.body, root, el.scope);
-    } else {
-        const s = new Scope(root, parent);
-        el.addScope(s);
-        el.statements.forEach(x => {
-            if (x instanceof CompoundStatementElement) {
-                AddScopes(x, root, el.scope);
-            } else if (x instanceof IfStatement || x instanceof WhileStatement) {
-                AddScopes(x.body, root, el.scope);
-            } else if (x instanceof LocalDefinitionStatement) {
-                el.scope.addType(x.type.source, x.name);
-            }
-        })
-    }
 }

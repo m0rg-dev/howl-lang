@@ -6,6 +6,12 @@ import { ConcreteType } from "./ConcreteType";
 import { FunctionType } from "./FunctionType";
 import { GenericType } from "./GenericType";
 import { RawPointerType, Type } from "./Type";
+import { Classes } from "../registry/Registry";
+import { FunctionElement } from "../ast/FunctionElement";
+import { TypedItemElement } from "../ast/TypedItemElement";
+import { WalkAST } from "../ast/WalkAST";
+import { RunTypeInference } from "./TypeInference";
+import { RunFunctionTransforms } from "../transform/RunTransforms";
 
 
 export class StructureType extends Type {
@@ -54,6 +60,9 @@ export class StructureType extends Type {
 
     getFieldType(field: string): Type {
         log(LogLevel.TRACE, `${this}`, `  (GetType ${field})`);
+        if (field == "__stable") {
+            return new StaticTableType(Classes.get(this.name));
+        }
         const rc = this.applyGenericMap(this.fields.get(field));
         log(LogLevel.TRACE, `${this}`, `  (ApplyGenericMap ${rc})`);
         return rc;
@@ -95,14 +104,64 @@ export class StructureType extends Type {
         parts[parts.length - 1] = "M" + parts[parts.length - 1];
         return `${parts.join(".")}_${generic_keys.map(x => (this.generic_map.get(x) as ConcreteType).name).join("_")}`;
     }
+
+    isMonomorphizable(): boolean {
+        if (Classes.has(this.MonomorphizedName())) return true;
+        if (Classes.get(this.name).is_monomorphization) return true;
+        const generic_keys = [...this.generic_map.keys()];
+        return generic_keys.every(k => this.generic_map.get(k) instanceof ConcreteType) && Classes.has(this.name) && !Classes.get(this.name).is_monomorphization;
+    }
+
+    Monomorphize(): ConcreteType {
+        if (Classes.has(this.MonomorphizedName())) return new ConcreteType(this.MonomorphizedName());
+        if (Classes.get(this.name).is_monomorphization) return new ConcreteType(this.name);
+        const new_class = Classes.get(this.name).clone();
+        new_class.is_monomorphization = true;
+        new_class.setName(this.MonomorphizedName());
+        // ...replace all the GenericTypes in its AST...
+        WalkAST(new_class, (x, s) => {
+            if (x instanceof FunctionElement) {
+                x.return_type = this.applyGenericMap(x.return_type);
+                x.args.forEach((arg) => {
+                    arg.type = this.applyGenericMap(arg.type);
+                });
+                x.name = `${new_class.name.split(".").pop()}.${x.name.split(".").pop()}`;
+            } else if (x instanceof TypedItemElement) {
+                x.type = this.applyGenericMap(x.type);
+            }
+        });
+        // ...and its fields...
+        new_class.fields.forEach((x) => {
+            x.type = this.applyGenericMap(x.type);
+        });
+        new_class.generics = [];
+        // ...update the type of `self` on all its methods...
+        new_class.methods.forEach(x => {
+            x.self_type = new_class.type();
+        });
+
+        Classes.set(new_class.name, new_class);
+
+        // ...and run type checking on the result. I might eventually
+        // add support to the type checker for handling generic types
+        // directly, which would let us type-check classes prior to
+        // template substitution and probably result in better type
+        // error handling.
+        new_class.methods.forEach(RunFunctionTransforms);
+
+        // Now, we can just treat it as a concrete type.
+        return new ConcreteType(this.MonomorphizedName());
+    }
 }
 
-export class StaticTableType extends StructureType {
+export class StaticTableType extends ConcreteType {
+    fields: Map<string, Type> = new Map();
+
     constructor(source: ClassElement) {
-        super(`${source.name}_stable`, new Set());
+        super(`${source.name}_stable`);
 
         source.methods.forEach(m => {
-            super.addField(m.getFQN().last().split(".").pop(), new FunctionType(m));
+            this.fields.set(m.getFQN().last().split(".").pop(), new FunctionType(m));
         });
     }
 

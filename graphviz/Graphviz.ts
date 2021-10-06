@@ -19,6 +19,11 @@ import { ConsumedType } from "../type_inference/ConsumedType";
 import { Scope } from "../type_inference/Scope";
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
+import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
+import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
+import { FFICallExpression } from "../ast/expression/FFICallExpression";
+import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
+import { TypeElement } from "../ast/TypeElement";
 
 const genexes_drawn = new Set<string>();
 
@@ -70,7 +75,8 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         });
         s.push((new RecordNode(e.uuid, contents)).toString());
     } else if (e instanceof AssignmentStatement
-        || e instanceof ArithmeticExpression) {
+        || e instanceof ArithmeticExpression
+        || e instanceof ComparisonExpression) {
         const contents: RecordRow[] = [
             [{ text: e.constructor.name }],
         ];
@@ -100,6 +106,16 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push((new RecordNode(e.uuid, contents)).toString());
         s.push((new Link("u" + e.uuid + ":source", "u" + e.source.uuid)).toString());
         s.push(RenderElement(e.source, _nearestScope));
+    } else if (e instanceof LocalDefinitionStatement) {
+        const contents: RecordRow[] = [
+            [{ text: "LocalDefinitionStatement" }],
+        ];
+        contents.push([{ text: "name" }, { text: e.name }]);
+        contents.push([{ text: "type" }, { text: e.type.toString() }]);
+        contents.push([{ text: "initializer" }, { port: "initializer", text: e.initializer.toString() }]);
+        s.push((new RecordNode(e.uuid, contents)).toString());
+        s.push((new Link("u" + e.uuid + ":initializer", "u" + e.initializer.uuid)).toString());
+        s.push(RenderElement(e.initializer, _nearestScope));
     } else if (e instanceof FieldReferenceExpression) {
         const contents: RecordRow[] = [
             [{ text: "FieldReferenceExpression" }],
@@ -144,6 +160,17 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
             s.push(RenderElement(x, _nearestScope));
         });
         s.push((new RecordNode(e.uuid, contents)).toString());
+    } else if (e instanceof FFICallExpression) {
+        const contents: RecordRow[] = [
+            [{ text: "FFICallExpression" }]
+        ];
+        contents.push([{ text: "source" }, { port: "source", text: e.source.toString() }]);
+        e.args.forEach((x, y) => {
+            contents.push([{ text: `arg${y}` }, { port: `arg${y}`, text: x.toString() }]);
+            s.push((new Link("u" + e.uuid + `:arg${y}`, "u" + x.uuid)).toString());
+            s.push(RenderElement(x, _nearestScope));
+        });
+        s.push((new RecordNode(e.uuid, contents)).toString());
     } else if (e instanceof ClassElement) {
         const contents: RecordRow[] = [
             [{ text: e.toString() }],
@@ -158,7 +185,9 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push((new RecordNode(e.uuid, contents)).toString());
 
     } else if (e instanceof NumberExpression
-        || e instanceof NameExpression) {
+        || e instanceof NameExpression
+        || e instanceof TypeElement
+        || e instanceof StringConstantExpression) {
         s.push(`  u${e.uuid} [label="${escape(e.toString())}", shape=rect];`);
     } else if (e instanceof SimpleStatement) {
         s.push(`  u${e.uuid} [label="${escape(e.toString())}", shape=rect];`);
