@@ -69,15 +69,19 @@ export class ClassElement extends ASTElement {
     // TODO check and make sure field names aren't aliased (but not here)
     synthesizeFields(): TypedItemElement[] {
         const rc: TypedItemElement[] = [];
-        if (this.fields[0].name != "__stable") {
-            throw new Error("can't synthesizeFields yet!");
+        const f2 = [...this.fields];
+        if (f2[0].name == "__stable") {
+            rc.push(f2.shift());
         }
 
-        rc.push(this.fields[0]);
         if (this.parent) {
-            rc.push(...Classes.get(this.parent).synthesizeFields().slice(1));
+            const fp = Classes.get(this.parent).synthesizeFields();
+            if (fp[0].name == "__stable") {
+                fp.shift();
+            }
+            rc.push(...fp);
         }
-        rc.push(...this.fields.slice(1));
+        rc.push(...f2);
         return rc;
     }
 

@@ -33,7 +33,8 @@ import { RawPointerType, Type } from "../type_inference/Type";
 
 export function RunClassTransforms(c: ClassElement) {
     if (c.is_monomorphization) {
-        c.fields.unshift(new TypedItemElement(c.source_location, "__stable", new StaticTableType(c)));
+        if (c.fields[0]?.name != "__stable")
+            c.fields.unshift(new TypedItemElement(c.source_location, "__stable", new StaticTableType(c)));
         c.methods.forEach(RunFunctionTransforms);
     }
 }
@@ -51,7 +52,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
 
         // Operator overloading, where appropriate.
         if (src instanceof IndexExpression
-            && Classes.has(src.source.resolved_type.name)
+            && Classes.has(src.source.resolved_type?.name)
             && Classes.get(src.source.resolved_type.name).methods.some(x => x.name.split(".").pop() == "__index__")) {
             log(LogLevel.TRACE, `ElementTransforms ${e}`, `Overload: __index__`);
             let new_tree: ASTElement = new FunctionCallExpression(src.source_location, new FieldReferenceExpression(src.source_location, src.source, "__index__"), [src.index]);

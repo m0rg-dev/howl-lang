@@ -25,11 +25,11 @@ Classes.forEach((cl) => {
 Classes.forEach(RunClassTransforms);
 Functions.forEach(RunFunctionTransforms);
 
-Classes.forEach((cl) => {
-    if (!cl.is_monomorphization) Classes.delete(cl.name);
-});
-
 if (process.env["HOWL_OUTPUT_GRAPHVIZ"]) {
+    Classes.forEach((cl) => {
+        if (!cl.is_monomorphization) Classes.delete(cl.name);
+    });
+
     console.log("digraph {\n  rankdir=LR;\n");
     Functions.forEach(x => console.log(RenderElement(x)));
     Classes.forEach(x => console.log(RenderElement(x)));

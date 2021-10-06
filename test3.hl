@@ -24,6 +24,6 @@ class Derived<T> extends Parent {
 }
 
 static fn i32 Main() {
-    let Parent obj = new Derived<i32>(34, 35);
+    let Parent<i32> obj = new Derived<i32>(34, 35);
     return obj.get();
 }

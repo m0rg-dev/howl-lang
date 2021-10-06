@@ -114,9 +114,18 @@ export class StructureType extends Type {
     Monomorphize(): ConcreteType {
         if (Classes.has(this.MonomorphizedName())) return new ConcreteType(this.MonomorphizedName());
         if (Classes.get(this.name).is_monomorphization) return new ConcreteType(this.name);
+        log(LogLevel.INFO, "Monomorphize", `${this}`);
         const new_class = Classes.get(this.name).clone();
         new_class.is_monomorphization = true;
         new_class.setName(this.MonomorphizedName());
+
+        // make sure there's a monomorphized parent class
+        if (new_class.parent) {
+            const parent_type = Classes.get(new_class.parent).type();
+            parent_type.generic_map = this.generic_map;
+            new_class.parent = parent_type.Monomorphize().name;
+        }
+
         // ...replace all the GenericTypes in its AST...
         WalkAST(new_class, (x, s) => {
             if (x instanceof FunctionElement) {
@@ -138,6 +147,9 @@ export class StructureType extends Type {
         new_class.methods.forEach(x => {
             x.self_type = new_class.type();
         });
+
+        // ...add the static table...
+        new_class.fields.unshift(new TypedItemElement(new_class.source_location, "__stable", new StaticTableType(new_class)));
 
         Classes.set(new_class.name, new_class);
 

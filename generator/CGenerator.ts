@@ -40,6 +40,7 @@ export function EmitCPrologue() {
 }
 
 export function EmitForwardDeclarations(root: ClassElement) {
+    if (!root.is_monomorphization) return;
     const method_list = root.synthesizeMethods();
 
     console.log(`// Forward declarations for class: ${root.name}`);
@@ -63,6 +64,7 @@ export function EmitForwardDeclarations(root: ClassElement) {
 }
 
 export function EmitStructures(root: ClassElement) {
+    if (!root.is_monomorphization) return;
     const field_list = root.synthesizeFields();
     const method_list = root.synthesizeMethods();
 
@@ -99,6 +101,8 @@ export function EmitC(root: ASTElement) {
     }
 
     if (root instanceof ClassElement) {
+        if (!root.is_monomorphization) return;
+
         console.log(`// Class: ${root.name}`);
 
         // Constructor.
@@ -150,6 +154,7 @@ export function EmitC(root: ASTElement) {
     } else if (root instanceof NullaryReturnStatement) {
         console.log(`  return;`);
     } else if (root instanceof LocalDefinitionStatement) {
+        console.error(root.type.asTypeObject());
         console.log(`  ${ConvertType(root.type.asTypeObject())} ${root.name} = ${ExpressionToC(root.initializer)};`);
     } else if (root instanceof SimpleStatement) {
         console.log(`  ${ExpressionToC(root.exp)};`);
@@ -210,14 +215,8 @@ function ConvertType(t: Type): string {
         }
         return SanitizeName(t.ir_type());
     } else if (t instanceof StructureType) {
-        const generic_keys = [...t.generic_map.keys()];
-        if (generic_keys.length && generic_keys.every(k => t.generic_map.get(k) instanceof ConcreteType)) {
-            return SanitizeName(t.MonomorphizedName());
-        } else if (!generic_keys.length) {
-            return SanitizeName(t.name);
-        } else {
-            throw new Error(`h ${t}`);
-        }
+        const mmt = t.Monomorphize();
+        return SanitizeName(mmt.name);
     } else if (t instanceof RawPointerType) {
         return ConvertType(t.source) + "*";
     } else {
