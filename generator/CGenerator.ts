@@ -35,8 +35,8 @@ export function EmitCPrologue() {
     console.log(`#include <string.h>`);
     console.log(`#include <unistd.h>`);
     console.log(``);
-    console.log(`int32_t main$Main(); `)
-    console.log(`int32_t main() { return main$Main(); }`);
+    console.log(`int32_t main__Main(); `)
+    console.log(`int32_t main() { return main__Main(); }`);
 }
 
 export function EmitForwardDeclarations(root: ClassElement) {
@@ -107,7 +107,7 @@ export function EmitC(root: ASTElement) {
         console.log(`  ${SanitizeName(root.name)} rc = calloc(1, sizeof(struct ${SanitizeName(root.name)}_t));`);
         console.log(`  rc->__stable = &${SanitizeName(root.name)}_stable_obj;`);
         if (cidx >= 0) {
-            console.log(`  ${SanitizeName(root.name)}$constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
+            console.log(`  ${SanitizeName(root.name)}__constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
         }
         console.log(`  return rc;`);
         console.log(`}\n`);
@@ -195,7 +195,7 @@ function ExpressionToC(e: ExpressionElement): string {
 }
 
 function SanitizeName(n: string): string {
-    return n.replaceAll(".", "$");
+    return n.replaceAll(".", "__");
 }
 
 function ConvertType(t: Type): string {
