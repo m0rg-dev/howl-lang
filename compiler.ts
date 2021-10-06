@@ -1,5 +1,6 @@
 import * as sms from 'source-map-support';
 import { ParseFile, SetupDriver } from './driver/Driver';
+import { EmitC, EmitCPrologue, EmitForwardDeclarations, EmitStructures } from './generator/CGenerator';
 import { RenderElement } from './graphviz/Graphviz';
 import { Classes, Functions } from './registry/Registry';
 import { RunClassTransforms, RunFunctionTransforms } from './transform/RunTransforms';
@@ -26,9 +27,17 @@ Functions.forEach(RunFunctionTransforms);
 
 Classes.forEach((cl) => {
     if (!cl.is_monomorphization) Classes.delete(cl.name);
-})
+});
 
-console.log("digraph {\n  rankdir=LR;\n");
-Functions.forEach(x => console.log(RenderElement(x)));
-Classes.forEach(x => console.log(RenderElement(x)));
-console.log("}");
+if (process.env["HOWL_OUTPUT_GRAPHVIZ"]) {
+    console.log("digraph {\n  rankdir=LR;\n");
+    Functions.forEach(x => console.log(RenderElement(x)));
+    Classes.forEach(x => console.log(RenderElement(x)));
+    console.log("}");
+} else {
+    EmitCPrologue();
+    Classes.forEach(EmitForwardDeclarations);
+    Classes.forEach(EmitStructures);
+    Classes.forEach(EmitC);
+    Functions.forEach(EmitC);
+}

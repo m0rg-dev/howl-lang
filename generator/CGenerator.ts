@@ -43,7 +43,9 @@ export function EmitCPrologue() {
     console.log(`typedef uint16_t u16;`);
     console.log(`typedef uint32_t u32;`);
     console.log(`typedef uint64_t u64;`);
-    console.log("");
+    console.log(``);
+    console.log(`i32 main$Main(); `)
+    console.log(`i32 main() { return main$Main(); }`);
 }
 
 export function EmitForwardDeclarations(root: ClassElement) {
@@ -73,15 +75,15 @@ export function EmitStructures(root: ClassElement) {
     root.methods.forEach(m => {
         console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
     });
-    console.log(`} ${SanitizeName(root.name)}_stable = {`);
+    console.log(`} ${SanitizeName(root.name)}_stable_obj = {`);
     root.methods.forEach(m => {
         console.log(`  ${SanitizeName(m.getFQN().toString())},`);
     })
     console.log(`};\n`);
+    console.log(`typedef struct ${SanitizeName(root.name)}_stable_t *${SanitizeName(root.name)}_stable;\n`);
 
     // Class structure itself.
     console.log(`struct ${SanitizeName(root.name)}_t {`);
-    console.log(`  struct ${SanitizeName(root.name)}_stable_t *__stable;`);
     root.fields.forEach(f => {
         console.log(`  ${ConvertType(f.type)} ${f.name};`);
     });
@@ -111,7 +113,7 @@ export function EmitC(root: ASTElement) {
 
         console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")}) {`);
         console.log(`  ${SanitizeName(root.name)} rc = calloc(1, sizeof(struct ${SanitizeName(root.name)}_t));`);
-        console.log(`  rc->__stable = &${SanitizeName(root.name)}_stable;`);
+        console.log(`  rc->__stable = &${SanitizeName(root.name)}_stable_obj;`);
         if (cidx >= 0) {
             console.log(`  ${SanitizeName(root.name)}$constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
         }
@@ -185,7 +187,7 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof ComparisonExpression || e instanceof ArithmeticExpression) {
         return `${ExpressionToC(e.lhs)} ${e.what} ${ExpressionToC(e.rhs)}`;
     } else if (e instanceof TypeElement) {
-        return `(&${ConvertType(e.asTypeObject())}_stable)`;
+        return `(&${ConvertType(e.asTypeObject())}_stable_obj)`;
     } else if (e instanceof IndexExpression) {
         return `${ExpressionToC(e.source)}[${ExpressionToC(e.index)}]`;
     } else if (e instanceof GeneratorTemporaryExpression) {

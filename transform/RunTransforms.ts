@@ -65,7 +65,9 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
             && src.lhs.source instanceof FieldReferenceExpression
             && src.lhs.source.name == "__index__") {
             log(LogLevel.TRACE, `ElementTransforms ${e}`, `Overload: __l_index__`);
-            let new_tree: ASTElement = new SimpleStatement(src.source_location, new FunctionCallExpression(src.source_location, new FieldReferenceExpression(src.source_location, src.lhs.source.source, "__l_index__"), [src.lhs.args[0], src.rhs]));
+            let new_tree: ASTElement = new SimpleStatement(src.source_location,
+                new FunctionCallExpression(src.source_location,
+                    new FieldReferenceExpression(src.source_location, src.lhs.source.source, "__l_index__"), [...src.lhs.args, src.rhs]));
             RunElementTransforms(new_tree, root, (n) => new_tree = n);
             repl(new_tree);
             return;
@@ -94,7 +96,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                 new FieldReferenceExpression(src.source_location,
                     new TypeElement(src.source_location, new SimpleTypeElement(src.source_location, "lib.String"), []),
                     "fromBytes"),
-                [src]);
+                [src, new NumberExpression(src.source_location, src.value.length)]);
             RunElementTransforms(new_tree, root, (n) => new_tree = n);
             repl(new_tree);
             return;
