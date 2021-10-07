@@ -29,12 +29,13 @@ if (process.env["HOWL_OUTPUT_GRAPHVIZ"]) {
     Classes.forEach((cl) => {
         if (!cl.is_monomorphization) Classes.delete(cl.name);
     });
-
     console.log("digraph {\n  rankdir=LR;\n");
     Functions.forEach(x => console.log(RenderElement(x)));
     Classes.forEach(x => console.log(RenderElement(x)));
     console.log("}");
 } else {
+    Classes.forEach(cl => cl.dropBaseMethods());
+
     EmitCPrologue();
     Classes.forEach(EmitForwardDeclarations);
     Classes.forEach(EmitStructures);

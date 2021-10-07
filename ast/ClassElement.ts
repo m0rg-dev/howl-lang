@@ -1,8 +1,9 @@
 import { Classes } from "../registry/Registry";
+import { ConcreteType } from "../type_inference/ConcreteType";
 import { FunctionType } from "../type_inference/FunctionType";
 import { StructureType } from "../type_inference/StructureType";
 import { ASTElement, SourceLocation } from "./ASTElement";
-import { FunctionElement } from "./FunctionElement";
+import { FunctionElement, OverloadedFunctionElement } from "./FunctionElement";
 import { TypedItemElement } from "./TypedItemElement";
 
 export class ClassElement extends ASTElement {
@@ -15,6 +16,8 @@ export class ClassElement extends ASTElement {
     generics: string[];
     is_monomorphization = false;
     is_interface: boolean;
+    methods_overloaded = new Set<string>();
+    overload_sets = new Map<string, string[]>();
 
     constructor(loc: SourceLocation, name: string, fields: TypedItemElement[], methods: FunctionElement[], generics: string[], parent: string, interfaces: string[], is_interface: boolean) {
         super(loc);
@@ -26,7 +29,36 @@ export class ClassElement extends ASTElement {
         this.interfaces = interfaces;
         this.is_interface = is_interface;
 
+        const method_names = new Set<string>();
+        methods.forEach(m => {
+            if (method_names.has(m.name)) {
+                this.methods_overloaded.add(m.name);
+            } else {
+                method_names.add(m.name);
+            }
+        });
+
+        this.methods_overloaded.forEach(name => {
+            this.methods.push(OverloadedFunctionElement.make(this.methods.filter(x => x.name == name)[0]));
+            this.overload_sets.set(name, []);
+            this.methods.filter(x => x.name == name).forEach(m => {
+                if (m instanceof OverloadedFunctionElement) return;
+                m.name += "__Z" + m.args.map(x => {
+                    if (x.type instanceof ConcreteType) {
+                        return x.type.name;
+                    } else {
+                        return x.toString();
+                    }
+                }).join("_");
+                this.overload_sets.get(name).push(m.name);
+            });
+        })
+
         if (!generics.length) this.is_monomorphization = true;
+    }
+
+    dropBaseMethods() {
+        this.methods = this.methods.filter(m => !this.methods_overloaded.has(m.name));
     }
 
     toString() {

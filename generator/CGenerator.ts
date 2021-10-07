@@ -14,7 +14,7 @@ import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
-import { FunctionElement } from "../ast/FunctionElement";
+import { FunctionElement, OverloadedFunctionElement } from "../ast/FunctionElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { IfStatement } from "../ast/statement/IfStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
@@ -148,6 +148,7 @@ export function EmitC(root: ASTElement) {
         // Methods.
         root.methods.forEach(EmitC);
     } else if (root instanceof FunctionElement) {
+        if (root instanceof OverloadedFunctionElement) return;
         console.log(`// Function: ${root.getFQN()} (${root.args.join(", ")})`);
         // // TODO 
         // if (root.self_type instanceof VoidType) {

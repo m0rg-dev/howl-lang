@@ -40,7 +40,6 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         e.args.forEach(x => {
             contents.push([{ port: "arg", text: x.toString() }]);
         })
-        s.push((new Link("u" + e.uuid, "u" + e.body.uuid)).toString());
         s.push("{\n  rank=same");
         s.push((new RecordNode(e.uuid, contents)).toString());
         if (e.scope) {
@@ -48,7 +47,10 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
             s.push((new Link("u" + e.uuid, "u" + e.scope.uuid)).toString());
         }
         s.push("}");
-        s.push(RenderElement(e.body, e.scope));
+        if (e.body) {
+            s.push((new Link("u" + e.uuid, "u" + e.body.uuid)).toString());
+            s.push(RenderElement(e.body, e.scope));
+        }
     } else if (e instanceof CompoundStatementElement) {
         const contents: RecordRow[] = [
             [{ text: "CompoundStatementElement" }],

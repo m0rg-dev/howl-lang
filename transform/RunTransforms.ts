@@ -13,7 +13,7 @@ import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
-import { FunctionElement } from "../ast/FunctionElement";
+import { FunctionElement, OverloadedFunctionElement } from "../ast/FunctionElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { IfStatement } from "../ast/statement/IfStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
@@ -41,6 +41,7 @@ export function RunClassTransforms(c: ClassElement) {
 }
 
 export function RunFunctionTransforms(f: FunctionElement) {
+    if (f instanceof OverloadedFunctionElement) return;
     log(LogLevel.TRACE, `FunctionTransforms ${f.name}`, `Started.`);
 
     AddScopes(f, f);
@@ -50,6 +51,25 @@ export function RunFunctionTransforms(f: FunctionElement) {
 function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: ASTElement) => { }) {
     WalkAST(e, (src: ASTElement, nearestScope: Scope, repl: (n: ASTElement) => void) => {
         log(LogLevel.TRACE, `ElementTransforms ${e}`, `${src}`);
+
+        // Method overloading.
+        if (src instanceof FunctionCallExpression
+            && src.source instanceof FieldReferenceExpression
+            && Classes.has(src.source.source.resolved_type.name)
+            && Classes.get(src.source.source.resolved_type.name).methods_overloaded.has(src.source.source.resolved_type.name.split(".").pop() + "." + src.source.name)) {
+            log(LogLevel.TRACE, `ElementTransforms ${e}`, `Overload: ${src.source.name}`);
+            const cl = Classes.get(src.source.source.resolved_type.name);
+            const candidates = cl.overload_sets.get(src.source.source.resolved_type.name.split(".").pop() + "." + src.source.name);
+            candidates.forEach(c => {
+                const candidate_type = cl.type().getFieldType(c.split(".").pop());
+                log(LogLevel.TRACE, `ElementTransforms ${e}`, `Candidate: ${candidate_type}`);
+                if (candidate_type instanceof FunctionType && candidate_type.args.every((arg_type, index) => src.args[index] && checkTypeCompatibility(arg_type, src.args[index].resolved_type))) {
+                    log(LogLevel.TRACE, `ElementTransforms ${e}`, `  => matches`);
+                    (src.source as FieldReferenceExpression).name = c.split(".").pop();
+                    return;
+                }
+            });
+        }
 
         // Operator overloading, where appropriate.
         if (src instanceof IndexExpression
@@ -260,6 +280,10 @@ function lowestCommonType(a: Type, b: Type): Type {
     return undefined;
 }
 
+function checkTypeCompatibility(a: Type, b: Type): boolean {
+    return !!lowestCommonType(makeConcrete(a), makeConcrete(b));
+}
+
 function AddScopes(el: FunctionElement | CompoundStatementElement, root: FunctionElement, parent?: Scope) {
     log(LogLevel.TRACE, `TypeInference ${el}`, `(AddScopes) ${el}`);
     if (el instanceof FunctionElement) {
@@ -272,6 +296,7 @@ function AddScopes(el: FunctionElement | CompoundStatementElement, root: Functio
         });
 
         el.addScope(s);
+        if (el instanceof OverloadedFunctionElement) return;
         AddScopes(el.body, root, el.scope);
     } else {
         const s = new Scope(root, parent);

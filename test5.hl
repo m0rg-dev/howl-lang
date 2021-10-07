@@ -1,0 +1,17 @@
+module main;
+
+class Overloader {
+    fn void test() {
+        lib.IO.print("bad\n");
+    }
+
+    fn void test(i32 i) {
+        lib.IO.print("good\n");
+    }
+}
+
+static fn i32 Main() {
+    let Overloader obj = new Overloader();
+    obj.test(42);
+    return 0;
+}
