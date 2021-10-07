@@ -1,7 +1,7 @@
 import { ASTElement, MarkerElement } from "../ast/ASTElement";
 import { TokenElement } from "../ast/TokenElement";
 import { TokenType } from "../lexer/TokenType";
-import { InOrder, MatchToken, Optional, Hug } from "../parser/Matcher";
+import { InOrder, MatchToken, Optional, Hug, Star, First } from "../parser/Matcher";
 import { Pass } from "./Pass";
 
 export class MarkClassesPass extends Pass {
@@ -9,11 +9,15 @@ export class MarkClassesPass extends Pass {
         this.ApplySingleProductionRule({
             name: "MarkClass",
             match: InOrder(
-                MatchToken(TokenType.Class),
+                First(MatchToken(TokenType.Class), MatchToken(TokenType.Interface)),
                 MatchToken(TokenType.Name),
                 Optional(Hug(TokenType.OpenAngle)),
                 Optional(InOrder(
                     MatchToken(TokenType.Extends),
+                    MatchToken(TokenType.Name)
+                )),
+                Star(InOrder(
+                    MatchToken(TokenType.Implements),
                     MatchToken(TokenType.Name)
                 )),
                 Hug(TokenType.OpenBrace)
@@ -27,6 +31,10 @@ export class MarkClassesPass extends Pass {
                 }
 
                 if (ast_stream[start_idx] instanceof TokenElement && ast_stream[start_idx]["token"].type == TokenType.Extends) {
+                    start_idx += 2;
+                }
+
+                while (ast_stream[start_idx] instanceof TokenElement && ast_stream[start_idx]["token"].type == TokenType.Implements) {
                     start_idx += 2;
                 }
 

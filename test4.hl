@@ -1,0 +1,24 @@
+module main;
+
+interface Test {
+    fn lib.String getName() {}
+}
+
+class Foo implements Test {
+    fn lib.String getName() {
+        return "Foo";
+    }
+}
+
+class Printer {
+    static fn void printTest(Test t) {
+        lib.IO.print(t.getName());
+        lib.IO.print("\n");
+    }
+}
+
+static fn i32 Main() {
+    let Foo f = new Foo();
+    Printer.printTest(f);
+    return 0;
+}

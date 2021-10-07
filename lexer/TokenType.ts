@@ -12,6 +12,8 @@ export enum TokenType {
     FFICall,
     Extends,
     Override,
+    Interface,
+    Implements,
 
     OpenBrace,
     CloseBrace,
@@ -28,6 +30,10 @@ export enum TokenType {
     Asterisk,
     Plus,
     Pipe,
+    Slash,
+    Minus,
+    Percent,
+    ExclamationPoint,
 
     Name,
     NumericLiteral,

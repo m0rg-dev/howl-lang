@@ -6,6 +6,7 @@ import { FFICallExpression } from "../ast/expression/FFICallExpression";
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
 import { FunctionCallExpression } from '../ast/expression/FunctionCallExpression';
 import { IndexExpression } from "../ast/expression/IndexExpression";
+import { MacroCallExpression } from "../ast/expression/MacroCallExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
@@ -36,6 +37,8 @@ export class ExpressionPass extends Pass {
                     return [new FieldReferenceExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[2].name)]
                 }
             }, segment) || rc;
+            // TODO
+            if (rc) continue;
 
             rc = this.ApplySingleProductionRule({
                 name: "FunctionApplication",
@@ -74,6 +77,22 @@ export class ExpressionPass extends Pass {
                         return [];
                     }
                     return [new FFICallExpression(
+                        ast_stream[1].source_location,
+                        ast_stream[1].source.name,
+                        ast_stream[1].args
+                    )];
+                }
+            }, segment) || rc;
+
+            rc = this.ApplySingleProductionRule({
+                name: "MacroCall",
+                match: InOrder(MatchToken(TokenType.ExclamationPoint), MatchElementType("FunctionCallExpression")),
+                replace: (ast_stream: [any, FunctionCallExpression]) => {
+                    if (!(ast_stream[1].source instanceof NameExpression)) {
+                        this.emitCompilationError(Errors.EXPECTED_NAME, "Expected name", ast_stream[1].source.source_location);
+                        return [];
+                    }
+                    return [new MacroCallExpression(
                         ast_stream[1].source_location,
                         ast_stream[1].source.name,
                         ast_stream[1].args
@@ -124,15 +143,21 @@ export class ExpressionPass extends Pass {
 
             rc = this.ApplyMultipleProductionRules([
                 Arithmetic("Multiplication", "*", TokenType.Asterisk),
+                Arithmetic("Division", "/", TokenType.Slash),
+                Arithmetic("Modulus", "%", TokenType.Percent),
             ], segment) || rc;
 
             rc = this.ApplyMultipleProductionRules([
                 Arithmetic("Addition", "+", TokenType.Plus),
+                Arithmetic("Subtraction", "-", TokenType.Minus),
             ], segment) || rc;
 
+
             rc = this.ApplyMultipleProductionRules([
+                Comparison("GreaterThanOrEqual", ">=", TokenType.CloseAngle, TokenType.Equals),
                 Comparison("GreaterThan", ">", TokenType.CloseAngle),
                 Comparison("LessThan", "<", TokenType.OpenAngle),
+                Comparison("Equals", "==", TokenType.Equals, TokenType.Equals),
             ], segment) || rc;
 
             rc = this.ApplySingleProductionRule({
@@ -186,8 +211,8 @@ function Arithmetic(name: string, op: string, ...tokens: TokenType[]): Productio
             ...tokens.map(x => MatchToken(x)),
             MatchExpression(),
         ),
-        replace: (ast_stream: [ExpressionElement, TokenElement<any>, ExpressionElement]) => {
-            return [new ArithmeticExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[2], op)];
+        replace: (ast_stream: [ExpressionElement, ...ASTElement[]]) => {
+            return [new ArithmeticExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[ast_stream.length - 1] as ExpressionElement, op)];
         },
     };
 }
@@ -200,8 +225,8 @@ function Comparison(name: string, op: string, ...tokens: TokenType[]): Productio
             ...tokens.map(x => MatchToken(x)),
             MatchExpression(),
         ),
-        replace: (ast_stream: [ExpressionElement, TokenElement<any>, ExpressionElement]) => {
-            return [new ComparisonExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[2], op)];
+        replace: (ast_stream: [ExpressionElement, ...ASTElement[]]) => {
+            return [new ComparisonExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[ast_stream.length - 1] as ExpressionElement, op)];
         },
         startOnly: true
     };

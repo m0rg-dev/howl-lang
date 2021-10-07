@@ -11,17 +11,30 @@ class Vec<T> {
         self.length = 0;
     }
 
+    fn void push(T element) {
+        self[self.length] = element;
+    }
+
+    fn T pop() {
+        self.length = self.length - 1;
+        return self[self.length];
+    }
+
     fn T __index__(i64 idx) {
         return self.value[idx];
     }
 
     fn void __l_index__(i64 idx, T value) {
-        if idx > self.length {
-            self.value = fficall realloc(self.value, self.element_size * idx);
-            self.length = idx;
+        if idx >= self.length {
+            self.value = fficall realloc(self.value, self.element_size * (idx + 1));
+            self.length = idx + 1;
         }
         self.value[idx] = value;
     }
+}
+
+interface Display {
+    fn String toString() {}
 }
 
 class String {
@@ -29,6 +42,26 @@ class String {
 
     fn void constructor() {
         self.contents = new Vec<u8>();
+    }
+
+    fn String __add__(String other) {
+        let String rc = String.from(self);
+
+        let i64 i = 0;
+        while i < other.contents.length {
+            rc.contents.push(other.contents[i]);
+            i = i + 1;
+        }
+
+        return rc;
+    }
+
+    fn String __add__(i64 other) {
+        return self + String.from(other);
+    }
+
+    fn String __add__(Display other) {
+        return self + other.toString();
     }
 
     static fn String fromBytes(*u8 bytes, i64 length) {
@@ -42,10 +75,33 @@ class String {
 
         return rc;
     }
+
+    static fn String from(String other) {
+        return String.fromBytes(other.contents.value, other.contents.length);
+    }
+
+    static fn String from(i64 value) {
+        let Vec<String> digits = !vec(String, "0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
+
+        if value < 10 {
+            return digits[value];
+        }
+
+        return String.from(value / 10) + String.from(value % 10);
+    }
+
+    static fn String from(Display other) {
+        return other.toString();
+    }
 }
 
 class IO {
     static fn void print(String s) {
         fficall write(1, s.contents.value, s.contents.length);
+    }
+
+    static fn void println(String s) {
+        IO.print(s);
+        IO.print("\n");
     }
 }

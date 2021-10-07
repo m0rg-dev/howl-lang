@@ -8,7 +8,7 @@ import { FQN, HasFQN } from "./FQN";
 import { TypedItemElement } from "./TypedItemElement";
 
 export class FunctionElement extends ASTElement {
-    private parent: HasFQN;
+    parent: HasFQN;
     name: string;
 
     source: CompilationUnit;
@@ -62,5 +62,41 @@ export class FunctionElement extends ASTElement {
 
     setParent(p: HasFQN) {
         this.parent = p;
+    }
+}
+
+export class OverloadedFunctionElement extends FunctionElement {
+    static make(from: FunctionElement) {
+        const rc = new OverloadedFunctionElement(
+            from.source_location,
+            from.parent,
+            from.name,
+            from.return_type,
+            from.self_type,
+            [],
+            from.is_static,
+            undefined,
+            from.source
+        );
+        return rc;
+    }
+
+    clone() {
+        const rc = new OverloadedFunctionElement(
+            this.source_location,
+            this.parent,
+            this.name,
+            this.return_type,
+            this.self_type,
+            this.args.map(x => x.clone()),
+            this.is_static,
+            undefined,
+            this.source
+        );
+        return rc;
+    }
+
+    toString() {
+        return `OverloadedFunctionElement(${this.getFQN()}, ${this.return_type}, ${this.args}, ${this.body})`;
     }
 }

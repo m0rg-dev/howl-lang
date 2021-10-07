@@ -3,7 +3,7 @@ import { FQN } from "../ast/FQN";
 import { TokenElement } from "../ast/TokenElement";
 import { NameToken } from "../lexer/NameToken";
 import { TokenType } from "../lexer/TokenType";
-import { AssertNegative, Hug, InOrder, MatchToken, Not, Optional, Until } from "../parser/Matcher";
+import { AssertNegative, First, Hug, InOrder, MatchToken, Not, Optional, Star, Until } from "../parser/Matcher";
 import { LocationFrom, ResynchronizeTopLevel } from "../parser/Parser";
 import { Errors } from "./Errors";
 import { LogLevel, Pass } from "./Pass";
@@ -14,12 +14,20 @@ export class FindClassNamesPass extends Pass {
         this.ApplySingleProductionRule({
             name: "ClassDefinition",
             match: InOrder(
-                MatchToken(TokenType.Class),
+                First(MatchToken(TokenType.Class), MatchToken(TokenType.Interface)),
                 MatchToken(TokenType.Name),
                 Optional(Hug(TokenType.OpenAngle)),
                 Optional(InOrder(
                     MatchToken(TokenType.Extends),
                     MatchToken(TokenType.Name)
+                )),
+                Star(InOrder(
+                    MatchToken(TokenType.Implements),
+                    MatchToken(TokenType.Name),
+                    Star(InOrder(
+                        MatchToken(TokenType.Period),
+                        MatchToken(TokenType.Name)
+                    ))
                 )),
                 Hug(TokenType.OpenBrace)
             ),
@@ -42,6 +50,14 @@ export class FindClassNamesPass extends Pass {
                 Optional(InOrder(
                     MatchToken(TokenType.Extends),
                     MatchToken(TokenType.Name)
+                )),
+                Star(InOrder(
+                    MatchToken(TokenType.Implements),
+                    MatchToken(TokenType.Name),
+                    Star(InOrder(
+                        MatchToken(TokenType.Period),
+                        MatchToken(TokenType.Name)
+                    ))
                 )),
                 Until(MatchToken(TokenType.OpenBrace)),
                 ResynchronizeTopLevel
@@ -69,6 +85,14 @@ export class FindClassNamesPass extends Pass {
                 Optional(InOrder(
                     MatchToken(TokenType.Extends),
                     MatchToken(TokenType.Name)
+                )),
+                Star(InOrder(
+                    MatchToken(TokenType.Implements),
+                    MatchToken(TokenType.Name),
+                    Star(InOrder(
+                        MatchToken(TokenType.Period),
+                        MatchToken(TokenType.Name)
+                    ))
                 )),
                 AssertNegative(Hug(TokenType.OpenBrace)),
                 ResynchronizeTopLevel

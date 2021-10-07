@@ -20,6 +20,7 @@ export enum Errors {
 
     TYPE_MISMATCH = 400,
     NO_SUCH_FIELD = 401,
+    NO_SUCH_MACRO = 402,
 
     COMPILER_BUG = 9999
 }

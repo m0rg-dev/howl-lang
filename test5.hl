@@ -1,0 +1,33 @@
+module main;
+
+class Overloader {
+    i32 value;
+
+    fn void constructor(i32 value) {
+        self.value = value;
+    }
+
+    fn Overloader __add__(i32 other) {
+        return new Overloader(self.value + other);
+    }
+
+    fn Overloader __add__(Overloader other) {
+        return new Overloader(self.value + other.value);
+    }
+
+    static fn void test() {
+        lib.IO.print("bad\n");
+    }
+
+    static fn void test(i32 i) {
+        lib.IO.print("good\n");
+    }
+}
+
+static fn i32 Main() {
+    let Overloader obj = new Overloader(40);
+    obj = obj + 1;
+    obj = obj + new Overloader(1);
+    Overloader.test(2);
+    return obj.value;
+}

@@ -18,7 +18,9 @@ const KEYWORD_TABLE = {
     "while": TokenType.While,
     "fficall": TokenType.FFICall,
     "extends": TokenType.Extends,
-    "override": TokenType.Override
+    "override": TokenType.Override,
+    "interface": TokenType.Interface,
+    "implements": TokenType.Implements
 }
 
 const PUNCTUATION_TABLE = {
@@ -37,6 +39,10 @@ const PUNCTUATION_TABLE = {
     ">": TokenType.CloseAngle,
     "+": TokenType.Plus,
     "|": TokenType.Pipe,
+    "/": TokenType.Slash,
+    "-": TokenType.Minus,
+    "%": TokenType.Percent,
+    "!": TokenType.ExclamationPoint
 }
 
 export class Lexer {
@@ -75,14 +81,14 @@ export class Lexer {
     }
 
     private match_keyword(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|module|static|if|while|fficall|extends|override)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
+        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|module|static|if|while|fficall|extends|override|interface|implements)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
         return { type: KEYWORD_TABLE[m[1]], length: m[1].length, start: this.mark, text: m[0] };
     }
 
     private match_punctuation(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^([{};(),.=\[\]*<>+|])\s*/s);
+        const m = this.source.substr(this.mark).match(/^([{};(),.=\[\]*<>+|/%!-])\s*/s);
         if (!m) return undefined;
 
         return { type: PUNCTUATION_TABLE[m[1]], length: m[1].length, start: this.mark, text: m[0] };
@@ -110,7 +116,7 @@ export class Lexer {
     }
 
     private match_string_literal(): StringLiteralToken | undefined {
-        const m = this.source.substr(this.mark).match(/^"((?:\\.|[^"\\])*)"/);
+        const m = this.source.substr(this.mark).match(/^"((?:\\.|[^"\\])*)"\s*/);
         if (!m) return undefined;
 
         return { type: TokenType.StringLiteral, str: m[1], length: m[1].length, start: this.mark, text: m[0] };

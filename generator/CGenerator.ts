@@ -2,6 +2,7 @@ import { ASTElement } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
+import { CastExpression } from "../ast/expression/CastExpression";
 import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
 import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
@@ -13,7 +14,7 @@ import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
 import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
-import { FunctionElement } from "../ast/FunctionElement";
+import { FunctionElement, OverloadedFunctionElement } from "../ast/FunctionElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { IfStatement } from "../ast/statement/IfStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
@@ -23,9 +24,10 @@ import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { TypeElement } from "../ast/TypeElement";
+import { Classes } from "../registry/Registry";
 import { ConcreteType } from "../type_inference/ConcreteType";
 import { FunctionType } from "../type_inference/FunctionType";
-import { StructureType } from "../type_inference/StructureType";
+import { StaticTableType, StructureType } from "../type_inference/StructureType";
 import { RawPointerType, Type } from "../type_inference/Type";
 
 export function EmitCPrologue() {
@@ -45,21 +47,24 @@ export function EmitForwardDeclarations(root: ClassElement) {
 
     console.log(`// Forward declarations for class: ${root.name}`);
     console.log(`struct ${SanitizeName(root.name)}_t;`);
-    console.log(`typedef struct ${SanitizeName(root.name)}_t* ${SanitizeName(root.name)};`);
-    let cargs: TypedItemElement[] = [];
-    const cidx = method_list.findIndex(x => x.getFQN().last() == "constructor");
-    if (cidx >= 0) {
-        cargs = method_list[cidx].args;
+    if (root.is_interface) {
+        console.log(`typedef struct {struct ${SanitizeName(root.name)}_t *obj; struct ${SanitizeName(root.name)}_itable_t *stable; } ${SanitizeName(root.name)};`);
+    } else {
+        console.log(`typedef struct {struct ${SanitizeName(root.name)}_t *obj; struct ${SanitizeName(root.name)}_stable_t *stable; } ${SanitizeName(root.name)};`);
+        let cargs: TypedItemElement[] = [];
+        const cidx = method_list.findIndex(x => x.getFQN().last() == "constructor");
+        if (cidx >= 0) {
+            cargs = method_list[cidx].args;
+        }
+        console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")});`);
+
+        method_list.forEach(m => {
+            const args = [{ t: m.self_type, n: "self" }];
+            if (m.is_static) args.shift();
+            m.args.forEach(e => args.push({ t: e.type, n: e.name }));
+            console.log(`${ConvertType(m.return_type)} ${SanitizeName(m.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")});`);
+        });
     }
-    console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")});`);
-
-    method_list.forEach(m => {
-        const args = [{ t: m.self_type, n: "self" }];
-        if (m.is_static) args.shift();
-        m.args.forEach(e => args.push({ t: e.type, n: e.name }));
-        console.log(`${ConvertType(m.return_type)} ${SanitizeName(m.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")});`);
-    });
-
     console.log("\n");
 }
 
@@ -70,23 +75,42 @@ export function EmitStructures(root: ClassElement) {
 
     // Static table.
     console.log(`// Structures for class: ${root.name}`);
-    console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
-    method_list.forEach(m => {
-        console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
-    });
-    console.log(`} ${SanitizeName(root.name)}_stable_obj = {`);
-    method_list.forEach(m => {
-        console.log(`  ${SanitizeName(m.getFQN().toString())},`);
-    })
-    console.log(`};\n`);
-    console.log(`typedef struct ${SanitizeName(root.name)}_stable_t *${SanitizeName(root.name)}_stable;\n`);
 
-    // Class structure itself.
-    console.log(`struct ${SanitizeName(root.name)}_t {`);
-    field_list.forEach(f => {
-        console.log(`  ${ConvertType(f.type)} ${f.name};`);
-    });
-    console.log(`};\n`);
+    if (root.is_interface) {
+        console.log(`struct ${SanitizeName(root.name)}_itable_t {`);
+        method_list.forEach(m => {
+            console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
+        });
+        console.log(`};`);
+    } else {
+        console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
+        method_list.forEach(m => {
+            console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
+        });
+        console.log(`} ${SanitizeName(root.name)}_stable_obj = {`);
+        method_list.forEach(m => {
+            console.log(`  ${SanitizeName(m.getFQN().toString())},`);
+        })
+        console.log(`};\n`);
+        console.log(`typedef struct ${SanitizeName(root.name)}_stable_t *${SanitizeName(root.name)}_stable;\n`);
+
+        // Interface tables, if present.
+        root.interfaces.forEach(iface => {
+            const iclass = Classes.get(iface);
+            console.log(`struct ${SanitizeName(iface)}_itable_t ${SanitizeName(root.name)}_${SanitizeName(iface)}_itable = {`);
+            iclass.synthesizeMethods().forEach(m => {
+                console.log(`  (${GenerateFunctionPointerType(new FunctionType(m), "")}) ${SanitizeName(root.name)}__${m.getFQN().last().split(".").pop()},`)
+            });
+            console.log(`};`);
+        });
+
+        // Class structure itself.
+        console.log(`struct ${SanitizeName(root.name)}_t {`);
+        field_list.slice(1).forEach(f => {
+            console.log(`  ${ConvertType(f.type)} ${f.name};`);
+        });
+        console.log(`};\n`);
+    }
 }
 
 export function EmitC(root: ASTElement) {
@@ -102,6 +126,7 @@ export function EmitC(root: ASTElement) {
 
     if (root instanceof ClassElement) {
         if (!root.is_monomorphization) return;
+        if (root.is_interface) return;
 
         console.log(`// Class: ${root.name}`);
 
@@ -113,8 +138,9 @@ export function EmitC(root: ASTElement) {
         }
 
         console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")}) {`);
-        console.log(`  ${SanitizeName(root.name)} rc = calloc(1, sizeof(struct ${SanitizeName(root.name)}_t));`);
-        console.log(`  rc->__stable = &${SanitizeName(root.name)}_stable_obj;`);
+        console.log(`  ${SanitizeName(root.name)} rc;`);
+        console.log(`  rc.obj = calloc(1, sizeof(struct ${SanitizeName(root.name)}_t));`);
+        console.log(`  rc.stable = &${SanitizeName(root.name)}_stable_obj;`);
         if (cidx >= 0) {
             console.log(`  ${SanitizeName(root.name)}__constructor(${["rc", ...cargs.map(x => x.name)].join(", ")});`);
         }
@@ -124,6 +150,7 @@ export function EmitC(root: ASTElement) {
         // Methods.
         root.methods.forEach(EmitC);
     } else if (root instanceof FunctionElement) {
+        if (root instanceof OverloadedFunctionElement) return;
         console.log(`// Function: ${root.getFQN()} (${root.args.join(", ")})`);
         // // TODO 
         // if (root.self_type instanceof VoidType) {
@@ -154,7 +181,6 @@ export function EmitC(root: ASTElement) {
     } else if (root instanceof NullaryReturnStatement) {
         console.log(`  return;`);
     } else if (root instanceof LocalDefinitionStatement) {
-        console.error(root.type.asTypeObject());
         console.log(`  ${ConvertType(root.type.asTypeObject())} ${root.name} = ${ExpressionToC(root.initializer)};`);
     } else if (root instanceof SimpleStatement) {
         console.log(`  ${ExpressionToC(root.exp)};`);
@@ -172,8 +198,23 @@ function ExpressionToC(e: ExpressionElement): string {
             return ExpressionToC(rep);
         }
     }
+
+    if (e.generator_metadata["requires"]) {
+        for (const statement of e.generator_metadata["requires"]) {
+            if (statement instanceof ASTElement) {
+                EmitC(statement);
+            }
+        }
+    }
+
     if (e instanceof FieldReferenceExpression) {
-        return `${ExpressionToC(e.source)}->${e.name}`;
+        if (e.name == "__stable") {
+            return `${ExpressionToC(e.source)}.stable`;
+        } else if (e.source.resolved_type instanceof StaticTableType) {
+            return `${ExpressionToC(e.source)}->${e.name}`;
+        } else {
+            return `${ExpressionToC(e.source)}.obj->${e.name}`;
+        }
     } else if (e instanceof NameExpression) {
         return e.name;
     } else if (e instanceof NumberExpression) {
@@ -187,11 +228,25 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof FunctionCallExpression) {
         return `${ExpressionToC(e.source)}(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof ComparisonExpression || e instanceof ArithmeticExpression) {
-        return `${ExpressionToC(e.lhs)} ${e.what} ${ExpressionToC(e.rhs)}`;
+        return `(${ExpressionToC(e.lhs)} ${e.what} ${ExpressionToC(e.rhs)})`;
     } else if (e instanceof TypeElement) {
         return `(&${ConvertType(e.asTypeObject())}_stable_obj)`;
     } else if (e instanceof IndexExpression) {
         return `${ExpressionToC(e.source)}[${ExpressionToC(e.index)}]`;
+    } else if (e instanceof CastExpression) {
+        if (Classes.has(e.cast_to.name)) {
+            const cl = Classes.get(e.cast_to.name);
+            if (cl.is_interface) {
+                return `((${ConvertType(e.cast_to)}) {(struct ${SanitizeName(e.cast_to.name)}_t *) ${ExpressionToC(e.source)}.obj, &${SanitizeName(e.source.resolved_type.name)}_${SanitizeName(e.cast_to.name)}_itable})`;
+            } else {
+                // we're going to reference the source twice - once to get the object, once to get the stable. put it in a temporary
+                console.log(`  ${ConvertType(e.source.resolved_type)} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
+                return `((${ConvertType(e.cast_to)}) {(struct ${SanitizeName(e.cast_to.name)}_t *) temp_${e.uuid}.obj, (struct ${SanitizeName(e.cast_to.name)}_stable_t *) temp_${e.uuid}.stable})`;
+            }
+        } else {
+            // TODO
+            return ExpressionToC(e.source);
+        }
     } else if (e instanceof GeneratorTemporaryExpression) {
         if (!(genexes_emitted.has(e.uuid))) {
             // TODO
