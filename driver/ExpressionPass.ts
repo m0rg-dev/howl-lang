@@ -36,6 +36,8 @@ export class ExpressionPass extends Pass {
                     return [new FieldReferenceExpression(LocationFrom(ast_stream), ast_stream[0], ast_stream[2].name)]
                 }
             }, segment) || rc;
+            // TODO
+            if (rc) continue;
 
             rc = this.ApplySingleProductionRule({
                 name: "FunctionApplication",
@@ -124,11 +126,15 @@ export class ExpressionPass extends Pass {
 
             rc = this.ApplyMultipleProductionRules([
                 Arithmetic("Multiplication", "*", TokenType.Asterisk),
+                Arithmetic("Division", "/", TokenType.Slash),
+                Arithmetic("Modulus", "%", TokenType.Percent),
             ], segment) || rc;
 
             rc = this.ApplyMultipleProductionRules([
                 Arithmetic("Addition", "+", TokenType.Plus),
+                Arithmetic("Subtraction", "-", TokenType.Minus),
             ], segment) || rc;
+
 
             rc = this.ApplyMultipleProductionRules([
                 Comparison("GreaterThan", ">", TokenType.CloseAngle),

@@ -181,7 +181,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                     emitError(src.source_location[0], Errors.NO_SUCH_FIELD, `No such field '${src.name}' on ${src.source.resolved_type.name}`, src.source_location);
                 }
             } else {
-                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to access field ${src.name} on expression of non - class type ${src.source.resolved_type}`, src.source_location);
+                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to access field ${src.name} on expression of non-class type ${src.source.resolved_type}`, src.source_location);
             }
         } else if (src instanceof AssignmentStatement) {
             const common_type = lowestCommonType(src.lhs.resolved_type, src.rhs.resolved_type);
@@ -246,7 +246,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                     }
                 });
             } else {
-                emitError(src.source.source_location[0], Errors.TYPE_MISMATCH, `Attempt to call non - function of type ${src.source.resolved_type}`, src.source.source_location);
+                emitError(src.source.source_location[0], Errors.TYPE_MISMATCH, `Attempt to call non-function of type ${src.source.resolved_type}`, src.source.source_location);
             }
         } else if (src instanceof ConstructorCallExpression) {
             src.resolved_type = makeConcrete(src.source.asTypeObject());
@@ -255,7 +255,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
             if (t instanceof StructureType) {
                 src.resolved_type = new StaticTableType(Classes.get(t.name));
             } else {
-                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Non - classes may not be used as type literals`, src.source_location);
+                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Non-classes may not be used as type literals`, src.source_location);
             }
         }
     }, root.body.scope, repl);

@@ -30,6 +30,9 @@ export enum TokenType {
     Asterisk,
     Plus,
     Pipe,
+    Slash,
+    Minus,
+    Percent,
 
     Name,
     NumericLiteral,

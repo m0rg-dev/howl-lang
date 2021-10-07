@@ -11,12 +11,22 @@ class Vec<T> {
         self.length = 0;
     }
 
+    fn void push(T element) {
+        self[self.length] = element;
+        self.length = self.length + 1;
+    }
+
+    fn T pop() {
+        self.length = self.length - 1;
+        return self[self.length];
+    }
+
     fn T __index__(i64 idx) {
         return self.value[idx];
     }
 
     fn void __l_index__(i64 idx, T value) {
-        if idx > self.length {
+        if idx > (self.length - 1) {
             self.value = fficall realloc(self.value, self.element_size * idx);
             self.length = idx;
         }
@@ -31,6 +41,18 @@ class String {
         self.contents = new Vec<u8>();
     }
 
+    fn String __add__(String other) {
+        let String rc = String.from(self);
+
+        let i64 i = 0;
+        while i < other.contents.length {
+            rc.contents.push(other.contents[i]);
+            i = i + 1;
+        }
+
+        return rc;
+    }    
+
     static fn String fromBytes(*u8 bytes, i64 length) {
         let String rc = new String();
 
@@ -42,10 +64,19 @@ class String {
 
         return rc;
     }
+
+    static fn String from(String other) {
+        return String.fromBytes(other.contents.value, other.contents.length);
+    }
 }
 
 class IO {
     static fn void print(String s) {
         fficall write(1, s.contents.value, s.contents.length);
+    }
+
+    static fn void println(String s) {
+        IO.print(s);
+        IO.print("\n");
     }
 }
