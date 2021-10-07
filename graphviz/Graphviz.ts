@@ -24,6 +24,7 @@ import { StringConstantExpression } from "../ast/expression/StringConstantExpres
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 import { TypeElement } from "../ast/TypeElement";
+import { CastExpression } from "../ast/expression/CastExpression";
 
 const genexes_drawn = new Set<string>();
 
@@ -171,6 +172,15 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
             s.push(RenderElement(x, _nearestScope));
         });
         s.push((new RecordNode(e.uuid, contents)).toString());
+    } else if (e instanceof CastExpression) {
+        const contents: RecordRow[] = [
+            [{ text: "CastExpression" }]
+        ];
+        contents.push([{ text: "source" }, { port: "source", text: e.source.toString() }]);
+        contents.push([{ text: "type" }, { port: "type", text: e.cast_to.toString() }]);
+        s.push((new RecordNode(e.uuid, contents)).toString());
+        s.push((new Link("u" + e.uuid + ":source", "u" + e.source.uuid)).toString());
+        s.push(RenderElement(e.source, _nearestScope));
     } else if (e instanceof ClassElement) {
         const contents: RecordRow[] = [
             [{ text: e.toString() }],
@@ -183,7 +193,6 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
             contents.push([{ text: f.toString() }]);
         })
         s.push((new RecordNode(e.uuid, contents)).toString());
-
     } else if (e instanceof NumberExpression
         || e instanceof NameExpression
         || e instanceof TypeElement

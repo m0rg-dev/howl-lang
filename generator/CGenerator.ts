@@ -2,6 +2,7 @@ import { ASTElement } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
+import { CastExpression } from "../ast/expression/CastExpression";
 import { ComparisonExpression } from "../ast/expression/ComparisonExpression";
 import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
@@ -23,6 +24,7 @@ import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { TypeElement } from "../ast/TypeElement";
+import { Classes } from "../registry/Registry";
 import { ConcreteType } from "../type_inference/ConcreteType";
 import { FunctionType } from "../type_inference/FunctionType";
 import { StaticTableType, StructureType } from "../type_inference/StructureType";
@@ -198,6 +200,15 @@ function ExpressionToC(e: ExpressionElement): string {
         return `(&${ConvertType(e.asTypeObject())}_stable_obj)`;
     } else if (e instanceof IndexExpression) {
         return `${ExpressionToC(e.source)}[${ExpressionToC(e.index)}]`;
+    } else if (e instanceof CastExpression) {
+        if (Classes.has(e.source.resolved_type.name)) {
+            // we're going to reference the source twice - once to get the object, once to get the stable. put it in a temporary
+            console.log(`  ${ConvertType(e.source.resolved_type)} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
+            return `((${ConvertType(e.cast_to)}) {(struct ${SanitizeName(e.cast_to.name)}_t *) temp_${e.uuid}.obj, (struct ${SanitizeName(e.cast_to.name)}_stable_t *) temp_${e.uuid}.stable})`;
+        } else {
+            // TODO
+            return ExpressionToC(e.source);
+        }
     } else if (e instanceof GeneratorTemporaryExpression) {
         if (!(genexes_emitted.has(e.uuid))) {
             // TODO

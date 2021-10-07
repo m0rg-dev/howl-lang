@@ -2,6 +2,7 @@ import { ASTElement } from "../ast/ASTElement";
 import { ClassElement } from "../ast/ClassElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { ArithmeticExpression } from "../ast/expression/ArithmeticExpression";
+import { CastExpression } from "../ast/expression/CastExpression";
 import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpression";
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
@@ -140,6 +141,9 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                 log(LogLevel.TRACE, `ElementTransforms ${e}`, `source: ${src.type.asTypeObject()} ${makeConcrete(src.type.asTypeObject())}`);
                 log(LogLevel.TRACE, `ElementTransforms ${e}`, `initializer: ${src.initializer.resolved_type}`);
                 emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to initialize a variable of type ${src.type.asTypeObject()} with an expression of type ${src.initializer.resolved_type}`, src.source_location);
+            }
+            if (!src.initializer.resolved_type.equals(common_type)) {
+                src.initializer = new CastExpression(src.initializer.source_location, src.initializer, makeConcrete(common_type));
             }
         } else if (src instanceof FFICallExpression) {
             src.resolved_type = new ConcreteType("any");
