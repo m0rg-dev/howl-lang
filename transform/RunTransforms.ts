@@ -69,13 +69,47 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                     return;
                 }
             });
+            RunElementTransforms(src.source, root);
+        }
+
+        if (src instanceof FunctionCallExpression
+            && src.source instanceof FieldReferenceExpression
+            && src.source.source.resolved_type instanceof StaticTableType
+            && Classes.has(src.source.source.resolved_type.original_name)
+            && Classes.get(src.source.source.resolved_type.original_name).methods_overloaded.has(src.source.source.resolved_type.original_name.split(".").pop() + "." + src.source.name)) {
+            log(LogLevel.TRACE, `ElementTransforms ${e}`, `Static overload: ${src.source.name} ${src.source.source.resolved_type.original_name}`);
+            const cl = Classes.get(src.source.source.resolved_type.original_name);
+            const candidates = cl.overload_sets.get(src.source.source.resolved_type.original_name.split(".").pop() + "." + src.source.name);
+            candidates.forEach(c => {
+                const candidate_type = cl.type().getFieldType(c.split(".").pop());
+                log(LogLevel.TRACE, `ElementTransforms ${e}`, `Candidate: ${candidate_type}`);
+                if (candidate_type instanceof FunctionType
+                    && candidate_type.args.length == src.args.length
+                    && candidate_type.args.every((arg_type, index) => src.args[index] && checkTypeCompatibility(arg_type, src.args[index].resolved_type))) {
+                    log(LogLevel.TRACE, `ElementTransforms ${e}`, `  => matches`);
+                    (src.source as FieldReferenceExpression).name = c.split(".").pop();
+                    return;
+                }
+            });
+            RunElementTransforms(src.source, root);
         }
 
         // Operator overloading, where appropriate.
+        if (src instanceof ArithmeticExpression
+            && src.what == "+"
+            && Classes.has(src.lhs.resolved_type?.name)
+            && Classes.get(src.lhs.resolved_type.name).methods.some(x => x.name.split(".").pop() == "__add__")) {
+            log(LogLevel.TRACE, `ElementTransforms ${e} `, `Overload: __add__`);
+            let new_tree: ASTElement = new FunctionCallExpression(src.source_location, new FieldReferenceExpression(src.source_location, src.lhs, "__add__"), [src.rhs]);
+            RunElementTransforms(new_tree, root, (n) => new_tree = n);
+            repl(new_tree);
+            return;
+        }
+
         if (src instanceof IndexExpression
             && Classes.has(src.source.resolved_type?.name)
             && Classes.get(src.source.resolved_type.name).methods.some(x => x.name.split(".").pop() == "__index__")) {
-            log(LogLevel.TRACE, `ElementTransforms ${e}`, `Overload: __index__`);
+            log(LogLevel.TRACE, `ElementTransforms ${e} `, `Overload: __index__`);
             let new_tree: ASTElement = new FunctionCallExpression(src.source_location, new FieldReferenceExpression(src.source_location, src.source, "__index__"), [src.index]);
             RunElementTransforms(new_tree, root, (n) => new_tree = n);
             repl(new_tree);
@@ -86,7 +120,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
             && src.lhs instanceof FunctionCallExpression
             && src.lhs.source instanceof FieldReferenceExpression
             && src.lhs.source.name == "__index__") {
-            log(LogLevel.TRACE, `ElementTransforms ${e}`, `Overload: __l_index__`);
+            log(LogLevel.TRACE, `ElementTransforms ${e} `, `Overload: __l_index__`);
             let new_tree: ASTElement = new SimpleStatement(src.source_location,
                 new FunctionCallExpression(src.source_location,
                     new FieldReferenceExpression(src.source_location, src.lhs.source.source, "__l_index__"), [...src.lhs.args, src.rhs]));
@@ -99,20 +133,20 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
             && src.source instanceof FieldReferenceExpression
             && src.source.source.resolved_type
             && Classes.has(src.source.source.resolved_type.name)) {
-            log(LogLevel.TRACE, `ElementTransforms ${e}`, `Method call`);
+            log(LogLevel.TRACE, `ElementTransforms ${e} `, `Method call`);
             const gte = new GeneratorTemporaryExpression(src.source.source);
             let new_tree: ASTElement = new FunctionCallExpression(src.source_location,
                 new FieldReferenceExpression(src.source.source_location,
                     new FieldReferenceExpression(src.source.source_location, gte, "__stable"), src.source.name),
                 [gte, ...src.args]);
             RunElementTransforms(new_tree, root, (n) => new_tree = n);
-            log(LogLevel.TRACE, `ElementTransforms ${e}`, `Method call ${new_tree}`);
+            log(LogLevel.TRACE, `ElementTransforms ${e} `, `Method call ${new_tree} `);
             repl(new_tree);
             return;
         }
 
         if (src instanceof StringConstantExpression && !src.generated) {
-            log(LogLevel.TRACE, `ElementTransforms ${e}`, `String literal`);
+            log(LogLevel.TRACE, `ElementTransforms ${e} `, `String literal`);
             src.resolved_type = new ConcreteRawPointerType(new ConcreteType("u8"));
             src.generated = true;
             let new_tree: ASTElement = new FunctionCallExpression(src.source_location,
@@ -127,7 +161,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
 
         // Type analysis.
         if (src instanceof NameExpression) {
-            log(LogLevel.TRACE, `ElementTransforms ${e}`, `    ${nearestScope.lookupName(src.name)}`);
+            log(LogLevel.TRACE, `ElementTransforms ${e} `, `    ${nearestScope.lookupName(src.name)} `);
             setExpressionType(src, nearestScope.lookupName(src.name));
         } else if (src instanceof NumberExpression) {
             setExpressionType(src, new ConcreteType("i64"));
@@ -147,7 +181,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                     emitError(src.source_location[0], Errors.NO_SUCH_FIELD, `No such field '${src.name}' on ${src.source.resolved_type.name}`, src.source_location);
                 }
             } else {
-                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to access field ${src.name} on expression of non-class type ${src.source.resolved_type}`, src.source_location);
+                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to access field ${src.name} on expression of non - class type ${src.source.resolved_type}`, src.source_location);
             }
         } else if (src instanceof AssignmentStatement) {
             const common_type = lowestCommonType(src.lhs.resolved_type, src.rhs.resolved_type);
@@ -165,8 +199,9 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
         } else if (src instanceof LocalDefinitionStatement) {
             const common_type = lowestCommonType(makeConcrete(src.type.asTypeObject()), src.initializer.resolved_type);
             if (!common_type) {
-                log(LogLevel.TRACE, `ElementTransforms ${e}`, `source: ${src.type.asTypeObject()} ${makeConcrete(src.type.asTypeObject())}`);
-                log(LogLevel.TRACE, `ElementTransforms ${e}`, `initializer: ${src.initializer.resolved_type}`);
+                log(LogLevel.TRACE, `ElementTransforms ${e}`, `source: ${src.type.asTypeObject()} ${makeConcrete(src.type.asTypeObject())
+                    } `);
+                log(LogLevel.TRACE, `ElementTransforms ${e} `, `initializer: ${src.initializer.resolved_type} `);
                 emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to initialize a variable of type ${src.type.asTypeObject()} with an expression of type ${src.initializer.resolved_type}`, src.source_location);
             }
             if (!src.initializer.resolved_type.equals(common_type)) {
@@ -178,14 +213,14 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
             if (src.source.resolved_type instanceof ConcreteRawPointerType) {
                 src.resolved_type = src.source.resolved_type.source_type;
             } else {
-                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to index non-raw-pointer ${src.source}`, src.source_location);
+                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to index non - raw - pointer ${src.source} `, src.source_location);
             }
         } else if (src instanceof ArithmeticExpression) {
             const common_type = lowestCommonType(src.lhs.resolved_type, src.rhs.resolved_type);
             if (!common_type) {
-                log(LogLevel.TRACE, `ElementTransforms ${e}`, `lhs: ${src.lhs}`);
-                log(LogLevel.TRACE, `ElementTransforms ${e}`, `rhs: ${src.rhs}`);
-                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to perform arithmetic on expressions of incompatible types ${src.lhs.resolved_type} and ${src.rhs.resolved_type}`, src.source_location);
+                log(LogLevel.TRACE, `ElementTransforms ${e} `, `lhs: ${src.lhs} `);
+                log(LogLevel.TRACE, `ElementTransforms ${e} `, `rhs: ${src.rhs} `);
+                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to perform arithmetic on expressions of incompatible types ${src.lhs.resolved_type} and ${src.rhs.resolved_type} `, src.source_location);
             }
             if (!src.rhs.resolved_type.equals(common_type)) {
                 src.rhs = CastExpression.fromExpression(src.rhs, common_type);
@@ -204,14 +239,14 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                 src.args.slice(arg_offset).forEach((arg, index) => {
                     const common_type = lowestCommonType(makeConcrete((src.source.resolved_type as FunctionType).args[index]), arg.resolved_type);
                     if (!common_type) {
-                        emitError(arg.source_location[0], Errors.TYPE_MISMATCH, `Attempt to use argument of type ${arg.resolved_type} as argument to function expecting ${(src.source.resolved_type as FunctionType).args[index]}`, arg.source_location);
+                        emitError(arg.source_location[0], Errors.TYPE_MISMATCH, `Attempt to use argument of type ${arg.resolved_type} as argument to function expecting ${(src.source.resolved_type as FunctionType).args[index]} `, arg.source_location);
                     }
                     if (!arg.resolved_type.equals(common_type)) {
                         src.args[index + arg_offset] = CastExpression.fromExpression(arg, common_type);
                     }
                 });
             } else {
-                emitError(src.source.source_location[0], Errors.TYPE_MISMATCH, `Attempt to call non-function of type ${src.source.resolved_type}`, src.source.source_location);
+                emitError(src.source.source_location[0], Errors.TYPE_MISMATCH, `Attempt to call non - function of type ${src.source.resolved_type}`, src.source.source_location);
             }
         } else if (src instanceof ConstructorCallExpression) {
             src.resolved_type = makeConcrete(src.source.asTypeObject());
@@ -220,7 +255,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
             if (t instanceof StructureType) {
                 src.resolved_type = new StaticTableType(Classes.get(t.name));
             } else {
-                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Non-classes may not be used as type literals`, src.source_location);
+                emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Non - classes may not be used as type literals`, src.source_location);
             }
         }
     }, root.body.scope, repl);

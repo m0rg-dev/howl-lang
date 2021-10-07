@@ -167,6 +167,7 @@ export class StructureType extends Type {
 
 export class StaticTableType extends ConcreteType {
     fields: Map<string, Type> = new Map();
+    original_name: string;
 
     constructor(source: ClassElement) {
         super(`${source.name}_stable`);
@@ -174,6 +175,8 @@ export class StaticTableType extends ConcreteType {
         source.methods.forEach(m => {
             this.fields.set(m.getFQN().last().split(".").pop(), new FunctionType(m));
         });
+
+        this.original_name = source.name;
     }
 
     toString() {
