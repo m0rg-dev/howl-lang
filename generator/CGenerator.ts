@@ -49,11 +49,6 @@ export function EmitForwardDeclarations(root: ClassElement) {
     console.log(`struct ${SanitizeName(root.name)}_t;`);
     if (root.is_interface) {
         console.log(`typedef struct {struct ${SanitizeName(root.name)}_t *obj; struct ${SanitizeName(root.name)}_itable_t *stable; } ${SanitizeName(root.name)};`);
-        console.log(`struct ${SanitizeName(root.name)}_itable_t {`);
-        method_list.forEach(m => {
-            console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
-        });
-        console.log(`};`);
     } else {
         console.log(`typedef struct {struct ${SanitizeName(root.name)}_t *obj; struct ${SanitizeName(root.name)}_stable_t *stable; } ${SanitizeName(root.name)};`);
         let cargs: TypedItemElement[] = [];
@@ -79,8 +74,15 @@ export function EmitStructures(root: ClassElement) {
     const method_list = root.synthesizeMethods();
 
     // Static table.
-    if (!root.is_interface) {
-        console.log(`// Structures for class: ${root.name}`);
+    console.log(`// Structures for class: ${root.name}`);
+
+    if (root.is_interface) {
+        console.log(`struct ${SanitizeName(root.name)}_itable_t {`);
+        method_list.forEach(m => {
+            console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
+        });
+        console.log(`};`);
+    } else {
         console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
         method_list.forEach(m => {
             console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)

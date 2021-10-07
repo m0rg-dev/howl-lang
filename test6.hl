@@ -1,8 +1,14 @@
 module main;
 
+class Test implements lib.Display {
+    fn lib.String toString() {
+        return "Test!";
+    }
+}
+
 static fn i32 Main() {
     lib.IO.println("Hello, " + "World!");
     lib.IO.println(lib.String.from(42));
-    lib.IO.println("test value: " + 2);
+    lib.IO.println("test value: " + new Test());
     return 0;
 }

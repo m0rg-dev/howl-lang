@@ -33,6 +33,10 @@ class Vec<T> {
     }
 }
 
+interface Display {
+    fn String toString() {}
+}
+
 class String {
     Vec<u8> contents;
 
@@ -54,6 +58,10 @@ class String {
 
     fn String __add__(i64 other) {
         return self + String.from(other);
+    }
+
+    fn String __add__(Display other) {
+        return self + other.toString();
     }
 
     static fn String fromBytes(*u8 bytes, i64 length) {
@@ -80,6 +88,10 @@ class String {
         }
 
         return String.from(value / 10) + String.from(value % 10);
+    }
+
+    static fn String from(Display other) {
+        return other.toString();
     }
 }
 

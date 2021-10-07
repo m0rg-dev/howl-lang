@@ -23,7 +23,11 @@ export class FindClassNamesPass extends Pass {
                 )),
                 Star(InOrder(
                     MatchToken(TokenType.Implements),
-                    MatchToken(TokenType.Name)
+                    MatchToken(TokenType.Name),
+                    Star(InOrder(
+                        MatchToken(TokenType.Period),
+                        MatchToken(TokenType.Name)
+                    ))
                 )),
                 Hug(TokenType.OpenBrace)
             ),
@@ -49,7 +53,11 @@ export class FindClassNamesPass extends Pass {
                 )),
                 Star(InOrder(
                     MatchToken(TokenType.Implements),
-                    MatchToken(TokenType.Name)
+                    MatchToken(TokenType.Name),
+                    Star(InOrder(
+                        MatchToken(TokenType.Period),
+                        MatchToken(TokenType.Name)
+                    ))
                 )),
                 Until(MatchToken(TokenType.OpenBrace)),
                 ResynchronizeTopLevel
@@ -80,7 +88,11 @@ export class FindClassNamesPass extends Pass {
                 )),
                 Star(InOrder(
                     MatchToken(TokenType.Implements),
-                    MatchToken(TokenType.Name)
+                    MatchToken(TokenType.Name),
+                    Star(InOrder(
+                        MatchToken(TokenType.Period),
+                        MatchToken(TokenType.Name)
+                    ))
                 )),
                 AssertNegative(Hug(TokenType.OpenBrace)),
                 ResynchronizeTopLevel
