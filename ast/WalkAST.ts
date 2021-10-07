@@ -27,6 +27,7 @@ import { LogLevel } from "../driver/Pass";
 import { ExpressionElement } from "./ExpressionElement";
 import { TypeElement } from "./TypeElement";
 import { CastExpression } from "./expression/CastExpression";
+import { MacroCallExpression } from "./expression/MacroCallExpression";
 
 export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope, repl: (n: ASTElement) => void) => void, _nearestScope?: Scope, repl = (n: ASTElement) => { }) {
     if (root instanceof ClassElement) {
@@ -129,7 +130,9 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             });
         });
         cb(root, _nearestScope, repl);
-    } else if (root instanceof ConstructorCallExpression || root instanceof FFICallExpression) {
+    } else if (root instanceof ConstructorCallExpression
+        || root instanceof FFICallExpression
+        || root instanceof MacroCallExpression) {
         root.args.forEach((argument, index) => {
             WalkAST(argument, cb, _nearestScope, (n: ASTElement) => {
                 if (n instanceof ExpressionElement) {

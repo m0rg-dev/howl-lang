@@ -196,6 +196,15 @@ function ExpressionToC(e: ExpressionElement): string {
             return ExpressionToC(rep);
         }
     }
+
+    if (e.generator_metadata["requires"]) {
+        for (const statement of e.generator_metadata["requires"]) {
+            if (statement instanceof ASTElement) {
+                EmitC(statement);
+            }
+        }
+    }
+
     if (e instanceof FieldReferenceExpression) {
         if (e.name == "__stable") {
             return `${ExpressionToC(e.source)}.stable`;
@@ -217,7 +226,7 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof FunctionCallExpression) {
         return `${ExpressionToC(e.source)}(${e.args.map(ExpressionToC).join(", ")})`;
     } else if (e instanceof ComparisonExpression || e instanceof ArithmeticExpression) {
-        return `${ExpressionToC(e.lhs)} ${e.what} ${ExpressionToC(e.rhs)}`;
+        return `(${ExpressionToC(e.lhs)} ${e.what} ${ExpressionToC(e.rhs)})`;
     } else if (e instanceof TypeElement) {
         return `(&${ConvertType(e.asTypeObject())}_stable_obj)`;
     } else if (e instanceof IndexExpression) {

@@ -45,7 +45,7 @@ export class ClassElement extends ASTElement {
                 if (m instanceof OverloadedFunctionElement) return;
                 m.name += "__Z" + m.args.map(x => {
                     if (x.type instanceof ConcreteType) {
-                        return x.type.name;
+                        return x.type.name.replaceAll(".", "_");
                     } else {
                         return x.toString();
                     }

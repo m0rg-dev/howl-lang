@@ -2,5 +2,7 @@ module main;
 
 static fn i32 Main() {
     lib.IO.println("Hello, " + "World!");
+    lib.IO.println(lib.String.from(42));
+    lib.IO.println("test value: " + 2);
     return 0;
 }

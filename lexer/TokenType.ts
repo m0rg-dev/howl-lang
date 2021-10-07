@@ -33,6 +33,7 @@ export enum TokenType {
     Slash,
     Minus,
     Percent,
+    ExclamationPoint,
 
     Name,
     NumericLiteral,

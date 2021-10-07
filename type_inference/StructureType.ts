@@ -101,7 +101,7 @@ export class StructureType extends Type {
         const generic_keys = [...this.generic_map.keys()];
         const parts = this.name.split(".");
         parts[parts.length - 1] = "M" + parts[parts.length - 1];
-        return `${parts.join(".")}_${generic_keys.map(x => (this.generic_map.get(x) as ConcreteType).name).join("_")}`;
+        return `${parts.join(".")}_${generic_keys.map(x => (this.generic_map.get(x) as ConcreteType).name.replaceAll(".", "_")).join("_")}`;
     }
 
     isMonomorphizable(): boolean {

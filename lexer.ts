@@ -41,7 +41,8 @@ const PUNCTUATION_TABLE = {
     "|": TokenType.Pipe,
     "/": TokenType.Slash,
     "-": TokenType.Minus,
-    "%": TokenType.Percent
+    "%": TokenType.Percent,
+    "!": TokenType.ExclamationPoint
 }
 
 export class Lexer {
@@ -87,7 +88,7 @@ export class Lexer {
     }
 
     private match_punctuation(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^([{};(),.=\[\]*<>+|/%-])\s*/s);
+        const m = this.source.substr(this.mark).match(/^([{};(),.=\[\]*<>+|/%!-])\s*/s);
         if (!m) return undefined;
 
         return { type: PUNCTUATION_TABLE[m[1]], length: m[1].length, start: this.mark, text: m[0] };
