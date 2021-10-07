@@ -1,7 +1,7 @@
 import { TokenElement } from "../ast/TokenElement";
 import { TokenType } from "../lexer/TokenType";
 import { InOrder, MatchToken, Plus } from "../parser/Matcher";
-import { TypeNames } from "../registry/Registry";
+import { Classes, TypeNames } from "../registry/Registry";
 import { Pass } from "./Pass";
 
 export class ReferenceNamesPass extends Pass {
@@ -18,11 +18,9 @@ export class ReferenceNamesPass extends Pass {
                 )
             ),
             replace: (ast_stream: TokenElement<any>[]) => {
-                const fqn = ast_stream.reduce((prev, el) => prev + el.token.text, "");
-                const parts = fqn.split(".");
-                for (const idx in parts) {
+                for (const idx in ast_stream) {
                     const idx_n = Number.parseInt(idx);
-                    const new_name = parts.slice(0, idx_n).join(".");
+                    const new_name = ast_stream.slice(0, idx_n + 1).reduce((prev, el) => prev + el.token.text, "").trim();
                     if (TypeNames.has(new_name)) {
                         const new_element = new TokenElement({
                             type: TokenType.Name,
@@ -32,7 +30,7 @@ export class ReferenceNamesPass extends Pass {
                             name: new_name
                         }, this.cu);
 
-                        return [new_element, ...ast_stream.slice(idx_n * 2 - 1)];
+                        return [new_element, ...ast_stream.slice(idx_n + 1)];
                     }
                 }
                 return undefined;

@@ -12,6 +12,8 @@ export enum TokenType {
     FFICall,
     Extends,
     Override,
+    Interface,
+    Implements,
 
     OpenBrace,
     CloseBrace,

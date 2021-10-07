@@ -8,25 +8,29 @@ import { TypedItemElement } from "./TypedItemElement";
 export class ClassElement extends ASTElement {
     name: string;
     parent: string;
+    interfaces: string[];
 
     fields: TypedItemElement[];
     methods: FunctionElement[];
     generics: string[];
     is_monomorphization = false;
+    is_interface: boolean;
 
-    constructor(loc: SourceLocation, name: string, fields: TypedItemElement[], methods: FunctionElement[], generics: string[], parent: string) {
+    constructor(loc: SourceLocation, name: string, fields: TypedItemElement[], methods: FunctionElement[], generics: string[], parent: string, interfaces: string[], is_interface: boolean) {
         super(loc);
         this.name = name;
         this.fields = fields;
         this.methods = methods;
         this.generics = generics;
         this.parent = parent;
+        this.interfaces = interfaces;
+        this.is_interface = is_interface;
 
         if (!generics.length) this.is_monomorphization = true;
     }
 
     toString() {
-        return `Class<${this.generics.join(", ")}>(${this.name})${this.parent ? ` extends ${this.parent}` : ""}`;
+        return `${this.is_interface ? "Interface" : "Class"}<${this.generics.join(", ")}>(${this.name})${this.parent ? ` extends ${this.parent}` : ""}${this.interfaces.map(x => ` implements ${x}`)}`;
     }
 
     clone() {
@@ -36,7 +40,9 @@ export class ClassElement extends ASTElement {
             this.fields.map(x => x.clone()),
             this.methods.map(x => x.clone()),
             [...this.generics],
-            this.parent
+            this.parent,
+            [...this.interfaces],
+            this.is_interface
         );
     }
 
@@ -60,6 +66,7 @@ export class ClassElement extends ASTElement {
 
     hierarchyIncludes(name: string): boolean {
         if (this.name == name) return true;
+        if (this.interfaces.some(x => x == name)) return true;
         if (this.parent) {
             return Classes.get(this.parent).hierarchyIncludes(name);
         }

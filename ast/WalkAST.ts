@@ -26,6 +26,7 @@ import { log } from "../driver/Driver";
 import { LogLevel } from "../driver/Pass";
 import { ExpressionElement } from "./ExpressionElement";
 import { TypeElement } from "./TypeElement";
+import { CastExpression } from "./expression/CastExpression";
 
 export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope, repl: (n: ASTElement) => void) => void, _nearestScope?: Scope, repl = (n: ASTElement) => { }) {
     if (root instanceof ClassElement) {
@@ -161,7 +162,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
         cb(root, _nearestScope, repl);
     } else if (root instanceof FieldReferenceExpression
         || root instanceof UnaryReturnStatement
-        || root instanceof GeneratorTemporaryExpression) {
+        || root instanceof GeneratorTemporaryExpression
+        || root instanceof CastExpression) {
         WalkAST(root.source, cb, _nearestScope, (n: ASTElement) => {
             if (n instanceof ExpressionElement) {
                 root.source = n;

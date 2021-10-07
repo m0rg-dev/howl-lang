@@ -93,6 +93,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
 
         if (src instanceof StringConstantExpression && !src.generated) {
             log(LogLevel.TRACE, `ElementTransforms ${e}`, `String literal`);
+            src.resolved_type = new ConcreteRawPointerType(new ConcreteType("u8"));
             src.generated = true;
             let new_tree: ASTElement = new FunctionCallExpression(src.source_location,
                 new FieldReferenceExpression(src.source_location,
@@ -135,6 +136,12 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                 log(LogLevel.TRACE, `ElementTransforms ${e}`, `rhs: ${src.rhs}`);
                 emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to assign an expression of type ${src.rhs.resolved_type} to a location of type ${src.lhs.resolved_type}`, src.source_location);
             }
+            if (!src.rhs.resolved_type.equals(common_type)) {
+                src.rhs = CastExpression.fromExpression(src.rhs, common_type);
+            }
+            if (!src.lhs.resolved_type.equals(common_type)) {
+                src.lhs = CastExpression.fromExpression(src.lhs, common_type);
+            }
         } else if (src instanceof LocalDefinitionStatement) {
             const common_type = lowestCommonType(makeConcrete(src.type.asTypeObject()), src.initializer.resolved_type);
             if (!common_type) {
@@ -143,7 +150,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                 emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to initialize a variable of type ${src.type.asTypeObject()} with an expression of type ${src.initializer.resolved_type}`, src.source_location);
             }
             if (!src.initializer.resolved_type.equals(common_type)) {
-                src.initializer = new CastExpression(src.initializer.source_location, src.initializer, makeConcrete(common_type));
+                src.initializer = CastExpression.fromExpression(src.initializer, common_type);
             }
         } else if (src instanceof FFICallExpression) {
             src.resolved_type = new ConcreteType("any");
@@ -160,11 +167,29 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                 log(LogLevel.TRACE, `ElementTransforms ${e}`, `rhs: ${src.rhs}`);
                 emitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to perform arithmetic on expressions of incompatible types ${src.lhs.resolved_type} and ${src.rhs.resolved_type}`, src.source_location);
             }
+            if (!src.rhs.resolved_type.equals(common_type)) {
+                src.rhs = CastExpression.fromExpression(src.rhs, common_type);
+            }
+            if (!src.lhs.resolved_type.equals(common_type)) {
+                src.lhs = CastExpression.fromExpression(src.lhs, common_type);
+            }
             src.resolved_type = makeConcrete(common_type);
         } else if (src instanceof FunctionCallExpression) {
-            // TODO check arguments
             if (src.source.resolved_type instanceof FunctionType) {
                 src.resolved_type = makeConcrete(src.source.resolved_type.return_type);
+                let arg_offset = 0;
+                if (!((src.source.resolved_type as FunctionType).is_static)) {
+                    arg_offset = 1;
+                }
+                src.args.slice(arg_offset).forEach((arg, index) => {
+                    const common_type = lowestCommonType(makeConcrete((src.source.resolved_type as FunctionType).args[index]), arg.resolved_type);
+                    if (!common_type) {
+                        emitError(arg.source_location[0], Errors.TYPE_MISMATCH, `Attempt to use argument of type ${arg.resolved_type} as argument to function expecting ${(src.source.resolved_type as FunctionType).args[index]}`, arg.source_location);
+                    }
+                    if (!arg.resolved_type.equals(common_type)) {
+                        src.args[index + arg_offset] = CastExpression.fromExpression(arg, common_type);
+                    }
+                });
             } else {
                 emitError(src.source.source_location[0], Errors.TYPE_MISMATCH, `Attempt to call non-function of type ${src.source.resolved_type}`, src.source.source_location);
             }
@@ -181,7 +206,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
     }, root.body.scope, repl);
 }
 
-function makeConcrete(t: Type): ConcreteType {
+export function makeConcrete(t: Type): ConcreteType {
     if (t instanceof ConcreteType) {
         return t;
     }

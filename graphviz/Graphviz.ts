@@ -177,7 +177,7 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
             [{ text: "CastExpression" }]
         ];
         contents.push([{ text: "source" }, { port: "source", text: e.source.toString() }]);
-        contents.push([{ text: "type" }, { port: "type", text: e.cast_to.toString() }]);
+        contents.push([{ text: "type" }, { port: "type", text: e.cast_to?.toString() }]);
         s.push((new RecordNode(e.uuid, contents)).toString());
         s.push((new Link("u" + e.uuid + ":source", "u" + e.source.uuid)).toString());
         s.push(RenderElement(e.source, _nearestScope));

@@ -47,21 +47,29 @@ export function EmitForwardDeclarations(root: ClassElement) {
 
     console.log(`// Forward declarations for class: ${root.name}`);
     console.log(`struct ${SanitizeName(root.name)}_t;`);
-    console.log(`typedef struct {struct ${SanitizeName(root.name)}_t *obj; struct ${SanitizeName(root.name)}_stable_t *stable; } ${SanitizeName(root.name)};`);
-    let cargs: TypedItemElement[] = [];
-    const cidx = method_list.findIndex(x => x.getFQN().last() == "constructor");
-    if (cidx >= 0) {
-        cargs = method_list[cidx].args;
+    if (root.is_interface) {
+        console.log(`typedef struct {struct ${SanitizeName(root.name)}_t *obj; struct ${SanitizeName(root.name)}_itable_t *stable; } ${SanitizeName(root.name)};`);
+        console.log(`struct ${SanitizeName(root.name)}_itable_t {`);
+        method_list.forEach(m => {
+            console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
+        });
+        console.log(`};`);
+    } else {
+        console.log(`typedef struct {struct ${SanitizeName(root.name)}_t *obj; struct ${SanitizeName(root.name)}_stable_t *stable; } ${SanitizeName(root.name)};`);
+        let cargs: TypedItemElement[] = [];
+        const cidx = method_list.findIndex(x => x.getFQN().last() == "constructor");
+        if (cidx >= 0) {
+            cargs = method_list[cidx].args;
+        }
+        console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")});`);
+
+        method_list.forEach(m => {
+            const args = [{ t: m.self_type, n: "self" }];
+            if (m.is_static) args.shift();
+            m.args.forEach(e => args.push({ t: e.type, n: e.name }));
+            console.log(`${ConvertType(m.return_type)} ${SanitizeName(m.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")});`);
+        });
     }
-    console.log(`${SanitizeName(root.name)} ${SanitizeName(root.name)}_alloc(${cargs.map(x => `${ConvertType(x.type)} ${x.name}`).join(", ")});`);
-
-    method_list.forEach(m => {
-        const args = [{ t: m.self_type, n: "self" }];
-        if (m.is_static) args.shift();
-        m.args.forEach(e => args.push({ t: e.type, n: e.name }));
-        console.log(`${ConvertType(m.return_type)} ${SanitizeName(m.getFQN().toString())}(${args.map(x => `${ConvertType(x.t)} ${x.n}`).join(", ")});`);
-    });
-
     console.log("\n");
 }
 
@@ -71,24 +79,36 @@ export function EmitStructures(root: ClassElement) {
     const method_list = root.synthesizeMethods();
 
     // Static table.
-    console.log(`// Structures for class: ${root.name}`);
-    console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
-    method_list.forEach(m => {
-        console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
-    });
-    console.log(`} ${SanitizeName(root.name)}_stable_obj = {`);
-    method_list.forEach(m => {
-        console.log(`  ${SanitizeName(m.getFQN().toString())},`);
-    })
-    console.log(`};\n`);
-    console.log(`typedef struct ${SanitizeName(root.name)}_stable_t *${SanitizeName(root.name)}_stable;\n`);
+    if (!root.is_interface) {
+        console.log(`// Structures for class: ${root.name}`);
+        console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
+        method_list.forEach(m => {
+            console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
+        });
+        console.log(`} ${SanitizeName(root.name)}_stable_obj = {`);
+        method_list.forEach(m => {
+            console.log(`  ${SanitizeName(m.getFQN().toString())},`);
+        })
+        console.log(`};\n`);
+        console.log(`typedef struct ${SanitizeName(root.name)}_stable_t *${SanitizeName(root.name)}_stable;\n`);
 
-    // Class structure itself.
-    console.log(`struct ${SanitizeName(root.name)}_t {`);
-    field_list.slice(1).forEach(f => {
-        console.log(`  ${ConvertType(f.type)} ${f.name};`);
-    });
-    console.log(`};\n`);
+        // Interface tables, if present.
+        root.interfaces.forEach(iface => {
+            const iclass = Classes.get(iface);
+            console.log(`struct ${SanitizeName(iface)}_itable_t ${SanitizeName(root.name)}_${SanitizeName(iface)}_itable = {`);
+            iclass.synthesizeMethods().forEach(m => {
+                console.log(`  (${GenerateFunctionPointerType(new FunctionType(m), "")}) ${SanitizeName(root.name)}__${m.getFQN().last().split(".").pop()},`)
+            });
+            console.log(`};`);
+        });
+
+        // Class structure itself.
+        console.log(`struct ${SanitizeName(root.name)}_t {`);
+        field_list.slice(1).forEach(f => {
+            console.log(`  ${ConvertType(f.type)} ${f.name};`);
+        });
+        console.log(`};\n`);
+    }
 }
 
 export function EmitC(root: ASTElement) {
@@ -104,6 +124,7 @@ export function EmitC(root: ASTElement) {
 
     if (root instanceof ClassElement) {
         if (!root.is_monomorphization) return;
+        if (root.is_interface) return;
 
         console.log(`// Class: ${root.name}`);
 
@@ -201,10 +222,15 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof IndexExpression) {
         return `${ExpressionToC(e.source)}[${ExpressionToC(e.index)}]`;
     } else if (e instanceof CastExpression) {
-        if (Classes.has(e.source.resolved_type.name)) {
-            // we're going to reference the source twice - once to get the object, once to get the stable. put it in a temporary
-            console.log(`  ${ConvertType(e.source.resolved_type)} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
-            return `((${ConvertType(e.cast_to)}) {(struct ${SanitizeName(e.cast_to.name)}_t *) temp_${e.uuid}.obj, (struct ${SanitizeName(e.cast_to.name)}_stable_t *) temp_${e.uuid}.stable})`;
+        if (Classes.has(e.cast_to.name)) {
+            const cl = Classes.get(e.cast_to.name);
+            if (cl.is_interface) {
+                return `((${ConvertType(e.cast_to)}) {(struct ${SanitizeName(e.cast_to.name)}_t *) ${ExpressionToC(e.source)}.obj, &${SanitizeName(e.source.resolved_type.name)}_${SanitizeName(e.cast_to.name)}_itable})`;
+            } else {
+                // we're going to reference the source twice - once to get the object, once to get the stable. put it in a temporary
+                console.log(`  ${ConvertType(e.source.resolved_type)} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
+                return `((${ConvertType(e.cast_to)}) {(struct ${SanitizeName(e.cast_to.name)}_t *) temp_${e.uuid}.obj, (struct ${SanitizeName(e.cast_to.name)}_stable_t *) temp_${e.uuid}.stable})`;
+            }
         } else {
             // TODO
             return ExpressionToC(e.source);

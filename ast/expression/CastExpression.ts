@@ -1,3 +1,4 @@
+import { makeConcrete } from "../../transform/RunTransforms";
 import { ConcreteType } from "../../type_inference/ConcreteType";
 import { Type } from "../../type_inference/Type";
 import { SourceLocation } from "../ASTElement";
@@ -20,5 +21,9 @@ export class CastExpression extends ExpressionElement {
 
     clone() {
         return new CastExpression(this.source_location, this.source.clone() as ExpressionElement, this.cast_to);
+    }
+
+    static fromExpression(source: ExpressionElement, cast_to: Type) {
+        return new CastExpression(source.source_location, source, makeConcrete(cast_to));
     }
 }
