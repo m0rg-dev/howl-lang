@@ -28,6 +28,8 @@ import { ExpressionElement } from "./ExpressionElement";
 import { TypeElement } from "./TypeElement";
 import { CastExpression } from "./expression/CastExpression";
 import { MacroCallExpression } from "./expression/MacroCallExpression";
+import { ThrowStatement } from "./statement/ThrowStatement";
+import { TryCatchStatement } from "./statement/TryCatchStatement";
 
 export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Scope, repl: (n: ASTElement) => void) => void, _nearestScope?: Scope, repl = (n: ASTElement) => { }) {
     if (root instanceof ClassElement) {
@@ -165,6 +167,7 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
         cb(root, _nearestScope, repl);
     } else if (root instanceof FieldReferenceExpression
         || root instanceof UnaryReturnStatement
+        || root instanceof ThrowStatement
         || root instanceof GeneratorTemporaryExpression
         || root instanceof CastExpression) {
         WalkAST(root.source, cb, _nearestScope, (n: ASTElement) => {
@@ -175,6 +178,28 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
                 log(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
+        cb(root, _nearestScope, repl);
+    } else if (root instanceof TryCatchStatement) {
+        WalkAST(root.body, cb, _nearestScope, (n: ASTElement) => {
+            if (n instanceof CompoundStatementElement) {
+                root.body = n;
+            } else {
+                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
+                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+            }
+        });
+
+        root.cases.forEach(c => {
+            WalkAST(c.body, cb, _nearestScope, (n: ASTElement) => {
+                if (n instanceof CompoundStatementElement) {
+                    c.body = n;
+                } else {
+                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace case ${c.type} of ${root} with non-CompoundStatementElement ${n}`);
+                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                }
+            });
+        });
+
         cb(root, _nearestScope, repl);
     } else if (root instanceof SimpleStatement) {
         WalkAST(root.exp, cb, _nearestScope, (n: ASTElement) => {

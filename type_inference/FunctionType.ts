@@ -7,6 +7,7 @@ export class FunctionType extends ConcreteType {
     return_type: Type;
     self_type: Type;
     args: Type[];
+    throws: Type[];
     _propagated = false;
     is_static = false;
 
@@ -22,6 +23,7 @@ export class FunctionType extends ConcreteType {
             this.self_type = source.self_type;
             this.args = [...source.args];
         }
+        this.throws = [...source.throws];
 
         this.name = `${this.return_type}(*)(${[this.self_type, ...this.args].join(", ")})`;
     }

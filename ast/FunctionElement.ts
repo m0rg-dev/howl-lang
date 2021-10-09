@@ -16,17 +16,19 @@ export class FunctionElement extends ASTElement {
     return_type: Type;
     self_type: Type;
     args: TypedItemElement[];
+    throws: Type[];
     body: CompoundStatementElement;
     scope: Scope;
     is_static: boolean;
 
-    constructor(loc: SourceLocation, parent: HasFQN, name: string, return_type: Type, self_type: Type, args: TypedItemElement[], is_static: boolean, body: CompoundStatementElement, source: CompilationUnit) {
+    constructor(loc: SourceLocation, parent: HasFQN, name: string, return_type: Type, self_type: Type, args: TypedItemElement[], throws: Type[], is_static: boolean, body: CompoundStatementElement, source: CompilationUnit) {
         super(loc);
         this.name = name;
         this.parent = parent;
         this.return_type = return_type;
         this.self_type = self_type || new VoidType();
         this.args = args;
+        this.throws = throws;
         this.body = body;
         this.is_static = is_static;
         this.source = source;
@@ -37,7 +39,7 @@ export class FunctionElement extends ASTElement {
     }
 
     toString() {
-        return `FunctionElement(${this.getFQN()}, ${this.return_type}, ${this.args}, ${this.body})`;
+        return `FunctionElement(${this.getFQN()}, ${this.return_type}, ${this.args}, ${this.body})${this.throws.map(x => ` throws ${x}`).join(" ")}`;
     }
 
     clone() {
@@ -48,6 +50,7 @@ export class FunctionElement extends ASTElement {
             this.return_type,
             this.self_type,
             this.args.map(x => x.clone()),
+            [...this.throws],
             this.is_static,
             this.body.clone(),
             this.source
@@ -74,6 +77,7 @@ export class OverloadedFunctionElement extends FunctionElement {
             from.return_type,
             from.self_type,
             [],
+            [],
             from.is_static,
             undefined,
             from.source
@@ -89,6 +93,7 @@ export class OverloadedFunctionElement extends FunctionElement {
             this.return_type,
             this.self_type,
             this.args.map(x => x.clone()),
+            [...this.throws],
             this.is_static,
             undefined,
             this.source

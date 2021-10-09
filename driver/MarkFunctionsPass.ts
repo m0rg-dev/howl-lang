@@ -1,7 +1,7 @@
 import { ASTElement, MarkerElement } from "../ast/ASTElement";
 import { TokenElement } from "../ast/TokenElement";
 import { TokenType } from "../lexer/TokenType";
-import { Hug, InOrder, MatchToken, Optional } from "../parser/Matcher";
+import { Hug, InOrder, MatchToken, Optional, Star, Until } from "../parser/Matcher";
 import { Pass } from "./Pass";
 
 export class MarkFunctionsPass extends Pass {
@@ -14,6 +14,16 @@ export class MarkFunctionsPass extends Pass {
                 MatchToken(TokenType.Name),
                 MatchToken(TokenType.Name),
                 Hug(TokenType.OpenParen),
+                Optional(
+                    InOrder(
+                        MatchToken(TokenType.Throws),
+                        MatchToken(TokenType.Name),
+                        Star(InOrder(
+                            MatchToken(TokenType.Comma),
+                            MatchToken(TokenType.Name),
+                        ))
+                    )
+                ),
                 Hug(TokenType.OpenBrace)
             ),
             replace: (ast_stream: ASTElement[]) => {
@@ -23,6 +33,7 @@ export class MarkFunctionsPass extends Pass {
                 }
 
                 start_idx += Hug(TokenType.OpenParen)(ast_stream.slice(start_idx))[1];
+                start_idx += Until(MatchToken(TokenType.OpenBrace))(ast_stream.slice(start_idx))[1];
 
                 return [
                     new MarkerElement(ast_stream[0].source_location, "fdecl", false),

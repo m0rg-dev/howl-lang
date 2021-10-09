@@ -20,6 +20,8 @@ import { IfStatement } from "../ast/statement/IfStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 import { NullaryReturnStatement } from "../ast/statement/NullaryReturnStatement";
 import { SimpleStatement } from "../ast/statement/SimpleStatement";
+import { ThrowStatement } from "../ast/statement/ThrowStatement";
+import { TryCatchStatement } from "../ast/statement/TryCatchStatement";
 import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
@@ -36,10 +38,17 @@ export function EmitCPrologue() {
     console.log(`#include <stdlib.h>`);
     console.log(`#include <string.h>`);
     console.log(`#include <unistd.h>`);
+    console.log(`#include <setjmp.h>`);
     console.log(``);
-    console.log(`int32_t main__Main(); `)
-    console.log(`int32_t main() { return main__Main(); }`);
+    console.log(`#include "runtime/howl_runtime.h"`);
 }
+
+var temp_counter = 0;
+function newtemp() {
+    return `temp_${temp_counter++}`;
+}
+
+var genex_map = new Map<string, string>();
 
 export function EmitForwardDeclarations(root: ClassElement) {
     if (!root.is_monomorphization) return;
@@ -83,11 +92,16 @@ export function EmitStructures(root: ClassElement) {
         });
         console.log(`};`);
     } else {
-        console.log(`struct ${SanitizeName(root.name)}_stable_t {`);
+        console.log(`struct ${SanitizeName(root.name)}_stable_t {\n  char *__typename;\n  struct stable_common *parent;`);
         method_list.forEach(m => {
             console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
         });
-        console.log(`} ${SanitizeName(root.name)}_stable_obj = {`);
+        console.log(`} ${SanitizeName(root.name)}_stable_obj = {\n  "${root.name}",`);
+        if (root.parent && Classes.has(root.parent)) {
+            console.log(`  (struct stable_common *) &${SanitizeName(root.parent)}_stable_obj,`);
+        } else {
+            console.log(`  (struct stable_common *) 0,`);
+        }
         method_list.forEach(m => {
             console.log(`  ${SanitizeName(m.getFQN().toString())},`);
         })
@@ -175,6 +189,34 @@ export function EmitC(root: ASTElement) {
         root.statements.forEach(EmitC);
     } else if (root instanceof UnaryReturnStatement) {
         console.log(`  return ${ExpressionToC(root.source)};`);
+    } else if (root instanceof ThrowStatement) {
+        const tmpnam = newtemp();
+        console.log(`  ${ConvertType(root.source.resolved_type)} ${tmpnam} = ${ExpressionToC(root.source)};`);
+        console.log(`  cur_exception = ((struct object) { (void *) ${tmpnam}.obj, (struct stable_common *) ${tmpnam}.stable });`);
+        console.log(`  longjmp(cur_handler, 1);`);
+    } else if (root instanceof TryCatchStatement) {
+        const tmpnam = newtemp();
+        console.log(`  jmp_buf ${tmpnam};`);
+        console.log(`  memcpy(&${tmpnam}, &cur_handler, sizeof(jmp_buf));`);
+        console.log(`  if(setjmp(cur_handler)) {`);
+        // We've received an exception.
+        root.cases.forEach(c => {
+            const selector_type = c.type.asTypeObject() as StructureType;
+            console.log(`    if(typeIncludes(*cur_exception.stable, "${selector_type.name}")) {`);
+            console.log(`      ${ConvertType(selector_type)} ${c.local_name} = ((${ConvertType(selector_type)}) {(struct ${SanitizeName(selector_type.name)}_t *) cur_exception.obj, (struct ${SanitizeName(selector_type.name)}_stable_t *) cur_exception.stable});`);
+            EmitC(c.body);
+            console.log(`      goto try_end_${root.uuid};`);
+            console.log(`    }`);
+
+        });
+        // We didn't handle the exception - rethrow.
+        console.log(`    memcpy(&cur_handler, &${tmpnam}, sizeof(jmp_buf));`);
+        console.log(`    longjmp(cur_handler, 1);`);
+        console.log(`  } else {`);
+        EmitC(root.body);
+        console.log(`  }`);
+        console.log(`  try_end_${root.uuid}:`);
+        console.log(`  memcpy(&cur_handler, &${tmpnam}, sizeof(jmp_buf));`);
     } else if (root instanceof AssignmentStatement) {
         if (root.generator_metadata["is_fake_assignment"]) console.log(`  ${ExpressionToC(root.lhs)};`);
         else console.log(`  ${ExpressionToC(root.lhs)} = ${ExpressionToC(root.rhs)};`);
@@ -239,9 +281,10 @@ function ExpressionToC(e: ExpressionElement): string {
             if (cl.is_interface) {
                 return `((${ConvertType(e.cast_to)}) {(struct ${SanitizeName(e.cast_to.name)}_t *) ${ExpressionToC(e.source)}.obj, &${SanitizeName(e.source.resolved_type.name)}_${SanitizeName(e.cast_to.name)}_itable})`;
             } else {
+                const tmpnam = newtemp();
                 // we're going to reference the source twice - once to get the object, once to get the stable. put it in a temporary
-                console.log(`  ${ConvertType(e.source.resolved_type)} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
-                return `((${ConvertType(e.cast_to)}) {(struct ${SanitizeName(e.cast_to.name)}_t *) temp_${e.uuid}.obj, (struct ${SanitizeName(e.cast_to.name)}_stable_t *) temp_${e.uuid}.stable})`;
+                console.log(`  ${ConvertType(e.source.resolved_type)} ${tmpnam} = ${ExpressionToC(e.source)};`);
+                return `((${ConvertType(e.cast_to)}) {(struct ${SanitizeName(e.cast_to.name)}_t *) ${tmpnam}.obj, (struct ${SanitizeName(e.cast_to.name)}_stable_t *) ${tmpnam}.stable})`;
             }
         } else {
             // TODO
@@ -250,10 +293,11 @@ function ExpressionToC(e: ExpressionElement): string {
     } else if (e instanceof GeneratorTemporaryExpression) {
         if (!(genexes_emitted.has(e.uuid))) {
             // TODO
-            console.log(`  ${ConvertType(e.resolved_type)} temp_${e.uuid} = ${ExpressionToC(e.source)};`);
+            genex_map.set(e.uuid, newtemp());
+            console.log(`  ${ConvertType(e.resolved_type)} ${genex_map.get(e.uuid)} = ${ExpressionToC(e.source)};`);
             genexes_emitted.add(e.uuid);
         }
-        return `temp_${e.uuid}`;
+        return genex_map.get(e.uuid);
     } else {
         throw new Error(`Don't know how to emit C for ${e.constructor.name}`);
     }
