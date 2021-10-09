@@ -14,6 +14,10 @@ export enum TokenType {
     Override,
     Interface,
     Implements,
+    Throws,
+    Throw,
+    Try,
+    Catch,
 
     OpenBrace,
     CloseBrace,

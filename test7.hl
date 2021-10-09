@@ -1,0 +1,25 @@
+module main;
+
+class Exception {
+    lib.String message;
+
+    fn void constructor(lib.String message) {
+        self.message = message;
+    }
+}
+
+class Test {
+    fn void foo() throws Exception {
+        throw new Exception("test exception message");
+    }
+}
+
+static fn i32 Main() {
+    let Test obj = new Test();
+    try {
+        obj.foo();
+    } catch Exception e {
+        lib.IO.println(e.message);
+    }
+    return 0;
+}

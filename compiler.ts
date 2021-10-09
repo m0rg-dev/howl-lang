@@ -10,7 +10,7 @@ import { StructureType } from './type_inference/StructureType';
 sms.install();
 
 SetupDriver();
-ParseFile(process.argv[2]);
+if (!ParseFile(process.argv[2])) process.exit(1);
 
 Classes.forEach((cl) => {
     cl.fields.forEach(f => {
@@ -39,6 +39,6 @@ if (process.env["HOWL_OUTPUT_GRAPHVIZ"]) {
     EmitCPrologue();
     Classes.forEach(EmitForwardDeclarations);
     Classes.forEach(EmitStructures);
-    Classes.forEach(EmitC);
-    Functions.forEach(EmitC);
+    Classes.forEach(c => EmitC(c));
+    Functions.forEach(f => EmitC(f));
 }

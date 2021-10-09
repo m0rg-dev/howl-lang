@@ -19,6 +19,7 @@ import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { IfStatement } from "../ast/statement/IfStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 import { SimpleStatement } from "../ast/statement/SimpleStatement";
+import { TryCatchStatement } from "../ast/statement/TryCatchStatement";
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { SimpleTypeElement, TypeElement } from "../ast/TypeElement";
@@ -403,6 +404,12 @@ function AddScopes(el: FunctionElement | CompoundStatementElement, root: Functio
                 AddScopes(x, root, el.scope);
             } else if (x instanceof IfStatement || x instanceof WhileStatement) {
                 AddScopes(x.body, root, el.scope);
+            } else if (x instanceof TryCatchStatement) {
+                AddScopes(x.body, root, el.scope);
+                x.cases.forEach(c => {
+                    AddScopes(c.body, root, el.scope);
+                    c.body.scope.addType(makeConcrete(c.type.asTypeObject()), c.local_name);
+                })
             } else if (x instanceof LocalDefinitionStatement) {
                 el.scope.addType(makeConcrete(x.type.asTypeObject()), x.name);
             }

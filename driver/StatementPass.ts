@@ -2,11 +2,14 @@ import { ASTElement } from "../ast/ASTElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
+import { NameElement } from "../ast/NameElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { IfStatement } from "../ast/statement/IfStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
 import { NullaryReturnStatement } from "../ast/statement/NullaryReturnStatement";
 import { SimpleStatement } from "../ast/statement/SimpleStatement";
+import { ThrowStatement } from "../ast/statement/ThrowStatement";
+import { CatchCase, TryCatchStatement } from "../ast/statement/TryCatchStatement";
 import { UnaryReturnStatement } from "../ast/statement/UnaryReturnStatement";
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { TokenElement } from "../ast/TokenElement";
@@ -27,7 +30,7 @@ export class StatementPass extends Pass {
         segment.shift();
         segment.pop();
 
-        while (segment.length) {
+        statement: while (segment.length) {
             const el = segment.shift();
             if (el instanceof TokenElement) {
                 if (el.token.type == TokenType.Return) {
@@ -41,6 +44,20 @@ export class StatementPass extends Pass {
                         const semi = segment.shift();
                         if (semi instanceof TokenElement && semi.token.type == TokenType.Semicolon) {
                             s2.push(new UnaryReturnStatement(LocationFrom([el, maybe_exp, semi]), maybe_exp));
+                        } else {
+                            this.emitCompilationError(Errors.EXPECTED_SEMICOLON, "Expected semicolon", semi.source_location);
+                            this.resynchronize(segment);
+                        }
+                    } else {
+                        this.emitCompilationError(Errors.EXPECTED_EXPRESSION, "Expected expression", maybe_exp.source_location);
+                        this.resynchronize(segment);
+                    }
+                } else if (el.token.type == TokenType.Throw) {
+                    const maybe_exp = segment.shift();
+                    if (maybe_exp instanceof ExpressionElement) {
+                        const semi = segment.shift();
+                        if (semi instanceof TokenElement && semi.token.type == TokenType.Semicolon) {
+                            s2.push(new ThrowStatement(LocationFrom([el, maybe_exp, semi]), maybe_exp));
                         } else {
                             this.emitCompilationError(Errors.EXPECTED_SEMICOLON, "Expected semicolon", semi.source_location);
                             this.resynchronize(segment);
@@ -109,6 +126,53 @@ export class StatementPass extends Pass {
                         this.emitCompilationError(Errors.EXPECTED_EXPRESSION, "Expected expression", maybe_exp.source_location);
                         this.resynchronize(segment);
                     }
+                } else if (el.token.type == TokenType.Try) {
+                    // try { statements } [ catch (type name) { statements } ]+
+                    const [m, len] = Hug(TokenType.OpenBrace)(segment);
+                    if (!m) {
+                        this.emitCompilationError(Errors.EXPECTED_OPEN_BRACE, "Expected open brace", segment[0].source_location);
+                        this.resynchronize(segment);
+                        continue;
+                    }
+                    const try_statements = segment.splice(0, len);
+                    this.parseCompound(try_statements);
+                    const body = try_statements[0] as CompoundStatementElement;
+                    const cases: CatchCase[] = [];
+
+                    while (segment[0] instanceof TokenElement && segment[0].token.type == TokenType.Catch) {
+                        segment.shift();
+                        const maybe_type = segment.shift();
+                        if (!(maybe_type instanceof TypeElement)) {
+                            this.emitCompilationError(Errors.EXPECTED_TYPE, "Expected type", maybe_type.source_location);
+                            this.resynchronize(segment);
+                            continue statement;
+                        }
+
+                        const maybe_name = segment.shift();
+                        if (!(maybe_name instanceof NameExpression)) {
+                            this.emitCompilationError(Errors.EXPECTED_NAME, "Expected name", maybe_name.source_location);
+                            this.resynchronize(segment);
+                            continue statement;
+                        }
+
+                        const [m2, len2] = Hug(TokenType.OpenBrace)(segment);
+                        if (!m2) {
+                            this.emitCompilationError(Errors.EXPECTED_OPEN_BRACE, "Expected open brace", segment[0].source_location);
+                            this.resynchronize(segment);
+                            continue statement;
+                        }
+                        const catch_statements = segment.splice(0, len2);
+                        this.parseCompound(catch_statements);
+                        const catch_body = catch_statements[0] as CompoundStatementElement;
+                        cases.push({
+                            local_name: maybe_name.name,
+                            type: maybe_type,
+                            body: catch_body
+                        });
+                    }
+
+                    s2.push(new TryCatchStatement(LocationFrom([el, cases[cases.length - 1].body]), body, cases));
+
                 } else {
                     this.emitCompilationError(Errors.COMPILER_BUG, "Token NYI", el.source_location);
                 }

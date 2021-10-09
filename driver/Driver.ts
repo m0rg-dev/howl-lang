@@ -58,7 +58,7 @@ export function SetupDriver() {
     ParseFile("lib/lib.hl");
 }
 
-export function ParseFile(file: string) {
+export function ParseFile(file: string): boolean {
     const source = fs.readFileSync(file).toString();
     const cu = new CompilationUnit(source, file);
 
@@ -109,4 +109,6 @@ export function ParseFile(file: string) {
             Functions.add(x);
         }
     });
+
+    return cu.valid;
 }
