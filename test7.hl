@@ -8,9 +8,19 @@ class Exception {
     }
 }
 
+class TestException extends Exception {
+    fn void constructor() {
+        self.message = "TestException static message";
+    }
+}
+
 class Test {
     fn void foo() throws Exception {
-        throw new Exception("test exception message");
+        throw new Exception("normal exception message");
+    }
+
+    fn void bar() throws TestException {
+        throw new TestException();
     }
 }
 
@@ -21,5 +31,12 @@ static fn i32 Main() {
     } catch Exception e {
         lib.IO.println(e.message);
     }
+
+    try {
+        obj.bar();
+    } catch Exception e {
+        lib.IO.println(e.message);
+    }
+
     return 0;
 }

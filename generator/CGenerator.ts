@@ -40,15 +40,7 @@ export function EmitCPrologue() {
     console.log(`#include <unistd.h>`);
     console.log(`#include <setjmp.h>`);
     console.log(``);
-    console.log(`struct stable_common { char *__typename; };`);
-    console.log(`struct object { void *obj; struct stable_common *stable; };`);
-    console.log(``);
-    console.log(`jmp_buf cur_handler;`);
-    console.log(`int handlerp = 0;`);
-    console.log(`struct object cur_exception;`);
-    console.log(``);
-    console.log(`int32_t main__Main(); `);
-    console.log(`int32_t main() { return main__Main(); } `);
+    console.log(`#include "runtime/howl_runtime.h"`);
 }
 
 var temp_counter = 0;
@@ -100,11 +92,16 @@ export function EmitStructures(root: ClassElement) {
         });
         console.log(`};`);
     } else {
-        console.log(`struct ${SanitizeName(root.name)}_stable_t {\n  char *__typename;`);
+        console.log(`struct ${SanitizeName(root.name)}_stable_t {\n  char *__typename;\n  struct stable_common *parent;`);
         method_list.forEach(m => {
             console.log(`  ${GenerateFunctionPointerType(new FunctionType(m), m.getFQN().last().split(".").pop())};`)
         });
         console.log(`} ${SanitizeName(root.name)}_stable_obj = {\n  "${root.name}",`);
+        if (root.parent && Classes.has(root.parent)) {
+            console.log(`  (struct stable_common *) &${SanitizeName(root.parent)}_stable_obj,`);
+        } else {
+            console.log(`  (struct stable_common *) 0,`);
+        }
         method_list.forEach(m => {
             console.log(`  ${SanitizeName(m.getFQN().toString())},`);
         })
@@ -200,22 +197,26 @@ export function EmitC(root: ASTElement) {
     } else if (root instanceof TryCatchStatement) {
         const tmpnam = newtemp();
         console.log(`  jmp_buf ${tmpnam};`);
-        console.log(`  memcpy(&cur_handler, &${tmpnam}, sizeof(jmp_buf));`);
+        console.log(`  memcpy(&${tmpnam}, &cur_handler, sizeof(jmp_buf));`);
         console.log(`  if(setjmp(cur_handler)) {`);
         // We've received an exception.
         root.cases.forEach(c => {
             const selector_type = c.type.asTypeObject() as StructureType;
-            console.log(`    if(!strcmp(cur_exception.stable->__typename, "${selector_type.name}")) {`);
+            console.log(`    if(typeIncludes(*cur_exception.stable, "${selector_type.name}")) {`);
             console.log(`      ${ConvertType(selector_type)} ${c.local_name} = ((${ConvertType(selector_type)}) {(struct ${SanitizeName(selector_type.name)}_t *) cur_exception.obj, (struct ${SanitizeName(selector_type.name)}_stable_t *) cur_exception.stable});`);
             EmitC(c.body);
             console.log(`      goto try_end_${root.uuid};`);
             console.log(`    }`);
+
         });
+        // We didn't handle the exception - rethrow.
+        console.log(`    memcpy(&cur_handler, &${tmpnam}, sizeof(jmp_buf));`);
+        console.log(`    longjmp(cur_handler, 1);`);
         console.log(`  } else {`);
         EmitC(root.body);
         console.log(`  }`);
         console.log(`  try_end_${root.uuid}:`);
-        console.log(`  memcpy(&${tmpnam}, &cur_handler, sizeof(jmp_buf));`);
+        console.log(`  memcpy(&cur_handler, &${tmpnam}, sizeof(jmp_buf));`);
     } else if (root instanceof AssignmentStatement) {
         if (root.generator_metadata["is_fake_assignment"]) console.log(`  ${ExpressionToC(root.lhs)};`);
         else console.log(`  ${ExpressionToC(root.lhs)} = ${ExpressionToC(root.rhs)};`);
