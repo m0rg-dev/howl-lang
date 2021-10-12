@@ -55,6 +55,9 @@ Classes.forEach(c => {
 fs.rmSync(path.join(pkg_dir, "target", "src"), { recursive: true, force: true });
 
 fs.mkdirSync(path.join(pkg_dir, "target", "src"), { recursive: true });
+fs.writeFileSync(path.join(pkg_dir, "target", "src", "runtime.c"), fs.readFileSync("/snapshot/howl-lang/assets/runtime.c"));
+fs.writeFileSync(path.join(pkg_dir, "target", "src", "runtime.h"), fs.readFileSync("/snapshot/howl-lang/assets/runtime.h"));
+
 fs.writeFileSync(path.join(pkg_dir, "target", "src", "declarations.h"), StandardHeaders()
     + "#pragma once\n\n" + fs.readFileSync("/snapshot/howl-lang/assets/runtime.h") + decl.join("\n"));
 
@@ -131,7 +134,7 @@ async function doCompile() {
         "-o", path.join(pkg_dir, "target", "bin", mf.entry),
         ...sources.map(x => x + ".o"),
         `-DHOWL_ENTRY=__Main`,
-        "assets/runtime.c",
+        path.join(pkg_dir, "target", "src", "runtime.c"),
         "-O2",
         "-flto",
     ], {
