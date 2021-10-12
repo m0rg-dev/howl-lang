@@ -121,16 +121,18 @@ export function ParseFile(pkg_root: string, file: string, manifest: Manifest, pr
     return cu.valid;
 }
 
-export function BuildPackage(pkg_path: string, prepend = ""): Manifest {
+export function BuildPackage(pkg_path: string, add_to_path = true): Manifest {
     const pkg_manifest = MergeManifest(
         MergeManifest(EmptyManifest, "/snapshot/howl-lang/assets/pack.json"),
         path.join(pkg_path, "pack.json")
     );
 
-    if (CurrentNamespace().length) {
-        SearchPath.push(...pkg_manifest.search_path.map(x => CurrentNamespace() + "." + x + "."));
-    } else {
-        SearchPath.push(...pkg_manifest.search_path.map(x => x + "."));
+    if (add_to_path) {
+        if (CurrentNamespace().length) {
+            SearchPath.push(...pkg_manifest.search_path.map(x => CurrentNamespace() + "." + x + "."));
+        } else {
+            SearchPath.push(...pkg_manifest.search_path.map(x => x + "."));
+        }
     }
 
     Object.entries(pkg_manifest.always_import).forEach(v => {
@@ -147,12 +149,30 @@ export function BuildPackage(pkg_path: string, prepend = ""): Manifest {
         }
 
         PushNamespace(depname);
-        BuildPackage(url.pathname, prepend + depname + ".");
+        BuildPackage(url.pathname, true);
+        PopNamespace();
+    });
+
+    Object.entries(pkg_manifest.dependencies).forEach(v => {
+        if (!v[1]) return;
+        const depname = v[0];
+        const url = new URL(v[1]);
+
+        if (url.protocol != "file:") {
+            throw new Error("non-file dependency URLS not yet supported");
+        }
+
+        if (url.pathname == pkg_path) {
+            return;
+        }
+
+        PushNamespace(depname);
+        BuildPackage(url.pathname, false);
         PopNamespace();
     });
 
     if (pkg_manifest.entry) {
-        ParseFile(pkg_path, path.join(pkg_path, pkg_manifest.entry + ".hl"), pkg_manifest, prepend);
+        ParseFile(pkg_path, path.join(pkg_path, pkg_manifest.entry + ".hl"), pkg_manifest);
         SetCurrentNamespace(pkg_manifest.entry);
     }
 
