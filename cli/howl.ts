@@ -1,5 +1,6 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import { chdir } from 'process';
 import * as sms from 'source-map-support';
 import { BuildPackage } from '../driver/Driver';
@@ -34,7 +35,7 @@ Classes.forEach(c => {
 });
 
 Functions.forEach(f => {
-    console.error(`Compiling: ${f.full_name()}`);
+    console.error(`Compiling: ${f.parent || "<top-level>"}.${f.name}`);
     RunFunctionTransforms(f);
 });
 
@@ -57,66 +58,88 @@ fs.mkdirSync(path.join(pkg_dir, "target", "src"), { recursive: true });
 fs.writeFileSync(path.join(pkg_dir, "target", "src", "declarations.h"), StandardHeaders()
     + "#pragma once\n\n" + fs.readFileSync("/snapshot/howl-lang/assets/runtime.h") + decl.join("\n"));
 
-const objects: string[] = [];
+const sources: string[] = [];
 
 Classes.forEach(c => {
     if (c.is_monomorphization) {
-        console.error(`CC: ${path.join(pkg_dir, "target", "src", ...c.name.split(".")) + ".o"}`);
         fs.mkdirSync(path.dirname(path.join(pkg_dir, "target", "src", ...c.name.split("."))), { recursive: true });
         fs.writeFileSync(path.join(pkg_dir, "target", "src", ...c.name.split(".")) + ".c",
             `#include "${path.relative(path.join(pkg_dir, "target", "src", ...c.name.split(".").slice(0, -1)), path.join(pkg_dir, "target", "src", "declarations.h"))}"\n\n`
             + StandardHeaders()
             + EmitC(c));
 
-        child_process.spawnSync("cc", [
-            "-c",
-            "-o", path.join(pkg_dir, "target", "src", ...c.name.split(".")) + ".o",
-            path.join(pkg_dir, "target", "src", ...c.name.split(".")) + ".c",
-            "-O2",
-            "-Wno-pointer-sign",
-            "-Wno-unused-result",
-            `-DHOWL_ENTRY=__Main`
-        ], {
-            stdio: "inherit"
-        });
+        sources.push(path.join(pkg_dir, "target", "src", ...c.name.split(".")));
 
-        objects.push(path.join(pkg_dir, "target", "src", ...c.name.split(".")) + ".o");
     }
 });
 
 Functions.forEach(f => {
-    console.error(`CC: ${path.join(pkg_dir, "target", "src", ...f.full_name().split(".")) + ".o"}`);
     fs.mkdirSync(path.dirname(path.join(pkg_dir, "target", "src", ...f.full_name().split("."))), { recursive: true });
     fs.writeFileSync(path.join(pkg_dir, "target", "src", ...f.full_name().split(".")) + ".c",
         `#include "${path.relative(path.join(pkg_dir, "target", "src", ...f.full_name().split(".").slice(0, -1)), path.join(pkg_dir, "target", "src", "declarations.h"))}"\n\n`
         + StandardHeaders()
         + EmitC(f));
 
+    sources.push(path.join(pkg_dir, "target", "src", ...f.full_name().split(".")));
+});
+
+const currently_running = new Map<number, Promise<number>>();
+var n = 0;
+
+async function doCompile() {
+    while (n < sources.length) {
+        if (currently_running.size < os.cpus().length) {
+            const src = sources[n];
+            console.error(`CC: ${src}`);
+            const id = n;
+            n++;
+            currently_running.set(id, new Promise<number>((resolve, reject) => {
+                const proc = child_process.spawn("cc", [
+                    "-c",
+                    "-o", src + ".o",
+                    src + ".c",
+                    "-O2",
+                    "-Wno-pointer-sign",
+                    "-Wno-unused-result",
+                    `-DHOWL_ENTRY=__Main`
+                ], {
+                    stdio: "inherit"
+                });
+                proc.on("exit", (code, signal) => {
+                    if (code) {
+                        reject(`subprocess exited with code ${code}`);
+                        process.exit(1);
+                    }
+
+                    if (signal) {
+                        reject(`subprocess exited with signal ${signal}`);
+                        process.exit(1);
+                    }
+                    resolve(id);
+                });
+            }));
+        } else {
+            const m = await Promise.race([...currently_running].map(v => v[1]));
+            currently_running.delete(m);
+        }
+    }
+
+    await Promise.all([...currently_running].map(v => v[1]));
+
+    console.error(`LD: ${path.join(pkg_dir, "target", "bin", mf.entry)}`);
+    fs.mkdirSync(path.dirname(path.join(pkg_dir, "target", "bin", mf.entry)), { recursive: true });
     child_process.spawnSync("cc", [
-        "-c",
-        "-o", path.join(pkg_dir, "target", "src", ...f.full_name().split(".")) + ".o",
-        path.join(pkg_dir, "target", "src", ...f.full_name().split(".")) + ".c",
+        "-o", path.join(pkg_dir, "target", "bin", mf.entry),
+        ...sources.map(x => x + ".o"),
+        `-DHOWL_ENTRY=__Main`,
+        "assets/runtime.c",
         "-O2",
-        "-Wno-pointer-sign",
-        "-Wno-unused-result",
-        `-DHOWL_ENTRY=__Main`
+        "-flto",
     ], {
         stdio: "inherit"
     });
 
-    objects.push(path.join(pkg_dir, "target", "src", ...f.full_name().split(".")) + ".o");
-});
+}
 
-console.error(`LD: ${path.join(pkg_dir, "target", "bin", mf.entry)}`);
-fs.mkdirSync(path.dirname(path.join(pkg_dir, "target", "bin", mf.entry)), { recursive: true });
-child_process.spawnSync("cc", [
-    "-o", path.join(pkg_dir, "target", "bin", mf.entry),
-    ...objects,
-    `-DHOWL_ENTRY=__Main`,
-    "assets/runtime.c",
-    "-O2",
-    "-flto",
-], {
-    stdio: "inherit"
-});
+doCompile();
 

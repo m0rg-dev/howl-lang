@@ -129,10 +129,6 @@ export function BuildPackage(pkg_path: string, prepend = ""): Manifest {
 
     SearchPath.push(...pkg_manifest.search_path.map(x => CurrentNamespace() + "." + x));
 
-    // console.error(`Processing module: ${pkg_path}`);
-    // console.error(`  Current namespace is: ${CurrentNamespace()}`);
-    // console.error(`  Search path is: ${SearchPath.join(", ")}`);
-
     Object.entries(pkg_manifest.always_import).forEach(v => {
         if (!v[1]) return;
         const depname = v[0];
