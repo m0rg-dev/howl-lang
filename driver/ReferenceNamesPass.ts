@@ -18,11 +18,13 @@ export class ReferenceNamesPass extends Pass {
                 )
             ),
             replace: (ast_stream: TokenElement<any>[]) => {
+                this.log(LogLevel.TRACE, `Search path: ${SearchPath.join(", ")}`);
                 for (const idx in ast_stream) {
                     const idx_n = Number.parseInt(idx);
                     if (ast_stream[idx] instanceof TokenElement && ast_stream[idx].token.type == TokenType.Period) continue;
                     for (const prefix of SearchPath) {
-                        const new_name = prefix + "." + ast_stream.slice(0, idx_n + 1).reduce((prev, el) => prev + el.token.text, "").trim();
+                        const new_name = prefix + ast_stream.slice(0, idx_n + 1).reduce((prev, el) => prev + el.token.text, "").trim();
+                        // this.log(LogLevel.TRACE, `Candidate name: ${ast_stream.slice(0, idx_n + 1).reduce((prev, el) => prev + el.token.text, "").trim()} => ${new_name}`);
                         if (TypeNames.has(new_name)) {
                             const new_element = new TokenElement({
                                 type: TokenType.Name,

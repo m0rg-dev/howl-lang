@@ -127,7 +127,11 @@ export function BuildPackage(pkg_path: string, prepend = ""): Manifest {
         path.join(pkg_path, "pack.json")
     );
 
-    SearchPath.push(...pkg_manifest.search_path.map(x => CurrentNamespace() + "." + x));
+    if (CurrentNamespace().length) {
+        SearchPath.push(...pkg_manifest.search_path.map(x => CurrentNamespace() + "." + x + "."));
+    } else {
+        SearchPath.push(...pkg_manifest.search_path.map(x => x + "."));
+    }
 
     Object.entries(pkg_manifest.always_import).forEach(v => {
         if (!v[1]) return;
