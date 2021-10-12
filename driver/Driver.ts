@@ -1,17 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { ASTElement, SourceLocation } from '../ast/ASTElement';
+import { URL } from 'url';
+import { SourceLocation } from '../ast/ASTElement';
 import { ClassElement } from '../ast/ClassElement';
-import { ConstructorCallExpression } from '../ast/expression/ConstructorCallExpression';
 import { FunctionElement } from '../ast/FunctionElement';
 import { ImportElement } from '../ast/ImportElement';
-import { LocalDefinitionStatement } from '../ast/statement/LocalDefinitionStatement';
-import { TypeElement } from '../ast/TypeElement';
-import { WalkAST } from '../ast/WalkAST';
-import { Manifest } from '../config/manifest';
-import { Classes, Functions, InitRegistry, SeenFiles } from "../registry/Registry";
-import { ConcreteType } from '../type_inference/ConcreteType';
-import { StructureType } from '../type_inference/StructureType';
+import { EmptyManifest, Manifest, MergeManifest } from '../config/manifest';
+import { Classes, CurrentNamespace, Functions, PopNamespace, PushNamespace, SearchPath, SeenFiles, SetCurrentNamespace } from "../registry/Registry";
 import { CompilationUnit } from "./CompilationUnit";
 import { DropTagsPass } from './DropTagsPass';
 import { Errors } from './Errors';
@@ -62,7 +57,7 @@ export function EmitLog(level: LogLevel, source: string, message: string) {
 }
 
 export function ParseFile(pkg_root: string, file: string, manifest: Manifest, prepend = ""): boolean {
-    console.error(` ==> ${file}`);
+    console.error(` ==> ${CurrentNamespace() || "<top-level>"}`);
     const source = fs.readFileSync(file).toString();
     const cu = new CompilationUnit(source, file, manifest);
 
@@ -72,8 +67,9 @@ export function ParseFile(pkg_root: string, file: string, manifest: Manifest, pr
         if (fs.existsSync(path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"))) {
             if (!SeenFiles.has(path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"))) {
                 SeenFiles.add(path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"));
+                PushNamespace(x.name);
                 ParseFile(pkg_root, path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"), manifest);
-                Rebase("module", x.name);
+                PopNamespace();
             }
         }
     });
@@ -125,76 +121,40 @@ export function ParseFile(pkg_root: string, file: string, manifest: Manifest, pr
     return cu.valid;
 }
 
-export function Rebase(from: string, to: string) {
-    Classes.forEach(c => {
-        if (c.name.startsWith(from)) {
-            Classes.delete(c.name);
-            c.name = c.name.replace(from, to);
-            Classes.set(c.name, c);
-            c.methods.forEach(m => {
-                if (m.parent.startsWith(from)) {
-                    m.parent = m.parent.replace(from, to);
-                }
-            });
+export function BuildPackage(pkg_path: string, prepend = ""): Manifest {
+    const pkg_manifest = MergeManifest(
+        MergeManifest(EmptyManifest, "/snapshot/howl-lang/assets/pack.json"),
+        path.join(pkg_path, "pack.json")
+    );
 
-            if (c.parent.startsWith(from)) {
-                c.parent = c.parent.replace(from, to);
-            }
+    SearchPath.push(...pkg_manifest.search_path.map(x => CurrentNamespace() + "." + x));
 
-            c.interfaces.forEach((i, idx) => {
-                if (i.startsWith(from)) {
-                    c.interfaces[idx] = i.replace(from, to);
-                }
-            });
+    // console.error(`Processing module: ${pkg_path}`);
+    // console.error(`  Current namespace is: ${CurrentNamespace()}`);
+    // console.error(`  Search path is: ${SearchPath.join(", ")}`);
+
+    Object.entries(pkg_manifest.always_import).forEach(v => {
+        if (!v[1]) return;
+        const depname = v[0];
+        const url = new URL(v[1]);
+
+        if (url.protocol != "file:") {
+            throw new Error("non-file dependency URLS not yet supported");
         }
 
-        WalkAST(c, src => rebaseElement(src, from, to));
+        if (url.pathname == pkg_path) {
+            return;
+        }
 
-        c.fields.forEach(f => {
-            if (f.type instanceof StructureType && f.type.name.startsWith(from)) {
-                f.type = Classes.get(f.type.name).type();
-            } else if (f.type instanceof ConcreteType && f.type.name.startsWith(from)) {
-                f.type.name = f.type.name.replace(from, to);
-            }
-        });
+        PushNamespace(depname);
+        BuildPackage(url.pathname, prepend + depname + ".");
+        PopNamespace();
     });
 
-    Functions.forEach(m => {
-        if (m.parent.startsWith(from)) {
-            m.parent = m.parent.replace(from, to);
-        }
-
-        WalkAST(m, src => rebaseElement(src, from, to));
-    });
-}
-
-function rebaseElement(src: ASTElement, from: string, to: string) {
-    if (src instanceof TypeElement && src.source.name.startsWith(from)) {
-        src.source.name = src.source.name.replace(from, to);
-        src.generics.map(g => rebaseElement(g, from, to));
+    if (pkg_manifest.entry) {
+        ParseFile(pkg_path, path.join(pkg_path, pkg_manifest.entry + ".hl"), pkg_manifest, prepend);
+        SetCurrentNamespace(pkg_manifest.entry);
     }
 
-    if (src instanceof LocalDefinitionStatement) {
-        rebaseElement(src.type, from, to);
-    }
-
-    if (src instanceof ConstructorCallExpression) {
-        rebaseElement(src.source, from, to);
-    }
-
-    if (src instanceof FunctionElement) {
-        if (src.return_type instanceof StructureType || src.return_type instanceof ConcreteType && src.return_type.name.startsWith(from)) {
-            src.return_type.name = src.return_type.name.replace(from, to);
-        }
-
-        if (src.self_type instanceof StructureType || src.self_type instanceof ConcreteType && src.self_type.name.startsWith(from)) {
-            src.self_type.name = src.self_type.name.replace(from, to);
-        }
-
-        src.args.forEach(arg => {
-            if (arg.type instanceof StructureType || arg.type instanceof ConcreteType && arg.type.name.startsWith(from)) {
-                arg.type.name = arg.type.name.replace(from, to);
-            }
-        })
-    }
+    return pkg_manifest;
 }

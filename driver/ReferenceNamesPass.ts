@@ -1,8 +1,8 @@
 import { TokenElement } from "../ast/TokenElement";
 import { TokenType } from "../lexer/TokenType";
-import { InOrder, MatchToken, Plus } from "../parser/Matcher";
-import { Classes, TypeNames } from "../registry/Registry";
-import { Pass } from "./Pass";
+import { InOrder, MatchToken, Star } from "../parser/Matcher";
+import { SearchPath, TypeNames } from "../registry/Registry";
+import { LogLevel, Pass } from "./Pass";
 
 export class ReferenceNamesPass extends Pass {
     apply() {
@@ -10,7 +10,7 @@ export class ReferenceNamesPass extends Pass {
             name: "ReferenceNames",
             match: InOrder(
                 MatchToken(TokenType.Name),
-                Plus(
+                Star(
                     InOrder(
                         MatchToken(TokenType.Period),
                         MatchToken(TokenType.Name)
@@ -20,17 +20,20 @@ export class ReferenceNamesPass extends Pass {
             replace: (ast_stream: TokenElement<any>[]) => {
                 for (const idx in ast_stream) {
                     const idx_n = Number.parseInt(idx);
-                    const new_name = ast_stream.slice(0, idx_n + 1).reduce((prev, el) => prev + el.token.text, "").trim();
-                    if (TypeNames.has(new_name)) {
-                        const new_element = new TokenElement({
-                            type: TokenType.Name,
-                            start: ast_stream[0].token.start,
-                            length: new_name.length,
-                            text: new_name,
-                            name: new_name
-                        }, this.cu);
+                    if (ast_stream[idx] instanceof TokenElement && ast_stream[idx].token.type == TokenType.Period) continue;
+                    for (const prefix of SearchPath) {
+                        const new_name = prefix + "." + ast_stream.slice(0, idx_n + 1).reduce((prev, el) => prev + el.token.text, "").trim();
+                        if (TypeNames.has(new_name)) {
+                            const new_element = new TokenElement({
+                                type: TokenType.Name,
+                                start: ast_stream[0].token.start,
+                                length: new_name.length,
+                                text: new_name,
+                                name: new_name
+                            }, this.cu);
 
-                        return [new_element, ...ast_stream.slice(idx_n + 1)];
+                            return [new_element, ...ast_stream.slice(idx_n + 1)];
+                        }
                     }
                 }
                 return undefined;

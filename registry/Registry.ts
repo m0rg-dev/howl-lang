@@ -32,8 +32,23 @@ export function SetCurrentModule(m: FQN) {
     CurrentModule = m;
 }
 
-export var CurrentNamespace: string;
+export var old_CurrentNamespace: string;
 
 export function SetCurrentNamespace(ns: string) {
-    CurrentNamespace = ns;
+    old_CurrentNamespace = ns;
 }
+
+var NamespaceStack: string[] = [];
+export function PushNamespace(ns: string) {
+    NamespaceStack.push(ns);
+}
+
+export function CurrentNamespace(): string {
+    return NamespaceStack.join(".");
+}
+
+export function PopNamespace() {
+    NamespaceStack.pop();
+}
+
+export var SearchPath: string[] = [];

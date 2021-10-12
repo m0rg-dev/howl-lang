@@ -27,7 +27,7 @@ import { WalkAST } from "../ast/WalkAST";
 import { EmitError, EmitLog } from "../driver/Driver";
 import { Errors } from "../driver/Errors";
 import { LogLevel } from "../driver/Pass";
-import { Classes, CurrentNamespace } from "../registry/Registry";
+import { Classes, old_CurrentNamespace } from "../registry/Registry";
 import { ConcreteRawPointerType, ConcreteType } from "../type_inference/ConcreteType";
 import { FunctionType } from "../type_inference/FunctionType";
 import { Scope } from "../type_inference/Scope";
@@ -63,7 +63,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
                     src.source_location,
                     new SimpleTypeElement(
                         src.source_location,
-                        CurrentNamespace + ".Vec"
+                        "lib.vec.Vec"
                     ),
                     [type]
                 );
@@ -211,7 +211,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
             src.generated = true;
             let new_tree: ASTElement = new FunctionCallExpression(src.source_location,
                 new FieldReferenceExpression(src.source_location,
-                    new TypeElement(src.source_location, new SimpleTypeElement(src.source_location, CurrentNamespace + ".String"), []),
+                    new TypeElement(src.source_location, new SimpleTypeElement(src.source_location, "lib.string.String"), []),
                     "fromBytes"),
                 [src, new FFICallExpression(src.source_location, "strlen", [src])]);
             RunElementTransforms(new_tree, root, (n) => new_tree = n);

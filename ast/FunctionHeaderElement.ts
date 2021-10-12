@@ -1,5 +1,6 @@
 import { CompilationUnit } from "../driver/CompilationUnit";
 import { LocationFrom } from "../parser/Parser";
+import { CurrentNamespace } from "../registry/Registry";
 import { Type } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { CompoundStatementElement } from "./CompoundStatementElement";
@@ -41,7 +42,7 @@ export class FunctionHeaderElement extends ASTElement {
     toFunction(source: CompilationUnit, body: CompoundStatementElement) {
         return new FunctionElement(
             LocationFrom([this, body]),
-            "module",
+            CurrentNamespace(),
             this.name,
             this.returns.asTypeObject(),
             undefined,

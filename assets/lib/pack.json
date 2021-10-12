@@ -1,8 +1,11 @@
 {
-    "export": [
+    "always_import": {
+        "lib": null
+    },
+    "entry": "index",
+    "search_path": [
         "vec",
         "string",
         "io"
-    ],
-    "entry": "index"
+    ]
 }

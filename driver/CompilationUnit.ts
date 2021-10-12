@@ -3,7 +3,7 @@ import { FQN } from "../ast/FQN";
 import { TokenElement } from "../ast/TokenElement";
 import { Manifest } from "../config/manifest";
 import { Lexer } from "../lexer";
-import { TypeNames } from "../registry/Registry";
+import { CurrentNamespace, TypeNames } from "../registry/Registry";
 
 export class CompilationUnit {
     private raw_source: string;
@@ -62,7 +62,7 @@ export class CompilationUnit {
 
     registerNames() {
         this.class_names.forEach(x => {
-            TypeNames.add("module." + x);
+            TypeNames.add(CurrentNamespace() + "." + x);
         });
     }
 
