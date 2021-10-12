@@ -52,7 +52,7 @@ Classes.forEach(c => {
     }
 });
 
-fs.rmSync(path.join(pkg_dir, "target", "src"), { recursive: true });
+fs.rmSync(path.join(pkg_dir, "target", "src"), { recursive: true, force: true });
 
 fs.mkdirSync(path.join(pkg_dir, "target", "src"), { recursive: true });
 fs.writeFileSync(path.join(pkg_dir, "target", "src", "declarations.h"), StandardHeaders()
@@ -69,7 +69,6 @@ Classes.forEach(c => {
             + EmitC(c));
 
         sources.push(path.join(pkg_dir, "target", "src", ...c.name.split(".")));
-
     }
 });
 

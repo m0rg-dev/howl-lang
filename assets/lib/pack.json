@@ -6,6 +6,7 @@
     "search_path": [
         "vec",
         "string",
-        "io"
+        "io",
+        "exception"
     ]
 }
