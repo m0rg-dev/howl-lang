@@ -1,0 +1,10 @@
+class IO {
+    static fn void print(String s) {
+        fficall write(1, s.contents.value, s.contents.length);
+    }
+
+    static fn void println(String s) {
+        IO.print(s);
+        IO.print("\n");
+    }
+}

@@ -1,37 +1,4 @@
-module lib;
-
-class Vec<T> {
-    *T value;
-    i64 length;
-    i64 element_size;
-
-    fn void constructor() {
-        self.value = fficall malloc(0);
-        self.element_size = fficall sizeof(self.value[0]);
-        self.length = 0;
-    }
-
-    fn void push(T element) {
-        self[self.length] = element;
-    }
-
-    fn T pop() {
-        self.length = self.length - 1;
-        return self[self.length];
-    }
-
-    fn T __index__(i64 idx) {
-        return self.value[idx];
-    }
-
-    fn void __l_index__(i64 idx, T value) {
-        if idx >= self.length {
-            self.value = fficall realloc(self.value, self.element_size * (idx + 1));
-            self.length = idx + 1;
-        }
-        self.value[idx] = value;
-    }
-}
+import vec;
 
 interface Display {
     fn String toString() {}
@@ -92,16 +59,5 @@ class String {
 
     static fn String from(Display other) {
         return other.toString();
-    }
-}
-
-class IO {
-    static fn void print(String s) {
-        fficall write(1, s.contents.value, s.contents.length);
-    }
-
-    static fn void println(String s) {
-        IO.print(s);
-        IO.print("\n");
     }
 }

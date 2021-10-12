@@ -1,22 +1,10 @@
-#include <setjmp.h>
-#include <stdint.h>
+#include "runtime.h"
 #include <stdio.h>
 #include <string.h>
-
-struct stable_common {
-  char *__typename;
-  struct stable_common *parent;
-};
-
-struct object {
-  void *obj;
-  struct stable_common *stable;
-};
 
 jmp_buf cur_handler;
 struct object cur_exception;
 
-int32_t main__Main();
 int32_t main() {
   // Handle uncaught exceptions.
   if (setjmp(cur_handler)) {
@@ -24,7 +12,7 @@ int32_t main() {
             cur_exception.stable->__typename);
     return 255;
   }
-  return main__Main();
+  return HOWL_ENTRY();
 }
 
 int typeIncludes(struct stable_common stable, char *type) {

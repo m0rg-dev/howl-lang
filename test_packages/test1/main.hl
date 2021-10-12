@@ -1,5 +1,3 @@
-module main;
-
 class Foo<T> {
     T value;
 
@@ -15,7 +13,7 @@ class Foo<T> {
 
 static fn i32 Main() {
     let i32 val = 42;
-    let Foo obj = new Foo();
+    let Foo<i32> obj = new Foo<i32>();
     obj.set(val);
     return obj.get();
 }

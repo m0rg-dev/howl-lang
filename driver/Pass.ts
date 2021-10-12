@@ -1,7 +1,7 @@
 import { ASTElement, SourceLocation } from "../ast/ASTElement";
 import { LocationFrom, ProductionRule, RuleList } from "../parser/Parser";
 import { CompilationUnit } from "./CompilationUnit";
-import { emitError, log } from "./Driver";
+import { EmitError, EmitLog } from "./Driver";
 import { Errors } from "./Errors";
 
 export enum LogLevel {
@@ -26,16 +26,13 @@ export abstract class Pass {
         } else {
             s += " " + this.cu.filename;
         }
-        if (this.cu.module) {
-            s += " " + this.cu.module.getFQN().toString();
-        }
         s += `] ${message}`;
-        log(level, this.constructor.name, message);
+        EmitLog(level, this.constructor.name, message);
     }
 
     emitCompilationError(id: Errors, message: string, source_location: SourceLocation) {
         this.log(LogLevel.ERROR, `${id} ${message}`, source_location);
-        emitError(this.cu, id, message, source_location);
+        EmitError(this.cu, id, message, source_location);
     }
 
     ApplySingleProductionRule(rule: ProductionRule, ast_stream?: ASTElement[]): boolean {

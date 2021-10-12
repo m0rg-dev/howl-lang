@@ -1,14 +1,18 @@
 import * as fs from 'fs';
+import * as path from 'path';
+import { URL } from 'url';
 import { SourceLocation } from '../ast/ASTElement';
 import { ClassElement } from '../ast/ClassElement';
 import { FunctionElement } from '../ast/FunctionElement';
-import { Classes, Functions, InitRegistry } from "../registry/Registry";
+import { ImportElement } from '../ast/ImportElement';
+import { EmptyManifest, Manifest, MergeManifest } from '../config/manifest';
+import { Classes, CurrentNamespace, Functions, PopNamespace, PushNamespace, SearchPath, SeenFiles, SetCurrentNamespace } from "../registry/Registry";
 import { CompilationUnit } from "./CompilationUnit";
 import { DropTagsPass } from './DropTagsPass';
 import { Errors } from './Errors';
 import { ExpressionPass } from './ExpressionPass';
 import { FindClassNamesPass } from './FindClassNamesPass';
-import { FindModuleNamePass } from './FindModuleNamePass';
+import { FindImportsPass } from './FindImportsPass';
 import { MakeClassesPass } from './MakeClassesPass';
 import { MakeFunctionsPass } from './MakeFunctionsPass';
 import { MarkClassesPass } from './MarkClassesPass';
@@ -24,7 +28,7 @@ import { ReplaceClassGenericsPass } from './ReplaceClassGenericsPass';
 import { ReplaceTypesPass } from './ReplaceTypesPass';
 import { StatementPass } from './StatementPass';
 
-export function emitError(cu: CompilationUnit, id: Errors, message: string, source_location: SourceLocation) {
+export function EmitError(cu: CompilationUnit, id: Errors, message: string, source_location: SourceLocation) {
     cu.valid = false;
 
     console.error(`\x1b[1;31mError:\x1b[0m HL${id.toString().padStart(4, '0')} \x1b[1m${message}\x1b[0m`);
@@ -46,25 +50,29 @@ export function emitError(cu: CompilationUnit, id: Errors, message: string, sour
     }
 }
 
-export function log(level: LogLevel, source: string, message: string) {
+export function EmitLog(level: LogLevel, source: string, message: string) {
     let s = `[${LogLevel[level].padStart(5)} ${source}] ${message}`;
     if (process.env["HOWL_PRINT_COMPILER_LOG"])
         console.error(s);
 }
 
-export function SetupDriver() {
-    InitRegistry();
-
-    ParseFile("lib/lib.hl");
-}
-
-export function ParseFile(file: string): boolean {
+export function ParseFile(pkg_root: string, file: string, manifest: Manifest, prepend = ""): boolean {
+    console.error(` ==> ${CurrentNamespace() || "<top-level>"}`);
     const source = fs.readFileSync(file).toString();
-    const cu = new CompilationUnit(source, file);
+    const cu = new CompilationUnit(source, file, manifest);
 
-    new FindModuleNamePass(cu).apply();
-    // no module name = no parse!
-    if (!cu.valid) return cu.logFailure();
+    new FindImportsPass(cu).apply();
+
+    cu.ast_stream.filter(x => x instanceof ImportElement).map((x: ImportElement) => {
+        if (fs.existsSync(path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"))) {
+            if (!SeenFiles.has(path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"))) {
+                SeenFiles.add(path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"));
+                PushNamespace(x.name);
+                ParseFile(pkg_root, path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"), manifest);
+                PopNamespace();
+            }
+        }
+    });
 
     new FindClassNamesPass(cu).apply();
     new QualifyLocalNamesPass(cu).apply();
@@ -111,4 +119,62 @@ export function ParseFile(file: string): boolean {
     });
 
     return cu.valid;
+}
+
+export function BuildPackage(pkg_path: string, add_to_path = true): Manifest {
+    const pkg_manifest = MergeManifest(
+        MergeManifest(EmptyManifest, "/snapshot/howl-lang/assets/pack.json"),
+        path.join(pkg_path, "pack.json")
+    );
+
+    if (add_to_path) {
+        if (CurrentNamespace().length) {
+            SearchPath.push(...pkg_manifest.search_path.map(x => CurrentNamespace() + "." + x + "."));
+        } else {
+            SearchPath.push(...pkg_manifest.search_path.map(x => x + "."));
+        }
+    }
+
+    Object.entries(pkg_manifest.always_import).forEach(v => {
+        if (!v[1]) return;
+        const depname = v[0];
+        const url = new URL(v[1]);
+
+        if (url.protocol != "file:") {
+            throw new Error("non-file dependency URLS not yet supported");
+        }
+
+        if (url.pathname == pkg_path) {
+            return;
+        }
+
+        PushNamespace(depname);
+        BuildPackage(url.pathname, true);
+        PopNamespace();
+    });
+
+    Object.entries(pkg_manifest.dependencies).forEach(v => {
+        if (!v[1]) return;
+        const depname = v[0];
+        const url = new URL(v[1]);
+
+        if (url.protocol != "file:") {
+            throw new Error("non-file dependency URLS not yet supported");
+        }
+
+        if (url.pathname == pkg_path) {
+            return;
+        }
+
+        PushNamespace(depname);
+        BuildPackage(url.pathname, false);
+        PopNamespace();
+    });
+
+    if (pkg_manifest.entry) {
+        ParseFile(pkg_path, path.join(pkg_path, pkg_manifest.entry + ".hl"), pkg_manifest);
+        SetCurrentNamespace(pkg_manifest.entry);
+    }
+
+    return pkg_manifest;
 }

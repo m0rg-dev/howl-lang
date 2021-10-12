@@ -1,13 +1,3 @@
-module main;
-
-class Exception {
-    lib.String message;
-
-    fn void constructor(lib.String message) {
-        self.message = message;
-    }
-}
-
 class TestException extends Exception {
     fn void constructor() {
         self.message = "TestException static message";
@@ -29,13 +19,13 @@ static fn i32 Main() {
     try {
         obj.foo();
     } catch Exception e {
-        lib.IO.println(e.message);
+        IO.println(e.message);
     }
 
     try {
         obj.bar();
     } catch Exception e {
-        lib.IO.println(e.message);
+        IO.println(e.message);
     }
 
     return 0;

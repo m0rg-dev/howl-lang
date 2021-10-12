@@ -1,9 +1,9 @@
 import { ASTElement, MarkerElement } from "../ast/ASTElement";
 import { FQN } from "../ast/FQN";
-import { ModuleDefinitionElement } from "../ast/ModuleDefinitionElement";
 import { TokenElement } from "../ast/TokenElement";
+import { Manifest } from "../config/manifest";
 import { Lexer } from "../lexer";
-import { TypeNames } from "../registry/Registry";
+import { CurrentNamespace, TypeNames } from "../registry/Registry";
 
 export class CompilationUnit {
     private raw_source: string;
@@ -11,15 +11,16 @@ export class CompilationUnit {
     filename: string;
     ast_stream: ASTElement[];
     valid = true;
+    manifest: Manifest;
 
-    module: ModuleDefinitionElement;
     class_names: Set<string> = new Set();
 
-    constructor(source: string, filename: string) {
+    constructor(source: string, filename: string, manifest: Manifest) {
         this.filename = filename;
         this.raw_source = source;
         this.lexer = new Lexer(source);
         this.ast_stream = this.lexer.token_stream.map(x => new TokenElement(x, this));
+        this.manifest = manifest;
     }
 
     source_location(offset: number): string {
@@ -60,7 +61,9 @@ export class CompilationUnit {
     }
 
     registerNames() {
-        this.class_names.forEach(x => TypeNames.add(new FQN(this.module, x).toString()));
+        this.class_names.forEach(x => {
+            TypeNames.add(CurrentNamespace() + "." + x);
+        });
     }
 
     // TODO: this doesn't do overlap properly (it should ONLY produce segments
