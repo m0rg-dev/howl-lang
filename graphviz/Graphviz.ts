@@ -33,7 +33,7 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
     if (e instanceof FunctionElement) {
         const contents: RecordRow[] = [
             [{ text: "FunctionElement" }],
-            [{ port: "name", text: "fqn: " + e.getFQN().toString() }],
+            [{ port: "name", text: "fqn: " + e.full_name() }],
             [{ port: "type", text: "returns: " + e.return_type.toString() }],
             [{ port: "type", text: "self: " + e.self_type.toString() }],
         ];

@@ -7,6 +7,7 @@ export var TypeNames: Set<string> = new Set();
 export var PartialFunctions: Set<PartialFunctionElement> = new Set();
 export var Functions: Set<FunctionElement> = new Set();
 export var Classes: Map<string, ClassElement> = new Map();
+export var SeenFiles: Set<string> = new Set();
 
 export var BaseTypes: Set<string> = new Set();
 
@@ -29,4 +30,10 @@ export var CurrentModule: FQN;
 
 export function SetCurrentModule(m: FQN) {
     CurrentModule = m;
+}
+
+export var CurrentNamespace: string;
+
+export function SetCurrentNamespace(ns: string) {
+    CurrentNamespace = ns;
 }

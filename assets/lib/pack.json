@@ -1,0 +1,8 @@
+{
+    "export": [
+        "vec",
+        "string",
+        "io"
+    ],
+    "entry": "index"
+}

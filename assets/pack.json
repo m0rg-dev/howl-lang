@@ -1,0 +1,8 @@
+{
+    "always_import": {
+        "lib": "file:///snapshot/howl-lang/assets/lib"
+    },
+    "search_path": [
+        "lib"
+    ]
+}

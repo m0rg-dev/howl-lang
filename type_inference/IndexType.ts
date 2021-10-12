@@ -28,13 +28,13 @@ export class IndexType extends ClosureType {
         if (this.source.get() instanceof StructureType) {
             const st = this.source.get() as StructureType;
             const ct = Classes.get(st.name);
-            if (ct && ct.methods.some(x => x.getFQN().last() == "__index__")) {
+            if (ct && ct.methods.some(x => x.name == "__index__")) {
                 return true;
             }
         }
         if (this.source.get() instanceof ConcreteType) {
             const ct = Classes.get((this.source.get() as ConcreteType).name);
-            if (ct && ct.methods.some(x => x.getFQN().last() == "__index__")) {
+            if (ct && ct.methods.some(x => x.name == "__index__")) {
                 return true;
             }
         }
@@ -47,12 +47,12 @@ export class IndexType extends ClosureType {
             if (source instanceof RawPointerType) return source.source;
             if (source instanceof StructureType) {
                 const ct = Classes.get(source.name);
-                return source.applyGenericMap(ct.methods.find(x => x.getFQN().last() == "__index__")?.return_type);
+                return source.applyGenericMap(ct.methods.find(x => x.name == "__index__")?.return_type);
             }
             if (source instanceof ConcreteType) {
                 const ct = Classes.get(source.name);
-                if (ct && ct.methods.some(x => x.getFQN().last() == "__index__")) {
-                    return ct.methods.find(x => x.getFQN().last() == "__index__")?.return_type;
+                if (ct && ct.methods.some(x => x.name == "__index__")) {
+                    return ct.methods.find(x => x.name == "__index__")?.return_type;
                 }
             }
         };

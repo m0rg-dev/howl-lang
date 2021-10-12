@@ -5,7 +5,7 @@ export enum TokenType {
     Return,
     New,
     Let,
-    Module,
+    Import,
     Static,
     If,
     While,

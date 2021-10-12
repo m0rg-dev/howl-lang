@@ -33,8 +33,7 @@ export class FindClassNamesPass extends Pass {
             ),
             replace: (ast_stream: [any, TokenElement<NameToken>, ...ASTElement[]]) => {
                 const name = ast_stream[1].token.name;
-                const fqn = new FQN(this.cu.module, name);
-                this.log(LogLevel.INFO, `Found class: ${fqn}`, LocationFrom(ast_stream));
+                this.log(LogLevel.INFO, `Found class: ${name}`, LocationFrom(ast_stream));
                 this.cu.class_names.add(name);
                 return undefined;
             }

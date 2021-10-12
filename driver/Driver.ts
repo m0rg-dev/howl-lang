@@ -1,14 +1,23 @@
 import * as fs from 'fs';
-import { SourceLocation } from '../ast/ASTElement';
+import * as path from 'path';
+import { ASTElement, SourceLocation } from '../ast/ASTElement';
 import { ClassElement } from '../ast/ClassElement';
+import { ConstructorCallExpression } from '../ast/expression/ConstructorCallExpression';
 import { FunctionElement } from '../ast/FunctionElement';
-import { Classes, Functions, InitRegistry } from "../registry/Registry";
+import { ImportElement } from '../ast/ImportElement';
+import { LocalDefinitionStatement } from '../ast/statement/LocalDefinitionStatement';
+import { TypeElement } from '../ast/TypeElement';
+import { WalkAST } from '../ast/WalkAST';
+import { Manifest } from '../config/manifest';
+import { Classes, Functions, InitRegistry, SeenFiles } from "../registry/Registry";
+import { ConcreteType } from '../type_inference/ConcreteType';
+import { StructureType } from '../type_inference/StructureType';
 import { CompilationUnit } from "./CompilationUnit";
 import { DropTagsPass } from './DropTagsPass';
 import { Errors } from './Errors';
 import { ExpressionPass } from './ExpressionPass';
 import { FindClassNamesPass } from './FindClassNamesPass';
-import { FindModuleNamePass } from './FindModuleNamePass';
+import { FindImportsPass } from './FindImportsPass';
 import { MakeClassesPass } from './MakeClassesPass';
 import { MakeFunctionsPass } from './MakeFunctionsPass';
 import { MarkClassesPass } from './MarkClassesPass';
@@ -24,7 +33,7 @@ import { ReplaceClassGenericsPass } from './ReplaceClassGenericsPass';
 import { ReplaceTypesPass } from './ReplaceTypesPass';
 import { StatementPass } from './StatementPass';
 
-export function emitError(cu: CompilationUnit, id: Errors, message: string, source_location: SourceLocation) {
+export function EmitError(cu: CompilationUnit, id: Errors, message: string, source_location: SourceLocation) {
     cu.valid = false;
 
     console.error(`\x1b[1;31mError:\x1b[0m HL${id.toString().padStart(4, '0')} \x1b[1m${message}\x1b[0m`);
@@ -46,25 +55,28 @@ export function emitError(cu: CompilationUnit, id: Errors, message: string, sour
     }
 }
 
-export function log(level: LogLevel, source: string, message: string) {
+export function EmitLog(level: LogLevel, source: string, message: string) {
     let s = `[${LogLevel[level].padStart(5)} ${source}] ${message}`;
     if (process.env["HOWL_PRINT_COMPILER_LOG"])
         console.error(s);
 }
 
-export function SetupDriver() {
-    InitRegistry();
-
-    ParseFile("lib/lib.hl");
-}
-
-export function ParseFile(file: string): boolean {
+export function ParseFile(pkg_root: string, file: string, manifest: Manifest, prepend = ""): boolean {
+    console.error(` ==> ${file}`);
     const source = fs.readFileSync(file).toString();
-    const cu = new CompilationUnit(source, file);
+    const cu = new CompilationUnit(source, file, manifest);
 
-    new FindModuleNamePass(cu).apply();
-    // no module name = no parse!
-    if (!cu.valid) return cu.logFailure();
+    new FindImportsPass(cu).apply();
+
+    cu.ast_stream.filter(x => x instanceof ImportElement).map((x: ImportElement) => {
+        if (fs.existsSync(path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"))) {
+            if (!SeenFiles.has(path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"))) {
+                SeenFiles.add(path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"));
+                ParseFile(pkg_root, path.join(pkg_root, x.name.replaceAll(".", "/") + ".hl"), manifest);
+                Rebase("module", x.name);
+            }
+        }
+    });
 
     new FindClassNamesPass(cu).apply();
     new QualifyLocalNamesPass(cu).apply();
@@ -111,4 +123,78 @@ export function ParseFile(file: string): boolean {
     });
 
     return cu.valid;
+}
+
+export function Rebase(from: string, to: string) {
+    Classes.forEach(c => {
+        if (c.name.startsWith(from)) {
+            Classes.delete(c.name);
+            c.name = c.name.replace(from, to);
+            Classes.set(c.name, c);
+            c.methods.forEach(m => {
+                if (m.parent.startsWith(from)) {
+                    m.parent = m.parent.replace(from, to);
+                }
+            });
+
+            if (c.parent.startsWith(from)) {
+                c.parent = c.parent.replace(from, to);
+            }
+
+            c.interfaces.forEach((i, idx) => {
+                if (i.startsWith(from)) {
+                    c.interfaces[idx] = i.replace(from, to);
+                }
+            });
+        }
+
+        WalkAST(c, src => rebaseElement(src, from, to));
+
+        c.fields.forEach(f => {
+            if (f.type instanceof StructureType && f.type.name.startsWith(from)) {
+                f.type = Classes.get(f.type.name).type();
+            } else if (f.type instanceof ConcreteType && f.type.name.startsWith(from)) {
+                f.type.name = f.type.name.replace(from, to);
+            }
+        });
+    });
+
+    Functions.forEach(m => {
+        if (m.parent.startsWith(from)) {
+            m.parent = m.parent.replace(from, to);
+        }
+
+        WalkAST(m, src => rebaseElement(src, from, to));
+    });
+}
+
+function rebaseElement(src: ASTElement, from: string, to: string) {
+    if (src instanceof TypeElement && src.source.name.startsWith(from)) {
+        src.source.name = src.source.name.replace(from, to);
+        src.generics.map(g => rebaseElement(g, from, to));
+    }
+
+    if (src instanceof LocalDefinitionStatement) {
+        rebaseElement(src.type, from, to);
+    }
+
+    if (src instanceof ConstructorCallExpression) {
+        rebaseElement(src.source, from, to);
+    }
+
+    if (src instanceof FunctionElement) {
+        if (src.return_type instanceof StructureType || src.return_type instanceof ConcreteType && src.return_type.name.startsWith(from)) {
+            src.return_type.name = src.return_type.name.replace(from, to);
+        }
+
+        if (src.self_type instanceof StructureType || src.self_type instanceof ConcreteType && src.self_type.name.startsWith(from)) {
+            src.self_type.name = src.self_type.name.replace(from, to);
+        }
+
+        src.args.forEach(arg => {
+            if (arg.type instanceof StructureType || arg.type instanceof ConcreteType && arg.type.name.startsWith(from)) {
+                arg.type.name = arg.type.name.replace(from, to);
+            }
+        })
+    }
 }

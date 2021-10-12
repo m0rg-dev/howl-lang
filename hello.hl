@@ -1,6 +1,0 @@
-module main;
-
-static fn i32 Main() {
-    lib.IO.print("Awoooooooo~!\n");
-    return 0;
-}

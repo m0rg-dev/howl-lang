@@ -1,6 +1,5 @@
 import * as sms from 'source-map-support';
-import { ParseFile, SetupDriver } from './driver/Driver';
-import { EmitC, EmitCPrologue, EmitForwardDeclarations, EmitStructures } from './generator/CGenerator';
+import { EmitC, EmitForwardDeclarations, EmitStructures } from './generator/CGenerator';
 import { RenderElement } from './graphviz/Graphviz';
 import { Classes, Functions } from './registry/Registry';
 import { RunClassTransforms, RunFunctionTransforms } from './transform/RunTransforms';
@@ -9,8 +8,8 @@ import { StructureType } from './type_inference/StructureType';
 
 sms.install();
 
-SetupDriver();
-if (!ParseFile(process.argv[2])) process.exit(1);
+//SetupDriver();
+//if (!ParseFile(process.argv[2])) process.exit(1);
 
 Classes.forEach((cl) => {
     cl.fields.forEach(f => {
@@ -36,7 +35,6 @@ if (process.env["HOWL_OUTPUT_GRAPHVIZ"]) {
 } else {
     Classes.forEach(cl => cl.dropBaseMethods());
 
-    EmitCPrologue();
     Classes.forEach(EmitForwardDeclarations);
     Classes.forEach(EmitStructures);
     Classes.forEach(c => EmitC(c));

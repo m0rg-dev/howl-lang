@@ -80,7 +80,7 @@ export class ClassElement extends ASTElement {
 
     private addFieldsToType(t: StructureType) {
         this.fields.forEach((x) => t.addField(x.name, x.type));
-        this.methods.forEach((x) => t.addField(x.getFQN().last().split(".").pop(), new FunctionType(x)));
+        this.methods.forEach((x) => t.addField(x.name, new FunctionType(x)));
     }
 
     type(): StructureType {

@@ -41,7 +41,7 @@ export class FunctionHeaderElement extends ASTElement {
     toFunction(source: CompilationUnit, body: CompoundStatementElement) {
         return new FunctionElement(
             LocationFrom([this, body]),
-            source.module,
+            "module",
             this.name,
             this.returns.asTypeObject(),
             undefined,

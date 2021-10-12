@@ -31,7 +31,7 @@ export class MakeClassesPass extends Pass {
                         fields.push(x);
                     } else if (x instanceof FunctionElement) {
                         x.self_type = new ConcreteType(ast_stream[0].name);
-                        x.name = `${ast_stream[0].name.split(".").pop()}.${x.name}`;
+                        x.parent = ast_stream[0].name;
                         methods.push(x);
                     } else {
                         this.emitCompilationError(Errors.COMPILER_BUG, "not TypedItem or Function?", x.source_location);

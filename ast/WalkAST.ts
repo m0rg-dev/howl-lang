@@ -22,7 +22,7 @@ import { ComparisonExpression } from "./expression/ComparisonExpression";
 import { ArithmeticExpression } from "./expression/ArithmeticExpression";
 import { StringConstantExpression } from "./expression/StringConstantExpression";
 import { WhileStatement } from "./statement/WhileStatement";
-import { log } from "../driver/Driver";
+import { EmitLog } from "../driver/Driver";
 import { LogLevel } from "../driver/Pass";
 import { ExpressionElement } from "./ExpressionElement";
 import { TypeElement } from "./TypeElement";
@@ -38,8 +38,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
                 if (n instanceof FunctionElement) {
                     root.methods[index] = n;
                 } else {
-                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace method ${method} on ${root} with non-FunctionElement ${n}`);
-                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                    EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace method ${method} on ${root} with non-FunctionElement ${n}`);
+                    EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
                 }
             });
         });
@@ -48,8 +48,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
                 if (n instanceof TypedItemElement) {
                     root.fields[index] = n;
                 } else {
-                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace field ${field} on ${root} with non-TypedItemElement ${n}`);
-                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                    EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace field ${field} on ${root} with non-TypedItemElement ${n}`);
+                    EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
                 }
             });
         });
@@ -59,8 +59,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             if (n instanceof CompoundStatementElement) {
                 root.body = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         cb(root, root.scope, repl);
@@ -69,23 +69,23 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             if (n instanceof ExpressionElement) {
                 root.source = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         WalkAST(root.index, cb, _nearestScope, (n: ASTElement) => {
             if (n instanceof ExpressionElement) {
                 root.index = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace index of ${root} with non-ExpressionElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace index of ${root} with non-ExpressionElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         cb(root, _nearestScope, repl);
     } else if (root instanceof CompoundStatementElement) {
         root.statements.forEach((statement, index) => {
             WalkAST(statement, cb, root.scope, (n: ASTElement) => {
-                log(LogLevel.TRACE, `WalkAST`, `repl CompoundStatement ${root.statements[index]} ${n}`);
+                EmitLog(LogLevel.TRACE, `WalkAST`, `repl CompoundStatement ${root.statements[index]} ${n}`);
                 root.statements[index] = n;
             });
         });
@@ -95,20 +95,20 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
         || root instanceof ArithmeticExpression) {
         WalkAST(root.lhs, cb, _nearestScope, (n: ASTElement) => {
             if (n instanceof ExpressionElement) {
-                log(LogLevel.TRACE, `WalkAST`, `repl ${root.constructor.name} lhs ${root.lhs} ${n}`);
+                EmitLog(LogLevel.TRACE, `WalkAST`, `repl ${root.constructor.name} lhs ${root.lhs} ${n}`);
                 root.lhs = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace lhs of ${root} with non-ExpressionElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace lhs of ${root} with non-ExpressionElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         WalkAST(root.rhs, cb, _nearestScope, (n: ASTElement) => {
             if (n instanceof ExpressionElement) {
-                log(LogLevel.TRACE, `WalkAST`, `repl ${root.constructor.name} rhs ${root.rhs} ${n}`);
+                EmitLog(LogLevel.TRACE, `WalkAST`, `repl ${root.constructor.name} rhs ${root.rhs} ${n}`);
                 root.rhs = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace rhs of ${root} with non-ExpressionElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace rhs of ${root} with non-ExpressionElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         cb(root, _nearestScope, repl);
@@ -117,8 +117,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             if (n instanceof ExpressionElement) {
                 root.source = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         root.args.forEach((argument, index) => {
@@ -126,8 +126,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
                 if (n instanceof ExpressionElement) {
                     root.args[index] = n;
                 } else {
-                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace argument ${index} of ${root} with non-ExpressionElement ${n}`);
-                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                    EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace argument ${index} of ${root} with non-ExpressionElement ${n}`);
+                    EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
                 }
             });
         });
@@ -140,8 +140,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
                 if (n instanceof ExpressionElement) {
                     root.args[index] = n;
                 } else {
-                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace argument ${index} of ${root} with non-ExpressionElement ${n}`);
-                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                    EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace argument ${index} of ${root} with non-ExpressionElement ${n}`);
+                    EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
                 }
             });
         });
@@ -152,16 +152,16 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             if (n instanceof ExpressionElement) {
                 root.condition = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace condition of ${root} with non-ExpressionElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace condition of ${root} with non-ExpressionElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         WalkAST(root.body, cb, _nearestScope, (n: ASTElement) => {
             if (n instanceof CompoundStatementElement) {
                 root.body = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         cb(root, _nearestScope, repl);
@@ -174,8 +174,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             if (n instanceof ExpressionElement) {
                 root.source = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         cb(root, _nearestScope, repl);
@@ -184,8 +184,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             if (n instanceof CompoundStatementElement) {
                 root.body = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
 
@@ -194,8 +194,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
                 if (n instanceof CompoundStatementElement) {
                     c.body = n;
                 } else {
-                    log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace case ${c.type} of ${root} with non-CompoundStatementElement ${n}`);
-                    log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                    EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace case ${c.type} of ${root} with non-CompoundStatementElement ${n}`);
+                    EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
                 }
             });
         });
@@ -204,11 +204,11 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
     } else if (root instanceof SimpleStatement) {
         WalkAST(root.exp, cb, _nearestScope, (n: ASTElement) => {
             if (n instanceof ExpressionElement) {
-                log(LogLevel.TRACE, `WalkAST`, `repl SimpleStatement ${root.exp} ${n}`);
+                EmitLog(LogLevel.TRACE, `WalkAST`, `repl SimpleStatement ${root.exp} ${n}`);
                 root.exp = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace source of ${root} with non-ExpressionElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         cb(root, _nearestScope, repl);
@@ -217,8 +217,8 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             if (n instanceof ExpressionElement) {
                 root.initializer = n;
             } else {
-                log(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace initializer of ${root} with non-ExpressionElement ${n}`);
-                log(LogLevel.ERROR, "WalkAST", new Error().stack);
+                EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace initializer of ${root} with non-ExpressionElement ${n}`);
+                EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
         });
         cb(root, _nearestScope, repl);
@@ -229,7 +229,7 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
         || root instanceof StringConstantExpression
         || root instanceof TypedItemElement) {
         cb(root, _nearestScope, repl);
-    } else {
+    } else if (root) {
         throw new Error(`can't walk a ${root.constructor.name} (${root} ${root.source_location})`);
     }
 }

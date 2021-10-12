@@ -4,11 +4,10 @@ import { Type } from "../type_inference/Type";
 import { VoidType } from "../type_inference/VoidType";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { CompoundStatementElement } from "./CompoundStatementElement";
-import { FQN, HasFQN } from "./FQN";
 import { TypedItemElement } from "./TypedItemElement";
 
 export class FunctionElement extends ASTElement {
-    parent: HasFQN;
+    parent: string;
     name: string;
 
     source: CompilationUnit;
@@ -21,8 +20,14 @@ export class FunctionElement extends ASTElement {
     scope: Scope;
     is_static: boolean;
 
-    constructor(loc: SourceLocation, parent: HasFQN, name: string, return_type: Type, self_type: Type, args: TypedItemElement[], throws: Type[], is_static: boolean, body: CompoundStatementElement, source: CompilationUnit) {
+    constructor(loc: SourceLocation, parent: string, name: string, return_type: Type, self_type: Type, args: TypedItemElement[], throws: Type[], is_static: boolean, body: CompoundStatementElement, source: CompilationUnit) {
         super(loc);
+        if (name.includes(".")) {
+            const parts = name.split(".");
+            name = parts.pop();
+            parent += "." + parts.join(".");
+        }
+
         this.name = name;
         this.parent = parent;
         this.return_type = return_type;
@@ -39,7 +44,7 @@ export class FunctionElement extends ASTElement {
     }
 
     toString() {
-        return `FunctionElement(${this.getFQN()}, ${this.return_type}, ${this.args}, ${this.body})${this.throws.map(x => ` throws ${x}`).join(" ")}`;
+        return `FunctionElement(${this.parent}.${this.name}, ${this.return_type}, ${this.args}, ${this.body})${this.throws.map(x => ` throws ${x}`).join(" ")}`;
     }
 
     clone() {
@@ -59,12 +64,8 @@ export class FunctionElement extends ASTElement {
         return rc;
     }
 
-    getFQN() {
-        return new FQN(this.parent, this.name);
-    }
-
-    setParent(p: HasFQN) {
-        this.parent = p;
+    full_name(): string {
+        return this.parent + "." + this.name;
     }
 }
 
@@ -102,6 +103,6 @@ export class OverloadedFunctionElement extends FunctionElement {
     }
 
     toString() {
-        return `OverloadedFunctionElement(${this.getFQN()}, ${this.return_type}, ${this.args}, ${this.body})`;
+        return `OverloadedFunctionElement(${this.name}, ${this.return_type}, ${this.args}, ${this.body})`;
     }
 }

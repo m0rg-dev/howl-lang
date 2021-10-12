@@ -2,7 +2,7 @@ import { ClassElement } from "../ast/ClassElement";
 import { FunctionElement } from "../ast/FunctionElement";
 import { TypedItemElement } from "../ast/TypedItemElement";
 import { WalkAST } from "../ast/WalkAST";
-import { log } from "../driver/Driver";
+import { EmitLog } from "../driver/Driver";
 import { LogLevel } from "../driver/Pass";
 import { Classes } from "../registry/Registry";
 import { RunFunctionTransforms } from "../transform/RunTransforms";
@@ -58,22 +58,22 @@ export class StructureType extends Type {
     }
 
     getFieldType(field: string): Type {
-        log(LogLevel.TRACE, `${this}`, `  (GetType ${field})`);
+        EmitLog(LogLevel.TRACE, `${this}`, `  (GetType ${field})`);
         if (field == "__stable") {
             return new StaticTableType(Classes.get(this.name));
         }
         const rc = this.applyGenericMap(this.fields.get(field));
-        log(LogLevel.TRACE, `${this}`, `  (ApplyGenericMap ${rc})`);
+        EmitLog(LogLevel.TRACE, `${this}`, `  (ApplyGenericMap ${rc})`);
         return rc;
     }
 
     applyGenericMap(t: Type): Type {
         if (t instanceof GenericType) {
             const rc = this.generic_map.get(t.name) || new AnyType();
-            log(LogLevel.TRACE, `${this}`, `   (ApplyGenericMap) ${t} -> ${rc}`);
+            EmitLog(LogLevel.TRACE, `${this}`, `   (ApplyGenericMap) ${t} -> ${rc}`);
             return rc;
         } else if (t instanceof FunctionType) {
-            log(LogLevel.TRACE, `${this}`, `   (ApplyGenericMap) ${t}`);
+            EmitLog(LogLevel.TRACE, `${this}`, `   (ApplyGenericMap) ${t}`);
             const u = new FunctionType(t);
             u.return_type = this.applyGenericMap(t.return_type);
             u.self_type = this.applyGenericMap(t.self_type);
@@ -106,6 +106,9 @@ export class StructureType extends Type {
 
     isMonomorphizable(): boolean {
         if (Classes.has(this.MonomorphizedName())) return true;
+        if (!Classes.get(this.name)) {
+            throw new Error(`no such class ${this.name}?`);
+        }
         if (Classes.get(this.name).is_monomorphization) return true;
         const generic_keys = [...this.generic_map.keys()];
         return generic_keys.every(k => this.generic_map.get(k) instanceof ConcreteType) && Classes.has(this.name) && !Classes.get(this.name).is_monomorphization;
@@ -114,7 +117,7 @@ export class StructureType extends Type {
     Monomorphize(): ConcreteType {
         if (Classes.has(this.MonomorphizedName())) return new ConcreteType(this.MonomorphizedName());
         if (Classes.get(this.name).is_monomorphization) return new ConcreteType(this.name);
-        log(LogLevel.INFO, "Monomorphize", `${this}`);
+        EmitLog(LogLevel.INFO, "Monomorphize", `${this}`);
         const new_class = Classes.get(this.name).clone();
         new_class.is_monomorphization = true;
         new_class.setName(this.MonomorphizedName());
@@ -133,7 +136,7 @@ export class StructureType extends Type {
                 x.args.forEach((arg) => {
                     arg.type = this.applyGenericMap(arg.type);
                 });
-                x.name = `${new_class.name.split(".").pop()}.${x.name.split(".").pop()}`;
+                x.parent = new_class.name;
             } else if (x instanceof TypedItemElement) {
                 x.type = this.applyGenericMap(x.type);
             }
@@ -173,7 +176,7 @@ export class StaticTableType extends ConcreteType {
         super(`${source.name}_stable`);
 
         source.methods.forEach(m => {
-            this.fields.set(m.getFQN().last().split(".").pop(), new FunctionType(m));
+            this.fields.set(m.name, new FunctionType(m));
         });
 
         this.original_name = source.name;
