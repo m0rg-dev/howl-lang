@@ -123,6 +123,7 @@ export function EmitStructures(root: ClassElement): string {
         // Class structure itself.
         lines.push(`struct ${SanitizeName(root.name)}_t {`);
         field_list.slice(1).forEach(f => {
+            if (method_list.some(m => m.name == f.name)) return;
             lines.push(`  ${ConvertType(f.type)} ${f.name};`);
         });
         lines.push(`};\n`);
