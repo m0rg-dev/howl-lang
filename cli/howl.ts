@@ -59,6 +59,7 @@ fs.writeFileSync(path.join(pkg_dir, "target", "src", "runtime.c"), fs.readFileSy
 fs.writeFileSync(path.join(pkg_dir, "target", "src", "runtime.h"), fs.readFileSync("/snapshot/howl-lang/assets/runtime.h"));
 
 fs.writeFileSync(path.join(pkg_dir, "target", "src", "declarations.h"), StandardHeaders()
+    + mf.headers.map(x => `#include <${x}.h>\n`).join("")
     + "#pragma once\n\n" + fs.readFileSync("/snapshot/howl-lang/assets/runtime.h") + decl.join("\n"));
 
 const sources: string[] = [];
@@ -103,6 +104,7 @@ async function doCompile() {
                     "-O2",
                     "-Wno-pointer-sign",
                     "-Wno-unused-result",
+                    "-Wno-incompatible-pointer-types",
                     `-DHOWL_ENTRY=__Main`
                 ], {
                     stdio: "inherit"

@@ -9,7 +9,8 @@ export type Manifest = {
     },
     search_path: string[],
     export: string[],
-    entry: string
+    entry: string,
+    headers: string[]
 };
 
 export const EmptyManifest: Manifest = {
@@ -17,6 +18,7 @@ export const EmptyManifest: Manifest = {
     dependencies: {},
     search_path: [],
     export: [],
+    headers: [],
     entry: undefined
 };
 
@@ -46,6 +48,9 @@ export function MergeManifest(lower: Manifest, path: string): Manifest {
         lower.export = [...mf.export, ...lower.export];
     }
 
+    if (mf.headers) {
+        lower.headers = [...mf.headers, ...lower.headers];
+    }
 
     if (mf.entry) {
         lower.entry = mf.entry;

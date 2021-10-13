@@ -35,7 +35,7 @@ class String {
         let String rc = new String();
 
         let i64 i = 0;
-        while i < length + 1 {
+        while i < length {
             rc.contents[i] = bytes[i];
             i = i + 1;
         }

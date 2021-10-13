@@ -130,7 +130,7 @@ export class Lexer {
         const m = this.source.substr(this.mark).match(/^\s*\/\/[^\n]*\n\s*/s);
         if (!m) return undefined;
 
-        return { type: TokenType.Comment, length: m[1].length, start: this.mark, text: m[0] };
+        return { type: TokenType.Comment, length: m[0].length, start: this.mark, text: m[0] };
     }
 
     private next_token(): Token | undefined {

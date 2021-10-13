@@ -1,0 +1,6 @@
+{
+    "entry": "http_server",
+    "headers": [
+        "sys/socket"
+    ]
+}

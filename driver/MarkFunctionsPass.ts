@@ -2,6 +2,7 @@ import { ASTElement, MarkerElement } from "../ast/ASTElement";
 import { TokenElement } from "../ast/TokenElement";
 import { TokenType } from "../lexer/TokenType";
 import { Hug, InOrder, MatchToken, Optional, Star, Until } from "../parser/Matcher";
+import { MatchType } from "../parser/MatchUtils";
 import { Pass } from "./Pass";
 
 export class MarkFunctionsPass extends Pass {
@@ -11,16 +12,16 @@ export class MarkFunctionsPass extends Pass {
             match: InOrder(
                 Optional(MatchToken(TokenType.Static)),
                 MatchToken(TokenType.Function),
-                MatchToken(TokenType.Name),
+                MatchType(),
                 MatchToken(TokenType.Name),
                 Hug(TokenType.OpenParen),
                 Optional(
                     InOrder(
                         MatchToken(TokenType.Throws),
-                        MatchToken(TokenType.Name),
+                        MatchType(),
                         Star(InOrder(
                             MatchToken(TokenType.Comma),
-                            MatchToken(TokenType.Name),
+                            MatchType(),
                         ))
                     )
                 ),

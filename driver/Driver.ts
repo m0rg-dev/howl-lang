@@ -79,7 +79,6 @@ export function ParseFile(pkg_root: string, file: string, manifest: Manifest, pr
     cu.registerNames();
     new ReferenceNamesPass(cu).apply();
     new MarkClassesPass(cu).apply();
-    new MarkFunctionsPass(cu).apply();
 
     new ParseClassHeadersPass(cu).apply();
     // no class header = no generics = no parse!
@@ -91,6 +90,7 @@ export function ParseFile(pkg_root: string, file: string, manifest: Manifest, pr
     new ReplaceTypesPass(cu).apply();
     new ParseTypesPass(cu).apply();
 
+    new MarkFunctionsPass(cu).apply();
     new ParseFunctionHeadersPass(cu).apply();
     new DropTagsPass(cu, "fdecl").apply();
 

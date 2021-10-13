@@ -20,4 +20,7 @@ extern struct object cur_exception;
 int32_t HOWL_ENTRY();
 int typeIncludes(struct stable_common stable, char *type);
 
+int32_t __get_errno();
+char *__get_object_pointer(void *o);
+
 #endif

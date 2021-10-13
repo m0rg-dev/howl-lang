@@ -7,6 +7,7 @@
         "vec",
         "string",
         "io",
-        "exception"
+        "exception",
+        "util"
     ]
 }

@@ -112,12 +112,7 @@ export function EmitStructures(root: ClassElement): string {
 
         // Interface tables, if present.
         root.interfaces.forEach(iface => {
-            const iclass = Classes.get(iface);
-            lines.push(`struct ${SanitizeName(iface)}_itable_t ${SanitizeName(root.name)}_${SanitizeName(iface)}_itable = {`);
-            iclass.synthesizeMethods().forEach(m => {
-                lines.push(`  (${GenerateFunctionPointerType(new FunctionType(m), "")}) ${SanitizeName(root.name)}__${m.name},`)
-            });
-            lines.push(`};`);
+            lines.push(`struct ${SanitizeName(iface)}_itable_t ${SanitizeName(root.name)}_${SanitizeName(iface)}_itable;`);
         });
 
         // Class structure itself.
@@ -158,6 +153,17 @@ export function EmitC(root: ASTElement, lines: string[] = []): string {
             lines.push(`  ${SanitizeName(m.full_name())},`);
         })
         lines.push(`};\n`);
+
+        // Interface tables, if present.
+        root.interfaces.forEach(iface => {
+            const iclass = Classes.get(iface);
+            lines.push(`struct ${SanitizeName(iface)}_itable_t ${SanitizeName(root.name)}_${SanitizeName(iface)}_itable = {`);
+            iclass.synthesizeMethods().forEach(m => {
+                lines.push(`  (${GenerateFunctionPointerType(new FunctionType(m), "")}) ${SanitizeName(root.name)}__${m.name},`)
+            });
+            lines.push(`};`);
+        });
+
         // Constructor.
         let cargs: TypedItemElement[] = [];
         const cidx = root.methods.findIndex(x => x.name == "constructor");
@@ -281,7 +287,13 @@ function ExpressionToC(e: ExpressionElement, lines: string[]): string {
     } else if (e instanceof ConstructorCallExpression) {
         return `${ConvertType(e.type_location?.get() || e.resolved_type)}_alloc(${e.args.map(a => ExpressionToC(a, lines)).join(", ")})`;
     } else if (e instanceof FFICallExpression) {
-        return `${e.source}(${e.args.map(a => ExpressionToC(a, lines)).join(", ")})`;
+        return `${e.source}(${e.args.map(a => {
+            if (Classes.has(a.resolved_type.name)) {
+                return `(*${ExpressionToC(a, lines)}.obj)`;
+            } else {
+                return ExpressionToC(a, lines);
+            }
+        }).join(", ")})`;
     } else if (e instanceof FunctionCallExpression) {
         return `${ExpressionToC(e.source, lines)}(${e.args.map(a => ExpressionToC(a, lines)).join(", ")})`;
     } else if (e instanceof ComparisonExpression || e instanceof ArithmeticExpression) {

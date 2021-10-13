@@ -86,7 +86,11 @@ export class ClassElement extends ASTElement {
     type(): StructureType {
         const t = new StructureType(this.name, new Set(this.generics));
         if (this.parent) {
-            Classes.get(this.parent).addFieldsToType(t);
+            if (Classes.has(this.parent)) {
+                Classes.get(this.parent).addFieldsToType(t);
+            } else {
+                throw new Error(`no class ${this.parent}?`);
+            }
         }
         this.addFieldsToType(t);
         return t;
