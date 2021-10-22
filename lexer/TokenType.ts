@@ -8,6 +8,7 @@ export enum TokenType {
     Import,
     Static,
     If,
+    Else,
     While,
     FFICall,
     Extends,

@@ -104,8 +104,8 @@ export class StatementPass extends Pass {
                     }
 
                     s2.push(new LocalDefinitionStatement(LocationFrom([el, equals]), maybe_name.name, maybe_type, initializer));
-                } else if (el.token.type == TokenType.If || el.token.type == TokenType.While) {
-                    // if/while exp { statements }
+                } else if (el.token.type == TokenType.While) {
+                    // while exp { statements }
                     const maybe_exp = segment.shift();
                     if (maybe_exp instanceof ExpressionElement) {
                         const [m, len] = Hug(TokenType.OpenBrace)(segment);
@@ -113,11 +113,25 @@ export class StatementPass extends Pass {
                             const substatements = segment.splice(0, len);
                             this.parseCompound(substatements);
                             const body = substatements[0] as CompoundStatementElement;
-                            if (el.token.type == TokenType.If) {
-                                s2.push(new IfStatement(LocationFrom([el, body]), maybe_exp, body));
-                            } else {
-                                s2.push(new WhileStatement(LocationFrom([el, body]), maybe_exp, body));
-                            }
+                            s2.push(new WhileStatement(LocationFrom([el, body]), maybe_exp, body));
+                        } else {
+                            this.emitCompilationError(Errors.EXPECTED_OPEN_BRACE, "Expected open brace", segment[0].source_location);
+                            this.resynchronize(segment);
+                        }
+                    } else {
+                        this.emitCompilationError(Errors.EXPECTED_EXPRESSION, "Expected expression", maybe_exp.source_location);
+                        this.resynchronize(segment);
+                    }
+                } else if (el.token.type == TokenType.If) {
+                    // if exp { statements }
+                    const maybe_exp = segment.shift();
+                    if (maybe_exp instanceof ExpressionElement) {
+                        const [m, len] = Hug(TokenType.OpenBrace)(segment);
+                        if (m) {
+                            const substatements = segment.splice(0, len);
+                            this.parseCompound(substatements);
+                            const body = substatements[0] as CompoundStatementElement;
+                            s2.push(new IfStatement(LocationFrom([el, body]), maybe_exp, body));
                         } else {
                             this.emitCompilationError(Errors.EXPECTED_OPEN_BRACE, "Expected open brace", segment[0].source_location);
                             this.resynchronize(segment);

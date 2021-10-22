@@ -15,6 +15,7 @@ const KEYWORD_TABLE = {
     "import": TokenType.Import,
     "static": TokenType.Static,
     "if": TokenType.If,
+    "else": TokenType.Else,
     "while": TokenType.While,
     "fficall": TokenType.FFICall,
     "extends": TokenType.Extends,
@@ -85,7 +86,7 @@ export class Lexer {
     }
 
     private match_keyword(): Token | undefined {
-        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|import|static|if|while|fficall|extends|override|interface|implements|throw|throws|try|catch)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
+        const m = this.source.substr(this.mark).match(/^(class|fn|return|new|let|import|static|if|else|while|fficall|extends|override|interface|implements|throw|throws|try|catch)\s*(?:\s|(?=[^_a-zA-Z0-9-]))/s);
         if (!m) return undefined;
 
         return { type: KEYWORD_TABLE[m[1]], length: m[1].length, start: this.mark, text: m[0] };
