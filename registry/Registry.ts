@@ -5,8 +5,10 @@ import { PartialFunctionElement } from "../ast/PartialFunctionElement";
 import { RegisterArithmeticOverloads } from "../transform/macros/ArithmeticOverload";
 import { IndexOverloadLHS } from "../transform/macros/IndexOverloadLHS";
 import { IndexOverloadRHS } from "../transform/macros/IndexOverloadRHS";
+import { MethodCall } from "../transform/macros/MethodCall";
 import { MethodOverload } from "../transform/macros/MethodOverload";
 import { StaticOverload } from "../transform/macros/StaticOverload";
+import { StringLiteral } from "../transform/macros/StringLiteral";
 import { VecLiteral } from "../transform/macros/VecLiteral";
 import { Transformer } from "../transform/Transformer";
 
@@ -42,9 +44,11 @@ export function InitRegistry() {
     RegisterTransformer(new VecLiteral());
     RegisterTransformer(new IndexOverloadLHS());
     RegisterTransformer(new IndexOverloadRHS());
+    RegisterArithmeticOverloads();
     RegisterTransformer(new MethodOverload());
     RegisterTransformer(new StaticOverload());
-    RegisterArithmeticOverloads();
+    RegisterTransformer(new MethodCall());
+    RegisterTransformer(new StringLiteral());
 }
 
 export var CurrentModule: FQN;

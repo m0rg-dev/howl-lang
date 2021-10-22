@@ -7,22 +7,18 @@ import { ConstructorCallExpression } from "../ast/expression/ConstructorCallExpr
 import { FFICallExpression } from "../ast/expression/FFICallExpression";
 import { FieldReferenceExpression } from "../ast/expression/FieldReferenceExpression";
 import { FunctionCallExpression } from "../ast/expression/FunctionCallExpression";
-import { GeneratorTemporaryExpression } from "../ast/expression/GeneratorTemporaryExpression";
 import { IndexExpression } from "../ast/expression/IndexExpression";
-import { MacroCallExpression } from "../ast/expression/MacroCallExpression";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { NumberExpression } from "../ast/expression/NumberExpression";
-import { StringConstantExpression } from "../ast/expression/StringConstantExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
 import { FunctionElement, OverloadedFunctionElement } from "../ast/FunctionElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { IfStatement } from "../ast/statement/IfStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
-import { SimpleStatement } from "../ast/statement/SimpleStatement";
 import { TryCatchStatement } from "../ast/statement/TryCatchStatement";
 import { WhileStatement } from "../ast/statement/WhileStatement";
 import { TypedItemElement } from "../ast/TypedItemElement";
-import { SimpleTypeElement, TypeElement } from "../ast/TypeElement";
+import { TypeElement } from "../ast/TypeElement";
 import { WalkAST } from "../ast/WalkAST";
 import { EmitError, EmitLog } from "../driver/Driver";
 import { Errors } from "../driver/Errors";
@@ -63,36 +59,6 @@ export function RunElementTransforms(e: ASTElement, root: FunctionElement, repl 
                 src = new_tree;
             }
         });
-
-        if (src instanceof FunctionCallExpression
-            && src.source instanceof FieldReferenceExpression
-            && src.source.source.resolved_type
-            && Classes.has(src.source.source.resolved_type.name)) {
-            EmitLog(LogLevel.TRACE, `ElementTransforms ${e} `, `Method call`);
-            const gte = new GeneratorTemporaryExpression(src.source.source);
-            let new_tree: ASTElement = new FunctionCallExpression(src.source_location,
-                new FieldReferenceExpression(src.source.source_location,
-                    new FieldReferenceExpression(src.source.source_location, gte, "__stable"), src.source.name),
-                [gte, ...src.args]);
-            RunElementTransforms(new_tree, root, (n) => new_tree = n);
-            EmitLog(LogLevel.TRACE, `ElementTransforms ${e} `, `Method call ${new_tree} `);
-            repl(new_tree);
-            return;
-        }
-
-        if (src instanceof StringConstantExpression && !src.generated) {
-            EmitLog(LogLevel.TRACE, `ElementTransforms ${e} `, `String literal`);
-            src.resolved_type = new ConcreteRawPointerType(new ConcreteType("u8"));
-            src.generated = true;
-            let new_tree: ASTElement = new FunctionCallExpression(src.source_location,
-                new FieldReferenceExpression(src.source_location,
-                    new TypeElement(src.source_location, new SimpleTypeElement(src.source_location, "lib.string.String"), []),
-                    "fromBytes"),
-                [src, new FFICallExpression(src.source_location, "strlen", [src])]);
-            RunElementTransforms(new_tree, root, (n) => new_tree = n);
-            repl(new_tree);
-            return;
-        }
 
         // Type analysis.
         if (src instanceof NameExpression) {
