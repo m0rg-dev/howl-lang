@@ -91,6 +91,8 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push(RenderElement(e.lhs, _nearestScope));
         s.push(RenderElement(e.rhs, _nearestScope));
     } else if (e instanceof IfStatement || e instanceof WhileStatement) {
+        // FIXME
+        /*
         const contents: RecordRow[] = [
             [{ text: e.constructor.name }],
         ];
@@ -101,6 +103,7 @@ export function RenderElement(e: ASTElement, _nearestScope?: Scope): string {
         s.push((new Link("u" + e.uuid + ":body", "u" + e.body.uuid)).toString());
         s.push(RenderElement(e.condition, _nearestScope));
         s.push(RenderElement(e.body, e.body.scope));
+        */
     } else if (e instanceof UnaryReturnStatement) {
         const contents: RecordRow[] = [
             [{ text: "UnaryReturnStatement" }],

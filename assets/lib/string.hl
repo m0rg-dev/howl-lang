@@ -52,9 +52,9 @@ class String {
 
         if value < 10 {
             return digits[value];
+        } else {
+            return String.from(value / 10) + String.from(value % 10);
         }
-
-        return String.from(value / 10) + String.from(value % 10);
     }
 
     static fn String from(Display other) {
