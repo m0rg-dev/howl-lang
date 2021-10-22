@@ -146,8 +146,7 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
             });
         });
         cb(root, _nearestScope, repl);
-    } else if (root instanceof IfStatement
-        || root instanceof WhileStatement) {
+    } else if (root instanceof WhileStatement) {
         WalkAST(root.condition, cb, _nearestScope, (n: ASTElement) => {
             if (n instanceof ExpressionElement) {
                 root.condition = n;
@@ -163,6 +162,28 @@ export function WalkAST(root: ASTElement, cb: (src: ASTElement, nearestScope: Sc
                 EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body of ${root} with non-CompoundStatementElement ${n}`);
                 EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
             }
+        });
+        cb(root, _nearestScope, repl);
+    } else if (root instanceof IfStatement) {
+        root.conditions.forEach((condition, index) => {
+            WalkAST(condition, cb, _nearestScope, (n: ASTElement) => {
+                if (n instanceof ExpressionElement) {
+                    root.conditions[index] = n;
+                } else {
+                    EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace condition ${index} of ${root} with non-ExpressionElement ${n}`);
+                    EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
+                }
+            });
+        });
+        root.bodies.forEach((body, index) => {
+            WalkAST(body, cb, _nearestScope, (n: ASTElement) => {
+                if (n instanceof CompoundStatementElement) {
+                    root.bodies[index] = n;
+                } else {
+                    EmitLog(LogLevel.ERROR, "WalkAST", `COMPILER BUG: Attempt to replace body ${index} of ${root} with non-CompoundStatementElement ${n}`);
+                    EmitLog(LogLevel.ERROR, "WalkAST", new Error().stack);
+                }
+            });
         });
         cb(root, _nearestScope, repl);
     } else if (root instanceof FieldReferenceExpression

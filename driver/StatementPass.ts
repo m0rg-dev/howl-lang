@@ -2,7 +2,6 @@ import { ASTElement } from "../ast/ASTElement";
 import { CompoundStatementElement } from "../ast/CompoundStatementElement";
 import { NameExpression } from "../ast/expression/NameExpression";
 import { ExpressionElement } from "../ast/ExpressionElement";
-import { NameElement } from "../ast/NameElement";
 import { AssignmentStatement } from "../ast/statement/AssignmentStatement";
 import { IfStatement } from "../ast/statement/IfStatement";
 import { LocalDefinitionStatement } from "../ast/statement/LocalDefinitionStatement";
@@ -123,23 +122,56 @@ export class StatementPass extends Pass {
                         this.resynchronize(segment);
                     }
                 } else if (el.token.type == TokenType.If) {
-                    // if exp { statements }
-                    const maybe_exp = segment.shift();
-                    if (maybe_exp instanceof ExpressionElement) {
+                    // if exp { statements } [else if exp {statements} ...] [ else {statements} ]
+                    const conditions: ExpressionElement[] = [];
+                    const bodies: CompoundStatementElement[] = [];
+
+                    clause: while (1) {
+                        const condition = segment.shift();
+                        if (!condition) break;
+                        if (!(condition instanceof ExpressionElement)) {
+                            this.emitCompilationError(Errors.EXPECTED_EXPRESSION, "Expected expression", condition.source_location);
+                            this.resynchronize(segment);
+                            continue statement;
+                        }
+
                         const [m, len] = Hug(TokenType.OpenBrace)(segment);
-                        if (m) {
-                            const substatements = segment.splice(0, len);
-                            this.parseCompound(substatements);
-                            const body = substatements[0] as CompoundStatementElement;
-                            s2.push(new IfStatement(LocationFrom([el, body]), maybe_exp, body));
-                        } else {
+                        if (!m) {
                             this.emitCompilationError(Errors.EXPECTED_OPEN_BRACE, "Expected open brace", segment[0].source_location);
                             this.resynchronize(segment);
+                            continue statement;
                         }
-                    } else {
-                        this.emitCompilationError(Errors.EXPECTED_EXPRESSION, "Expected expression", maybe_exp.source_location);
-                        this.resynchronize(segment);
+
+                        const substatements = segment.splice(0, len);
+                        this.parseCompound(substatements);
+                        const body = substatements[0] as CompoundStatementElement;
+                        conditions.push(condition);
+                        bodies.push(body);
+
+                        if (segment[0] instanceof TokenElement && segment[0].token.type == TokenType.Else) {
+                            segment.shift();
+                            if (segment[0] instanceof TokenElement && segment[0].token.type == TokenType.If) {
+                                continue clause;
+                            } else if (segment[0] instanceof TokenElement && segment[0].token.type == TokenType.OpenBrace) {
+                                const [m, len] = Hug(TokenType.OpenBrace)(segment);
+                                if (!m) {
+                                    this.emitCompilationError(Errors.EXPECTED_OPEN_BRACE, "Expected open brace", segment[0].source_location);
+                                    this.resynchronize(segment);
+                                    continue statement;
+                                }
+
+                                const substatements = segment.splice(0, len);
+                                this.parseCompound(substatements);
+                                const body = substatements[0] as CompoundStatementElement;
+                                bodies.push(body);
+                            } else {
+                                this.emitCompilationError(Errors.EXPECTED_IF_OR_BLOCK, "Expected 'if' or block", segment[0].source_location);
+                            }
+                        } else {
+                            break;
+                        }
                     }
+                    s2.push(new IfStatement(LocationFrom([conditions[0], bodies[bodies.length - 1]]), conditions, bodies));
                 } else if (el.token.type == TokenType.Try) {
                     // try { statements } [ catch (type name) { statements } ]+
                     const [m, len] = Hug(TokenType.OpenBrace)(segment);

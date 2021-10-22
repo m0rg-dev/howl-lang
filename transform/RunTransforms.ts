@@ -406,8 +406,10 @@ function AddScopes(el: FunctionElement | CompoundStatementElement, root: Functio
         el.statements.forEach(x => {
             if (x instanceof CompoundStatementElement) {
                 AddScopes(x, root, el.scope);
-            } else if (x instanceof IfStatement || x instanceof WhileStatement) {
+            } else if (x instanceof WhileStatement) {
                 AddScopes(x.body, root, el.scope);
+            } else if (x instanceof IfStatement) {
+                x.bodies.forEach(b => AddScopes(b, root, el.scope));
             } else if (x instanceof TryCatchStatement) {
                 AddScopes(x.body, root, el.scope);
                 x.cases.forEach(c => {

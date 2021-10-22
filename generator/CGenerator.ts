@@ -198,8 +198,19 @@ export function EmitC(root: ASTElement, lines: string[] = []): string {
         EmitC(root.body, lines);
         lines.push(`}\n`);
     } else if (root instanceof IfStatement) {
-        lines.push(`if (${ExpressionToC(root.condition, lines)}) {`);
-        EmitC(root.body, lines);
+        lines.push(`if (${ExpressionToC(root.conditions[0], lines)}) {`);
+        EmitC(root.bodies[0], lines);
+
+        root.conditions.slice(1).forEach((cond, idx) => {
+            lines.push(`} else if (${ExpressionToC(cond, lines)}) {`);
+            EmitC(root.bodies[idx], lines);
+        });
+
+        if (root.bodies.length > root.conditions.length) {
+            lines.push(`} else {`);
+            EmitC(root.bodies[root.bodies.length - 1], lines);
+        }
+
         lines.push(`}`);
     } else if (root instanceof WhileStatement) {
         lines.push(`while (${ExpressionToC(root.condition, lines)}) {`);
