@@ -27,7 +27,7 @@ import { WalkAST } from "../ast/WalkAST";
 import { EmitError, EmitLog } from "../driver/Driver";
 import { Errors } from "../driver/Errors";
 import { LogLevel } from "../driver/Pass";
-import { Classes, old_CurrentNamespace } from "../registry/Registry";
+import { Classes, TransformerRegistry } from "../registry/Registry";
 import { ConcreteRawPointerType, ConcreteType } from "../type_inference/ConcreteType";
 import { FunctionType } from "../type_inference/FunctionType";
 import { Scope } from "../type_inference/Scope";
@@ -50,144 +50,19 @@ export function RunFunctionTransforms(f: FunctionElement) {
     RunElementTransforms(f, f);
 }
 
-function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: ASTElement) => { }) {
+export function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: ASTElement) => { }) {
     WalkAST(e, (src: ASTElement, nearestScope: Scope, repl: (n: ASTElement) => void) => {
         EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `${src}`);
 
-        // !vec(...)
-        if (src instanceof MacroCallExpression) {
-            if (src.source == "vec") {
-                EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `!vec handler`);
-                const type = src.args[0] as TypeElement;
-                const vector_type = new TypeElement(
-                    src.source_location,
-                    new SimpleTypeElement(
-                        src.source_location,
-                        "lib.vec.Vec"
-                    ),
-                    [type]
-                );
-                const temp_local = new LocalDefinitionStatement(
-                    src.source_location,
-                    "__vec_" + src.uuid,
-                    vector_type,
-                    new ConstructorCallExpression(
-                        src.source_location,
-                        vector_type,
-                        []
-                    )
-                );
-                nearestScope.addType(vector_type.asTypeObject(), "__vec_" + src.uuid);
-                RunElementTransforms(temp_local, root);
-
-                const new_tree = new NameExpression(src.source_location, "__vec_" + src.uuid);
-                RunElementTransforms(new_tree, root);
-
-                new_tree.generator_metadata["requires"] ||= [];
-                new_tree.generator_metadata["requires"].push(temp_local);
-
-                src.args.slice(1).forEach(arg => {
-                    const push = new SimpleStatement(
-                        src.source_location,
-                        new FunctionCallExpression(
-                            src.source_location,
-                            new FieldReferenceExpression(
-                                src.source_location,
-                                new NameExpression(src.source_location, "__vec_" + src.uuid),
-                                "push"
-                            ),
-                            [arg]
-                        )
-                    );
-                    RunElementTransforms(push, root);
-                    new_tree.generator_metadata["requires"].push(push);
-                });
-
+        TransformerRegistry.forEach(xfrm => {
+            if (xfrm.match(src)) {
+                const org = src.clone();
+                const new_tree = xfrm.apply(src, nearestScope, root);
+                EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `${xfrm.constructor.name} ${org} => ${new_tree}`);
                 repl(new_tree);
-                return;
-            } else {
-                EmitError(src.source_location[0], Errors.NO_SUCH_MACRO, "Unknown macro name", src.source_location);
+                src = new_tree;
             }
-        }
-
-        // Method overloading.
-        if (src instanceof FunctionCallExpression
-            && src.source instanceof FieldReferenceExpression
-            && Classes.has(src.source.source.resolved_type.name)
-            && Classes.get(src.source.source.resolved_type.name).methods_overloaded.has(src.source.name)) {
-            EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `Method overload: ${src.source.name}`);
-            const cl = Classes.get(src.source.source.resolved_type.name);
-            const candidates = cl.overload_sets.get(src.source.name);
-            for (const candidate of candidates) {
-                const candidate_type = cl.type().getFieldType(candidate.split(".").pop());
-                EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `Candidate: ${candidate} ${candidate_type}`);
-                if (candidate_type instanceof FunctionType
-                    && candidate_type.args.length == src.args.length
-                    && candidate_type.args.every((arg_type, index) => src.args[index] && checkTypeCompatibility(arg_type, src.args[index].resolved_type))) {
-                    (src.source as FieldReferenceExpression).name = candidate.split(".").pop();
-                    EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `  => ${(src.source as FieldReferenceExpression).name} ${candidate} matches`);
-                    break;
-                }
-            }
-            RunElementTransforms(src.source, root);
-        }
-
-        if (src instanceof FunctionCallExpression
-            && src.source instanceof FieldReferenceExpression
-            && src.source.source.resolved_type instanceof StaticTableType
-            && Classes.has(src.source.source.resolved_type.original_name)
-            && Classes.get(src.source.source.resolved_type.original_name).methods_overloaded.has(src.source.name)) {
-            EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `Static overload: ${src.source.name} ${src.source.source.resolved_type.original_name}`);
-            const cl = Classes.get(src.source.source.resolved_type.original_name);
-            const candidates = cl.overload_sets.get(src.source.name);
-            for (const candidate of candidates) {
-                const candidate_type = cl.type().getFieldType(candidate.split(".").pop());
-                EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `Candidate: ${candidate_type}`);
-                if (candidate_type instanceof FunctionType
-                    && candidate_type.args.length == src.args.length
-                    && candidate_type.args.every((arg_type, index) => src.args[index] && checkTypeCompatibility(arg_type, src.args[index].resolved_type))) {
-                    EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `  => matches`);
-                    (src.source as FieldReferenceExpression).name = candidate.split(".").pop();
-                    break;
-                }
-            }
-            RunElementTransforms(src.source, root);
-        }
-
-        // Operator overloading, where appropriate.
-        if (src instanceof ArithmeticExpression
-            && src.what == "+"
-            && Classes.has(src.lhs.resolved_type?.name)
-            && Classes.get(src.lhs.resolved_type.name).methods.some(x => x.name.split(".").pop() == "__add__")) {
-            EmitLog(LogLevel.TRACE, `ElementTransforms ${e} `, `Overload: __add__`);
-            let new_tree: ASTElement = new FunctionCallExpression(src.source_location, new FieldReferenceExpression(src.source_location, src.lhs, "__add__"), [src.rhs]);
-            RunElementTransforms(new_tree, root, (n) => new_tree = n);
-            repl(new_tree);
-            return;
-        }
-
-        if (src instanceof IndexExpression
-            && Classes.has(src.source.resolved_type?.name)
-            && Classes.get(src.source.resolved_type.name).methods.some(x => x.name.split(".").pop() == "__index__")) {
-            EmitLog(LogLevel.TRACE, `ElementTransforms ${e} `, `Overload: __index__`);
-            let new_tree: ASTElement = new FunctionCallExpression(src.source_location, new FieldReferenceExpression(src.source_location, src.source, "__index__"), [src.index]);
-            RunElementTransforms(new_tree, root, (n) => new_tree = n);
-            repl(new_tree);
-            return;
-        }
-
-        if (src instanceof AssignmentStatement
-            && src.lhs instanceof FunctionCallExpression
-            && src.lhs.source instanceof FieldReferenceExpression
-            && src.lhs.source.name == "__index__") {
-            EmitLog(LogLevel.TRACE, `ElementTransforms ${e} `, `Overload: __l_index__`);
-            let new_tree: ASTElement = new SimpleStatement(src.source_location,
-                new FunctionCallExpression(src.source_location,
-                    new FieldReferenceExpression(src.source_location, src.lhs.source.source, "__l_index__"), [...src.lhs.args, src.rhs]));
-            RunElementTransforms(new_tree, root, (n) => new_tree = n);
-            repl(new_tree);
-            return;
-        }
+        });
 
         if (src instanceof FunctionCallExpression
             && src.source instanceof FieldReferenceExpression
@@ -277,7 +152,7 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
             if (src.source.resolved_type instanceof ConcreteRawPointerType) {
                 src.resolved_type = src.source.resolved_type.source_type;
             } else {
-                EmitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to index non - raw - pointer ${src.source} `, src.source_location);
+                EmitError(src.source_location[0], Errors.TYPE_MISMATCH, `Attempt to index non-raw-pointer ${src.source} `, src.source_location);
             }
         } else if (src instanceof ArithmeticExpression) {
             const common_type = lowestCommonType(src.lhs.resolved_type, src.rhs.resolved_type);
@@ -294,19 +169,21 @@ function RunElementTransforms(e: ASTElement, root: FunctionElement, repl = (n: A
             }
             src.resolved_type = makeConcrete(common_type);
         } else if (src instanceof FunctionCallExpression) {
+            const s2 = src;
             if (src.source.resolved_type instanceof FunctionType) {
                 src.resolved_type = makeConcrete(src.source.resolved_type.return_type);
-                let arg_offset = 0;
-                if (!((src.source.resolved_type as FunctionType).is_static)) {
-                    arg_offset = 1;
+                let arg_offset = 1;
+                if ((src.source.resolved_type as FunctionType).is_static) {
+                    arg_offset = 0;
                 }
                 src.args.slice(arg_offset).forEach((arg, index) => {
-                    const common_type = lowestCommonType(makeConcrete((src.source.resolved_type as FunctionType).args[index]), arg.resolved_type);
+                    EmitLog(LogLevel.TRACE, `ElementTransforms ${e}`, `${index} ${(s2.source.resolved_type as FunctionType).args[index]}`);
+                    const common_type = lowestCommonType(makeConcrete((s2.source.resolved_type as FunctionType).args[index]), arg.resolved_type);
                     if (!common_type) {
-                        EmitError(arg.source_location[0], Errors.TYPE_MISMATCH, `Attempt to use argument of type ${arg.resolved_type} as argument to function expecting ${(src.source.resolved_type as FunctionType).args[index]} `, arg.source_location);
+                        EmitError(arg.source_location[0], Errors.TYPE_MISMATCH, `Attempt to use argument of type ${arg.resolved_type} as argument to function expecting ${(s2.source.resolved_type as FunctionType).args[index]} `, arg.source_location);
                     }
                     if (!arg.resolved_type.equals(common_type)) {
-                        src.args[index + arg_offset] = CastExpression.fromExpression(arg, common_type);
+                        s2.args[index + arg_offset] = CastExpression.fromExpression(arg, common_type);
                     }
                 });
             } else {
@@ -343,8 +220,7 @@ export function makeConcrete(t: Type): ConcreteType {
 
     EmitLog(LogLevel.ERROR, `makeConcrete`, `COMPILER BUG: Don't know how to makeConcrete on ${t} (${t?.constructor.name})`);
     EmitLog(LogLevel.ERROR, `setExpressionType`, `${(new Error()).stack}`);
-
-    return undefined;
+    process.exit(1);
 }
 
 function setExpressionType(exp: ExpressionElement, t: Type) {
@@ -355,13 +231,13 @@ function lowestCommonType(a: Type, b: Type): Type {
     if (!(a instanceof ConcreteType)) {
         EmitLog(LogLevel.ERROR, `setExpressionType`, `COMPILER BUG: lowestCommonType called with non-ConcreteType ${a}`);
         EmitLog(LogLevel.ERROR, `setExpressionType`, `${(new Error()).stack}`);
-        return;
+        process.exit(1);
     }
 
     if (!(b instanceof ConcreteType)) {
         EmitLog(LogLevel.ERROR, `setExpressionType`, `COMPILER BUG: lowestCommonType called with non-ConcreteType ${b}`);
         EmitLog(LogLevel.ERROR, `setExpressionType`, `${(new Error()).stack}`);
-        return;
+        process.exit(1);
     }
 
     if (a.name == "any") return b;
@@ -382,7 +258,7 @@ function lowestCommonType(a: Type, b: Type): Type {
     return undefined;
 }
 
-function checkTypeCompatibility(a: Type, b: Type): boolean {
+export function CheckTypeCompatibility(a: Type, b: Type): boolean {
     return !!lowestCommonType(makeConcrete(a), makeConcrete(b));
 }
 

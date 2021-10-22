@@ -5,7 +5,7 @@ import { chdir } from 'process';
 import * as sms from 'source-map-support';
 import { BuildPackage } from '../driver/Driver';
 import { EmitC, EmitForwardDeclarations, EmitStructures, StandardHeaders } from '../generator/CGenerator';
-import { Classes, Functions, InitRegistry } from '../registry/Registry';
+import { Classes, Functions, InitRegistry, TransformerRegistry } from '../registry/Registry';
 import { RunClassTransforms, RunFunctionTransforms } from '../transform/RunTransforms';
 import { ConcreteType } from '../type_inference/ConcreteType';
 import { StructureType } from '../type_inference/StructureType';

@@ -32,20 +32,9 @@ import { FunctionType } from "../type_inference/FunctionType";
 import { StaticTableType, StructureType } from "../type_inference/StructureType";
 import { RawPointerType, Type } from "../type_inference/Type";
 
-// export function EmitCPrologue() {
-//     lines.push(`#include <stdint.h>`);
-//     lines.push(`#include <stdio.h>`);
-//     lines.push(`#include <stdlib.h>`);
-//     lines.push(`#include <string.h>`);
-//     lines.push(`#include <unistd.h>`);
-//     lines.push(`#include <setjmp.h>`);
-//     lines.push(``);
-//     lines.push(`#include "runtime/howl_runtime.h"`);
-// }
-
 export function StandardHeaders(): string {
     return [
-        "stdint", "stdio", "stdlib", "string", "unistd", "setjmp"
+        "stdint", "stdio", "stdlib", "string", "unistd", "setjmp", "sys/socket"
     ].map(h => `#include <${h}.h>`).join("\n") + "\n\n";
 }
 

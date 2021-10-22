@@ -146,6 +146,7 @@ export class StructureType extends Type {
             x.type = this.applyGenericMap(x.type);
         });
         new_class.generics = [];
+        new_class.fixOverloadNames();
         // ...update the type of `self` on all its methods...
         new_class.methods.forEach(x => {
             x.self_type = new_class.type();

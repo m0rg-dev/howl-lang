@@ -19,6 +19,8 @@ export class FunctionElement extends ASTElement {
     body: CompoundStatementElement;
     scope: Scope;
     is_static: boolean;
+    is_overload: boolean;
+    original_name: string;
 
     constructor(loc: SourceLocation, parent: string, name: string, return_type: Type, self_type: Type, args: TypedItemElement[], throws: Type[], is_static: boolean, body: CompoundStatementElement, source: CompilationUnit) {
         super(loc);
@@ -37,6 +39,9 @@ export class FunctionElement extends ASTElement {
         this.body = body;
         this.is_static = is_static;
         this.source = source;
+
+        this.is_overload = false;
+        this.original_name = name;
     }
 
     addScope(s: Scope) {
@@ -61,6 +66,7 @@ export class FunctionElement extends ASTElement {
             this.source
         );
         if (this.scope) rc.addScope(this.scope.clone());
+        if (this.original_name) rc.original_name = this.original_name;
         return rc;
     }
 

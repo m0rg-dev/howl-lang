@@ -3,11 +3,11 @@ import { ExpressionElement } from "../ExpressionElement";
 import { StatementElement } from "../StatementElement";
 
 
-export class AssignmentStatement extends StatementElement {
-    lhs: ExpressionElement;
-    rhs: ExpressionElement;
+export class AssignmentStatement<LHS extends ExpressionElement, RHS extends ExpressionElement> extends StatementElement {
+    lhs: LHS;
+    rhs: RHS;
 
-    constructor(loc: SourceLocation, lhs: ExpressionElement, rhs: ExpressionElement) {
+    constructor(loc: SourceLocation, lhs: LHS, rhs: RHS) {
         super(loc);
         this.lhs = lhs;
         this.rhs = rhs;
