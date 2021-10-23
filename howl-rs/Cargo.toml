@@ -1,0 +1,16 @@
+[package]
+name = "howl-rs"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+cfgrammar = "0.10"
+lrlex = "0.10"
+lrpar = "0.10"
+
+[dependencies]
+cfgrammar = "0.10"
+lrlex = "0.10"
+lrpar = "0.10"
