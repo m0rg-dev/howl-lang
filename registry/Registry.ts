@@ -2,12 +2,28 @@ import { ClassElement } from "../ast/ClassElement";
 import { FQN } from "../ast/FQN";
 import { FunctionElement } from "../ast/FunctionElement";
 import { PartialFunctionElement } from "../ast/PartialFunctionElement";
+import { RegisterArithmeticOverloads } from "../transform/macros/ArithmeticOverload";
+import { IndexOverloadLHS } from "../transform/macros/IndexOverloadLHS";
+import { IndexOverloadRHS } from "../transform/macros/IndexOverloadRHS";
+import { MethodCall } from "../transform/macros/MethodCall";
+import { MethodOverload } from "../transform/macros/MethodOverload";
+import { StaticOverload } from "../transform/macros/StaticOverload";
+import { StringLiteral } from "../transform/macros/StringLiteral";
+import { VecLiteral } from "../transform/macros/VecLiteral";
+import { Transformer } from "../transform/Transformer";
+import { RegisterTITransformers } from "../transform/type_inference/TIUtil";
 
 export var TypeNames: Set<string> = new Set();
 export var PartialFunctions: Set<PartialFunctionElement> = new Set();
 export var Functions: Set<FunctionElement> = new Set();
 export var Classes: Map<string, ClassElement> = new Map();
 export var SeenFiles: Set<string> = new Set();
+
+export function RegisterTransformer(t: Transformer) {
+    TransformerRegistry.push(t);
+}
+
+export var TransformerRegistry: Transformer[] = [];
 
 export var BaseTypes: Set<string> = new Set();
 
@@ -24,6 +40,17 @@ export function InitRegistry() {
     BaseTypes.add("any");
 
     BaseTypes.forEach(x => TypeNames.add(x));
+
+    // this is order-sensitive.
+    RegisterTransformer(new VecLiteral());
+    RegisterTransformer(new IndexOverloadLHS());
+    RegisterTransformer(new IndexOverloadRHS());
+    RegisterArithmeticOverloads();
+    RegisterTransformer(new MethodOverload());
+    RegisterTransformer(new StaticOverload());
+    RegisterTransformer(new MethodCall());
+    RegisterTransformer(new StringLiteral());
+    RegisterTITransformers();
 }
 
 export var CurrentModule: FQN;

@@ -22,11 +22,16 @@ class Vec<T> {
         return self.value[idx];
     }
 
-    fn void __l_index__(i64 idx, T value) {
+    fn void __index__(i64 idx, T value) {
         if idx >= self.length {
             self.value = fficall realloc(self.value, self.element_size * (idx + 1));
             self.length = idx + 1;
         }
         self.value[idx] = value;
+    }
+
+    fn void __l_index__(i64 idx, T value) {
+        self.__index__(idx, value);
+
     }
 }

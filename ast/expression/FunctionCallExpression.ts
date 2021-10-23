@@ -2,11 +2,11 @@ import { SourceLocation } from "../ASTElement";
 import { ExpressionElement } from "../ExpressionElement";
 
 
-export class FunctionCallExpression extends ExpressionElement {
-    source: ExpressionElement;
+export class FunctionCallExpression<T extends ExpressionElement> extends ExpressionElement {
+    source: T;
     args: ExpressionElement[];
 
-    constructor(loc: SourceLocation, source: ExpressionElement, args: ExpressionElement[]) {
+    constructor(loc: SourceLocation, source: T, args: ExpressionElement[]) {
         super(loc);
         this.source = source;
         this.args = [...args];

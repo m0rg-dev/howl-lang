@@ -71,7 +71,7 @@ export class ExpressionPass extends Pass {
             rc = this.ApplySingleProductionRule({
                 name: "FFICall",
                 match: InOrder(MatchToken(TokenType.FFICall), MatchElementType("FunctionCallExpression")),
-                replace: (ast_stream: [any, FunctionCallExpression]) => {
+                replace: (ast_stream: [any, FunctionCallExpression<any>]) => {
                     if (!(ast_stream[1].source instanceof NameExpression)) {
                         this.emitCompilationError(Errors.EXPECTED_NAME, "Expected name", ast_stream[1].source.source_location);
                         return [];
@@ -87,7 +87,7 @@ export class ExpressionPass extends Pass {
             rc = this.ApplySingleProductionRule({
                 name: "MacroCall",
                 match: InOrder(MatchToken(TokenType.ExclamationPoint), MatchElementType("FunctionCallExpression")),
-                replace: (ast_stream: [any, FunctionCallExpression]) => {
+                replace: (ast_stream: [any, FunctionCallExpression<any>]) => {
                     if (!(ast_stream[1].source instanceof NameExpression)) {
                         this.emitCompilationError(Errors.EXPECTED_NAME, "Expected name", ast_stream[1].source.source_location);
                         return [];
@@ -103,7 +103,7 @@ export class ExpressionPass extends Pass {
             rc = this.ApplySingleProductionRule({
                 name: "ConstructorCall",
                 match: InOrder(MatchToken(TokenType.New), MatchElementType("FunctionCallExpression")),
-                replace: (ast_stream: [any, FunctionCallExpression]) => {
+                replace: (ast_stream: [any, FunctionCallExpression<any>]) => {
                     if (!(ast_stream[1].source instanceof TypeElement)) {
                         this.emitCompilationError(Errors.EXPECTED_TYPE, "Expected type", ast_stream[1].source.source_location);
                         return [];

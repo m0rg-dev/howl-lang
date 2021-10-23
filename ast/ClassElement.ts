@@ -50,11 +50,27 @@ export class ClassElement extends ASTElement {
                         return x.toString();
                     }
                 }).join("_");
+                m.is_overload = true;
                 this.overload_sets.get(name).push(m.name);
             });
         })
 
         if (!generics.length) this.is_monomorphization = true;
+    }
+
+    fixOverloadNames() {
+        this.methods.forEach(m => {
+            if (m.is_overload) {
+                m.name = m.original_name + "__Z" + m.args.map(x => {
+                    if (x.type instanceof ConcreteType) {
+                        return x.type.name.replaceAll(".", "_");
+                    } else {
+                        return x.toString();
+                    }
+                }).join("_");
+                this.overload_sets.get(m.original_name).push(m.name);
+            }
+        })
     }
 
     dropBaseMethods() {
@@ -70,7 +86,11 @@ export class ClassElement extends ASTElement {
             this.source_location,
             this.name,
             this.fields.map(x => x.clone()),
-            this.methods.map(x => x.clone()),
+            this.methods.filter(x => !(x instanceof OverloadedFunctionElement)).map(x => {
+                const m = x.clone();
+                m.name = m.original_name;
+                return m
+            }),
             [...this.generics],
             this.parent,
             [...this.interfaces],
