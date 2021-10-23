@@ -6,7 +6,8 @@ import { FunctionElement } from "../../ast/FunctionElement";
 import { Classes } from "../../registry/Registry";
 import { FunctionType } from "../../type_inference/FunctionType";
 import { Scope } from "../../type_inference/Scope";
-import { CheckTypeCompatibility, RunElementTransforms } from "../RunTransforms";
+import { RunElementTransforms } from "../RunTransforms";
+import { CheckTypeCompatibility } from "../type_inference/TIUtil";
 
 export class MethodOverload extends Transform {
     match(src: ASTElement) {

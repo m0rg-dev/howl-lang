@@ -17,8 +17,6 @@ export class IndexOverloadLHS extends Transformer {
     }
 
     apply(src: AssignmentStatement<FunctionCallExpression<FieldReferenceExpression>, any>, _: Scope, root: FunctionElement) {
-        console.error(src.lhs);
-
         // this will have already had its overload evaluated and been converted
         // to a method access through __stable, so we need to *undo* that
         let new_source = src.lhs.source.clone();

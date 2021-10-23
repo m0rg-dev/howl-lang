@@ -1,4 +1,4 @@
-import { makeConcrete } from "../../transform/RunTransforms";
+import { MakeConcrete } from "../../transform/type_inference/TIUtil";
 import { ConcreteType } from "../../type_inference/ConcreteType";
 import { Type } from "../../type_inference/Type";
 import { SourceLocation } from "../ASTElement";
@@ -24,6 +24,6 @@ export class CastExpression extends ExpressionElement {
     }
 
     static fromExpression(source: ExpressionElement, cast_to: Type) {
-        return new CastExpression(source.source_location, source, makeConcrete(cast_to));
+        return new CastExpression(source.source_location, source, MakeConcrete(cast_to));
     }
 }

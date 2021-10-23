@@ -1,7 +1,6 @@
 import { Classes } from "../registry/Registry";
-import { makeConcrete } from "../transform/RunTransforms";
+import { MakeConcrete } from "../transform/type_inference/TIUtil";
 import { ConcreteType } from "../type_inference/ConcreteType";
-import { StructureType } from "../type_inference/StructureType";
 import { RawPointerType, Type } from "../type_inference/Type";
 import { ASTElement, SourceLocation } from "./ASTElement";
 import { ExpressionElement } from "./ExpressionElement";
@@ -52,7 +51,7 @@ export class TypeElement extends ExpressionElement {
             const cl_type = cl.type();
             cl.generics.forEach((x, y) => {
                 if (this.generics[y]) {
-                    cl_type.generic_map.set(x, makeConcrete(this.generics[y].asTypeObject()));
+                    cl_type.generic_map.set(x, MakeConcrete(this.generics[y].asTypeObject()));
                 }
             });
             return cl_type;

@@ -6,8 +6,9 @@ import { Classes } from "../../registry/Registry";
 import { FunctionType } from "../../type_inference/FunctionType";
 import { Scope } from "../../type_inference/Scope";
 import { StaticTableType } from "../../type_inference/StructureType";
-import { CheckTypeCompatibility, RunElementTransforms } from "../RunTransforms";
+import { RunElementTransforms } from "../RunTransforms";
 import { Transformer } from "../Transformer";
+import { CheckTypeCompatibility } from "../type_inference/TIUtil";
 
 export class StaticOverload extends Transformer {
     match(src: ASTElement) {

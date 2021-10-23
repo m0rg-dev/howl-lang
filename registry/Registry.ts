@@ -11,6 +11,7 @@ import { StaticOverload } from "../transform/macros/StaticOverload";
 import { StringLiteral } from "../transform/macros/StringLiteral";
 import { VecLiteral } from "../transform/macros/VecLiteral";
 import { Transformer } from "../transform/Transformer";
+import { RegisterTITransformers } from "../transform/type_inference/TIUtil";
 
 export var TypeNames: Set<string> = new Set();
 export var PartialFunctions: Set<PartialFunctionElement> = new Set();
@@ -49,6 +50,7 @@ export function InitRegistry() {
     RegisterTransformer(new StaticOverload());
     RegisterTransformer(new MethodCall());
     RegisterTransformer(new StringLiteral());
+    RegisterTITransformers();
 }
 
 export var CurrentModule: FQN;
