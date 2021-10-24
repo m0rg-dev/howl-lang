@@ -32,6 +32,5 @@ class Vec<T> {
 
     fn void __l_index__(i64 idx, T value) {
         self.__index__(idx, value);
-
     }
 }
