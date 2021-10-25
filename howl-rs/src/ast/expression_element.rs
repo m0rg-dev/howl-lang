@@ -57,6 +57,7 @@ pub enum ExpressionElement {
 }
 
 impl ExpressionElement {
+    #[allow(dead_code)]
     pub fn new_string(span: Option<lrpar::Span>, contents: String) -> ExpressionElement {
         ExpressionElement::String {
             span: span.or(Some(lrpar::Span::new(0, 0))).unwrap(),
@@ -64,9 +65,9 @@ impl ExpressionElement {
         }
     }
 
-    pub fn map_ast<F>(&self, callback: F) -> ASTElement
+    pub fn map_ast<F>(&self, mut callback: F) -> ASTElement
     where
-        F: Fn(ASTElement) -> ASTElement,
+        F: FnMut(ASTElement) -> ASTElement,
     {
         match self {
             Self::Arithmetic {

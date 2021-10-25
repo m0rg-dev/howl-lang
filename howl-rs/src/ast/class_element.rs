@@ -87,9 +87,9 @@ impl ClassElement {
         }
     }
 
-    pub fn map_ast<F>(&self, callback: F) -> ASTElement
+    pub fn map_ast<F>(&self, mut callback: F) -> ASTElement
     where
-        F: Fn(ASTElement) -> ASTElement,
+        F: FnMut(ASTElement) -> ASTElement,
     {
         let new_implements = self
             .implements

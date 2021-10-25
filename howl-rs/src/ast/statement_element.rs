@@ -18,6 +18,11 @@ pub enum StatementElement {
         span: lrpar::Span,
         statements: Vec<StatementElement>,
     },
+    IfStatement {
+        span: lrpar::Span,
+        clauses: Vec<(ExpressionElement, StatementElement)>,
+        default: Option<Box<StatementElement>>,
+    },
     LocalDefinitionStatement {
         span: lrpar::Span,
         localtype: TypeElement,
@@ -60,6 +65,11 @@ pub enum StatementElement {
         span: lrpar::Span,
         expression: ExpressionElement,
     },
+    TryStatement {
+        span: lrpar::Span,
+        body: Box<StatementElement>,
+        clauses: Vec<(TypeElement, String, StatementElement)>,
+    },
     WhileStatement {
         span: lrpar::Span,
         condition: ExpressionElement,
@@ -68,9 +78,9 @@ pub enum StatementElement {
 }
 
 impl StatementElement {
-    pub fn map_ast<F>(&self, callback: F) -> ASTElement
+    pub fn map_ast<F>(&self, mut callback: F) -> ASTElement
     where
-        F: Fn(ASTElement) -> ASTElement,
+        F: FnMut(ASTElement) -> ASTElement,
     {
         match self {
             Self::AssignmentStatement { span, lhs, rhs } => {
@@ -90,6 +100,34 @@ impl StatementElement {
                 ASTElement::Statement(StatementElement::CompoundStatement {
                     span: *span,
                     statements: new_statements,
+                })
+            }
+            Self::IfStatement {
+                span,
+                clauses,
+                default,
+            } => {
+                let new_clauses = clauses
+                    .iter()
+                    .map(|c| {
+                        let new_condition =
+                            assert_expression!(callback, c.0, "an IfStatement condition");
+                        let new_body = assert_statement!(callback, c.1, "an IfStatement body");
+                        (new_condition, new_body)
+                    })
+                    .collect::<Vec<(ExpressionElement, StatementElement)>>();
+
+                let new_default = default.as_ref().map_or(None, |d| {
+                    Some(Box::new(assert_statement!(
+                        callback,
+                        **d,
+                        "an IfStatement else block"
+                    )))
+                });
+                ASTElement::Statement(StatementElement::IfStatement {
+                    span: *span,
+                    clauses: new_clauses,
+                    default: new_default,
                 })
             }
             Self::LocalDefinitionStatement {
@@ -133,6 +171,22 @@ impl StatementElement {
 
                 ASTElement::Statement(StatementElement::PartialElseStatement {
                     span: *span,
+                    body: Box::new(new_body),
+                })
+            }
+            Self::PartialElseIfStatement {
+                span,
+                condition,
+                body,
+            } => {
+                let new_condition =
+                    assert_expression!(callback, condition, "a PartialElseIfStatement condition");
+
+                let new_body = assert_statement!(callback, **body, "a PartialElseIfStatement body");
+
+                ASTElement::Statement(StatementElement::PartialElseIfStatement {
+                    span: *span,
+                    condition: new_condition,
                     body: Box::new(new_body),
                 })
             }
@@ -189,6 +243,27 @@ impl StatementElement {
                     expression: new_expression,
                 })
             }
+            Self::TryStatement {
+                span,
+                body,
+                clauses,
+            } => {
+                let new_body = assert_statement!(callback, **body, "a TryStatement body");
+                let new_clauses = clauses
+                    .iter()
+                    .map(|c| {
+                        let new_type = assert_type!(callback, c.0, "a TryStatement catch type");
+                        let new_body =
+                            assert_statement!(callback, c.2, "a TryStatement catch body");
+                        (new_type, c.1.clone(), new_body)
+                    })
+                    .collect::<Vec<(TypeElement, String, StatementElement)>>();
+                ASTElement::Statement(StatementElement::TryStatement {
+                    span: *span,
+                    body: Box::new(new_body),
+                    clauses: new_clauses,
+                })
+            }
             Self::WhileStatement {
                 span,
                 condition,
@@ -205,7 +280,6 @@ impl StatementElement {
                     body: Box::new(new_body),
                 })
             }
-            _ => panic!("not yet implemented: {}", self),
         }
     }
 }
@@ -317,6 +391,7 @@ impl Element for StatementElement {
         match self {
             Self::AssignmentStatement { span, .. } => *span,
             Self::CompoundStatement { span, .. } => *span,
+            Self::IfStatement { span, .. } => *span,
             Self::LocalDefinitionStatement { span, .. } => *span,
             Self::PartialCatchStatement { span, .. } => *span,
             Self::PartialElseStatement { span, .. } => *span,
@@ -326,6 +401,7 @@ impl Element for StatementElement {
             Self::ReturnStatement { span, .. } => *span,
             Self::SimpleStatement { span, .. } => *span,
             Self::ThrowStatement { span, .. } => *span,
+            Self::TryStatement { span, .. } => *span,
             Self::WhileStatement { span, .. } => *span,
         }
     }
@@ -352,6 +428,28 @@ impl std::fmt::Display for StatementElement {
                     "    "
                 )
             ),
+            StatementElement::IfStatement {
+                span: _,
+                clauses,
+                default,
+            } => {
+                write!(f, "if {} {}", clauses[0].0, clauses[0].1)?;
+                clauses[1..]
+                    .iter()
+                    .map(|c| write!(f, " else if {} {}", c.0, c.1))
+                    .collect::<Result<Vec<()>, std::fmt::Error>>()?;
+                match default {
+                    Some(block) => write!(f, " else {}", block)?,
+                    _ => {}
+                }
+                Ok(())
+            }
+            StatementElement::LocalDefinitionStatement {
+                span: _,
+                localtype,
+                name,
+                initializer,
+            } => write!(f, "let {} {} = {};", localtype, name, initializer),
             StatementElement::PartialCatchStatement {
                 span: _,
                 exctype,
@@ -374,12 +472,6 @@ impl std::fmt::Display for StatementElement {
             StatementElement::PartialTryStatement { span: _, body } => {
                 write!(f, "/* PARTIAL */ try {}", body)
             }
-            StatementElement::LocalDefinitionStatement {
-                span: _,
-                localtype,
-                name,
-                initializer,
-            } => write!(f, "let {} {} = {};", localtype, name, initializer),
             StatementElement::ReturnStatement {
                 span: _,
                 expression,
@@ -395,6 +487,18 @@ impl std::fmt::Display for StatementElement {
                 span: _,
                 expression,
             } => write!(f, "throw {};", expression),
+            StatementElement::TryStatement {
+                span: _,
+                body,
+                clauses,
+            } => {
+                write!(f, "try {}", body)?;
+                clauses
+                    .iter()
+                    .map(|c| write!(f, " catch {} {} {}", c.0, c.1, c.2))
+                    .collect::<Result<Vec<()>, std::fmt::Error>>()?;
+                Ok(())
+            }
             StatementElement::WhileStatement {
                 span: _,
                 condition,

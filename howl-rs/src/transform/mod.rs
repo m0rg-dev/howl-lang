@@ -1,10 +1,11 @@
-use crate::ast::{
-    expression_element::ExpressionElement, placeholder_element::PlaceholderElement, ASTElement,
-};
+use crate::ast::{placeholder_element::PlaceholderElement, ASTElement};
+
+pub mod assemble_statements;
+pub use assemble_statements::assemble_statements;
 
 pub fn map_ast<F>(source: ASTElement, callback: F) -> ASTElement
 where
-    F: Fn(ASTElement) -> ASTElement,
+    F: FnMut(ASTElement) -> ASTElement,
 {
     match source {
         ASTElement::Class(el) => el.map_ast(callback),
@@ -19,16 +20,16 @@ where
     }
 }
 
-pub fn test_transform(source: ASTElement) -> ASTElement {
-    match source {
-        // Match certain element types to replace them in-place.
-        ASTElement::Expression(ExpressionElement::String { .. }) => {
-            ASTElement::Expression(ExpressionElement::new_string(
-                None,
-                "\"string literal replaced by test_transform\"".to_string(),
-            ))
-        }
-        // Otherwise, pass through to the next level of map_ast.
-        _ => map_ast(source, test_transform),
-    }
-}
+// pub fn test_transform(source: ASTElement) -> ASTElement {
+//     match source {
+//         // Match certain element types to replace them in-place.
+//         ASTElement::Expression(ExpressionElement::String { .. }) => {
+//             ASTElement::Expression(ExpressionElement::new_string(
+//                 None,
+//                 "\"string literal replaced by test_transform\"".to_string(),
+//             ))
+//         }
+//         // Otherwise, pass through to the next level of map_ast.
+//         _ => map_ast(source, test_transform),
+//     }
+// }
