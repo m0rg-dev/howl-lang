@@ -7,6 +7,9 @@ use std::fs;
 use std::hash::Hash;
 use std::iter;
 
+use crate::ast::ASTElement;
+
+mod ast;
 mod parser;
 
 lrlex_mod!("howl.l");
@@ -40,7 +43,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if !had_errors {
         if let Some(Ok(r)) = res {
-            println!("{:#?}", r)
+            // println!("{:#?}", r);
+            r.iter()
+                .for_each(|e| match ASTElement::from_cst(e.to_owned()) {
+                    Ok(ast_el) => println!("{}\n", ast_el),
+                    Err(_) => {}
+                });
         }
     }
 

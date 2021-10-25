@@ -1,15 +1,13 @@
 %start Program
-%avoid_insert "CLASS"
-%avoid_insert "INTERFACE"
 %%
-Program -> Result<Vec<CSTElement>, ()>:
+Program -> Result<Vec<CSTElement<'input>>, ()>:
     ProgramElement { Ok(vec![$1?]) }
     | Program ProgramElement { flatten($1, $2) }
     ;
 
-ProgramElement -> Result<CSTElement, ()>:
+ProgramElement -> Result<CSTElement<'input>, ()>:
     ClassHeader ClassBody {
-        Ok(CSTElement::Class{ span: $span, header: Box::new($1?), body: Box::new($2?) })
+        Ok(CSTElement::Class{ span: $span, header: alloc($1?), body: alloc($2?) })
     }
     | InterfaceHeader InterfaceBody {
         Ok(CSTElement::Interface{ span: $span, header: Box::new($1?), body: Box::new($2?) })
@@ -19,12 +17,12 @@ ProgramElement -> Result<CSTElement, ()>:
     }
     ;
 
-ClassHeader -> Result<CSTElement, ()>:
+ClassHeader -> Result<CSTElement<'input>, ()>:
     ClassNameAndGenerics 'EXTENDS' Identifier ImplementsList {
         match $3 {
             Ok(_) => {
                 let inner = $1?;
-                Ok(CSTElement::ClassHeader{ span: $span, name: inner.0, generics: inner.1, extends: Some(Box::new($3?)), implements: $4? })
+                Ok(CSTElement::ClassHeader{ span: $span, name: inner.0, generics: inner.1, extends: Some(alloc($3?)), implements: $4? })
             }
             Err(_) => Err(())
         }
@@ -35,40 +33,40 @@ ClassHeader -> Result<CSTElement, ()>:
     }
     ;
 
-ClassNameAndGenerics -> Result<(Box<CSTElement>, Option<Box<CSTElement>>), ()>:
+ClassNameAndGenerics -> Result<(&'input CSTElement<'input>, Option<&'input CSTElement<'input>>), ()>:
     'CLASS' Identifier GenericList {
-        Ok((Box::new($2?), Some(Box::new($3?))))
+        Ok((alloc($2?), Some(alloc($3?))))
     }
     | 'CLASS' Identifier {
-        Ok((Box::new($2?), None))
+        Ok((alloc($2?), None))
     }
     ;
 
-ImplementsList -> Result<Vec<CSTElement>, ()>:
+ImplementsList -> Result<Vec<CSTElement<'input>>, ()>:
     /* empty */ { Ok(vec![]) }
     | 'IMPLEMENTS' Type { Ok(vec![$2?]) }
     | ImplementsList ',' Type { flatten($1, $3) }
     ;
 
-ClassField -> Result<CSTElement, ()>:
+ClassField -> Result<CSTElement<'input>, ()>:
     Type Identifier ';' {
         Ok(CSTElement::ClassField{ span: $span, fieldtype: Box::new($1?), fieldname: Box::new($2?) })
     }
     ;
 
-ClassBody -> Result<CSTElement, ()>:
+ClassBody -> Result<CSTElement<'input>, ()>:
     '{' '}' { Ok(CSTElement::ClassBody{ span: $span, elements: vec![] }) }
     | '{' ClassBodyInner '}' { Ok(CSTElement::ClassBody{ span: $span, elements: $2? }) }
     ;
 
-ClassBodyInner -> Result<Vec<CSTElement>, ()>:
+ClassBodyInner -> Result<Vec<CSTElement<'input>>, ()>:
     ClassField { Ok(vec![$1?]) }
     | Function { Ok(vec![$1?]) }
     | ClassBodyInner ClassField { flatten($1, $2) }
     | ClassBodyInner Function { flatten($1, $2) }
     ;
 
-InterfaceHeader -> Result<CSTElement, ()>:
+InterfaceHeader -> Result<CSTElement<'input>, ()>:
     'INTERFACE' Identifier GenericList {
         Ok(CSTElement::InterfaceHeader{ span: $span, name: Box::new($2?), generics: Some(Box::new($3?)) })
     }
@@ -78,23 +76,23 @@ InterfaceHeader -> Result<CSTElement, ()>:
     ;
 
 
-InterfaceBody -> Result<CSTElement, ()>:
+InterfaceBody -> Result<CSTElement<'input>, ()>:
     '{' '}' { Ok(CSTElement::InterfaceBody{ span: $span, elements: vec![] }) }
     | '{' InterfaceBodyInner '}' { Ok(CSTElement::InterfaceBody{ span: $span, elements: $2? }) }
     ;
 
-InterfaceBodyInner -> Result<Vec<CSTElement>, ()>:
+InterfaceBodyInner -> Result<Vec<CSTElement<'input>>, ()>:
     FunctionHeader ';' { Ok(vec![$1?]) }
     | InterfaceBodyInner FunctionHeader ';' { flatten($1, $2) }
     ;
 
-Function -> Result<CSTElement, ()>:
+Function -> Result<CSTElement<'input>, ()>:
     FunctionHeader CompoundStatement {
         Ok(CSTElement::Function{ span: $span, header: Box::new($1?), body: Box::new($2?) })
     }
     ;
 
-FunctionHeader -> Result<CSTElement, ()>:
+FunctionHeader -> Result<CSTElement<'input>, ()>:
     'STATIC' 'FN' Type Identifier TypedArgumentList ThrowsList { 
         Ok(CSTElement::FunctionDeclaration{
             span: $span,
@@ -117,37 +115,37 @@ FunctionHeader -> Result<CSTElement, ()>:
     }
     ;
 
-ThrowsList -> Result<Vec<CSTElement>, ()>:
+ThrowsList -> Result<Vec<CSTElement<'input>>, ()>:
     /* empty */ { Ok(vec![]) }
     | 'THROWS' Type { Ok(vec![$2?]) }
     | ThrowsList ',' Type { flatten($1, $3) }
     ;
 
-TypedArgumentList -> Result<CSTElement, ()>:
+TypedArgumentList -> Result<CSTElement<'input>, ()>:
     '(' ')' { Ok(CSTElement::TypedArgumentList{ span: $span, args: vec![] }) }
     | '(' TypedArgumentListInner ')' { Ok(CSTElement::TypedArgumentList{span: $span, args: $2? }) }
     ;
 
-TypedArgumentListInner -> Result<Vec<CSTElement>, ()>:
+TypedArgumentListInner -> Result<Vec<CSTElement<'input>>, ()>:
     TypedArgument { Ok(vec![$1?]) }
     | TypedArgumentListInner ',' TypedArgument { flatten($1, $3) }
     ;
 
-TypedArgument -> Result<CSTElement, ()>:
+TypedArgument -> Result<CSTElement<'input>, ()>:
     Type Identifier { Ok(CSTElement::TypedArgument{span: $span, argtype: Box::new($1?), argname: Box::new($2?) }) }
     ;
 
-CompoundStatement -> Result<CSTElement, ()>:
+CompoundStatement -> Result<CSTElement<'input>, ()>:
     '{' '}' { Ok(CSTElement::CompoundStatement{ span: $span, statements: vec![] }) }
     | '{' CompoundStatementInner '}' { Ok(CSTElement::CompoundStatement{ span: $span, statements: $2? }) }
     ;
 
-CompoundStatementInner -> Result<Vec<CSTElement>, ()>:
+CompoundStatementInner -> Result<Vec<CSTElement<'input>>, ()>:
     Statement { Ok(vec![$1?]) }
     | CompoundStatementInner Statement { flatten($1, $2) }
     ;
 
-Statement -> Result<CSTElement, ()>:
+Statement -> Result<CSTElement<'input>, ()>:
     SimpleStatement { $1 }
     | AssignmentStatement { $1 }
     | CompoundStatement { $1 }
@@ -168,28 +166,28 @@ Statement -> Result<CSTElement, ()>:
     }
     ;
 
-SimpleStatement -> Result<CSTElement, ()>:
+SimpleStatement -> Result<CSTElement<'input>, ()>:
     Expression ';' { Ok(CSTElement::SimpleStatement{ span: $span, expression: Box::new($1?) }) }
     ;
 
-AssignmentStatement -> Result<CSTElement, ()>:
+AssignmentStatement -> Result<CSTElement<'input>, ()>:
     Expression '=' Expression ';' { Ok(CSTElement::AssignmentStatement{ span: $span, lhs: Box::new($1?), rhs: Box::new($3?) }) }
     ;
 
-ReturnStatement -> Result<CSTElement, ()>:
+ReturnStatement -> Result<CSTElement<'input>, ()>:
     'RETURN' Expression ';' { Ok(CSTElement::ReturnStatement{ span: $span, source: Some(Box::new($2?)) }) }
     | 'RETURN' ';' { Ok(CSTElement::ReturnStatement{ span: $span, source: None }) }
     ;
 
-ThrowStatement -> Result<CSTElement, ()>:
+ThrowStatement -> Result<CSTElement<'input>, ()>:
     'THROW' Expression ';' { Ok(CSTElement::ThrowStatement{ span: $span, source: Box::new($2?) }) }
     ;
 
-TryStatement -> Result<CSTElement, ()>:
+TryStatement -> Result<CSTElement<'input>, ()>:
     'TRY' CompoundStatement { Ok(CSTElement::TryStatement{span: $span, body: Box::new($2?) }) }
     ;
 
-CatchStatement -> Result<CSTElement, ()>:
+CatchStatement -> Result<CSTElement<'input>, ()>:
     'CATCH' Type 'identifier' CompoundStatement {
         match $3 {
             Ok(_) => Ok(CSTElement::CatchStatement{
@@ -203,23 +201,23 @@ CatchStatement -> Result<CSTElement, ()>:
     }
     ;
 
-IfStatement -> Result<CSTElement, ()>:
+IfStatement -> Result<CSTElement<'input>, ()>:
     'IF' Expression CompoundStatement { Ok(CSTElement::IfStatement{span: $span, condition: Box::new($2?), body: Box::new($3?) }) }
     ;
 
-ElseIfStatement -> Result<CSTElement, ()>:
+ElseIfStatement -> Result<CSTElement<'input>, ()>:
     'ELSE' 'IF' Expression CompoundStatement { Ok(CSTElement::ElseIfStatement{span: $span, condition: Box::new($3?), body: Box::new($4?) }) }
     ;
 
-ElseStatement -> Result<CSTElement, ()>:
+ElseStatement -> Result<CSTElement<'input>, ()>:
     'ELSE' CompoundStatement { Ok(CSTElement::ElseStatement{span: $span, body: Box::new($2?) }) }
     ;
 
-WhileStatement -> Result<CSTElement, ()>:
+WhileStatement -> Result<CSTElement<'input>, ()>:
     'WHILE' Expression CompoundStatement { Ok(CSTElement::WhileStatement{span: $span, condition: Box::new($2?), body: Box::new($3?) }) }
     ;
 
-LocalDefinitionStatement -> Result<CSTElement, ()>:
+LocalDefinitionStatement -> Result<CSTElement<'input>, ()>:
     'LET' Type 'identifier' '=' Expression ';' {
         match $3 {
             Ok(_) => Ok(CSTElement::LocalDefinitionStatement{
@@ -233,7 +231,7 @@ LocalDefinitionStatement -> Result<CSTElement, ()>:
     }
     ;
 
-Expression -> Result<CSTElement, ()>:
+Expression -> Result<CSTElement<'input>, ()>:
     Expression '>' '=' Expression1 {
         Ok(CSTElement::ArithmeticExpression{span: $span, operator: ">=".to_string(), lhs: Box::new($1?), rhs: Box::new($4?)})
     }
@@ -255,7 +253,7 @@ Expression -> Result<CSTElement, ()>:
     | Expression1 { $1 }
     ;
 
-Expression1 -> Result<CSTElement, ()>:
+Expression1 -> Result<CSTElement<'input>, ()>:
     Expression1 '+' Expression2 {
         Ok(CSTElement::ArithmeticExpression{span: $span, operator: "+".to_string(), lhs: Box::new($1?), rhs: Box::new($3?)})
     }
@@ -265,7 +263,7 @@ Expression1 -> Result<CSTElement, ()>:
     | Expression2 { $1 }
     ;
 
-Expression2 -> Result<CSTElement, ()>:
+Expression2 -> Result<CSTElement<'input>, ()>:
     Expression2 '*' Expression3 {
         Ok(CSTElement::ArithmeticExpression{span: $span, operator: "*".to_string(), lhs: Box::new($1?), rhs: Box::new($3?)})
     }
@@ -278,7 +276,7 @@ Expression2 -> Result<CSTElement, ()>:
     | Expression3 { $1 }
     ;
 
-Expression3 -> Result<CSTElement, ()>:
+Expression3 -> Result<CSTElement<'input>, ()>:
     'identifier' { 
         match $1 {
             Ok(_) => Ok(CSTElement::NameExpression{span: $span, name: $lexer.span_str($1.as_ref().unwrap().span()).to_string()}),
@@ -327,22 +325,22 @@ Expression3 -> Result<CSTElement, ()>:
     | '(' Expression ')' { $2 }
     ;
 
-ArgumentList -> Result<CSTElement, ()>:
+ArgumentList -> Result<CSTElement<'input>, ()>:
     '(' ')' { Ok(CSTElement::ArgumentList{ span: $span, args: vec![] }) }
     | '(' ArgumentListInner ')' { Ok(CSTElement::ArgumentList{span: $span, args: $2? }) }
     ;
 
-ArgumentListInner -> Result<Vec<CSTElement>, ()>:
+ArgumentListInner -> Result<Vec<CSTElement<'input>>, ()>:
     Expression { Ok(vec![$1?]) }
     | ArgumentListInner ',' Expression { flatten($1, $3) }
     ;
 
-Type -> Result<CSTElement, ()>:
+Type -> Result<CSTElement<'input>, ()>:
     '*' Type1 { Ok(CSTElement::RawPointerType{span: $span, inner: Box::new($2?)}) }
     | Type1 { Ok($1?) }
     ;
 
-Type1 -> Result<CSTElement, ()>:
+Type1 -> Result<CSTElement<'input>, ()>:
     '(' Type ')' { Ok($2?) }
     | Type1 TypeParameterList { Ok(CSTElement::SpecifiedType{span: $span, base: Box::new($1?), parameters: Box::new($2?) }) }
     | 'identifier' { 
@@ -353,25 +351,25 @@ Type1 -> Result<CSTElement, ()>:
     }
     ;
 
-TypeParameterList -> Result<CSTElement, ()>: 
+TypeParameterList -> Result<CSTElement<'input>, ()>: 
     '<' TypeParameterListInner '>' { Ok(CSTElement::TypeParameterList{span: $span, parameters: $2? }) }
     ;
 
-TypeParameterListInner -> Result<Vec<CSTElement>, ()>:
+TypeParameterListInner -> Result<Vec<CSTElement<'input>>, ()>:
     Type { Ok(vec![$1?]) }
     | TypeParameterListInner ',' Type { flatten($1, $3) }
     ;
 
-GenericList -> Result<CSTElement, ()>:
+GenericList -> Result<CSTElement<'input>, ()>:
     '<' GenericListInner '>' { Ok(CSTElement::GenericList{span: $span, names: $2? }) }
     ;
 
-GenericListInner -> Result<Vec<CSTElement>, ()>:
+GenericListInner -> Result<Vec<CSTElement<'input>>, ()>:
     Identifier { Ok(vec![$1?]) }
     | GenericListInner ',' Identifier { flatten($1, $3) }
     ;
 
-Identifier -> Result<CSTElement, ()>:
+Identifier -> Result<CSTElement<'input>, ()>:
     'identifier' {
         match $1 {
             Ok(_) => Ok(CSTElement::Identifier{span: $span, name: $lexer.span_str($1.as_ref().unwrap().span()).to_string()}),
@@ -385,7 +383,7 @@ Unmatched -> ():
   ;
 %%
 
-use crate::parser::CSTElement;
+use crate::parser::{CSTElement, alloc};
 
 fn flatten<T>(lhs: Result<Vec<T>, ()>, rhs: Result<T, ()>)
            -> Result<Vec<T>, ()>

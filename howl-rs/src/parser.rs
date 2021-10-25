@@ -2,40 +2,46 @@ use lrpar::Span;
 use std::fmt::Debug;
 use std::fmt::Formatter;
 
-pub enum CSTElement {
+// TODO have this use an arena or something
+pub fn alloc<'a>(source: CSTElement<'a>) -> &'a CSTElement {
+    return Box::leak(Box::new(source.clone()));
+}
+
+#[derive(Clone)]
+pub enum CSTElement<'a> {
     Class {
         span: Span,
-        header: Box<CSTElement>,
-        body: Box<CSTElement>,
+        header: &'a CSTElement<'a>,
+        body: &'a CSTElement<'a>,
     },
     ClassBody {
         span: Span,
-        elements: Vec<CSTElement>,
+        elements: Vec<CSTElement<'a>>,
     },
     ClassHeader {
         span: Span,
-        name: Box<CSTElement>,
-        generics: Option<Box<CSTElement>>,
-        extends: Option<Box<CSTElement>>,
-        implements: Vec<CSTElement>,
+        name: &'a CSTElement<'a>,
+        generics: Option<&'a CSTElement<'a>>,
+        extends: Option<&'a CSTElement<'a>>,
+        implements: Vec<CSTElement<'a>>,
     },
     Interface {
         span: Span,
-        header: Box<CSTElement>,
-        body: Box<CSTElement>,
+        header: Box<CSTElement<'a>>,
+        body: Box<CSTElement<'a>>,
     },
     InterfaceBody {
         span: Span,
-        elements: Vec<CSTElement>,
+        elements: Vec<CSTElement<'a>>,
     },
     InterfaceHeader {
         span: Span,
-        name: Box<CSTElement>,
-        generics: Option<Box<CSTElement>>,
+        name: Box<CSTElement<'a>>,
+        generics: Option<Box<CSTElement<'a>>>,
     },
     GenericList {
         span: Span,
-        names: Vec<CSTElement>,
+        names: Vec<CSTElement<'a>>,
     },
     Identifier {
         span: Span,
@@ -47,56 +53,56 @@ pub enum CSTElement {
     },
     RawPointerType {
         span: Span,
-        inner: Box<CSTElement>,
+        inner: Box<CSTElement<'a>>,
     },
     SpecifiedType {
         span: Span,
-        base: Box<CSTElement>,
-        parameters: Box<CSTElement>,
+        base: Box<CSTElement<'a>>,
+        parameters: Box<CSTElement<'a>>,
     },
     TypeParameterList {
         span: Span,
-        parameters: Vec<CSTElement>,
+        parameters: Vec<CSTElement<'a>>,
     },
     ClassField {
         span: Span,
-        fieldtype: Box<CSTElement>,
-        fieldname: Box<CSTElement>,
+        fieldtype: Box<CSTElement<'a>>,
+        fieldname: Box<CSTElement<'a>>,
     },
     Function {
         span: Span,
-        header: Box<CSTElement>,
-        body: Box<CSTElement>,
+        header: Box<CSTElement<'a>>,
+        body: Box<CSTElement<'a>>,
     },
     FunctionDeclaration {
         span: Span,
         is_static: bool,
-        returntype: Box<CSTElement>,
-        name: Box<CSTElement>,
-        args: Box<CSTElement>,
-        throws: Vec<CSTElement>,
+        returntype: Box<CSTElement<'a>>,
+        name: Box<CSTElement<'a>>,
+        args: Box<CSTElement<'a>>,
+        throws: Vec<CSTElement<'a>>,
     },
     TypedArgumentList {
         span: Span,
-        args: Vec<CSTElement>,
+        args: Vec<CSTElement<'a>>,
     },
     TypedArgument {
         span: Span,
-        argtype: Box<CSTElement>,
-        argname: Box<CSTElement>,
+        argtype: Box<CSTElement<'a>>,
+        argname: Box<CSTElement<'a>>,
     },
     CompoundStatement {
         span: Span,
-        statements: Vec<CSTElement>,
+        statements: Vec<CSTElement<'a>>,
     },
     SimpleStatement {
         span: Span,
-        expression: Box<CSTElement>,
+        expression: Box<CSTElement<'a>>,
     },
     AssignmentStatement {
         span: Span,
-        lhs: Box<CSTElement>,
-        rhs: Box<CSTElement>,
+        lhs: Box<CSTElement<'a>>,
+        rhs: Box<CSTElement<'a>>,
     },
     NameExpression {
         span: Span,
@@ -104,32 +110,32 @@ pub enum CSTElement {
     },
     FieldReferenceExpression {
         span: Span,
-        source: Box<CSTElement>,
+        source: Box<CSTElement<'a>>,
         name: String,
     },
     ArgumentList {
         span: Span,
-        args: Vec<CSTElement>,
+        args: Vec<CSTElement<'a>>,
     },
     FunctionCallExpression {
         span: Span,
-        source: Box<CSTElement>,
-        args: Box<CSTElement>,
+        source: Box<CSTElement<'a>>,
+        args: Box<CSTElement<'a>>,
     },
     FFICallExpression {
         span: Span,
         name: String,
-        args: Box<CSTElement>,
+        args: Box<CSTElement<'a>>,
     },
     MacroCallExpression {
         span: Span,
         name: String,
-        args: Box<CSTElement>,
+        args: Box<CSTElement<'a>>,
     },
     ConstructorCallExpression {
         span: Span,
-        source: Box<CSTElement>,
-        args: Box<CSTElement>,
+        source: Box<CSTElement<'a>>,
+        args: Box<CSTElement<'a>>,
     },
     NumberExpression {
         span: Span,
@@ -137,57 +143,57 @@ pub enum CSTElement {
     },
     IndexExpression {
         span: Span,
-        source: Box<CSTElement>,
-        index: Box<CSTElement>,
+        source: Box<CSTElement<'a>>,
+        index: Box<CSTElement<'a>>,
     },
     ArithmeticExpression {
         span: Span,
         operator: String,
-        lhs: Box<CSTElement>,
-        rhs: Box<CSTElement>,
+        lhs: Box<CSTElement<'a>>,
+        rhs: Box<CSTElement<'a>>,
     },
     ReturnStatement {
         span: Span,
-        source: Option<Box<CSTElement>>,
+        source: Option<Box<CSTElement<'a>>>,
     },
     ThrowStatement {
         span: Span,
-        source: Box<CSTElement>,
+        source: Box<CSTElement<'a>>,
     },
     IfStatement {
         span: Span,
-        condition: Box<CSTElement>,
-        body: Box<CSTElement>,
+        condition: Box<CSTElement<'a>>,
+        body: Box<CSTElement<'a>>,
     },
     ElseIfStatement {
         span: Span,
-        condition: Box<CSTElement>,
-        body: Box<CSTElement>,
+        condition: Box<CSTElement<'a>>,
+        body: Box<CSTElement<'a>>,
     },
     ElseStatement {
         span: Span,
-        body: Box<CSTElement>,
+        body: Box<CSTElement<'a>>,
     },
     TryStatement {
         span: Span,
-        body: Box<CSTElement>,
+        body: Box<CSTElement<'a>>,
     },
     CatchStatement {
         span: Span,
-        exctype: Box<CSTElement>,
+        exctype: Box<CSTElement<'a>>,
         excname: String,
-        body: Box<CSTElement>,
+        body: Box<CSTElement<'a>>,
     },
     WhileStatement {
         span: Span,
-        condition: Box<CSTElement>,
-        body: Box<CSTElement>,
+        condition: Box<CSTElement<'a>>,
+        body: Box<CSTElement<'a>>,
     },
     LocalDefinitionStatement {
         span: Span,
-        localtype: Box<CSTElement>,
+        localtype: Box<CSTElement<'a>>,
         name: String,
-        initializer: Box<CSTElement>,
+        initializer: Box<CSTElement<'a>>,
     },
     StringLiteral {
         span: Span,
@@ -199,7 +205,7 @@ pub enum CSTElement {
     },
 }
 
-impl Debug for CSTElement {
+impl Debug for CSTElement<'_> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
             CSTElement::Class {
