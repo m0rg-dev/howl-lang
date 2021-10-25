@@ -27,8 +27,8 @@ pub enum CSTElement<'a> {
     },
     Interface {
         span: Span,
-        header: Box<CSTElement<'a>>,
-        body: Box<CSTElement<'a>>,
+        header: &'a CSTElement<'a>,
+        body: &'a CSTElement<'a>,
     },
     InterfaceBody {
         span: Span,
@@ -36,8 +36,8 @@ pub enum CSTElement<'a> {
     },
     InterfaceHeader {
         span: Span,
-        name: Box<CSTElement<'a>>,
-        generics: Option<Box<CSTElement<'a>>>,
+        name: &'a CSTElement<'a>,
+        generics: Option<&'a CSTElement<'a>>,
     },
     GenericList {
         span: Span,
@@ -53,12 +53,12 @@ pub enum CSTElement<'a> {
     },
     RawPointerType {
         span: Span,
-        inner: Box<CSTElement<'a>>,
+        inner: &'a CSTElement<'a>,
     },
     SpecifiedType {
         span: Span,
-        base: Box<CSTElement<'a>>,
-        parameters: Box<CSTElement<'a>>,
+        base: &'a CSTElement<'a>,
+        parameters: &'a CSTElement<'a>,
     },
     TypeParameterList {
         span: Span,
@@ -66,20 +66,20 @@ pub enum CSTElement<'a> {
     },
     ClassField {
         span: Span,
-        fieldtype: Box<CSTElement<'a>>,
-        fieldname: Box<CSTElement<'a>>,
+        fieldtype: &'a CSTElement<'a>,
+        fieldname: &'a CSTElement<'a>,
     },
     Function {
         span: Span,
-        header: Box<CSTElement<'a>>,
-        body: Box<CSTElement<'a>>,
+        header: &'a CSTElement<'a>,
+        body: &'a CSTElement<'a>,
     },
     FunctionDeclaration {
         span: Span,
         is_static: bool,
-        returntype: Box<CSTElement<'a>>,
-        name: Box<CSTElement<'a>>,
-        args: Box<CSTElement<'a>>,
+        returntype: &'a CSTElement<'a>,
+        name: &'a CSTElement<'a>,
+        args: &'a CSTElement<'a>,
         throws: Vec<CSTElement<'a>>,
     },
     TypedArgumentList {
@@ -88,8 +88,8 @@ pub enum CSTElement<'a> {
     },
     TypedArgument {
         span: Span,
-        argtype: Box<CSTElement<'a>>,
-        argname: Box<CSTElement<'a>>,
+        argtype: &'a CSTElement<'a>,
+        argname: &'a CSTElement<'a>,
     },
     CompoundStatement {
         span: Span,
@@ -97,12 +97,12 @@ pub enum CSTElement<'a> {
     },
     SimpleStatement {
         span: Span,
-        expression: Box<CSTElement<'a>>,
+        expression: &'a CSTElement<'a>,
     },
     AssignmentStatement {
         span: Span,
-        lhs: Box<CSTElement<'a>>,
-        rhs: Box<CSTElement<'a>>,
+        lhs: &'a CSTElement<'a>,
+        rhs: &'a CSTElement<'a>,
     },
     NameExpression {
         span: Span,
@@ -110,7 +110,7 @@ pub enum CSTElement<'a> {
     },
     FieldReferenceExpression {
         span: Span,
-        source: Box<CSTElement<'a>>,
+        source: &'a CSTElement<'a>,
         name: String,
     },
     ArgumentList {
@@ -119,23 +119,23 @@ pub enum CSTElement<'a> {
     },
     FunctionCallExpression {
         span: Span,
-        source: Box<CSTElement<'a>>,
-        args: Box<CSTElement<'a>>,
+        source: &'a CSTElement<'a>,
+        args: &'a CSTElement<'a>,
     },
     FFICallExpression {
         span: Span,
         name: String,
-        args: Box<CSTElement<'a>>,
+        args: &'a CSTElement<'a>,
     },
     MacroCallExpression {
         span: Span,
         name: String,
-        args: Box<CSTElement<'a>>,
+        args: &'a CSTElement<'a>,
     },
     ConstructorCallExpression {
         span: Span,
-        source: Box<CSTElement<'a>>,
-        args: Box<CSTElement<'a>>,
+        source: &'a CSTElement<'a>,
+        args: &'a CSTElement<'a>,
     },
     NumberExpression {
         span: Span,
@@ -143,65 +143,61 @@ pub enum CSTElement<'a> {
     },
     IndexExpression {
         span: Span,
-        source: Box<CSTElement<'a>>,
-        index: Box<CSTElement<'a>>,
+        source: &'a CSTElement<'a>,
+        index: &'a CSTElement<'a>,
     },
     ArithmeticExpression {
         span: Span,
         operator: String,
-        lhs: Box<CSTElement<'a>>,
-        rhs: Box<CSTElement<'a>>,
+        lhs: &'a CSTElement<'a>,
+        rhs: &'a CSTElement<'a>,
     },
     ReturnStatement {
         span: Span,
-        source: Option<Box<CSTElement<'a>>>,
+        source: Option<&'a CSTElement<'a>>,
     },
     ThrowStatement {
         span: Span,
-        source: Box<CSTElement<'a>>,
+        source: &'a CSTElement<'a>,
     },
     IfStatement {
         span: Span,
-        condition: Box<CSTElement<'a>>,
-        body: Box<CSTElement<'a>>,
+        condition: &'a CSTElement<'a>,
+        body: &'a CSTElement<'a>,
     },
     ElseIfStatement {
         span: Span,
-        condition: Box<CSTElement<'a>>,
-        body: Box<CSTElement<'a>>,
+        condition: &'a CSTElement<'a>,
+        body: &'a CSTElement<'a>,
     },
     ElseStatement {
         span: Span,
-        body: Box<CSTElement<'a>>,
+        body: &'a CSTElement<'a>,
     },
     TryStatement {
         span: Span,
-        body: Box<CSTElement<'a>>,
+        body: &'a CSTElement<'a>,
     },
     CatchStatement {
         span: Span,
-        exctype: Box<CSTElement<'a>>,
+        exctype: &'a CSTElement<'a>,
         excname: String,
-        body: Box<CSTElement<'a>>,
+        body: &'a CSTElement<'a>,
     },
     WhileStatement {
         span: Span,
-        condition: Box<CSTElement<'a>>,
-        body: Box<CSTElement<'a>>,
+        condition: &'a CSTElement<'a>,
+        body: &'a CSTElement<'a>,
     },
     LocalDefinitionStatement {
         span: Span,
-        localtype: Box<CSTElement<'a>>,
+        localtype: &'a CSTElement<'a>,
         name: String,
-        initializer: Box<CSTElement<'a>>,
+        initializer: &'a CSTElement<'a>,
     },
     StringLiteral {
         span: Span,
         contents: String,
-    },
-    Comment {
-        span: Span,
-        as_text: String,
     },
 }
 
@@ -534,7 +530,6 @@ impl Debug for CSTElement<'_> {
             CSTElement::NameExpression { span: _, name } => write!(f, "'{}", name),
             CSTElement::NumberExpression { span: _, as_text } => write!(f, "#{}", as_text),
             CSTElement::StringLiteral { span: _, contents } => write!(f, "${}", contents),
-            CSTElement::Comment { span: _, as_text } => write!(f, "{}", as_text),
             CSTElement::IndexExpression {
                 span: _,
                 source,

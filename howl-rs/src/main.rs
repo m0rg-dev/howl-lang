@@ -1,13 +1,14 @@
 use cfgrammar::TIdx;
 use lrlex::{lrlex_mod, LRNonStreamingLexer};
 use lrpar::{LexParseError, NonStreamingLexer, ParseError, ParseRepair, Span};
+use std::convert::TryInto;
 use std::env;
 use std::error::Error;
 use std::fs;
 use std::hash::Hash;
 use std::iter;
 
-use crate::ast::ASTElement;
+use crate::ast::{ASTElement, CSTMismatchError};
 
 mod ast;
 mod parser;
@@ -44,11 +45,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     if !had_errors {
         if let Some(Ok(r)) = res {
             // println!("{:#?}", r);
-            r.iter()
-                .for_each(|e| match ASTElement::from_cst(e.to_owned()) {
-                    Ok(ast_el) => println!("{}\n", ast_el),
-                    Err(_) => {}
-                });
+            r.iter().for_each(|e| {
+                let maybe_ast_el: Result<ASTElement, CSTMismatchError> = e.to_owned().try_into();
+                match maybe_ast_el {
+                    Ok(_) => println!("{}\n", maybe_ast_el.unwrap()),
+                    Err(what) => {
+                        println!("{:?}", what)
+                    }
+                }
+            });
         }
     }
 

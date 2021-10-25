@@ -1,4 +1,4 @@
-use super::Element;
+use super::{CSTMismatchError, Element};
 use crate::parser::CSTElement;
 
 #[derive(Debug)]
@@ -7,7 +7,7 @@ pub struct PlaceholderElement {
 }
 
 impl PlaceholderElement {
-    pub fn from_cst(_: CSTElement) -> Result<PlaceholderElement, ()> {
+    pub fn from_cst(_: CSTElement) -> Result<PlaceholderElement, CSTMismatchError> {
         Ok(PlaceholderElement {
             span: lrpar::Span::new(0, 0),
         })

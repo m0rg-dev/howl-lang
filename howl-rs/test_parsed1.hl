@@ -1,105 +1,86 @@
-/* block comment, just to make sure */
 class Vec<T> {
     *T value;
     i64 length;
     i64 element_size;
-
-    fn void constructor() {
+    fn void constructor () {
         self.value = fficall malloc(0);
         self.element_size = fficall sizeof(self.value[0]);
         self.length = 0;
     }
-
-    fn void push(T element) {
+    fn void push (T element) {
         self[self.length] = element;
     }
-
-    fn T pop() {
-        self.length = self.length - 1;
+    fn T pop () {
+        self.length = (self.length - 1);
         return self[self.length];
     }
-
-    fn T __index__(i64 idx) {
+    fn T __index__ (i64 idx) {
         return self.value[idx];
     }
-
-    fn void __index__(i64 idx, T value) {
-        if idx >= self.length {
-            self.value = fficall realloc(self.value, self.element_size * (idx + 1));
-            self.length = idx + 1;
+    fn void __index__ (i64 idx, T value) {
+        /* PARTIAL */ if (idx >= self.length) {
+            self.value = fficall realloc(self.value, (self.element_size * (idx + 1)));
+            self.length = (idx + 1);
         }
         self.value[idx] = value;
     }
 }
 
 interface Display {
-    fn String toString();
+    fn String toString () ;
 }
 
 class String {
     Vec<u8> contents;
-    
-    fn void constructor() {
+    fn void constructor () {
         self.contents = new Vec<u8>();
     }
-
-    fn String __add__(String other) {
+    fn String __add__ (String other) {
         let String rc = String.from(self);
-
         let i64 i = 0;
-        while i < other.contents.length {
+        while (i < other.contents.length) {
             rc.contents.push(other.contents[i]);
-            i = i + 1;
+            i = (i + 1);
         }
-
         return rc;
     }
-
-    fn String __add__(i64 other) {
-        return self + String.from(other);
+    fn String __add__ (i64 other) {
+        return (self + String.from(other));
     }
-
-    fn String __add__(Display other) {
-        return self + other.toString();
+    fn String __add__ (Display other) {
+        return (self + other.toString());
     }
-
-    static fn String fromBytes(*u8 bytes, i64 length) {
+    static fn String fromBytes (*u8 bytes, i64 length) {
         let String rc = new String();
-
         let i64 i = 0;
-        while i < length {
+        while (i < length) {
             rc.contents[i] = bytes[i];
-            i = i + 1;
+            i = (i + 1);
         }
-
         return rc;
     }
-
-    static fn String from(String other) {
+    static fn String from (String other) {
         return String.fromBytes(other.contents.value, other.contents.length);
     }
-
-    static fn String from(i64 value) {
+    static fn String from (i64 value) {
         let Vec<String> digits = !vec(String, "0", "1", "2", "3", "4", "5", "6", "7", "8", "9");
-
-        if value < 10 {
+        /* PARTIAL */ if (value < 10) {
             return digits[value];
-        } else {
-            return String.from(value / 10) + String.from(value % 10);
+        }
+        /* PARTIAL */ else {
+            return (String.from((value / 10)) + String.from((value % 10)));
         }
     }
-
-    static fn String from(Display other) {
+    static fn String from (Display other) {
         return other.toString();
     }
 }
 
 class IO {
-    static fn void print(String s) {
+    static fn void print (String s) {
         fficall write(1, s.contents.value, s.contents.length);
     }
-
-    static fn void println(String s) {
+    static fn void println (String s) {
         IO.print(s);
         IO.print("\n");
     }
@@ -110,8 +91,7 @@ class sockaddr_in {
     u16 sin_port;
     u32 s_addr;
     u64 pad;
-
-    fn void constructor(u16 sin_family, u16 sin_port, u32 s_addr) {
+    fn void constructor (u16 sin_family, u16 sin_port, u32 s_addr) {
         self.sin_family = sin_family;
         self.sin_port = sin_port;
         self.s_addr = s_addr;
@@ -119,57 +99,44 @@ class sockaddr_in {
     }
 }
 
-
 class ErrnoException extends Exception {
-    fn void constructor(String desc) {
-        // strerror is fine here because String.fromBytes() will copy it out
+    fn void constructor (String desc) {
         let *u8 raw_error = fficall strerror(fficall __get_errno());
-        self.message = desc + ": " + String.fromBytes(raw_error, fficall strlen(raw_error));
+        self.message = ((desc + ": ") + String.fromBytes(raw_error, fficall strlen(raw_error)));
     }
 }
 
-
 interface SocketServer {
-    fn void handle(i32 clientfd) throws ErrnoException;
+    fn void handle (i32 clientfd) throws ErrnoException ;
 }
 
 class InetSocket {
     Pointer<sockaddr_in> addr;
     i32 fd;
-
-    fn void constructor(u16 port, u32 address) {
+    fn void constructor (u16 port, u32 address) {
         let i32 c_AF_INET = 2;
         let i32 c_SOCK_STREAM = 1;
-
         self.fd = fficall socket(c_AF_INET, c_SOCK_STREAM, 0);
-        self.addr = new Pointer<sockaddr_in>(new sockaddr_in(
-            c_AF_INET,
-            fficall htons(port),
-            address
-        ));
+        self.addr = new Pointer<sockaddr_in>(new sockaddr_in(c_AF_INET, fficall htons(port), address));
     }
-
-    fn void listen(i32 queue_size) throws ErrnoException {
-        if fficall bind(self.fd, self.addr.structure_pointer(), self.addr.size()) < 0 {
+    fn void listen (i32 queue_size) throws ErrnoException {
+        /* PARTIAL */ if (fficall bind(self.fd, self.addr.structure_pointer(), self.addr.size()) < 0) {
             throw new ErrnoException("bind");
         }
-
-        if fficall listen(self.fd, queue_size) < 0 {
+        /* PARTIAL */ if (fficall listen(self.fd, queue_size) < 0) {
             throw new ErrnoException("listen");
         }
     }
-
-    fn i32 accept() throws ErrnoException {
+    fn i32 accept () throws ErrnoException {
         let Pointer<sockaddr_in> clientaddr = new Pointer<sockaddr_in>(new sockaddr_in(0, 0, 0));
         let Pointer<i32> clientlen = new Pointer<i32>(clientaddr.size());
         let i32 childfd = fficall accept(self.fd, clientaddr.structure_pointer(), clientlen.value_pointer());
-        if childfd < 0 {
+        /* PARTIAL */ if (childfd < 0) {
             throw new ErrnoException("accept");
         }
         return childfd;
     }
-
-    fn void serve(i32 queue_size, SocketServer server) {
+    fn void serve (i32 queue_size, SocketServer server) {
         self.listen(queue_size);
         while 1 {
             server.handle(self.accept());
@@ -178,54 +145,51 @@ class InetSocket {
 }
 
 class SillyHTTPServer implements SocketServer {
-    fn void handle(i32 childfd) throws ErrnoException {
+    fn void handle (i32 childfd) throws ErrnoException {
         let *i8 req_buf = fficall malloc(1024);
         fficall read(childfd, req_buf, 1024);
         let String msg = "HTTP/1.1 200 OK\r\nConnection: Close\r\nContent-Type: text/plain\r\n\r\nHowl HTTP server test\r\n";
         fficall write(childfd, msg.contents.value, msg.contents.length);
         fficall close(childfd);
-        
-        // lol
         fficall free(req_buf);
     }
 }
 
-static fn i32 Main() {
+static fn i32 Main () {
     let InetSocket listener = new InetSocket(8080, 0);
     listener.serve(5, new SillyHTTPServer());
-
     return 0;
 }
 
 class TestException extends Exception {
-    fn void constructor() {
+    fn void constructor () {
         self.message = "TestException static message";
     }
 }
 
 class Test {
-    fn void foo() throws Exception {
+    fn void foo () throws Exception {
         throw new Exception("normal exception message");
     }
-
-    fn void bar() throws TestException {
+    fn void bar () throws TestException {
         throw new TestException();
     }
 }
 
-static fn i32 Main() {
+static fn i32 Main () {
     let Test obj = new Test();
-    try {
+    /* PARTIAL */ try {
         obj.foo();
-    } catch Exception e {
+    }
+    /* PARTIAL */ catch Exception e {
         IO.println(e.message);
     }
-
-    try {
+    /* PARTIAL */ try {
         obj.bar();
-    } catch Exception e {
+    }
+    /* PARTIAL */ catch Exception e {
         IO.println(e.message);
     }
-
     return 0;
 }
+

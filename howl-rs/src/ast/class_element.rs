@@ -1,8 +1,14 @@
-use std::{convert::TryFrom, fmt::Formatter};
+use std::{
+    convert::{TryFrom, TryInto},
+    fmt::Formatter,
+};
 
-use crate::{ast::base_type_element::TypeElement, parser::CSTElement};
+use crate::{ast::type_element::TypeElement, parser::CSTElement};
 
-use super::Element;
+use super::{
+    class_field_element::ClassFieldElement, function_element::FunctionElement, CSTMismatchError,
+    Element,
+};
 
 #[derive(Debug)]
 pub struct ClassElement {
@@ -11,12 +17,14 @@ pub struct ClassElement {
     extends: Option<String>,
     generics: Vec<String>,
     implements: Vec<TypeElement>,
+    fields: Vec<ClassFieldElement>,
+    methods: Vec<FunctionElement>,
 }
 
 impl TryFrom<CSTElement<'_>> for ClassElement {
-    type Error = ();
+    type Error = CSTMismatchError;
 
-    fn try_from(cst: CSTElement) -> Result<ClassElement, ()> {
+    fn try_from(cst: CSTElement) -> Result<ClassElement, CSTMismatchError> {
         match cst {
             CSTElement::Class {
                 span,
@@ -28,7 +36,7 @@ impl TryFrom<CSTElement<'_>> for ClassElement {
                         extends,
                         implements,
                     },
-                body: _,
+                body: CSTElement::ClassBody { span: _, elements },
             } => Ok(ClassElement {
                 span,
                 name: name.to_string(),
@@ -36,10 +44,22 @@ impl TryFrom<CSTElement<'_>> for ClassElement {
                 generics: ClassElement::convert_generics(generics),
                 implements: implements
                     .iter()
-                    .map(|x| TypeElement::try_from(x.to_owned()))
-                    .collect::<Result<Vec<TypeElement>, ()>>()?,
+                    .map(|x| x.to_owned().try_into())
+                    .collect::<Result<Vec<TypeElement>, CSTMismatchError>>()?,
+                fields: elements
+                    .iter()
+                    .filter_map(|x| x.to_owned().try_into().ok())
+                    .collect(),
+                methods: elements
+                    .iter()
+                    .filter(|x| match x {
+                        CSTElement::Function { .. } => true,
+                        _ => false,
+                    })
+                    .map(|x| x.to_owned().try_into())
+                    .collect::<Result<Vec<FunctionElement>, CSTMismatchError>>()?,
             }),
-            _ => unreachable!(),
+            _ => Err(CSTMismatchError::new("Class", cst)),
         }
     }
 }
@@ -101,6 +121,17 @@ impl std::fmt::Display for ClassElement {
         }
 
         write!(f, " {{\n")?;
+
+        self.fields
+            .iter()
+            .map(|x| write!(f, "    {}\n", x))
+            .collect::<Result<Vec<()>, std::fmt::Error>>()?;
+
+        self.methods
+            .iter()
+            .map(|x| write!(f, "{}", textwrap::indent(&format!("{}\n", x), "    ")))
+            .collect::<Result<Vec<()>, std::fmt::Error>>()?;
+
         write!(f, "}}")
     }
 }
