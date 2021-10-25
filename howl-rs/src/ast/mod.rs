@@ -40,6 +40,7 @@ impl CSTMismatchError {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum ASTElement {
     Class(ClassElement),
     ClassField(ClassFieldElement),
@@ -99,3 +100,33 @@ ast_from!(InterfaceElement, ASTElement::Interface);
 ast_from!(PlaceholderElement, ASTElement::Placeholder);
 ast_from!(StatementElement, ASTElement::Statement);
 ast_from!(TypeElement, ASTElement::Type);
+
+#[macro_export]
+macro_rules! assert_expression {
+    ($callback: expr, $source: expr, $diag: expr) => {
+        match $callback(ASTElement::Expression($source.clone())) {
+            ASTElement::Expression(e) => e,
+            x => panic!("can't replace {} with {}", $diag, x),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! assert_statement {
+    ($callback: expr, $source: expr, $diag: expr) => {
+        match $callback(ASTElement::Statement($source.clone())) {
+            ASTElement::Statement(s) => s,
+            x => panic!("can't replace {} with {}", $diag, x),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! assert_type {
+    ($callback: expr, $source: expr, $diag: expr) => {
+        match $callback(ASTElement::Type($source.clone())) {
+            ASTElement::Type(s) => s,
+            x => panic!("can't replace {} with {}", $diag, x),
+        }
+    };
+}

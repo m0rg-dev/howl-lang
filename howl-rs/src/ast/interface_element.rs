@@ -5,9 +5,11 @@ use std::{
 
 use crate::parser::CSTElement;
 
-use super::{function_declaration_element::FunctionDeclarationElement, CSTMismatchError, Element};
+use super::{
+    function_declaration_element::FunctionDeclarationElement, ASTElement, CSTMismatchError, Element,
+};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InterfaceElement {
     span: lrpar::Span,
     name: String,
@@ -60,6 +62,28 @@ impl InterfaceElement {
             Some(_) => unreachable!(),
             None => vec![],
         }
+    }
+
+    pub fn map_ast<F>(&self, callback: F) -> ASTElement
+    where
+        F: Fn(ASTElement) -> ASTElement,
+    {
+        let new_methods = self
+            .methods
+            .iter()
+            .map(|i| callback(ASTElement::FunctionDeclaration(i.clone())))
+            .map(|i| match i {
+                ASTElement::FunctionDeclaration(f) => f,
+                _ => panic!("can't replace an interface method with {}", i),
+            })
+            .collect::<Vec<FunctionDeclarationElement>>();
+
+        ASTElement::Interface(InterfaceElement {
+            span: self.span,
+            name: self.name.clone(),
+            generics: self.generics.clone(),
+            methods: new_methods,
+        })
     }
 }
 

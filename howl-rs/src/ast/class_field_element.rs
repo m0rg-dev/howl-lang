@@ -2,13 +2,30 @@ use std::convert::{TryFrom, TryInto};
 
 use crate::parser::CSTElement;
 
-use super::{type_element::TypeElement, CSTMismatchError, Element};
+use super::{type_element::TypeElement, ASTElement, CSTMismatchError, Element};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ClassFieldElement {
     span: lrpar::Span,
     fieldtype: TypeElement,
     fieldname: String,
+}
+
+impl ClassFieldElement {
+    pub fn map_ast<F>(&self, callback: F) -> ASTElement
+    where
+        F: Fn(ASTElement) -> ASTElement,
+    {
+        let new_type = match callback(ASTElement::Type(self.fieldtype.clone())) {
+            ASTElement::Type(t) => t,
+            x => panic!("can't replace a field type with {}", x),
+        };
+        ASTElement::ClassField(ClassFieldElement {
+            span: self.span,
+            fieldtype: new_type,
+            fieldname: self.fieldname.clone(),
+        })
+    }
 }
 
 impl TryFrom<CSTElement<'_>> for ClassFieldElement {

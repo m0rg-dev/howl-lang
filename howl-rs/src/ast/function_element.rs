@@ -3,10 +3,11 @@ use std::convert::{TryFrom, TryInto};
 use crate::parser::CSTElement;
 
 use super::{
-    statement_element::StatementElement, type_element::TypeElement, CSTMismatchError, Element,
+    statement_element::StatementElement, type_element::TypeElement, ASTElement, CSTMismatchError,
+    Element,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionElement {
     span: lrpar::Span,
     is_static: bool,
@@ -17,10 +18,65 @@ pub struct FunctionElement {
     body: StatementElement,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct TypedArgument {
     argtype: TypeElement,
     argname: String,
+}
+
+impl FunctionElement {
+    pub fn map_ast<F>(&self, callback: F) -> ASTElement
+    where
+        F: Fn(ASTElement) -> ASTElement,
+    {
+        let new_returntype = match callback(ASTElement::Type(self.returntype.clone())) {
+            ASTElement::Type(t) => t,
+            x => panic!("can't replace a function return type with {}", x),
+        };
+
+        let new_args = self
+            .args
+            .iter()
+            .map(|i| {
+                (
+                    callback(ASTElement::Type(i.argtype.clone())),
+                    i.argname.clone(),
+                )
+            })
+            .map(|i| match i.0 {
+                ASTElement::Type(t) => TypedArgument {
+                    argtype: t,
+                    argname: i.1,
+                },
+                x => panic!("can't replace a function argument with {}", x),
+            })
+            .collect::<Vec<TypedArgument>>();
+
+        let new_throws = self
+            .throws
+            .iter()
+            .map(|i| callback(ASTElement::Type(i.clone())))
+            .map(|i| match i {
+                ASTElement::Type(t) => t,
+                _ => panic!("can't replace a throws type with {}", i),
+            })
+            .collect::<Vec<TypeElement>>();
+
+        let new_body = match callback(ASTElement::Statement(self.body.clone())) {
+            ASTElement::Statement(t) => t,
+            x => panic!("can't replace a function body with {}", x),
+        };
+
+        return ASTElement::Function(FunctionElement {
+            span: self.span,
+            is_static: self.is_static,
+            returntype: new_returntype,
+            name: self.name.clone(),
+            args: new_args,
+            throws: new_throws,
+            body: new_body,
+        });
+    }
 }
 
 fn convert_argument(cst: CSTElement) -> Result<TypedArgument, CSTMismatchError> {

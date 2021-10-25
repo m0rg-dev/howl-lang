@@ -1,10 +1,10 @@
 use std::convert::{TryFrom, TryInto};
 
-use crate::parser::CSTElement;
+use crate::{assert_expression, assert_type, parser::CSTElement};
 
-use super::{type_element::TypeElement, CSTMismatchError, Element};
+use super::{type_element::TypeElement, ASTElement, CSTMismatchError, Element};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExpressionElement {
     Arithmetic {
         span: lrpar::Span,
@@ -54,6 +54,108 @@ pub enum ExpressionElement {
         span: lrpar::Span,
         contents: String,
     },
+}
+
+impl ExpressionElement {
+    pub fn new_string(span: Option<lrpar::Span>, contents: String) -> ExpressionElement {
+        ExpressionElement::String {
+            span: span.or(Some(lrpar::Span::new(0, 0))).unwrap(),
+            contents,
+        }
+    }
+
+    pub fn map_ast<F>(&self, callback: F) -> ASTElement
+    where
+        F: Fn(ASTElement) -> ASTElement,
+    {
+        match self {
+            Self::Arithmetic {
+                span,
+                operator,
+                lhs,
+                rhs,
+            } => {
+                let new_lhs = assert_expression!(callback, **lhs, "an Arithmetic lhs");
+                let new_rhs = assert_expression!(callback, **rhs, "an Arithmetic rhs");
+                ASTElement::Expression(ExpressionElement::Arithmetic {
+                    span: *span,
+                    operator: operator.clone(),
+                    lhs: Box::new(new_lhs),
+                    rhs: Box::new(new_rhs),
+                })
+            }
+            Self::ConstructorCall { span, source, args } => {
+                let new_args = args
+                    .iter()
+                    .map(|x| assert_expression!(callback, x, "a ConstructorCall argument"))
+                    .collect();
+                let new_source = assert_type!(callback, source, "a ConstructorCall source");
+                ASTElement::Expression(ExpressionElement::ConstructorCall {
+                    span: *span,
+                    source: new_source,
+                    args: new_args,
+                })
+            }
+            Self::FFICall { span, name, args } => {
+                let new_args = args
+                    .iter()
+                    .map(|x| assert_expression!(callback, x, "a FFICall argument"))
+                    .collect();
+                ASTElement::Expression(ExpressionElement::FFICall {
+                    span: *span,
+                    name: name.clone(),
+                    args: new_args,
+                })
+            }
+            Self::FunctionCall { span, source, args } => {
+                let new_source = assert_expression!(callback, **source, "a FunctionCall source");
+                let new_args = args
+                    .iter()
+                    .map(|x| assert_expression!(callback, x, "a FunctionCall argument"))
+                    .collect();
+                ASTElement::Expression(ExpressionElement::FunctionCall {
+                    span: *span,
+                    source: Box::new(new_source),
+                    args: new_args,
+                })
+            }
+            Self::FieldReference { span, source, name } => {
+                let new_source = assert_expression!(callback, **source, "a FieldReference source");
+                ASTElement::Expression(ExpressionElement::FieldReference {
+                    span: *span,
+                    source: Box::new(new_source),
+                    name: name.clone(),
+                })
+            }
+            Self::Index {
+                span,
+                source,
+                index,
+            } => {
+                let new_source = assert_expression!(callback, **source, "an Index source");
+                let new_index = assert_expression!(callback, **index, "an Index argument");
+                ASTElement::Expression(ExpressionElement::Index {
+                    span: *span,
+                    source: Box::new(new_source),
+                    index: Box::new(new_index),
+                })
+            }
+            Self::MacroCall { span, name, args } => {
+                let new_args = args
+                    .iter()
+                    .map(|x| assert_expression!(callback, x, "a MacroCall argument"))
+                    .collect();
+                ASTElement::Expression(ExpressionElement::MacroCall {
+                    span: *span,
+                    name: name.clone(),
+                    args: new_args,
+                })
+            }
+            Self::Name { .. } => ASTElement::Expression(self.clone()),
+            Self::Number { .. } => ASTElement::Expression(self.clone()),
+            Self::String { .. } => ASTElement::Expression(self.clone()),
+        }
+    }
 }
 
 impl TryFrom<CSTElement<'_>> for ExpressionElement {

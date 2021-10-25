@@ -8,10 +8,14 @@ use std::fs;
 use std::hash::Hash;
 use std::iter;
 
-use crate::ast::{ASTElement, CSTMismatchError};
+use crate::{
+    ast::{ASTElement, CSTMismatchError},
+    transform::test_transform,
+};
 
 mod ast;
 mod parser;
+mod transform;
 
 lrlex_mod!("howl.l");
 lrlex_mod!("howl.y");
@@ -48,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             r.iter().for_each(|e| {
                 let maybe_ast_el: Result<ASTElement, CSTMismatchError> = e.to_owned().try_into();
                 match maybe_ast_el {
-                    Ok(_) => println!("{}\n", maybe_ast_el.unwrap()),
+                    Ok(_) => println!("{}\n", test_transform(maybe_ast_el.unwrap())),
                     Err(what) => {
                         println!("{:?}", what)
                     }

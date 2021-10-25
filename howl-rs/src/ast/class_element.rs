@@ -6,11 +6,11 @@ use std::{
 use crate::{ast::type_element::TypeElement, parser::CSTElement};
 
 use super::{
-    class_field_element::ClassFieldElement, function_element::FunctionElement, CSTMismatchError,
-    Element,
+    class_field_element::ClassFieldElement, function_element::FunctionElement, ASTElement,
+    CSTMismatchError, Element,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ClassElement {
     span: lrpar::Span,
     name: String,
@@ -85,6 +85,51 @@ impl ClassElement {
             Some(_) => unreachable!(),
             None => vec![],
         }
+    }
+
+    pub fn map_ast<F>(&self, callback: F) -> ASTElement
+    where
+        F: Fn(ASTElement) -> ASTElement,
+    {
+        let new_implements = self
+            .implements
+            .iter()
+            .map(|i| callback(ASTElement::Type(i.clone())))
+            .map(|i| match i {
+                ASTElement::Type(t) => t,
+                _ => panic!("can't replace a class type with {}", i),
+            })
+            .collect::<Vec<TypeElement>>();
+
+        let new_fields = self
+            .fields
+            .iter()
+            .map(|i| callback(ASTElement::ClassField(i.clone())))
+            .map(|i| match i {
+                ASTElement::ClassField(f) => f,
+                _ => panic!("can't replace a class field with {}", i),
+            })
+            .collect::<Vec<ClassFieldElement>>();
+
+        let new_methods = self
+            .methods
+            .iter()
+            .map(|i| callback(ASTElement::Function(i.clone())))
+            .map(|i| match i {
+                ASTElement::Function(f) => f,
+                _ => panic!("can't replace a class method with {}", i),
+            })
+            .collect::<Vec<FunctionElement>>();
+
+        ASTElement::Class(ClassElement {
+            span: self.span,
+            name: self.name.clone(),
+            extends: self.extends.clone(),
+            generics: self.generics.clone(),
+            implements: new_implements,
+            fields: new_fields,
+            methods: new_methods,
+        })
     }
 }
 

@@ -1,12 +1,13 @@
 use std::convert::{TryFrom, TryInto};
 
-use crate::parser::CSTElement;
+use crate::{assert_expression, assert_statement, assert_type, parser::CSTElement};
 
 use super::{
-    expression_element::ExpressionElement, type_element::TypeElement, CSTMismatchError, Element,
+    expression_element::ExpressionElement, type_element::TypeElement, ASTElement, CSTMismatchError,
+    Element,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum StatementElement {
     AssignmentStatement {
         span: lrpar::Span,
@@ -64,6 +65,149 @@ pub enum StatementElement {
         condition: ExpressionElement,
         body: Box<StatementElement>,
     },
+}
+
+impl StatementElement {
+    pub fn map_ast<F>(&self, callback: F) -> ASTElement
+    where
+        F: Fn(ASTElement) -> ASTElement,
+    {
+        match self {
+            Self::AssignmentStatement { span, lhs, rhs } => {
+                let new_lhs = assert_expression!(callback, lhs, "an AssignmentStatement lhs");
+                let new_rhs = assert_expression!(callback, rhs, "an AssignmentStatement rhs");
+                ASTElement::Statement(StatementElement::AssignmentStatement {
+                    span: *span,
+                    lhs: new_lhs,
+                    rhs: new_rhs,
+                })
+            }
+            Self::CompoundStatement { span, statements } => {
+                let new_statements = statements
+                    .iter()
+                    .map(|i| assert_statement!(callback, i, "a CompoundStatement sub-statement"))
+                    .collect::<Vec<StatementElement>>();
+                ASTElement::Statement(StatementElement::CompoundStatement {
+                    span: *span,
+                    statements: new_statements,
+                })
+            }
+            Self::LocalDefinitionStatement {
+                span,
+                localtype,
+                name,
+                initializer,
+            } => {
+                let new_localtype =
+                    assert_type!(callback, localtype, "a LocalDefinitionStatement type");
+                let new_initializer = assert_expression!(
+                    callback,
+                    initializer,
+                    "a LocalDefinitionStatement initializer"
+                );
+                ASTElement::Statement(StatementElement::LocalDefinitionStatement {
+                    span: *span,
+                    localtype: new_localtype,
+                    name: name.clone(),
+                    initializer: new_initializer,
+                })
+            }
+            Self::PartialCatchStatement {
+                span,
+                excname,
+                exctype,
+                body,
+            } => {
+                let new_exctype = assert_type!(callback, exctype, "a PartialCatchStatement type");
+                let new_body = assert_statement!(callback, **body, "a PartialCatchStatement body");
+
+                ASTElement::Statement(StatementElement::PartialCatchStatement {
+                    span: *span,
+                    excname: excname.clone(),
+                    exctype: new_exctype,
+                    body: Box::new(new_body),
+                })
+            }
+            Self::PartialElseStatement { span, body } => {
+                let new_body = assert_statement!(callback, **body, "a PartialElseStatement body");
+
+                ASTElement::Statement(StatementElement::PartialElseStatement {
+                    span: *span,
+                    body: Box::new(new_body),
+                })
+            }
+            Self::PartialIfStatement {
+                span,
+                condition,
+                body,
+            } => {
+                let new_condition =
+                    assert_expression!(callback, condition, "a PartialIfStatement condition");
+
+                let new_body = assert_statement!(callback, **body, "a PartialIfStatement body");
+
+                ASTElement::Statement(StatementElement::PartialIfStatement {
+                    span: *span,
+                    condition: new_condition,
+                    body: Box::new(new_body),
+                })
+            }
+            Self::PartialTryStatement { span, body } => {
+                let new_body = assert_statement!(callback, **body, "a PartialTryStatement body");
+
+                ASTElement::Statement(StatementElement::PartialTryStatement {
+                    span: *span,
+                    body: Box::new(new_body),
+                })
+            }
+            Self::ReturnStatement { span, expression } => {
+                let new_expression = expression.as_ref().map_or(None, |e| {
+                    Some(assert_expression!(
+                        callback,
+                        e,
+                        "a ReturnStatement expression"
+                    ))
+                });
+                ASTElement::Statement(StatementElement::ReturnStatement {
+                    span: *span,
+                    expression: new_expression,
+                })
+            }
+            Self::SimpleStatement { span, expression } => {
+                let new_expression =
+                    assert_expression!(callback, expression, "a SimpleStatement expression");
+                ASTElement::Statement(StatementElement::SimpleStatement {
+                    span: *span,
+                    expression: new_expression,
+                })
+            }
+            Self::ThrowStatement { span, expression } => {
+                let new_expression =
+                    assert_expression!(callback, expression, "a ThrowStatement expression");
+                ASTElement::Statement(StatementElement::ThrowStatement {
+                    span: *span,
+                    expression: new_expression,
+                })
+            }
+            Self::WhileStatement {
+                span,
+                condition,
+                body,
+            } => {
+                let new_condition =
+                    assert_expression!(callback, condition, "a WhileStatement condition");
+
+                let new_body = assert_statement!(callback, **body, "a WhileStatement body");
+
+                ASTElement::Statement(StatementElement::WhileStatement {
+                    span: *span,
+                    condition: new_condition,
+                    body: Box::new(new_body),
+                })
+            }
+            _ => panic!("not yet implemented: {}", self),
+        }
+    }
 }
 
 impl TryFrom<CSTElement<'_>> for StatementElement {
