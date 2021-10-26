@@ -55,6 +55,15 @@ impl CompilationUnit {
         self.items.borrow_mut()
     }
 
+    pub fn apply_transform<F>(&self, callback: F)
+    where
+        F: Fn(ASTElement) -> ASTElement,
+    {
+        for item in &mut *self.items_mut() {
+            *item = callback(item.to_owned())
+        }
+    }
+
     pub fn compile_from(
         source_path: &PathBuf,
         root_module: String,
@@ -105,9 +114,9 @@ impl CompilationUnit {
                 });
             }
         }
-        for item in &mut *cu.items_mut() {
-            *item = apply_transforms(item.to_owned(), cu.root_module.clone(), &cu)
-        }
+
+        cu.apply_transform(|i| assemble_statements(i, &cu));
+        cu.apply_transform(|i| qualify_items(i, cu.root_module.clone(), &cu));
 
         for e in &*cu.errors.borrow() {
             print_error(&cu, &e);
@@ -115,17 +124,6 @@ impl CompilationUnit {
 
         Ok(cu)
     }
-}
-
-fn apply_transforms(
-    top_level: ASTElement,
-    root_module: String,
-    cu: &CompilationUnit,
-) -> ASTElement {
-    let mut e = top_level;
-    e = assemble_statements(e, cu);
-    e = qualify_items(e, root_module, cu);
-    return e;
 }
 
 pub fn print_error(cu: &CompilationUnit, e: &CompilationError) {

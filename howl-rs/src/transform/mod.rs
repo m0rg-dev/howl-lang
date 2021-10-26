@@ -22,17 +22,3 @@ where
         _ => ASTElement::Placeholder(PlaceholderElement::new()),
     }
 }
-
-// pub fn test_transform(source: ASTElement) -> ASTElement {
-//     match source {
-//         // Match certain element types to replace them in-place.
-//         ASTElement::Expression(ExpressionElement::String { .. }) => {
-//             ASTElement::Expression(ExpressionElement::new_string(
-//                 None,
-//                 "\"string literal replaced by test_transform\"".to_string(),
-//             ))
-//         }
-//         // Otherwise, pass through to the next level of map_ast.
-//         _ => map_ast(source, test_transform),
-//     }
-// }
