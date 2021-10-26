@@ -5,16 +5,16 @@ use crate::{
         expression_element::ExpressionElement, statement_element::StatementElement,
         type_element::TypeElement, ASTElement,
     },
-    compilation_unit::CompilationError,
+    compilation_unit::{CompilationError, CompilationUnit},
 };
 
 use super::map_ast;
 
-pub fn assemble_statements(source: ASTElement, errlist: &mut Vec<CompilationError>) -> ASTElement {
+pub fn assemble_statements(source: ASTElement, cu: &CompilationUnit) -> ASTElement {
     match source {
         ASTElement::Statement(StatementElement::CompoundStatement { span, statements }) => {
             let mut new_statements: Vec<StatementElement> = vec![];
-            let mut it = statements.iter().peekable();
+            let mut it = statements.iter();
             while it.len() > 0 {
                 let stmt = it.next().unwrap();
                 match stmt {
@@ -46,7 +46,7 @@ pub fn assemble_statements(source: ASTElement, errlist: &mut Vec<CompilationErro
                             }
                             Some(x) => {
                                 new_statements.push(x);
-                                errlist.push(CompilationError::ValidationError {
+                                cu.add_error(CompilationError::ValidationError {
                                     span: *span,
                                     description: "catch statement without corresponding try"
                                         .to_string(),
@@ -85,7 +85,7 @@ pub fn assemble_statements(source: ASTElement, errlist: &mut Vec<CompilationErro
                         }
                         Some(x) => {
                             new_statements.push(x);
-                            errlist.push(CompilationError::ValidationError {
+                            cu.add_error(CompilationError::ValidationError {
                                 span: *span,
                                 description: "else if statement without corresponding if"
                                     .to_string(),
@@ -108,7 +108,7 @@ pub fn assemble_statements(source: ASTElement, errlist: &mut Vec<CompilationErro
                             }
                             Some(x) => {
                                 new_statements.push(x);
-                                errlist.push(CompilationError::ValidationError {
+                                cu.add_error(CompilationError::ValidationError {
                                     span: *span,
                                     description: "else statement without corresponding if"
                                         .to_string(),
@@ -133,6 +133,6 @@ pub fn assemble_statements(source: ASTElement, errlist: &mut Vec<CompilationErro
                 statements: new_statements,
             })
         }
-        _ => map_ast(source, |e| assemble_statements(e, errlist)),
+        _ => map_ast(source, |e| assemble_statements(e, cu)),
     }
 }

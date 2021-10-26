@@ -85,6 +85,19 @@ impl InterfaceElement {
             methods: new_methods,
         })
     }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn with_name(self, new_name: String) -> InterfaceElement {
+        InterfaceElement {
+            span: self.span,
+            name: new_name,
+            generics: self.generics,
+            methods: self.methods,
+        }
+    }
 }
 
 impl Element for InterfaceElement {

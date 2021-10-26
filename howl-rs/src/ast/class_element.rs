@@ -131,6 +131,22 @@ impl ClassElement {
             methods: new_methods,
         })
     }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn with_name(self, new_name: String) -> ClassElement {
+        ClassElement {
+            span: self.span,
+            name: new_name,
+            extends: self.extends,
+            generics: self.generics,
+            implements: self.implements,
+            fields: self.fields,
+            methods: self.methods,
+        }
+    }
 }
 
 impl Element for ClassElement {

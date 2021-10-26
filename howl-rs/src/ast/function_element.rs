@@ -77,6 +77,22 @@ impl FunctionElement {
             body: new_body,
         });
     }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn with_name(self, new_name: String) -> FunctionElement {
+        FunctionElement {
+            span: self.span,
+            is_static: self.is_static,
+            returntype: self.returntype,
+            name: new_name,
+            args: self.args,
+            throws: self.throws,
+            body: self.body,
+        }
+    }
 }
 
 fn convert_argument(cst: CSTElement) -> Result<TypedArgument, CSTMismatchError> {

@@ -1,18 +1,19 @@
-use std::{convert::TryInto, error::Error, fs, iter, path::PathBuf};
+use std::{cell::RefCell, convert::TryInto, error::Error, fs, iter, path::PathBuf};
 
 use cfgrammar::TIdx;
-use lrlex::{lrlex_mod, LRNonStreamingLexer};
+use lrlex::{lrlex_mod, LRNonStreamingLexer, LRNonStreamingLexerDef};
 use lrpar::{LexParseError, NonStreamingLexer, ParseError, ParseRepair, Span};
 
 use crate::{
     ast::{ASTElement, CSTMismatchError},
-    transform::assemble_statements,
+    logger::{LogLevel, Logger},
+    transform::{assemble_statements, qualify_items},
 };
 
 lrlex_mod!("howl.l");
 lrlex_mod!("howl.y");
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub enum CompilationError {
     LexError(lrpar::LexError),
     ParseError(lrpar::ParseError<u32>),
@@ -23,32 +24,71 @@ pub enum CompilationError {
     },
 }
 
-#[derive(Debug)]
 pub struct CompilationUnit {
-    source_path: Box<PathBuf>,
-    had_errors: bool,
+    source: String,
+    lexerdef: LRNonStreamingLexerDef<u32>,
+    pub root_module: String,
+    pub source_path: Box<PathBuf>,
+    items: RefCell<Vec<ASTElement>>,
+    errors: RefCell<Vec<CompilationError>>,
 }
 
 impl CompilationUnit {
-    pub fn compile_from(source_path: &PathBuf) -> Result<CompilationUnit, Box<dyn Error>> {
-        let mut errors: Vec<CompilationError> = vec![];
+    fn lexer(&self) -> LRNonStreamingLexer<'_, '_, u32> {
+        let lexer = self.lexerdef.lexer(&self.source);
+        lexer
+    }
 
-        let lexerdef = howl_l::lexerdef();
-        let src = fs::read_to_string(source_path)?;
-        let lexer = lexerdef.lexer(&src);
-        let (cst, mut errs) = howl_y::parse(&lexer);
+    pub fn add_item(&self, item: ASTElement) {
+        self.items.borrow_mut().push(item);
+    }
 
-        errors.append(
-            &mut errs
-                .iter_mut()
-                .map(|x| match x {
-                    LexParseError::LexError(e) => CompilationError::LexError(*e),
-                    LexParseError::ParseError(e) => CompilationError::ParseError(e.clone()),
-                })
-                .collect::<Vec<CompilationError>>(),
+    pub fn add_error(&self, item: CompilationError) {
+        self.errors.borrow_mut().push(item);
+    }
+
+    pub fn errors(&self) -> Vec<CompilationError> {
+        self.errors.borrow().to_vec()
+    }
+
+    pub fn items_mut(&self) -> std::cell::RefMut<'_, Vec<ASTElement>> {
+        self.items.borrow_mut()
+    }
+
+    pub fn compile_from(
+        source_path: &PathBuf,
+        root_module: String,
+    ) -> Result<CompilationUnit, Box<dyn Error>> {
+        Logger::log(
+            LogLevel::Info,
+            &format!(
+                "Compiling: {} ({})",
+                root_module,
+                source_path.to_string_lossy()
+            ),
         );
 
-        if errors.len() == 0 {
+        let src = fs::read_to_string(source_path)?;
+
+        let cu = CompilationUnit {
+            source: src,
+            lexerdef: howl_l::lexerdef(),
+            root_module,
+            source_path: Box::new(source_path.to_path_buf()),
+            items: RefCell::new(vec![]),
+            errors: RefCell::new(vec![]),
+        };
+
+        let (cst, parse_errors) = howl_y::parse(&cu.lexer());
+
+        parse_errors.iter().for_each(|x| {
+            cu.add_error(match x {
+                LexParseError::LexError(e) => CompilationError::LexError(*e),
+                LexParseError::ParseError(e) => CompilationError::ParseError(e.clone()),
+            })
+        });
+
+        if cu.errors().len() == 0 {
             // no lex / parse errors. we're free to start AST transformation
             if let Some(Ok(r)) = cst {
                 r.iter().for_each(|e| {
@@ -56,10 +96,7 @@ impl CompilationUnit {
                         e.to_owned().try_into();
                     match maybe_ast_el {
                         Ok(_) => {
-                            println!(
-                                "{}\n",
-                                assemble_statements(maybe_ast_el.unwrap(), &mut errors)
-                            )
+                            cu.add_item(maybe_ast_el.unwrap());
                         }
                         Err(what) => {
                             println!("{:?}", what)
@@ -68,73 +105,92 @@ impl CompilationUnit {
                 });
             }
         }
-
-        for e in &errors {
-            match e {
-                CompilationError::LexError(e) => {
-                    let ((line, col), _) = lexer.line_col(e.span());
-                    eprintln!("Lexing error at line {} column {}.", line, col);
-                    let line_str = lexer.span_lines_str(e.span()).split("\n").next().unwrap();
-                    eprintln!("    \x1b[32m{:>5}\x1b[0m \x1b[97m{}\x1b[0m", line, line_str);
-                    eprintln!("         {}\x1b[1;35m^ here\x1b[0m", " ".repeat(col));
-                }
-                CompilationError::ParseError(e) => {
-                    print_recovery(&lexer, e.clone());
-                }
-                CompilationError::ValidationError { span, description } => {
-                    let ((start_line, start_col), (end_line, end_col)) = lexer.line_col(*span);
-                    eprintln!(
-                        "Validation error at line {} column {}: {}",
-                        start_line, start_col, description
-                    );
-                    let lines_str = lexer.span_lines_str(*span);
-                    if start_line == end_line {
-                        eprintln!(
-                            "    \x1b[32m{:>5}\x1b[0m \x1b[97m{}\x1b[0m",
-                            start_line, lines_str
-                        );
-                        eprintln!(
-                            "         {}\x1b[1;35m{}\x1b[0m",
-                            " ".repeat(start_col),
-                            "^".repeat(end_col - start_col)
-                        );
-                    } else {
-                        let lines_vec = lines_str.split("\n").collect::<Vec<&str>>();
-                        let (first_line, rest) = lines_vec.split_first().unwrap();
-                        let (last_line, rest) = rest.split_last().unwrap();
-
-                        let (first_line_before, first_line_after) =
-                            first_line.split_at(start_col - 1);
-                        let (last_line_before, last_line_after) = last_line.split_at(end_col - 1);
-
-                        eprintln!(
-                            "    \x1b[32m{:>5}\x1b[0m {}\x1b[31m{}\x1b[0m",
-                            start_line, first_line_before, first_line_after
-                        );
-                        rest.iter().enumerate().for_each(|(offset, line)| {
-                            eprintln!(
-                                "    \x1b[32m{:>5}\x1b[0m \x1b[31m{}\x1b[0m",
-                                start_line + offset + 1,
-                                line
-                            )
-                        });
-                        eprintln!(
-                            "    \x1b[32m{:>5}\x1b[0m \x1b[31m{}\x1b[0m{}",
-                            end_line, last_line_before, last_line_after
-                        );
-                    }
-                }
-            }
+        for item in &mut *cu.items_mut() {
+            *item = apply_transforms(item.to_owned(), cu.root_module.clone(), &cu)
         }
 
-        Ok(CompilationUnit {
-            source_path: Box::new(source_path.to_owned()),
-            had_errors: errors.len() > 0,
-        })
+        for e in &*cu.errors.borrow() {
+            print_error(&cu, &e);
+        }
+
+        Ok(cu)
     }
 }
 
-fn print_recovery(lexer: &LRNonStreamingLexer<u32>, error: ParseError<u32>) {
+fn apply_transforms(
+    top_level: ASTElement,
+    root_module: String,
+    cu: &CompilationUnit,
+) -> ASTElement {
+    let mut e = top_level;
+    e = assemble_statements(e, cu);
+    e = qualify_items(e, root_module, cu);
+    return e;
+}
+
+pub fn print_error(cu: &CompilationUnit, e: &CompilationError) {
+    match e {
+        CompilationError::LexError(e) => {
+            let ((line, col), _) = cu.lexer().line_col(e.span());
+            eprintln!("Lexing error at line {} column {}.", line, col);
+            let line_str = cu
+                .lexer()
+                .span_lines_str(e.span())
+                .split("\n")
+                .next()
+                .unwrap();
+            eprintln!("    \x1b[32m{:>5}\x1b[0m \x1b[97m{}\x1b[0m", line, line_str);
+            eprintln!("         {}\x1b[1;35m^ here\x1b[0m", " ".repeat(col));
+        }
+        CompilationError::ParseError(e) => {
+            print_recovery(&cu.lexer(), e.clone());
+        }
+        CompilationError::ValidationError { span, description } => {
+            let ((start_line, start_col), (end_line, end_col)) = cu.lexer().line_col(*span);
+            eprintln!(
+                "Validation error at line {} column {}: {}",
+                start_line, start_col, description
+            );
+            let lines_str = cu.lexer().span_lines_str(*span);
+            if start_line == end_line {
+                eprintln!(
+                    "    \x1b[32m{:>5}\x1b[0m \x1b[97m{}\x1b[0m",
+                    start_line, lines_str
+                );
+                eprintln!(
+                    "         {}\x1b[1;35m{}\x1b[0m",
+                    " ".repeat(start_col),
+                    "^".repeat(end_col - start_col)
+                );
+            } else {
+                let lines_vec = lines_str.split("\n").collect::<Vec<&str>>();
+                let (first_line, rest) = lines_vec.split_first().unwrap();
+                let (last_line, rest) = rest.split_last().unwrap();
+
+                let (first_line_before, first_line_after) = first_line.split_at(start_col - 1);
+                let (last_line_before, last_line_after) = last_line.split_at(end_col - 1);
+
+                eprintln!(
+                    "    \x1b[32m{:>5}\x1b[0m {}\x1b[31m{}\x1b[0m",
+                    start_line, first_line_before, first_line_after
+                );
+                rest.iter().enumerate().for_each(|(offset, line)| {
+                    eprintln!(
+                        "    \x1b[32m{:>5}\x1b[0m \x1b[31m{}\x1b[0m",
+                        start_line + offset + 1,
+                        line
+                    )
+                });
+                eprintln!(
+                    "    \x1b[32m{:>5}\x1b[0m \x1b[31m{}\x1b[0m{}",
+                    end_line, last_line_before, last_line_after
+                );
+            }
+        }
+    }
+}
+
+fn print_recovery<'input>(lexer: &dyn NonStreamingLexer<'input, u32>, error: ParseError<u32>) {
     let ((line, col), _) = lexer.line_col(error.lexeme().span());
     eprintln!("Parsing error at line {} column {}:", line, col);
     let line_str = lexer
@@ -160,8 +216,8 @@ fn print_recovery(lexer: &LRNonStreamingLexer<u32>, error: ParseError<u32>) {
     eprintln!("");
 }
 
-fn print_repair(
-    lexer: &LRNonStreamingLexer<u32>,
+fn print_repair<'input>(
+    lexer: &dyn NonStreamingLexer<'input, u32>,
     repair: &Vec<ParseRepair<u32>>,
     line: &str,
     start_col: usize,

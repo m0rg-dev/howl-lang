@@ -35,7 +35,7 @@ catch "CATCH"
 ! "!"
 % "%"
 "((?:\\.|[^"\\])*)" "string"
-[_A-Za-z][_A-Za-z0-9-]* "identifier"
+[_A-Za-z][_A-Za-z0-9-]*(?:\.[_A-Za-z][_A-Za-z0-9-]*)* "identifier"
 [0-9]+ "number"
 /\*.*?\*/ ;
 //[^\n]*$ ;
