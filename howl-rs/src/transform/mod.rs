@@ -6,6 +6,8 @@ pub use assemble_statements::assemble_statements;
 pub mod qualify_items;
 pub use qualify_items::qualify_items;
 
+pub mod resolve_names;
+
 pub fn map_ast<F>(source: ASTElement, callback: F) -> ASTElement
 where
     F: FnMut(ASTElement) -> ASTElement,

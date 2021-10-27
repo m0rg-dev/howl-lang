@@ -1,16 +1,21 @@
-use std::iter;
+use std::{iter, rc::Rc};
 
 use crate::{
     ast::{
         expression_element::ExpressionElement, statement_element::StatementElement,
         type_element::TypeElement, ASTElement,
     },
-    compilation_unit::{CompilationError, CompilationUnit},
+    compilation_unit::{CompilationError, CompilationErrorKind, CompilationUnit},
+    context::Context,
 };
 
 use super::map_ast;
 
-pub fn assemble_statements(source: ASTElement, cu: &CompilationUnit) -> ASTElement {
+pub fn assemble_statements(
+    source: ASTElement,
+    ctx: &Context,
+    cu: Rc<CompilationUnit>,
+) -> ASTElement {
     match source {
         ASTElement::Statement(StatementElement::CompoundStatement { span, statements }) => {
             let mut new_statements: Vec<StatementElement> = vec![];
@@ -46,10 +51,13 @@ pub fn assemble_statements(source: ASTElement, cu: &CompilationUnit) -> ASTEleme
                             }
                             Some(x) => {
                                 new_statements.push(x);
-                                cu.add_error(CompilationError::ValidationError {
-                                    span: *span,
-                                    description: "catch statement without corresponding try"
-                                        .to_string(),
+                                ctx.add_error(CompilationError {
+                                    cu: cu.clone(),
+                                    error: CompilationErrorKind::ValidationError {
+                                        span: *span,
+                                        description: "catch statement without corresponding try"
+                                            .to_string(),
+                                    },
                                 })
                             }
                             None => unreachable!(),
@@ -85,10 +93,13 @@ pub fn assemble_statements(source: ASTElement, cu: &CompilationUnit) -> ASTEleme
                         }
                         Some(x) => {
                             new_statements.push(x);
-                            cu.add_error(CompilationError::ValidationError {
-                                span: *span,
-                                description: "else if statement without corresponding if"
-                                    .to_string(),
+                            ctx.add_error(CompilationError {
+                                cu: cu.clone(),
+                                error: CompilationErrorKind::ValidationError {
+                                    span: *span,
+                                    description: "else if statement without corresponding if"
+                                        .to_string(),
+                                },
                             })
                         }
                         None => unreachable!(),
@@ -108,10 +119,13 @@ pub fn assemble_statements(source: ASTElement, cu: &CompilationUnit) -> ASTEleme
                             }
                             Some(x) => {
                                 new_statements.push(x);
-                                cu.add_error(CompilationError::ValidationError {
-                                    span: *span,
-                                    description: "else statement without corresponding if"
-                                        .to_string(),
+                                ctx.add_error(CompilationError {
+                                    cu: cu.clone(),
+                                    error: CompilationErrorKind::ValidationError {
+                                        span: *span,
+                                        description: "else statement without corresponding if"
+                                            .to_string(),
+                                    },
                                 })
                             }
                             None => unreachable!(),
@@ -133,6 +147,6 @@ pub fn assemble_statements(source: ASTElement, cu: &CompilationUnit) -> ASTEleme
                 statements: new_statements,
             })
         }
-        _ => map_ast(source, |e| assemble_statements(e, cu)),
+        _ => map_ast(source, |e| assemble_statements(e, ctx, cu.clone())),
     }
 }

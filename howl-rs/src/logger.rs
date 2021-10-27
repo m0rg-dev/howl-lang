@@ -12,6 +12,8 @@ pub struct Logger {}
 pub enum LogLevel {
     Trace,
     Info,
+    Warning,
+    Error,
 }
 
 impl Logger {
@@ -22,9 +24,18 @@ impl Logger {
 
     pub fn log(level: LogLevel, message: &str) {
         match level {
-            LogLevel::Trace => eprint!("\x1b[34mTRACE\x1b[0m "),
-            LogLevel::Info => eprint!("\x1b[37m INFO\x1b[0m "),
+            LogLevel::Trace => eprint!("\x1b[34m TRACE\x1b[0m "),
+            LogLevel::Info => eprint!("\x1b[37m  INFO\x1b[0m "),
+            LogLevel::Warning => eprint!("\x1b[33m  WARN\x1b[0m "),
+            LogLevel::Error => eprint!("\x1b[31mERROR\x1b[0m "),
         }
         eprintln!("{}", message);
     }
+}
+
+#[macro_export]
+macro_rules! log {
+    ($level: expr, $format: expr, $($args:expr),+) => {
+        Logger::log($level, &format!($format $(,$args)*))
+    };
 }

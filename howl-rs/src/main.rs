@@ -1,4 +1,4 @@
-use compilation_unit::CompilationUnit;
+use context::Context;
 use std::error::Error;
 use structopt::StructOpt;
 
@@ -26,7 +26,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
     Logger::init(&args);
 
-    let cu = CompilationUnit::compile_from(&args.source_path, args.root_module)?;
+    let mut context = Context::new();
+    context.ingest_file(&args.source_path, args.root_module)?;
+    context.compile_whole_program();
 
     Ok(())
 }

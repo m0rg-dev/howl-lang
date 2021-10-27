@@ -12,6 +12,10 @@ pub struct ClassFieldElement {
 }
 
 impl ClassFieldElement {
+    pub fn name(&self) -> String {
+        self.fieldname.clone()
+    }
+
     pub fn map_ast<F>(&self, mut callback: F) -> ASTElement
     where
         F: FnMut(ASTElement) -> ASTElement,

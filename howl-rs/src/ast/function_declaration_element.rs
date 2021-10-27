@@ -67,6 +67,21 @@ impl FunctionDeclarationElement {
             throws: new_throws,
         });
     }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn with_name(self, new_name: String) -> FunctionDeclarationElement {
+        FunctionDeclarationElement {
+            span: self.span,
+            is_static: self.is_static,
+            returntype: self.returntype,
+            name: new_name,
+            args: self.args,
+            throws: self.throws,
+        }
+    }
 }
 
 fn convert_argument(cst: CSTElement) -> Result<TypedArgument, CSTMismatchError> {

@@ -136,6 +136,18 @@ impl ClassElement {
         &self.name
     }
 
+    pub fn generics(&self) -> Vec<String> {
+        self.generics.clone()
+    }
+
+    pub fn fields(&self) -> Vec<ClassFieldElement> {
+        self.fields.clone()
+    }
+
+    pub fn methods(&self) -> Vec<FunctionElement> {
+        self.methods.clone()
+    }
+
     pub fn with_name(self, new_name: String) -> ClassElement {
         ClassElement {
             span: self.span,

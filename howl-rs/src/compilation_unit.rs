@@ -1,20 +1,37 @@
-use std::{cell::RefCell, convert::TryInto, error::Error, fs, iter, path::PathBuf};
+use std::{
+    cell::RefCell,
+    convert::TryInto,
+    error::Error,
+    fs, iter,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 use cfgrammar::TIdx;
 use lrlex::{lrlex_mod, LRNonStreamingLexer, LRNonStreamingLexerDef};
 use lrpar::{LexParseError, NonStreamingLexer, ParseError, ParseRepair, Span};
 
 use crate::{
-    ast::{ASTElement, CSTMismatchError},
+    ast::{type_element::TypeElement, ASTElement, CSTMismatchError},
     logger::{LogLevel, Logger},
-    transform::{assemble_statements, qualify_items},
+    transform::qualify_items,
 };
 
 lrlex_mod!("howl.l");
 lrlex_mod!("howl.y");
 
+#[derive(Clone, Debug)]
+pub enum Identifier {
+    Type(TypeElement),
+    Class(String),
+    Interface(String),
+    Function(String),
+    LocalVariable(String),
+    TypeParameter(String),
+}
+
 #[derive(Clone)]
-pub enum CompilationError {
+pub enum CompilationErrorKind {
     LexError(lrpar::LexError),
     ParseError(lrpar::ParseError<u32>),
     #[allow(dead_code)]
@@ -22,6 +39,12 @@ pub enum CompilationError {
         span: lrpar::Span,
         description: String,
     },
+}
+
+#[derive(Clone)]
+pub struct CompilationError {
+    pub cu: Rc<CompilationUnit>,
+    pub error: CompilationErrorKind,
 }
 
 pub struct CompilationUnit {
@@ -51,6 +74,10 @@ impl CompilationUnit {
         self.errors.borrow().to_vec()
     }
 
+    pub fn items(&self) -> Vec<ASTElement> {
+        self.items.borrow().to_vec()
+    }
+
     pub fn items_mut(&self) -> std::cell::RefMut<'_, Vec<ASTElement>> {
         self.items.borrow_mut()
     }
@@ -65,9 +92,9 @@ impl CompilationUnit {
     }
 
     pub fn compile_from(
-        source_path: &PathBuf,
+        source_path: &Path,
         root_module: String,
-    ) -> Result<CompilationUnit, Box<dyn Error>> {
+    ) -> Result<Rc<CompilationUnit>, Box<dyn Error>> {
         Logger::log(
             LogLevel::Info,
             &format!(
@@ -79,21 +106,27 @@ impl CompilationUnit {
 
         let src = fs::read_to_string(source_path)?;
 
-        let cu = CompilationUnit {
+        let cu = Rc::new(CompilationUnit {
             source: src,
             lexerdef: howl_l::lexerdef(),
             root_module,
             source_path: Box::new(source_path.to_path_buf()),
             items: RefCell::new(vec![]),
             errors: RefCell::new(vec![]),
-        };
+        });
 
         let (cst, parse_errors) = howl_y::parse(&cu.lexer());
 
         parse_errors.iter().for_each(|x| {
             cu.add_error(match x {
-                LexParseError::LexError(e) => CompilationError::LexError(*e),
-                LexParseError::ParseError(e) => CompilationError::ParseError(e.clone()),
+                LexParseError::LexError(e) => CompilationError {
+                    cu: Rc::clone(&cu),
+                    error: CompilationErrorKind::LexError(*e),
+                },
+                LexParseError::ParseError(e) => CompilationError {
+                    cu: Rc::clone(&cu),
+                    error: CompilationErrorKind::ParseError(e.clone()),
+                },
             })
         });
 
@@ -115,20 +148,18 @@ impl CompilationUnit {
             }
         }
 
-        cu.apply_transform(|i| assemble_statements(i, &cu));
         cu.apply_transform(|i| qualify_items(i, cu.root_module.clone(), &cu));
-
-        for e in &*cu.errors.borrow() {
-            print_error(&cu, &e);
-        }
 
         Ok(cu)
     }
 }
 
-pub fn print_error(cu: &CompilationUnit, e: &CompilationError) {
+pub fn print_error(e: &CompilationError) {
     match e {
-        CompilationError::LexError(e) => {
+        CompilationError {
+            cu,
+            error: CompilationErrorKind::LexError(e),
+        } => {
             let ((line, col), _) = cu.lexer().line_col(e.span());
             eprintln!("Lexing error at line {} column {}.", line, col);
             let line_str = cu
@@ -140,14 +171,23 @@ pub fn print_error(cu: &CompilationUnit, e: &CompilationError) {
             eprintln!("    \x1b[32m{:>5}\x1b[0m \x1b[97m{}\x1b[0m", line, line_str);
             eprintln!("         {}\x1b[1;35m^ here\x1b[0m", " ".repeat(col));
         }
-        CompilationError::ParseError(e) => {
+        CompilationError {
+            cu,
+            error: CompilationErrorKind::ParseError(e),
+        } => {
             print_recovery(&cu.lexer(), e.clone());
         }
-        CompilationError::ValidationError { span, description } => {
+        CompilationError {
+            cu,
+            error: CompilationErrorKind::ValidationError { span, description },
+        } => {
             let ((start_line, start_col), (end_line, end_col)) = cu.lexer().line_col(*span);
             eprintln!(
-                "Validation error at line {} column {}: {}",
-                start_line, start_col, description
+                "\x1b[1;31merror\x1b[0m: {}, {}:{}: \x1b[1m{}\x1b[0m",
+                cu.source_path.to_string_lossy(),
+                start_line,
+                start_col,
+                description
             );
             let lines_str = cu.lexer().span_lines_str(*span);
             if start_line == end_line {

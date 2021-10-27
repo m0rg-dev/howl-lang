@@ -90,6 +90,14 @@ impl InterfaceElement {
         &self.name
     }
 
+    pub fn generics(&self) -> Vec<String> {
+        self.generics.clone()
+    }
+
+    pub fn methods(&self) -> Vec<FunctionDeclarationElement> {
+        self.methods.clone()
+    }
+
     pub fn with_name(self, new_name: String) -> InterfaceElement {
         InterfaceElement {
             span: self.span,
