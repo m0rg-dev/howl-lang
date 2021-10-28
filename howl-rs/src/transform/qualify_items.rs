@@ -18,14 +18,14 @@ pub fn qualify_items(source: ASTElement, root_module: String, cu: &CompilationUn
                 qualify_items(e, new_name.clone(), cu)
             })
         }
-        ASTElement::Function(f) => {
-            let new_name = format!("{}.{}", root_module, f.name());
-            Logger::log(
-                LogLevel::Trace,
-                &format!("Qualified function:  {}", new_name),
-            );
-            ASTElement::Function(f.with_name(new_name))
-        }
+        // ASTElement::Function(f) => {
+        //     let new_name = format!("{}.{}", root_module, f.name());
+        //     Logger::log(
+        //         LogLevel::Trace,
+        //         &format!("Qualified function:  {}", new_name),
+        //     );
+        //     ASTElement::Function(f.with_name(new_name))
+        // }
         ASTElement::Interface(i) => {
             let new_name = format!("{}.{}", root_module, i.name());
             Logger::log(

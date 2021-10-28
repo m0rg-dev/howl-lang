@@ -80,7 +80,12 @@ impl Context {
                 }
 
                 for m in c.methods() {
-                    log!(LogLevel::Trace, "Adding name:  object {}", m.name());
+                    log!(
+                        LogLevel::Trace,
+                        "Adding name:  object {}.{}",
+                        c.name(),
+                        m.name()
+                    );
                 }
             }
             ASTElement::Interface(i) => {
@@ -105,7 +110,12 @@ impl Context {
                 }
 
                 for m in i.methods() {
-                    log!(LogLevel::Trace, "Adding name:  object {}", m.name());
+                    log!(
+                        LogLevel::Trace,
+                        "Adding name:  object {}.{}",
+                        i.name(),
+                        m.name()
+                    );
                 }
             }
             _ => {}
