@@ -1,57 +1,11 @@
-use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
-use std::rc::Rc;
 
-pub struct ASTArena {
-    inner: Rc<ASTArenaInner>,
-}
+use self::arena::{ASTArena, ASTHandle};
 
-impl ASTArena {
-    pub fn new() -> ASTArena {
-        ASTArena {
-            inner: Rc::new(ASTArenaInner::new()),
-        }
-    }
-
-    pub fn insert(&self, element: ASTElement) -> ASTHandle {
-        let arena: &ASTArenaInner = self.inner.borrow();
-        let idx = arena.elements.borrow().len();
-        arena.elements.borrow_mut().push(element);
-        ASTHandle {
-            arena_ref: self.inner.clone(),
-            id: idx,
-        }
-    }
-}
-
-pub struct ASTArenaInner {
-    elements: accountable_refcell::RefCell<Vec<ASTElement>>,
-}
-
-#[derive(Clone)]
-pub struct ASTHandle {
-    arena_ref: Rc<ASTArenaInner>,
-    id: usize,
-}
-
-impl ASTHandle {
-    pub fn as_ref(&self) -> impl Deref<Target = ASTElement> + '_ {
-        let arena: &ASTArenaInner = self.arena_ref.borrow();
-        accountable_refcell::Ref::map(arena.elements.borrow(), |x| &x[self.id])
-    }
-
-    pub fn as_cloned(&self) -> ASTElement {
-        self.as_ref().clone()
-    }
-}
-
-impl std::fmt::Debug for ASTHandle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ASTHandle {} => {:#?}", self.id, self.as_ref().deref())
-    }
-}
+pub mod arena;
+pub mod pretty_print;
 
 #[derive(Clone)]
 pub struct ASTElement {
@@ -61,41 +15,31 @@ pub struct ASTElement {
     var_slot_idx: RefCell<usize>,
 }
 
-impl std::fmt::Debug for ASTElement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut builder = f.debug_struct("ASTElement");
-        if self.parent.is_some() {
-            builder.field("parent", &self.parent.as_ref().unwrap().id);
-        }
-
-        match &self.element {
-            ASTElementKind::Module { .. } => {
-                builder.field("type", &"Module");
-                builder.field("path", &self.path());
-            }
-        }
-
-        builder.field("slots", &self.slots.borrow()).finish()
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum ASTElementKind {
-    Module { name: String },
-}
-
-impl ASTArenaInner {
-    pub fn new() -> ASTArenaInner {
-        ASTArenaInner {
-            elements: accountable_refcell::RefCell::new(Vec::new()),
-        }
-    }
+    Module {
+        name: String,
+    },
+    Class {
+        span: lrpar::Span,
+        name: String,
+    },
+    ClassField {
+        span: lrpar::Span,
+        name: String,
+        type_ref: ASTHandle,
+    },
+    UnresolvedIdentifier {
+        span: lrpar::Span,
+        name: String,
+    },
+    Placeholder(),
 }
 
 impl ASTElement {
-    pub fn new(parent: Option<ASTHandle>, element: ASTElementKind) -> ASTElement {
+    pub fn new(element: ASTElementKind) -> ASTElement {
         ASTElement {
-            parent,
+            parent: None,
             element,
             slots: RefCell::new(HashMap::new()),
             var_slot_idx: RefCell::new(0),
@@ -111,19 +55,44 @@ impl ASTElement {
         }
     }
 
-    pub fn slot_insert(arena: &ASTArena, target: &ASTHandle, slot: &str, contents: ASTElement) {
+    pub fn slot_insert(
+        arena: &ASTArena,
+        target: &ASTHandle,
+        slot: &str,
+        contents: ASTElement,
+    ) -> ASTHandle {
         let new_handle = arena.insert(contents.with_parent(target));
         let target = target.as_ref();
         target
             .slots
             .borrow_mut()
-            .insert(slot.to_owned(), new_handle);
+            .insert(slot.to_owned(), new_handle.clone());
+        new_handle
     }
 
     pub fn path(&self) -> String {
         #[allow(unreachable_patterns)]
         match &self.element {
+            // TODO DRY
             ASTElementKind::Module { name } => {
+                if self.parent.is_some() {
+                    self.parent.as_ref().unwrap().as_ref().path() + "." + name
+                } else {
+                    name.clone()
+                }
+            }
+            ASTElementKind::Class { span: _, name } => {
+                if self.parent.is_some() {
+                    self.parent.as_ref().unwrap().as_ref().path() + "." + name
+                } else {
+                    name.clone()
+                }
+            }
+            ASTElementKind::ClassField {
+                span: _,
+                name,
+                type_ref: _,
+            } => {
                 if self.parent.is_some() {
                     self.parent.as_ref().unwrap().as_ref().path() + "." + name
                 } else {
@@ -146,9 +115,12 @@ impl ASTElement {
         ASTElement::slot_insert(arena, target, &new_idx.to_string(), contents);
     }
 
-    #[allow(dead_code)]
     pub fn slot(&self, slot: &str) -> Option<ASTHandle> {
         self.slots.borrow().get(slot).map(|x| x.to_owned())
+    }
+
+    pub fn slots(&self) -> Vec<String> {
+        self.slots.borrow().keys().map(|x| x.to_owned()).collect()
     }
 }
 

@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Logger::init(&args);
 
     let mut context = CompilationContext::new();
-    context.compile_from(&args.source_path, args.root_module)?;
+    context.compile_from(&args.source_path, &args.root_module)?;
 
     if context.errors().len() > 0 {
         context.errors().iter().for_each(|x| context.print_error(x));

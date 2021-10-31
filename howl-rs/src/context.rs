@@ -10,9 +10,14 @@ use lrlex::{lrlex_mod, LRNonStreamingLexer, LRNonStreamingLexerDef};
 use lrpar::{LexParseError, NonStreamingLexer};
 
 use crate::{
-    ast::{ASTArena, ASTElement, ASTElementKind, ASTHandle},
+    ast::{
+        arena::{ASTArena, ASTHandle},
+        pretty_print::pretty_print,
+        ASTElement, ASTElementKind,
+    },
     log,
     logger::{LogLevel, Logger},
+    parser::CSTElement,
 };
 
 lrlex_mod!("howl.l");
@@ -50,12 +55,9 @@ impl CompilationContext {
 
     pub fn new() -> CompilationContext {
         let arena = ASTArena::new();
-        let root_module = arena.insert(ASTElement::new(
-            None,
-            ASTElementKind::Module {
-                name: "root".to_string(),
-            },
-        ));
+        let root_module = arena.insert(ASTElement::new(ASTElementKind::Module {
+            name: "".to_string(),
+        }));
 
         CompilationContext {
             arena,
@@ -66,11 +68,7 @@ impl CompilationContext {
         }
     }
 
-    pub fn compile_from(
-        &mut self,
-        source_path: &Path,
-        prefix: String,
-    ) -> Result<(), Box<dyn Error>> {
+    pub fn compile_from(&mut self, source_path: &Path, prefix: &str) -> Result<(), Box<dyn Error>> {
         log!(
             LogLevel::Info,
             "Compiling: {} ({})",
@@ -81,7 +79,7 @@ impl CompilationContext {
         let src = fs::read_to_string(source_path)?;
         self.sources.insert(source_path.into(), src);
 
-        let (_cst, parse_errors) = howl_y::parse(&self.lexer_for(source_path));
+        let (cst, parse_errors) = howl_y::parse(&self.lexer_for(source_path));
 
         parse_errors.iter().for_each(|x| {
             self.add_error(match x {
@@ -101,20 +99,8 @@ impl CompilationContext {
         });
 
         if parse_errors.len() == 0 {
-            let p = self.root_module.clone();
-            #[allow(unreachable_patterns)]
-            match self.root_module.as_cloned().element {
-                ASTElementKind::Module { .. } => {
-                    let submodule = ASTElement::new(
-                        Some(p),
-                        ASTElementKind::Module {
-                            name: prefix.clone(),
-                        },
-                    );
-
-                    ASTElement::slot_insert(&self.arena, &self.root_module, &prefix, submodule);
-                }
-                _ => unreachable!(),
+            for el in cst.unwrap().unwrap() {
+                self.parse_cst(el, &prefix);
             }
         }
 
@@ -170,152 +156,94 @@ impl CompilationContext {
     }
 
     pub fn dump(&self) {
-        eprintln!("{:#?}", self.root_module);
-    }
-}
-
-/*
-
-pub struct Context {
-    files: Vec<Rc<CompilationUnit>>,
-    pub classes: Vec<ClassElement>,
-    pub interfaces: Vec<InterfaceElement>,
-    pub functions: Vec<FunctionElement>,
-
-    pub names_types: RefCell<HashMap<String, Identifier>>,
-    pub names_objects: RefCell<HashMap<String, Identifier>>,
-
-    errors: RefCell<Vec<CompilationError>>,
-}
-
-impl Context {
-    pub fn new() -> Context {
-        Context {
-            files: vec![],
-            classes: vec![],
-            interfaces: vec![],
-            functions: vec![],
-            names_types: RefCell::new(HashMap::new()),
-            names_objects: RefCell::new(HashMap::new()),
-            errors: RefCell::new(vec![]),
-        }
+        eprintln!("{}", pretty_print(self.root_module.clone()));
     }
 
-    pub fn add_error(&self, item: CompilationError) {
-        self.errors.borrow_mut().push(item);
+    pub fn path_set(&self, path: &str, element: ASTElement) -> ASTHandle {
+        let mut components: Vec<&str> = path.split(".").collect();
+        let last = components.pop().unwrap();
+        let parent = self.path_create(&components.join("."));
+        ASTElement::slot_insert(&self.arena, &parent, last, element)
     }
 
-    pub fn ingest_file(&mut self, path: &Path, root_module: String) -> Result<(), Box<dyn Error>> {
-        let cu = CompilationUnit::compile_from(path, root_module)?;
-        self.errors.borrow_mut().append(&mut cu.errors());
-        self.files.push(cu);
-        Ok(())
+    pub fn path_create(&self, path: &str) -> ASTHandle {
+        self.path_create_rec(self.root_module.clone(), path)
     }
 
-    fn add_names_from(&self, parent_path: String, item: &ASTElement) {
-        match item {
-            ASTElement::Class(c) => {
-                log!(LogLevel::Trace, "Adding name:  object {}", c.name());
-                log!(LogLevel::Trace, "Adding name:    type {}", c.name());
-                self.names_objects
-                    .borrow_mut()
-                    .insert(c.name().clone(), Identifier::Class(c.name().clone()));
-                self.names_types
-                    .borrow_mut()
-                    .insert(c.name().clone(), Identifier::Class(c.name().clone()));
+    fn path_create_rec(&self, root_module: ASTHandle, path: &str) -> ASTHandle {
+        let components: Vec<&str> = path.split(".").collect();
+        let slot_contents = { root_module.as_ref().slot(components[0]) };
+        let submodule = match slot_contents {
+            Some(el) => el,
+            None => {
+                let new_element = ASTElement::new(ASTElementKind::Module {
+                    name: components[0].to_string(),
+                });
 
-                for g in c.generics() {
-                    log!(LogLevel::Trace, "Adding name:    type {}.{}", c.name(), g);
-                    self.names_types.borrow_mut().insert(
-                        c.name().to_owned() + "." + &g,
-                        Identifier::Type(TypeElement::BaseType {
-                            span: lrpar::Span::new(0, 0),
-                            name: c.name().to_owned() + "." + &g,
-                        }),
-                    );
-                }
-
-                for m in c.methods() {
-                    log!(
-                        LogLevel::Trace,
-                        "Adding name:  object {}.{}",
-                        c.name(),
-                        m.name()
-                    );
-                }
+                ASTElement::slot_insert(&self.arena, &root_module, components[0], new_element)
             }
-            ASTElement::Interface(i) => {
-                log!(LogLevel::Trace, "Adding name:  object {}", i.name());
-                log!(LogLevel::Trace, "Adding name:    type {}", i.name());
-                self.names_objects
-                    .borrow_mut()
-                    .insert(i.name().clone(), Identifier::Class(i.name().clone()));
-                self.names_types
-                    .borrow_mut()
-                    .insert(i.name().clone(), Identifier::Class(i.name().clone()));
-
-                for g in i.generics() {
-                    log!(LogLevel::Trace, "Adding name:    type {}.{}", i.name(), g);
-                    self.names_types.borrow_mut().insert(
-                        i.name().to_owned() + "." + &g,
-                        Identifier::Type(TypeElement::BaseType {
-                            span: lrpar::Span::new(0, 0),
-                            name: i.name().to_owned() + "." + &g,
-                        }),
-                    );
-                }
-
-                for m in i.methods() {
-                    log!(
-                        LogLevel::Trace,
-                        "Adding name:  object {}.{}",
-                        i.name(),
-                        m.name()
-                    );
-                }
-            }
-            _ => {}
         };
+        if components.len() > 1 {
+            self.path_create_rec(submodule, &components[1..].join("."))
+        } else {
+            submodule
+        }
     }
 
-    pub fn compile_whole_program(&mut self) {
-        for cu in &self.files {
-            cu.apply_transform(|i| assemble_statements(i, self, cu.clone()));
+    fn parse_cst(&self, cst: CSTElement, prefix: &str) -> ASTHandle {
+        match cst {
+            CSTElement::Class {
+                span,
+                header:
+                    CSTElement::ClassHeader {
+                        span: _,
+                        name: CSTElement::Identifier { span: _, name },
+                        ..
+                    },
+                body: CSTElement::ClassBody { span: _, elements },
+            } => {
+                let class_path = prefix.to_owned() + "." + name;
+                let class = self.path_set(
+                    &class_path,
+                    ASTElement::new(ASTElementKind::Class {
+                        span,
+                        name: name.clone(),
+                    }),
+                );
 
-            for item in cu.items() {
-                self.add_names_from(cu.root_module.clone(), &item);
-                match item {
-                    ASTElement::Class(c) => {
-                        log!(LogLevel::Trace, "Loaded class:        {}", c.name());
-                        self.classes.push(c)
-                    }
-                    ASTElement::Interface(i) => {
-                        Logger::log(
-                            LogLevel::Trace,
-                            &format!("Loaded interface:    {}", i.name()),
-                        );
-                        self.interfaces.push(i)
-                    }
-                    ASTElement::Function(f) => {
-                        Logger::log(
-                            LogLevel::Trace,
-                            &format!("Loaded function:     {}", f.name()),
-                        );
-                        self.functions.push(f)
-                    }
-                    _ => unreachable!(),
+                for element in elements {
+                    self.parse_cst(element.clone(), &class_path);
                 }
+
+                class
+            }
+
+            CSTElement::ClassField {
+                span,
+                fieldname: CSTElement::Identifier { span: _, name },
+                fieldtype,
+            } => self.path_set(
+                &(prefix.to_owned() + "." + name),
+                ASTElement::new(ASTElementKind::ClassField {
+                    span,
+                    name: name.to_owned(),
+                    type_ref: self.parse_cst(fieldtype.clone(), prefix),
+                }),
+            ),
+
+            CSTElement::BaseType { span, name } => {
+                self.arena
+                    .insert(ASTElement::new(ASTElementKind::UnresolvedIdentifier {
+                        span,
+                        name,
+                    }))
+            }
+
+            _ => {
+                log!(LogLevel::Warning, "unimplemented parse_cst {:?}", cst);
+                self.arena
+                    .insert(ASTElement::new(ASTElementKind::Placeholder()))
             }
         }
-
-        // for cu in &self.files {
-        //     cu.apply_transform(|i| {
-        //         resolve_names(i, self, cu.clone(), Rc::new(default_resolver(&self, cu)))
-        //     });
-        // }
-
-        self.errors.borrow().iter().for_each(|e| print_error(e));
     }
 }
-
-*/
