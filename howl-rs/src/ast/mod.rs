@@ -83,7 +83,7 @@ impl ASTElement {
         contents: ASTElement,
     ) -> ASTHandle {
         let new_handle = arena.insert(contents.with_parent(target));
-        let target = target.as_ref();
+        let target = target.borrow();
         target
             .slots
             .borrow_mut()
@@ -97,35 +97,35 @@ impl ASTElement {
             // TODO DRY
             ASTElementKind::Module { name } => {
                 if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().as_ref().path() + "." + name
+                    self.parent.as_ref().unwrap().borrow().path() + "." + name
                 } else {
                     name.clone()
                 }
             }
             ASTElementKind::Function { name, .. } => {
                 if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().as_ref().path() + "." + name
+                    self.parent.as_ref().unwrap().borrow().path() + "." + name
                 } else {
                     name.clone()
                 }
             }
             ASTElementKind::NewType { name, .. } => {
                 if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().as_ref().path() + "." + name
+                    self.parent.as_ref().unwrap().borrow().path() + "." + name
                 } else {
                     name.clone()
                 }
             }
             ASTElementKind::Class { span: _, name, .. } => {
                 if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().as_ref().path() + "." + name
+                    self.parent.as_ref().unwrap().borrow().path() + "." + name
                 } else {
                     name.clone()
                 }
             }
             ASTElementKind::ClassField { span: _, name, .. } => {
                 if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().as_ref().path() + "." + name
+                    self.parent.as_ref().unwrap().borrow().path() + "." + name
                 } else {
                     name.clone()
                 }
@@ -136,7 +136,7 @@ impl ASTElement {
 
     pub fn slot_push(arena: &ASTArena, target: &ASTHandle, contents: ASTElement) {
         let new_idx = {
-            let t2 = target.as_ref();
+            let t2 = target.borrow();
             let mut idx_ref = t2.var_slot_idx.borrow_mut();
             let new_idx = *idx_ref;
             *idx_ref += 1;

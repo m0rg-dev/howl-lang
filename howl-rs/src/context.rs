@@ -173,7 +173,7 @@ impl CompilationContext {
 
     fn path_create_rec(&self, root_module: ASTHandle, path: &str) -> ASTHandle {
         let components: Vec<&str> = path.split(".").collect();
-        let slot_contents = { root_module.as_ref().slot(components[0]) };
+        let slot_contents = { root_module.borrow().slot(components[0]) };
         let submodule = match slot_contents {
             Some(el) => el,
             None => {
@@ -247,7 +247,7 @@ impl CompilationContext {
                 if extends.is_some() {
                     let extends = self
                         .parse_cst(extends.unwrap().clone(), &class_path)
-                        .as_ref()
+                        .borrow()
                         .clone();
                     ASTElement::slot_insert(&self.arena, &class, CLASS_EXTENDS, extends);
                 }
@@ -260,7 +260,7 @@ impl CompilationContext {
                 fieldname: CSTElement::Identifier { span: _, name },
                 fieldtype,
             } => {
-                let ftype = self.parse_cst(fieldtype.clone(), prefix).as_ref().clone();
+                let ftype = self.parse_cst(fieldtype.clone(), prefix).borrow().clone();
                 let handle = self.path_set(
                     &(prefix.to_owned() + "." + name),
                     ASTElement::new(ASTElementKind::ClassField {
@@ -287,7 +287,7 @@ impl CompilationContext {
             } => {
                 let rc = self
                     .parse_cst((*returntype).clone(), prefix)
-                    .as_ref()
+                    .borrow()
                     .clone();
 
                 let handle = self.path_set(
@@ -312,7 +312,7 @@ impl CompilationContext {
             }
 
             CSTElement::RawPointerType { span, inner } => {
-                let inner = self.parse_cst(inner.clone(), prefix).as_ref().clone();
+                let inner = self.parse_cst(inner.clone(), prefix).borrow().clone();
                 let handle = self
                     .arena
                     .insert(ASTElement::new(ASTElementKind::RawPointerType { span }));
@@ -329,14 +329,14 @@ impl CompilationContext {
                         parameters,
                     },
             } => {
-                let base = self.parse_cst(base.clone(), prefix).as_ref().clone();
+                let base = self.parse_cst(base.clone(), prefix).borrow().clone();
 
                 let handle = self
                     .arena
                     .insert(ASTElement::new(ASTElementKind::SpecifiedType { span }));
                 ASTElement::slot_insert(&self.arena, &handle, SPECIFIED_TYPE_BASE, base);
                 parameters.iter().for_each(|x| {
-                    let param = self.parse_cst(x.clone(), prefix).as_ref().clone();
+                    let param = self.parse_cst(x.clone(), prefix).borrow().clone();
                     ASTElement::slot_push(&self.arena, &handle, param);
                 });
                 handle

@@ -11,7 +11,7 @@ pub struct ASTHandle {
 }
 
 impl ASTHandle {
-    pub fn as_ref(&self) -> impl Deref<Target = ASTElement> + '_ {
+    pub fn borrow(&self) -> impl Deref<Target = ASTElement> + '_ {
         let arena: &ASTArenaInner = self.arena_ref.borrow();
         accountable_refcell::Ref::map(arena.elements.borrow(), |x| &x[self.id])
     }
