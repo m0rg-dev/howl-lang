@@ -1,4 +1,4 @@
-use context::Context;
+use context::CompilationContext;
 use std::error::Error;
 use structopt::StructOpt;
 
@@ -8,11 +8,11 @@ use crate::logger::Logger;
 extern crate lazy_static;
 
 mod ast;
-mod compilation_unit;
+// mod compilation_unit;
 mod context;
 mod logger;
 mod parser;
-mod transform;
+// mod transform;
 
 #[derive(StructOpt)]
 pub struct Cli {
@@ -26,9 +26,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
     Logger::init(&args);
 
-    let mut context = Context::new();
-    context.ingest_file(&args.source_path, args.root_module)?;
-    context.compile_whole_program();
+    let mut context = CompilationContext::new();
+    context.compile_from(&args.source_path, args.root_module)?;
+
+    if context.errors().len() > 0 {
+        context.errors().iter().for_each(|x| context.print_error(x));
+        eprintln!("Compilation aborted.");
+        return Ok(());
+    }
+
+    context.dump();
+
+    // context.compile_whole_program();
 
     Ok(())
 }
