@@ -15,16 +15,6 @@ impl ASTHandle {
         let arena: &ASTArenaInner = self.arena_ref.borrow();
         accountable_refcell::Ref::map(arena.elements.borrow(), |x| &x[self.id])
     }
-
-    pub fn get_id(&self) -> usize {
-        self.id
-    }
-}
-
-impl std::fmt::Debug for ASTHandle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ASTHandle {} => {:#?}", self.id, self.as_ref().deref())
-    }
 }
 
 pub struct ASTArena {

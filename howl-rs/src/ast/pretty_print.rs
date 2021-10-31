@@ -1,4 +1,9 @@
-use super::{ASTElement, ASTElementKind, ASTHandle};
+use crate::ast::{
+    CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_RETURN, RAW_POINTER_TYPE_INNER, SPECIFIED_TYPE_BASE,
+    TYPE_DEFINITION,
+};
+
+use super::{ASTElementKind, ASTHandle};
 
 pub fn pretty_print(source: ASTHandle) -> String {
     let parts: Vec<String> = source
@@ -15,60 +20,74 @@ pub fn pretty_print(source: ASTHandle) -> String {
             header + &parts.join("\n\n")
         }
 
-        ASTElementKind::Class { span: _, name } => {
+        ASTElementKind::Class { span: _, name } => format!(
+            "/* path: {} */\nclass {}{} {{\n{}\n}}",
+            source.as_ref().path(),
+            name,
+            match source.as_ref().slot(CLASS_EXTENDS) {
+                Some(extends) => " extends ".to_string() + &pretty_print(extends.clone()),
+                None => "".to_string(),
+            },
+            textwrap::indent(&parts.join("\n"), "    ")
+        ),
+
+        ASTElementKind::ClassField { span: _, name } => {
             format!(
-                "/* path: {} */\nclass {} {{\n{}\n}}",
-                source.as_ref().path(),
-                name,
-                textwrap::indent(&parts.join("\n"), "    ")
+                "{} {};",
+                pretty_print(source.as_ref().slot(CLASS_FIELD_TYPE).unwrap()),
+                name
             )
         }
 
-        ASTElementKind::ClassField {
+        ASTElementKind::Function {
+            span: _,
+            is_static,
+            name,
+        } => format!(
+            "{}fn {} {}() {{}}",
+            match is_static {
+                true => "static ",
+                false => "",
+            },
+            pretty_print(source.as_ref().slot(FUNCTION_RETURN).unwrap()),
+            name
+        ),
+
+        ASTElementKind::NewType { name } => format!(
+            "type {}{};",
+            name,
+            match source.as_ref().slot(TYPE_DEFINITION) {
+                Some(definition) => format!(" = {}", pretty_print(definition.clone())),
+                None => " /* undefined */".to_string(),
+            }
+        ),
+
+        ASTElementKind::RawPointerType { span: _ } => {
+            format!(
+                "*{}",
+                pretty_print(source.as_ref().slot(RAW_POINTER_TYPE_INNER).unwrap())
+            )
+        }
+
+        ASTElementKind::SpecifiedType { span: _ } => {
+            format!(
+                "{}<{}>",
+                pretty_print(source.as_ref().slot(SPECIFIED_TYPE_BASE).unwrap()),
+                source
+                    .as_ref()
+                    .slot_vec()
+                    .iter()
+                    .map(|x| pretty_print(x.clone()))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )
+        }
+
+        ASTElementKind::UnresolvedIdentifier {
             span: _,
             name,
-            type_ref,
-        } => {
-            format!("{} {};", pretty_print(type_ref.clone()), name)
-        }
-
-        ASTElementKind::UnresolvedIdentifier { span: _, name } => {
-            format!("/* unresolved */ {}", name)
-        }
-
+            namespace,
+        } => format!("/* unresolved {} */ {}", namespace, name),
         ASTElementKind::Placeholder() => "/* placeholder */".to_owned(),
-    }
-}
-
-impl std::fmt::Debug for ASTElement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut builder = f.debug_struct("ASTElement");
-        if self.parent.is_some() {
-            builder.field("parent", &self.parent.as_ref().unwrap().get_id());
-        }
-
-        match &self.element {
-            ASTElementKind::Module { .. } => {
-                builder.field("type", &"Module");
-                builder.field("path", &self.path());
-            }
-            ASTElementKind::Class { .. } => {
-                builder.field("type", &"Class");
-                builder.field("path", &self.path());
-            }
-            ASTElementKind::ClassField { .. } => {
-                builder.field("type", &"ClassField");
-                builder.field("path", &self.path());
-            }
-            ASTElementKind::UnresolvedIdentifier { span: _, name } => {
-                builder.field("type", &"Identifier");
-                builder.field("name", &name);
-            }
-            ASTElementKind::Placeholder() => {
-                builder.field("type", &"Placeholder");
-            }
-        }
-
-        builder.field("slots", &self.slots.borrow()).finish()
     }
 }
