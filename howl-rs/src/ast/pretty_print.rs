@@ -44,13 +44,21 @@ pub fn pretty_print(source: ASTHandle) -> String {
             is_static,
             name,
         } => format!(
-            "{}fn {} {}() {{}}",
+            "{}fn {} {}({}) {{}}",
             match is_static {
                 true => "static ",
                 false => "",
             },
             pretty_print(source.borrow().slot(FUNCTION_RETURN).unwrap()),
-            name
+            name,
+            source
+                .borrow()
+                .slots()
+                .iter()
+                .filter(|x| *x != FUNCTION_RETURN)
+                .map(|x| format!("{} {}", pretty_print(source.borrow().slot(x).unwrap()), x))
+                .collect::<Vec<String>>()
+                .join(", ")
         ),
 
         ASTElementKind::NewType { name } => format!(

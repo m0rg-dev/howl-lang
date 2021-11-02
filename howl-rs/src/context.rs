@@ -280,7 +280,7 @@ impl CompilationContext {
                         is_static,
                         returntype,
                         name: CSTElement::Identifier { span: _, name },
-                        args: _,
+                        args: CSTElement::TypedArgumentList { span: _, args },
                         throws: _,
                     },
                 body: _,
@@ -299,6 +299,21 @@ impl CompilationContext {
                     }),
                 );
                 ASTElement::slot_insert(&self.arena, &handle, FUNCTION_RETURN, rc);
+
+                for arg in args {
+                    if let CSTElement::TypedArgument {
+                        span: _,
+                        argname: CSTElement::Identifier { span: _, name },
+                        argtype,
+                    } = arg
+                    {
+                        let ty = self.parse_cst((*argtype).clone(), prefix).borrow().clone();
+                        ASTElement::slot_insert(&self.arena, &handle, name, ty);
+                    } else {
+                        unreachable!();
+                    }
+                }
+
                 handle
             }
 

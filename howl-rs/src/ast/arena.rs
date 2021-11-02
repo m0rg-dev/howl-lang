@@ -4,6 +4,18 @@ use std::rc::Rc;
 
 use super::ASTElement;
 
+#[cfg(feature = "use_accountable_refcell")]
+type ArenaRefCell<T> = accountable_refcell::RefCell<T>;
+
+#[cfg(feature = "use_accountable_refcell")]
+type ArenaRef<'a, T> = accountable_refcell::Ref<'a, T>;
+
+#[cfg(not(feature = "use_accountable_refcell"))]
+type ArenaRefCell<T> = std::cell::RefCell<T>;
+
+#[cfg(not(feature = "use_accountable_refcell"))]
+type ArenaRef<'a, T> = std::cell::Ref<'a, T>;
+
 #[derive(Clone)]
 pub struct ASTHandle {
     arena_ref: Rc<ASTArenaInner>,
@@ -13,7 +25,7 @@ pub struct ASTHandle {
 impl ASTHandle {
     pub fn borrow(&self) -> impl Deref<Target = ASTElement> + '_ {
         let arena: &ASTArenaInner = self.arena_ref.borrow();
-        accountable_refcell::Ref::map(arena.elements.borrow(), |x| &x[self.id])
+        ArenaRef::map(arena.elements.borrow(), |x| &x[self.id])
     }
 }
 
@@ -40,13 +52,13 @@ impl ASTArena {
 }
 
 pub struct ASTArenaInner {
-    elements: accountable_refcell::RefCell<Vec<ASTElement>>,
+    elements: ArenaRefCell<Vec<ASTElement>>,
 }
 
 impl ASTArenaInner {
     pub fn new() -> ASTArenaInner {
         ASTArenaInner {
-            elements: accountable_refcell::RefCell::new(Vec::new()),
+            elements: ArenaRefCell::new(Vec::new()),
         }
     }
 }
