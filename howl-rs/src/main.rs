@@ -35,9 +35,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    context.dump();
+    context.link_program();
+    if context.errors().len() > 0 {
+        context.errors().iter().for_each(|x| context.print_error(x));
+        eprintln!("Compilation aborted.");
+        return Ok(());
+    }
 
-    // context.compile_whole_program();
+    context.dump();
 
     Ok(())
 }

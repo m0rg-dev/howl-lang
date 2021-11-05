@@ -25,7 +25,6 @@ lrlex_mod!("howl.l");
 lrlex_mod!("howl.y");
 
 pub struct CompilationContext {
-    arena: ASTArena,
     root_module: ASTHandle,
     lexer_def: LRNonStreamingLexerDef<u32>,
     sources: HashMap<PathBuf, String>,
@@ -55,13 +54,11 @@ impl CompilationContext {
     }
 
     pub fn new() -> CompilationContext {
-        let arena = ASTArena::new();
-        let root_module = arena.insert(ASTElement::new(ASTElementKind::Module {
+        let root_module = ASTArena::new().insert(ASTElement::new(ASTElementKind::Module {
             name: "".to_string(),
         }));
 
         CompilationContext {
-            arena,
             root_module,
             lexer_def: howl_l::lexerdef(),
             sources: HashMap::new(),
@@ -106,6 +103,29 @@ impl CompilationContext {
         }
 
         Ok(())
+    }
+
+    pub fn link_program(&mut self) {
+        self.root_module = self.root_module.copy_transform(&|path, arena, el| {
+            eprintln!("callback {}", path);
+            let new_handle: ASTHandle = match el.element {
+                ASTElementKind::Function {
+                    span,
+                    name,
+                    is_static,
+                } => {
+                    let h = arena.insert(ASTElement::new(ASTElementKind::Function {
+                        span,
+                        name: name + "_mod",
+                        is_static,
+                    }));
+
+                    h
+                }
+                _ => arena.insert(el),
+            };
+            new_handle
+        });
     }
 
     pub fn print_error(&self, e: &CompilationError) {
@@ -164,7 +184,7 @@ impl CompilationContext {
         let mut components: Vec<&str> = path.split(".").collect();
         let last = components.pop().unwrap();
         let parent = self.path_create(&components.join("."));
-        ASTElement::slot_insert(&self.arena, &parent, last, element)
+        parent.slot_insert(last, element)
     }
 
     pub fn path_create(&self, path: &str) -> ASTHandle {
@@ -181,7 +201,7 @@ impl CompilationContext {
                     name: components[0].to_string(),
                 });
 
-                ASTElement::slot_insert(&self.arena, &root_module, components[0], new_element)
+                root_module.slot_insert(components[0], new_element)
             }
         };
         if components.len() > 1 {
@@ -193,14 +213,13 @@ impl CompilationContext {
 
     fn parse_cst(&self, cst: CSTElement, prefix: &str) -> ASTHandle {
         match cst {
-            CSTElement::BaseType { span, name } => {
-                self.arena
-                    .insert(ASTElement::new(ASTElementKind::UnresolvedIdentifier {
-                        span,
-                        name,
-                        namespace: "type".to_owned(),
-                    }))
-            }
+            CSTElement::BaseType { span, name } => self.root_module.arena().insert(
+                ASTElement::new(ASTElementKind::UnresolvedIdentifier {
+                    span,
+                    name,
+                    namespace: "type".to_owned(),
+                }),
+            ),
 
             CSTElement::Class {
                 span,
@@ -249,7 +268,7 @@ impl CompilationContext {
                         .parse_cst(extends.unwrap().clone(), &class_path)
                         .borrow()
                         .clone();
-                    ASTElement::slot_insert(&self.arena, &class, CLASS_EXTENDS, extends);
+                    class.slot_insert(CLASS_EXTENDS, extends);
                 }
 
                 class
@@ -268,7 +287,7 @@ impl CompilationContext {
                         name: name.to_owned(),
                     }),
                 );
-                ASTElement::slot_insert(&self.arena, &handle, CLASS_FIELD_TYPE, ftype);
+                handle.slot_insert(CLASS_FIELD_TYPE, ftype);
                 handle
             }
 
@@ -298,7 +317,7 @@ impl CompilationContext {
                         name: name.to_owned(),
                     }),
                 );
-                ASTElement::slot_insert(&self.arena, &handle, FUNCTION_RETURN, rc);
+                handle.slot_insert(FUNCTION_RETURN, rc);
 
                 for arg in args {
                     if let CSTElement::TypedArgument {
@@ -308,7 +327,7 @@ impl CompilationContext {
                     } = arg
                     {
                         let ty = self.parse_cst((*argtype).clone(), prefix).borrow().clone();
-                        ASTElement::slot_insert(&self.arena, &handle, name, ty);
+                        handle.slot_insert(name, ty);
                     } else {
                         unreachable!();
                     }
@@ -317,21 +336,21 @@ impl CompilationContext {
                 handle
             }
 
-            CSTElement::Identifier { span, name } => {
-                self.arena
-                    .insert(ASTElement::new(ASTElementKind::UnresolvedIdentifier {
-                        span,
-                        name,
-                        namespace: "name".to_owned(),
-                    }))
-            }
+            CSTElement::Identifier { span, name } => self.root_module.arena().insert(
+                ASTElement::new(ASTElementKind::UnresolvedIdentifier {
+                    span,
+                    name,
+                    namespace: "name".to_owned(),
+                }),
+            ),
 
             CSTElement::RawPointerType { span, inner } => {
                 let inner = self.parse_cst(inner.clone(), prefix).borrow().clone();
                 let handle = self
-                    .arena
+                    .root_module
+                    .arena()
                     .insert(ASTElement::new(ASTElementKind::RawPointerType { span }));
-                ASTElement::slot_insert(&self.arena, &handle, RAW_POINTER_TYPE_INNER, inner);
+                handle.slot_insert(RAW_POINTER_TYPE_INNER, inner);
                 handle
             }
 
@@ -347,19 +366,21 @@ impl CompilationContext {
                 let base = self.parse_cst(base.clone(), prefix).borrow().clone();
 
                 let handle = self
-                    .arena
+                    .root_module
+                    .arena()
                     .insert(ASTElement::new(ASTElementKind::SpecifiedType { span }));
-                ASTElement::slot_insert(&self.arena, &handle, SPECIFIED_TYPE_BASE, base);
+                handle.slot_insert(SPECIFIED_TYPE_BASE, base);
                 parameters.iter().for_each(|x| {
                     let param = self.parse_cst(x.clone(), prefix).borrow().clone();
-                    ASTElement::slot_push(&self.arena, &handle, param);
+                    handle.slot_push(param);
                 });
                 handle
             }
 
             _ => {
                 log!(LogLevel::Warning, "unimplemented parse_cst {:?}", cst);
-                self.arena
+                self.root_module
+                    .arena()
                     .insert(ASTElement::new(ASTElementKind::Placeholder()))
             }
         }

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 
-use self::arena::{ASTArena, ASTHandle};
+use self::arena::ASTHandle;
 
 pub mod arena;
 pub mod pretty_print;
@@ -76,21 +76,6 @@ impl ASTElement {
         }
     }
 
-    pub fn slot_insert(
-        arena: &ASTArena,
-        target: &ASTHandle,
-        slot: &str,
-        contents: ASTElement,
-    ) -> ASTHandle {
-        let new_handle = arena.insert(contents.with_parent(target));
-        let target = target.borrow();
-        target
-            .slots
-            .borrow_mut()
-            .insert(slot.to_owned(), new_handle.clone());
-        new_handle
-    }
-
     pub fn path(&self) -> String {
         #[allow(unreachable_patterns)]
         match &self.element {
@@ -134,17 +119,6 @@ impl ASTElement {
         }
     }
 
-    pub fn slot_push(arena: &ASTArena, target: &ASTHandle, contents: ASTElement) {
-        let new_idx = {
-            let t2 = target.borrow();
-            let mut idx_ref = t2.var_slot_idx.borrow_mut();
-            let new_idx = *idx_ref;
-            *idx_ref += 1;
-            new_idx
-        };
-        ASTElement::slot_insert(arena, target, &new_idx.to_string(), contents);
-    }
-
     pub fn slot_vec(&self) -> Vec<ASTHandle> {
         (0..*self.var_slot_idx.borrow())
             .map(|x| self.slot(&x.to_string()).unwrap())
@@ -157,6 +131,35 @@ impl ASTElement {
 
     pub fn slots(&self) -> Vec<String> {
         self.slots.borrow().keys().map(|x| x.to_owned()).collect()
+    }
+
+    pub fn slot_copy(source: &ASTHandle, dest: &ASTHandle) {
+        let mut new_map: HashMap<String, ASTElement> = HashMap::new();
+
+        source.borrow().slots().iter().for_each(|slot| {
+            new_map.insert(
+                slot.to_string(),
+                source.borrow().slot(slot).unwrap().borrow().clone(),
+            );
+        });
+
+        for (slot, contents) in new_map.iter() {
+            dest.slot_insert(slot, contents.clone());
+        }
+    }
+
+    pub fn walk<T>(&self, path: String, callback: &T)
+    where
+        T: Fn(String, &ASTHandle),
+    {
+        self.slots().iter().for_each(|slot| {
+            let current_handle = self.slot(slot).unwrap();
+            callback(path.clone() + "." + slot, &current_handle);
+
+            current_handle
+                .borrow()
+                .walk(path.clone() + "." + slot, callback);
+        });
     }
 }
 
