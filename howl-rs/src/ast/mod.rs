@@ -78,13 +78,13 @@ impl ASTElement {
             .slots
             .borrow()
             .iter()
-            .map(|(name, el)| (name.to_owned(), el.to_owned()))
+            .map(|(name, el)| (name.clone(), el.clone()))
             .collect()
     }
 
     pub fn slot_copy(&mut self, source: &ASTElement) {
-        source.slots().iter().for_each(|(name, el)| {
-            self.slot_insert(name, el.clone());
+        source.slots().into_iter().for_each(|(name, el)| {
+            self.slot_insert(&name, el);
         });
     }
 
@@ -94,10 +94,10 @@ impl ASTElement {
     {
         let new_element = ASTElement::new(self.element());
 
-        self.slots().iter().for_each(|(name, element)| {
-            let mut element = callback(path.clone() + "." + name, element.clone());
-            element = element.transform(path.clone() + "." + name, callback);
-            new_element.slot_insert(name, element);
+        self.slots().into_iter().for_each(|(name, element)| {
+            let mut element = callback(path.clone() + "." + &name, element);
+            element = element.transform(path.clone() + "." + &name, callback);
+            new_element.slot_insert(&name, element);
         });
 
         new_element
@@ -188,23 +188,6 @@ pub enum ASTElementKind {
         namespace: String,
     },
     Placeholder(),
-}
-
-impl ASTElementCommon {
-    // pub fn slot_copy(source: &ASTHandle, dest: &ASTHandle) {
-    //     let mut new_map: HashMap<String, ASTElement> = HashMap::new();
-
-    //     source.borrow().slots().iter().for_each(|slot| {
-    //         new_map.insert(
-    //             slot.to_string(),
-    //             source.borrow().slot(slot).unwrap().clone(),
-    //         );
-    //     });
-
-    //     for (slot, contents) in new_map.iter() {
-    //         dest.slot_insert(slot, contents.clone());
-    //     }
-    // }
 }
 
 impl Deref for ASTElementCommon {

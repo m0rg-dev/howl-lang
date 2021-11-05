@@ -8,8 +8,8 @@ use super::{ASTElement, ASTElementKind};
 pub fn pretty_print(source: ASTElement) -> String {
     let parts: Vec<String> = source
         .slots()
-        .iter()
-        .map(|(_, el)| pretty_print(el.clone()))
+        .into_iter()
+        .map(|(_, el)| pretty_print(el))
         .collect();
 
     match &source.element() {
@@ -54,9 +54,9 @@ pub fn pretty_print(source: ASTElement) -> String {
             name,
             source
                 .slots()
-                .iter()
-                .filter(|(name, _)| *name != FUNCTION_RETURN)
-                .map(|(name, el)| format!("{} {}", pretty_print(el.to_owned()), name))
+                .into_iter()
+                .filter(|(name, _)| name != FUNCTION_RETURN)
+                .map(|(name, el)| format!("{} {}", pretty_print(el), name))
                 .collect::<Vec<String>>()
                 .join(", ")
         ),
@@ -83,8 +83,8 @@ pub fn pretty_print(source: ASTElement) -> String {
                 pretty_print(source.slot(SPECIFIED_TYPE_BASE).unwrap()),
                 source
                     .slot_vec()
-                    .iter()
-                    .map(|x| pretty_print(x.clone()))
+                    .into_iter()
+                    .map(pretty_print)
                     .collect::<Vec<String>>()
                     .join(", ")
             )
