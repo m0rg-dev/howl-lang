@@ -1,10 +1,8 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::rc::Rc;
 
-use self::arena::ASTHandle;
-
-pub mod arena;
 pub mod pretty_print;
 
 pub const CLASS_EXTENDS: &str = "__extends";
@@ -16,9 +14,144 @@ pub const TYPE_DEFINITION: &str = "__definition";
 
 #[derive(Clone)]
 pub struct ASTElement {
-    pub parent: Option<ASTHandle>,
+    inner: Rc<ASTElementCommon>,
+}
+
+impl ASTElement {
+    pub fn new(element: ASTElementKind) -> ASTElement {
+        ASTElement {
+            inner: Rc::new(ASTElementCommon {
+                parent: None,
+                element,
+                slots: RefCell::new(HashMap::new()),
+                var_slot_idx: RefCell::new(0),
+            }),
+        }
+    }
+
+    pub fn with_parent(self, parent: ASTElement) -> ASTElement {
+        ASTElement {
+            inner: Rc::new(ASTElementCommon {
+                parent: Some(parent.clone()),
+                element: self.inner.element.clone(),
+                slots: self.inner.slots.clone(),
+                var_slot_idx: self.inner.var_slot_idx.clone(),
+            }),
+        }
+    }
+
+    pub fn element(&self) -> ASTElementKind {
+        self.inner.element.clone()
+    }
+
+    pub fn slot_insert(&self, name: &str, contents: ASTElement) -> ASTElement {
+        let to_insert = contents.with_parent(self.clone());
+        self.inner
+            .slots
+            .borrow_mut()
+            .insert(name.to_string(), to_insert.clone());
+        to_insert
+    }
+
+    pub fn slot_push(&self, contents: ASTElement) {
+        let new_idx = {
+            let mut idx_ref = self.inner.var_slot_idx.borrow_mut();
+            let new_idx = *idx_ref;
+            *idx_ref += 1;
+            new_idx
+        };
+        self.slot_insert(&new_idx.to_string(), contents);
+    }
+
+    pub fn slot_vec(&self) -> Vec<ASTElement> {
+        (0..*self.inner.var_slot_idx.borrow())
+            .map(|x| self.slot(&x.to_string()).unwrap())
+            .collect()
+    }
+
+    pub fn slot(&self, slot: &str) -> Option<ASTElement> {
+        self.inner.slots.borrow().get(slot).map(|x| x.to_owned())
+    }
+
+    pub fn slots(&self) -> Vec<(String, ASTElement)> {
+        self.inner
+            .slots
+            .borrow()
+            .iter()
+            .map(|(name, el)| (name.to_owned(), el.to_owned()))
+            .collect()
+    }
+
+    pub fn slot_copy(&mut self, source: &ASTElement) {
+        source.slots().iter().for_each(|(name, el)| {
+            self.slot_insert(name, el.clone());
+        });
+    }
+
+    pub fn transform<T>(&self, path: String, callback: &T) -> ASTElement
+    where
+        T: Fn(String, ASTElement) -> ASTElement,
+    {
+        let new_element = ASTElement::new(self.element());
+
+        self.slots().iter().for_each(|(name, element)| {
+            let mut element = callback(path.clone() + "." + name, element.clone());
+            element = element.transform(path.clone() + "." + name, callback);
+            new_element.slot_insert(name, element);
+        });
+
+        new_element
+    }
+
+    pub fn path(&self) -> String {
+        #[allow(unreachable_patterns)]
+        match &self.inner.element {
+            // TODO DRY
+            ASTElementKind::Module { name } => {
+                if self.inner.parent.is_some() {
+                    self.inner.parent.as_ref().unwrap().path() + "." + name
+                } else {
+                    name.clone()
+                }
+            }
+            ASTElementKind::Function { name, .. } => {
+                if self.inner.parent.is_some() {
+                    self.inner.parent.as_ref().unwrap().path() + "." + name
+                } else {
+                    name.clone()
+                }
+            }
+            ASTElementKind::NewType { name, .. } => {
+                if self.inner.parent.is_some() {
+                    self.inner.parent.as_ref().unwrap().path() + "." + name
+                } else {
+                    name.clone()
+                }
+            }
+            ASTElementKind::Class { span: _, name, .. } => {
+                if self.inner.parent.is_some() {
+                    self.inner.parent.as_ref().unwrap().path() + "." + name
+                } else {
+                    name.clone()
+                }
+            }
+            ASTElementKind::ClassField { span: _, name, .. } => {
+                if self.inner.parent.is_some() {
+                    self.inner.parent.as_ref().unwrap().path() + "." + name
+                } else {
+                    name.clone()
+                }
+            }
+            _ => unimplemented!(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct ASTElementCommon {
+    pub parent: Option<ASTElement>,
     pub element: ASTElementKind,
-    slots: RefCell<HashMap<String, ASTHandle>>,
+    slots: RefCell<HashMap<String, ASTElement>>,
     var_slot_idx: RefCell<usize>,
 }
 
@@ -57,113 +190,24 @@ pub enum ASTElementKind {
     Placeholder(),
 }
 
-impl ASTElement {
-    pub fn new(element: ASTElementKind) -> ASTElement {
-        ASTElement {
-            parent: None,
-            element,
-            slots: RefCell::new(HashMap::new()),
-            var_slot_idx: RefCell::new(0),
-        }
-    }
+impl ASTElementCommon {
+    // pub fn slot_copy(source: &ASTHandle, dest: &ASTHandle) {
+    //     let mut new_map: HashMap<String, ASTElement> = HashMap::new();
 
-    pub fn with_parent(self, parent: &ASTHandle) -> ASTElement {
-        ASTElement {
-            parent: Some(parent.clone()),
-            element: self.element,
-            slots: self.slots,
-            var_slot_idx: self.var_slot_idx,
-        }
-    }
+    //     source.borrow().slots().iter().for_each(|slot| {
+    //         new_map.insert(
+    //             slot.to_string(),
+    //             source.borrow().slot(slot).unwrap().clone(),
+    //         );
+    //     });
 
-    pub fn path(&self) -> String {
-        #[allow(unreachable_patterns)]
-        match &self.element {
-            // TODO DRY
-            ASTElementKind::Module { name } => {
-                if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().borrow().path() + "." + name
-                } else {
-                    name.clone()
-                }
-            }
-            ASTElementKind::Function { name, .. } => {
-                if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().borrow().path() + "." + name
-                } else {
-                    name.clone()
-                }
-            }
-            ASTElementKind::NewType { name, .. } => {
-                if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().borrow().path() + "." + name
-                } else {
-                    name.clone()
-                }
-            }
-            ASTElementKind::Class { span: _, name, .. } => {
-                if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().borrow().path() + "." + name
-                } else {
-                    name.clone()
-                }
-            }
-            ASTElementKind::ClassField { span: _, name, .. } => {
-                if self.parent.is_some() {
-                    self.parent.as_ref().unwrap().borrow().path() + "." + name
-                } else {
-                    name.clone()
-                }
-            }
-            _ => unimplemented!(),
-        }
-    }
-
-    pub fn slot_vec(&self) -> Vec<ASTHandle> {
-        (0..*self.var_slot_idx.borrow())
-            .map(|x| self.slot(&x.to_string()).unwrap())
-            .collect()
-    }
-
-    pub fn slot(&self, slot: &str) -> Option<ASTHandle> {
-        self.slots.borrow().get(slot).map(|x| x.to_owned())
-    }
-
-    pub fn slots(&self) -> Vec<String> {
-        self.slots.borrow().keys().map(|x| x.to_owned()).collect()
-    }
-
-    pub fn slot_copy(source: &ASTHandle, dest: &ASTHandle) {
-        let mut new_map: HashMap<String, ASTElement> = HashMap::new();
-
-        source.borrow().slots().iter().for_each(|slot| {
-            new_map.insert(
-                slot.to_string(),
-                source.borrow().slot(slot).unwrap().borrow().clone(),
-            );
-        });
-
-        for (slot, contents) in new_map.iter() {
-            dest.slot_insert(slot, contents.clone());
-        }
-    }
-
-    pub fn walk<T>(&self, path: String, callback: &T)
-    where
-        T: Fn(String, &ASTHandle),
-    {
-        self.slots().iter().for_each(|slot| {
-            let current_handle = self.slot(slot).unwrap();
-            callback(path.clone() + "." + slot, &current_handle);
-
-            current_handle
-                .borrow()
-                .walk(path.clone() + "." + slot, callback);
-        });
-    }
+    //     for (slot, contents) in new_map.iter() {
+    //         dest.slot_insert(slot, contents.clone());
+    //     }
+    // }
 }
 
-impl Deref for ASTElement {
+impl Deref for ASTElementCommon {
     type Target = ASTElementKind;
 
     fn deref(&self) -> &Self::Target {

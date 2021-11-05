@@ -3,28 +3,27 @@ use crate::ast::{
     TYPE_DEFINITION,
 };
 
-use super::{ASTElementKind, ASTHandle};
+use super::{ASTElement, ASTElementKind};
 
-pub fn pretty_print(source: ASTHandle) -> String {
+pub fn pretty_print(source: ASTElement) -> String {
     let parts: Vec<String> = source
-        .borrow()
         .slots()
         .iter()
-        .map(|x| pretty_print(source.borrow().slot(x).unwrap()))
+        .map(|(_, el)| pretty_print(el.clone()))
         .collect();
 
-    match &source.borrow().element {
+    match &source.element() {
         ASTElementKind::Module { name: _ } => {
-            let header = format!("/* module: {} */\n\n", source.borrow().path());
+            let header = format!("/* module: {} */\n\n", source.path());
 
             header + &parts.join("\n\n")
         }
 
         ASTElementKind::Class { span: _, name } => format!(
             "/* path: {} */\nclass {}{} {{\n{}\n}}",
-            source.borrow().path(),
+            source.path(),
             name,
-            match source.borrow().slot(CLASS_EXTENDS) {
+            match source.slot(CLASS_EXTENDS) {
                 Some(extends) => " extends ".to_string() + &pretty_print(extends.clone()),
                 None => "".to_string(),
             },
@@ -34,7 +33,7 @@ pub fn pretty_print(source: ASTHandle) -> String {
         ASTElementKind::ClassField { span: _, name } => {
             format!(
                 "{} {};",
-                pretty_print(source.borrow().slot(CLASS_FIELD_TYPE).unwrap()),
+                pretty_print(source.slot(CLASS_FIELD_TYPE).unwrap()),
                 name
             )
         }
@@ -49,14 +48,15 @@ pub fn pretty_print(source: ASTHandle) -> String {
                 true => "static ",
                 false => "",
             },
-            pretty_print(source.borrow().slot(FUNCTION_RETURN).unwrap()),
+            source
+                .slot(FUNCTION_RETURN)
+                .map_or("NO RETURN?!".to_string(), pretty_print),
             name,
             source
-                .borrow()
                 .slots()
                 .iter()
-                .filter(|x| *x != FUNCTION_RETURN)
-                .map(|x| format!("{} {}", pretty_print(source.borrow().slot(x).unwrap()), x))
+                .filter(|(name, _)| *name != FUNCTION_RETURN)
+                .map(|(name, el)| format!("{} {}", pretty_print(el.to_owned()), name))
                 .collect::<Vec<String>>()
                 .join(", ")
         ),
@@ -64,7 +64,7 @@ pub fn pretty_print(source: ASTHandle) -> String {
         ASTElementKind::NewType { name } => format!(
             "type {}{};",
             name,
-            match source.borrow().slot(TYPE_DEFINITION) {
+            match source.slot(TYPE_DEFINITION) {
                 Some(definition) => format!(" = {}", pretty_print(definition.clone())),
                 None => " /* undefined */".to_string(),
             }
@@ -73,16 +73,15 @@ pub fn pretty_print(source: ASTHandle) -> String {
         ASTElementKind::RawPointerType { span: _ } => {
             format!(
                 "*{}",
-                pretty_print(source.borrow().slot(RAW_POINTER_TYPE_INNER).unwrap())
+                pretty_print(source.slot(RAW_POINTER_TYPE_INNER).unwrap())
             )
         }
 
         ASTElementKind::SpecifiedType { span: _ } => {
             format!(
                 "{}<{}>",
-                pretty_print(source.borrow().slot(SPECIFIED_TYPE_BASE).unwrap()),
+                pretty_print(source.slot(SPECIFIED_TYPE_BASE).unwrap()),
                 source
-                    .borrow()
                     .slot_vec()
                     .iter()
                     .map(|x| pretty_print(x.clone()))
