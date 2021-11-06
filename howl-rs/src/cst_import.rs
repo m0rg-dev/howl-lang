@@ -98,7 +98,7 @@ impl CompilationContext {
                         returntype,
                         name: CSTElement::Identifier { span: _, name },
                         args: CSTElement::TypedArgumentList { span: _, args },
-                        throws: _,
+                        throws,
                     },
                 body: _,
             } => {
@@ -126,6 +126,11 @@ impl CompilationContext {
                     } else {
                         unreachable!();
                     }
+                }
+
+                for throw in throws {
+                    let throw_parsed = self.parse_cst(throw.clone(), prefix).clone();
+                    handle.slot_push(throw_parsed);
                 }
 
                 handle

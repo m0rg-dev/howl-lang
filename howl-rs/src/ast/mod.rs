@@ -84,6 +84,17 @@ impl ASTElement {
             .collect()
     }
 
+    pub fn slots_normal(&self) -> Vec<(String, ASTElement)> {
+        self.inner
+            .slots
+            .borrow()
+            .iter()
+            .filter(|(name, _)| !name.parse::<u64>().is_ok())
+            .filter(|(name, _)| !name.starts_with("__"))
+            .map(|(name, el)| (name.clone(), el.clone()))
+            .collect()
+    }
+
     pub fn slot_copy(&mut self, source: &ASTElement) {
         source.slots().into_iter().for_each(|(name, el)| {
             self.slot_insert(&name, el);

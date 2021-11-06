@@ -7,7 +7,7 @@ use super::{ASTElement, ASTElementKind};
 
 pub fn pretty_print(source: ASTElement) -> String {
     let parts: Vec<String> = source
-        .slots()
+        .slots_normal()
         .into_iter()
         .map(|(_, el)| pretty_print(el))
         .collect();
@@ -43,7 +43,7 @@ pub fn pretty_print(source: ASTElement) -> String {
             is_static,
             name,
         } => format!(
-            "{}fn {} {}({}) {{}}",
+            "{}fn {} {}({}){} {{}}",
             match is_static {
                 true => "static ",
                 false => "",
@@ -53,12 +53,22 @@ pub fn pretty_print(source: ASTElement) -> String {
                 .map_or("NO RETURN?!".to_string(), pretty_print),
             name,
             source
-                .slots()
+                .slots_normal()
                 .into_iter()
-                .filter(|(name, _)| name != FUNCTION_RETURN)
                 .map(|(name, el)| format!("{} {}", pretty_print(el), name))
                 .collect::<Vec<String>>()
-                .join(", ")
+                .join(", "),
+            if source.var_slot_idx() > 0 {
+                " throws ".to_string()
+                    + &source
+                        .slot_vec()
+                        .into_iter()
+                        .map(|el| format!("{}", pretty_print(el)))
+                        .collect::<Vec<String>>()
+                        .join(", ")
+            } else {
+                "".to_string()
+            }
         ),
 
         ASTElementKind::NewType { name } => format!(
