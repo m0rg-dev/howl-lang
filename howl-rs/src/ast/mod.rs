@@ -24,7 +24,6 @@ impl ASTElement {
                 parent: None,
                 element,
                 slots: RefCell::new(HashMap::new()),
-                var_slot_idx: RefCell::new(0),
             }),
         }
     }
@@ -35,7 +34,6 @@ impl ASTElement {
                 parent: Some(parent.clone()),
                 element: self.inner.element.clone(),
                 slots: self.inner.slots.clone(),
-                var_slot_idx: self.inner.var_slot_idx.clone(),
             }),
         }
     }
@@ -53,18 +51,22 @@ impl ASTElement {
         to_insert
     }
 
+    pub fn var_slot_idx(&self) -> usize {
+        self.inner
+            .slots
+            .borrow()
+            .iter()
+            .filter(|(name, _)| name.parse::<u64>().is_ok())
+            .collect::<Vec<(&String, &ASTElement)>>()
+            .len()
+    }
+
     pub fn slot_push(&self, contents: ASTElement) {
-        let new_idx = {
-            let mut idx_ref = self.inner.var_slot_idx.borrow_mut();
-            let new_idx = *idx_ref;
-            *idx_ref += 1;
-            new_idx
-        };
-        self.slot_insert(&new_idx.to_string(), contents);
+        self.slot_insert(&self.var_slot_idx().to_string(), contents);
     }
 
     pub fn slot_vec(&self) -> Vec<ASTElement> {
-        (0..*self.inner.var_slot_idx.borrow())
+        (0..self.var_slot_idx())
             .map(|x| self.slot(&x.to_string()).unwrap())
             .collect()
     }
@@ -152,7 +154,6 @@ pub struct ASTElementCommon {
     pub parent: Option<ASTElement>,
     pub element: ASTElementKind,
     slots: RefCell<HashMap<String, ASTElement>>,
-    var_slot_idx: RefCell<usize>,
 }
 
 #[derive(Clone)]

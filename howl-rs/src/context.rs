@@ -103,19 +103,6 @@ impl CompilationContext {
         self.root_module = self
             .root_module
             .transform("".to_string(), &|_path, el| match el.element() {
-                ASTElementKind::Function {
-                    span,
-                    name,
-                    is_static,
-                } => {
-                    let mut new_element = ASTElement::new(ASTElementKind::Function {
-                        span,
-                        name: name + "_mod",
-                        is_static,
-                    });
-                    new_element.slot_copy(&el);
-                    new_element
-                }
                 _ => el,
             });
     }
