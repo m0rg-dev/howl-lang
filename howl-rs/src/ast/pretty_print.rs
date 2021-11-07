@@ -2,7 +2,7 @@ use crate::ast::{
     ASSIGNMENT_STATEMENT_LHS, ASSIGNMENT_STATEMENT_RHS, CLASS_EXTENDS, CLASS_FIELD_TYPE,
     FUNCTION_BODY, FUNCTION_RETURN, LOCAL_DEFINITION_STATEMENT_INITIALIZER,
     LOCAL_DEFINITION_STATEMENT_TYPE, RAW_POINTER_TYPE_INNER, RETURN_STATEMENT_EXPRESSION,
-    SIMPLE_STATEMENT_EXPRESSION, SPECIFIED_TYPE_BASE, TYPE_DEFINITION,
+    SIMPLE_STATEMENT_EXPRESSION, SPECIFIED_TYPE_BASE, THROW_STATEMENT_EXPRESSION, TYPE_DEFINITION,
 };
 
 use super::{ASTElement, ASTElementKind};
@@ -152,6 +152,13 @@ pub fn pretty_print(source: ASTElement) -> String {
                     .map(pretty_print)
                     .collect::<Vec<String>>()
                     .join(", ")
+            )
+        }
+
+        ASTElementKind::ThrowStatement { .. } => {
+            format!(
+                "throw {};",
+                pretty_print(source.slot(THROW_STATEMENT_EXPRESSION).unwrap())
             )
         }
 

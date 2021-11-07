@@ -17,6 +17,7 @@ pub const RAW_POINTER_TYPE_INNER: &str = "__inner";
 pub const SIMPLE_STATEMENT_EXPRESSION: &str = "__expression";
 pub const RETURN_STATEMENT_EXPRESSION: &str = "__expression";
 pub const SPECIFIED_TYPE_BASE: &str = "__base";
+pub const THROW_STATEMENT_EXPRESSION: &str = "__expression";
 pub const TYPE_DEFINITION: &str = "__definition";
 
 pub struct ASTElement {
@@ -210,6 +211,9 @@ pub enum ASTElementKind {
         span: lrpar::Span,
     },
     SimpleStatement {
+        span: lrpar::Span,
+    },
+    ThrowStatement {
         span: lrpar::Span,
     },
     UnresolvedIdentifier {

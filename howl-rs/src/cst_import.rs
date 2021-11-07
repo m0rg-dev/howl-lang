@@ -4,7 +4,7 @@ use crate::{
         CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_BODY, FUNCTION_RETURN,
         LOCAL_DEFINITION_STATEMENT_INITIALIZER, LOCAL_DEFINITION_STATEMENT_TYPE,
         RAW_POINTER_TYPE_INNER, RETURN_STATEMENT_EXPRESSION, SIMPLE_STATEMENT_EXPRESSION,
-        SPECIFIED_TYPE_BASE,
+        SPECIFIED_TYPE_BASE, THROW_STATEMENT_EXPRESSION,
     },
     context::CompilationContext,
     log,
@@ -233,6 +233,15 @@ impl CompilationContext {
                     handle.slot_push(param);
                 });
                 handle
+            }
+
+            CSTElement::ThrowStatement { span, source } => {
+                let statement = ASTElement::new(ASTElementKind::ThrowStatement { span });
+                statement.slot_insert(
+                    THROW_STATEMENT_EXPRESSION,
+                    self.parse_cst(source.clone(), prefix),
+                );
+                statement
             }
 
             _ => {
