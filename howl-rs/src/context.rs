@@ -100,6 +100,7 @@ impl CompilationContext {
     }
 
     pub fn link_program(&mut self) {
+        log!(LogLevel::Info, "Starting link phase.");
         self.root_module = self
             .root_module
             .transform("".to_string(), &|_path, el| match el.element() {

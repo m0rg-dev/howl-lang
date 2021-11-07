@@ -35,7 +35,7 @@ impl Logger {
 
 #[macro_export]
 macro_rules! log {
-    ($level: expr, $format: expr, $($args:expr),+) => {
+    ($level: expr, $format: expr $(, $args:expr)*) => {
         Logger::log($level, &format!($format $(,$args)*))
     };
 }

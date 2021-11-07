@@ -1,22 +1,22 @@
 use crate::ast::{
-    CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_RETURN, RAW_POINTER_TYPE_INNER, SPECIFIED_TYPE_BASE,
-    TYPE_DEFINITION,
+    CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_BODY, FUNCTION_RETURN, RAW_POINTER_TYPE_INNER,
+    SPECIFIED_TYPE_BASE, TYPE_DEFINITION,
 };
 
 use super::{ASTElement, ASTElementKind};
 
 pub fn pretty_print(source: ASTElement) -> String {
-    let parts: Vec<String> = source
-        .slots_normal()
-        .into_iter()
-        .map(|(_, el)| pretty_print(el))
-        .collect();
-
     match &source.element() {
         ASTElementKind::Module { name: _ } => {
             let header = format!("/* module: {} */\n\n", source.path());
 
-            header + &parts.join("\n\n")
+            header
+                + &source
+                    .slots_normal()
+                    .into_iter()
+                    .map(|(_, el)| pretty_print(el))
+                    .collect::<Vec<String>>()
+                    .join("\n\n")
         }
 
         ASTElementKind::Class { span: _, name } => format!(
@@ -27,7 +27,15 @@ pub fn pretty_print(source: ASTElement) -> String {
                 Some(extends) => " extends ".to_string() + &pretty_print(extends.clone()),
                 None => "".to_string(),
             },
-            textwrap::indent(&parts.join("\n"), "    ")
+            textwrap::indent(
+                &source
+                    .slots_normal()
+                    .into_iter()
+                    .map(|(_, el)| pretty_print(el))
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+                "    "
+            )
         ),
 
         ASTElementKind::ClassField { span: _, name } => {
@@ -38,12 +46,16 @@ pub fn pretty_print(source: ASTElement) -> String {
             )
         }
 
+        ASTElementKind::CompoundStatement { span: _ } => {
+            format!("{{\n\n}}")
+        }
+
         ASTElementKind::Function {
             span: _,
             is_static,
             name,
         } => format!(
-            "{}fn {} {}({}){} {{}}",
+            "{}fn {} {}({}){} {}",
             match is_static {
                 true => "static ",
                 false => "",
@@ -68,7 +80,10 @@ pub fn pretty_print(source: ASTElement) -> String {
                         .join(", ")
             } else {
                 "".to_string()
-            }
+            },
+            source
+                .slot(FUNCTION_BODY)
+                .map_or("NO BODY?!".to_string(), pretty_print)
         ),
 
         ASTElementKind::NewType { name } => format!(

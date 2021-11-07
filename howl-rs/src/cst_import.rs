@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        ASTElement, ASTElementKind, CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_RETURN,
-        RAW_POINTER_TYPE_INNER, SPECIFIED_TYPE_BASE,
+        ASTElement, ASTElementKind, CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_BODY,
+        FUNCTION_RETURN, RAW_POINTER_TYPE_INNER, SPECIFIED_TYPE_BASE,
     },
     context::CompilationContext,
     log,
@@ -89,6 +89,11 @@ impl CompilationContext {
                 handle
             }
 
+            CSTElement::CompoundStatement {
+                span,
+                statements: _,
+            } => ASTElement::new(ASTElementKind::CompoundStatement { span }),
+
             CSTElement::Function {
                 span,
                 header:
@@ -100,9 +105,10 @@ impl CompilationContext {
                         args: CSTElement::TypedArgumentList { span: _, args },
                         throws,
                     },
-                body: _,
+                body,
             } => {
                 let rc = self.parse_cst((*returntype).clone(), prefix).clone();
+                let body = self.parse_cst((*body).clone(), prefix).clone();
 
                 let handle = self.path_set(
                     &(prefix.to_owned() + "." + name),
@@ -113,6 +119,7 @@ impl CompilationContext {
                     }),
                 );
                 handle.slot_insert(FUNCTION_RETURN, rc);
+                handle.slot_insert(FUNCTION_BODY, body);
 
                 for arg in args {
                     if let CSTElement::TypedArgument {
