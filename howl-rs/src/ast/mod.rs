@@ -5,11 +5,17 @@ use std::rc::Rc;
 
 pub mod pretty_print;
 
+pub const ASSIGNMENT_STATEMENT_LHS: &str = "__lhs";
+pub const ASSIGNMENT_STATEMENT_RHS: &str = "__rhs";
 pub const CLASS_EXTENDS: &str = "__extends";
 pub const CLASS_FIELD_TYPE: &str = "__type";
 pub const FUNCTION_BODY: &str = "__body";
 pub const FUNCTION_RETURN: &str = "__return";
+pub const LOCAL_DEFINITION_STATEMENT_INITIALIZER: &str = "__initializer";
+pub const LOCAL_DEFINITION_STATEMENT_TYPE: &str = "__type";
 pub const RAW_POINTER_TYPE_INNER: &str = "__inner";
+pub const SIMPLE_STATEMENT_EXPRESSION: &str = "__expression";
+pub const RETURN_STATEMENT_EXPRESSION: &str = "__expression";
 pub const SPECIFIED_TYPE_BASE: &str = "__base";
 pub const TYPE_DEFINITION: &str = "__definition";
 
@@ -165,8 +171,8 @@ pub struct ASTElementCommon {
 
 #[derive(Clone)]
 pub enum ASTElementKind {
-    Module {
-        name: String,
+    AssignmentStatement {
+        span: lrpar::Span,
     },
     Class {
         span: lrpar::Span,
@@ -184,13 +190,26 @@ pub enum ASTElementKind {
         is_static: bool,
         name: String,
     },
+    LocalDefinitionStatement {
+        span: lrpar::Span,
+        name: String,
+    },
+    Module {
+        name: String,
+    },
     NewType {
         name: String,
     },
     RawPointerType {
         span: lrpar::Span,
     },
+    ReturnStatement {
+        span: lrpar::Span,
+    },
     SpecifiedType {
+        span: lrpar::Span,
+    },
+    SimpleStatement {
         span: lrpar::Span,
     },
     UnresolvedIdentifier {

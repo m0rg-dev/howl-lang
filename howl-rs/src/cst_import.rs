@@ -1,7 +1,10 @@
 use crate::{
     ast::{
-        ASTElement, ASTElementKind, CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_BODY,
-        FUNCTION_RETURN, RAW_POINTER_TYPE_INNER, SPECIFIED_TYPE_BASE,
+        ASTElement, ASTElementKind, ASSIGNMENT_STATEMENT_LHS, ASSIGNMENT_STATEMENT_RHS,
+        CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_BODY, FUNCTION_RETURN,
+        LOCAL_DEFINITION_STATEMENT_INITIALIZER, LOCAL_DEFINITION_STATEMENT_TYPE,
+        RAW_POINTER_TYPE_INNER, RETURN_STATEMENT_EXPRESSION, SIMPLE_STATEMENT_EXPRESSION,
+        SPECIFIED_TYPE_BASE,
     },
     context::CompilationContext,
     log,
@@ -12,6 +15,18 @@ use crate::{
 impl CompilationContext {
     pub fn parse_cst(&self, cst: CSTElement, prefix: &str) -> ASTElement {
         match cst {
+            CSTElement::AssignmentStatement { span, lhs, rhs } => {
+                let statement = ASTElement::new(ASTElementKind::AssignmentStatement { span });
+                statement.slot_insert(
+                    ASSIGNMENT_STATEMENT_LHS,
+                    self.parse_cst(lhs.to_owned(), prefix),
+                );
+                statement.slot_insert(
+                    ASSIGNMENT_STATEMENT_RHS,
+                    self.parse_cst(rhs.to_owned(), prefix),
+                );
+                statement
+            }
             CSTElement::BaseType { span, name } => {
                 ASTElement::new(ASTElementKind::UnresolvedIdentifier {
                     span,
@@ -89,10 +104,13 @@ impl CompilationContext {
                 handle
             }
 
-            CSTElement::CompoundStatement {
-                span,
-                statements: _,
-            } => ASTElement::new(ASTElementKind::CompoundStatement { span }),
+            CSTElement::CompoundStatement { span, statements } => {
+                let statement = ASTElement::new(ASTElementKind::CompoundStatement { span });
+                for substatement_raw in statements {
+                    statement.slot_push(self.parse_cst(substatement_raw, prefix));
+                }
+                statement
+            }
 
             CSTElement::Function {
                 span,
@@ -151,11 +169,50 @@ impl CompilationContext {
                 })
             }
 
+            CSTElement::LocalDefinitionStatement {
+                span,
+                localtype,
+                name,
+                initializer,
+            } => {
+                let statement =
+                    ASTElement::new(ASTElementKind::LocalDefinitionStatement { span, name });
+                statement.slot_insert(
+                    LOCAL_DEFINITION_STATEMENT_INITIALIZER,
+                    self.parse_cst(initializer.to_owned(), prefix),
+                );
+                statement.slot_insert(
+                    LOCAL_DEFINITION_STATEMENT_TYPE,
+                    self.parse_cst(localtype.to_owned(), prefix),
+                );
+                statement
+            }
+
             CSTElement::RawPointerType { span, inner } => {
                 let inner = self.parse_cst(inner.clone(), prefix).clone();
                 let handle = ASTElement::new(ASTElementKind::RawPointerType { span });
                 handle.slot_insert(RAW_POINTER_TYPE_INNER, inner);
                 handle
+            }
+
+            CSTElement::ReturnStatement { span, source } => {
+                let statement = ASTElement::new(ASTElementKind::ReturnStatement { span });
+                source.map(|source| {
+                    statement.slot_insert(
+                        RETURN_STATEMENT_EXPRESSION,
+                        self.parse_cst(source.clone(), prefix),
+                    )
+                });
+                statement
+            }
+
+            CSTElement::SimpleStatement { span, expression } => {
+                let statement = ASTElement::new(ASTElementKind::SimpleStatement { span });
+                statement.slot_insert(
+                    SIMPLE_STATEMENT_EXPRESSION,
+                    self.parse_cst(expression.to_owned(), prefix),
+                );
+                statement
             }
 
             CSTElement::SpecifiedType {

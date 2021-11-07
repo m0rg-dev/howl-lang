@@ -1,23 +1,19 @@
 use crate::ast::{
-    CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_BODY, FUNCTION_RETURN, RAW_POINTER_TYPE_INNER,
-    SPECIFIED_TYPE_BASE, TYPE_DEFINITION,
+    ASSIGNMENT_STATEMENT_LHS, ASSIGNMENT_STATEMENT_RHS, CLASS_EXTENDS, CLASS_FIELD_TYPE,
+    FUNCTION_BODY, FUNCTION_RETURN, LOCAL_DEFINITION_STATEMENT_INITIALIZER,
+    LOCAL_DEFINITION_STATEMENT_TYPE, RAW_POINTER_TYPE_INNER, RETURN_STATEMENT_EXPRESSION,
+    SIMPLE_STATEMENT_EXPRESSION, SPECIFIED_TYPE_BASE, TYPE_DEFINITION,
 };
 
 use super::{ASTElement, ASTElementKind};
 
 pub fn pretty_print(source: ASTElement) -> String {
     match &source.element() {
-        ASTElementKind::Module { name: _ } => {
-            let header = format!("/* module: {} */\n\n", source.path());
-
-            header
-                + &source
-                    .slots_normal()
-                    .into_iter()
-                    .map(|(_, el)| pretty_print(el))
-                    .collect::<Vec<String>>()
-                    .join("\n\n")
-        }
+        ASTElementKind::AssignmentStatement { .. } => format!(
+            "{} = {};",
+            pretty_print(source.slot(ASSIGNMENT_STATEMENT_LHS).unwrap()),
+            pretty_print(source.slot(ASSIGNMENT_STATEMENT_RHS).unwrap())
+        ),
 
         ASTElementKind::Class { span: _, name } => format!(
             "/* path: {} */\nclass {}{} {{\n{}\n}}",
@@ -47,7 +43,18 @@ pub fn pretty_print(source: ASTElement) -> String {
         }
 
         ASTElementKind::CompoundStatement { span: _ } => {
-            format!("{{\n\n}}")
+            format!(
+                "{{\n{}\n}}",
+                textwrap::indent(
+                    &source
+                        .slot_vec()
+                        .into_iter()
+                        .map(|el| pretty_print(el))
+                        .collect::<Vec<String>>()
+                        .join("\n"),
+                    "    "
+                )
+            )
         }
 
         ASTElementKind::Function {
@@ -86,6 +93,25 @@ pub fn pretty_print(source: ASTElement) -> String {
                 .map_or("NO BODY?!".to_string(), pretty_print)
         ),
 
+        ASTElementKind::LocalDefinitionStatement { name, .. } => format!(
+            "let {} {} = {};",
+            pretty_print(source.slot(LOCAL_DEFINITION_STATEMENT_TYPE).unwrap()),
+            name,
+            pretty_print(source.slot(LOCAL_DEFINITION_STATEMENT_INITIALIZER).unwrap())
+        ),
+
+        ASTElementKind::Module { name: _ } => {
+            let header = format!("/* module: {} */\n\n", source.path());
+
+            header
+                + &source
+                    .slots_normal()
+                    .into_iter()
+                    .map(|(_, el)| pretty_print(el))
+                    .collect::<Vec<String>>()
+                    .join("\n\n")
+        }
+
         ASTElementKind::NewType { name } => format!(
             "type {}{};",
             name,
@@ -95,14 +121,28 @@ pub fn pretty_print(source: ASTElement) -> String {
             }
         ),
 
-        ASTElementKind::RawPointerType { span: _ } => {
+        ASTElementKind::RawPointerType { .. } => {
             format!(
                 "*{}",
                 pretty_print(source.slot(RAW_POINTER_TYPE_INNER).unwrap())
             )
         }
 
-        ASTElementKind::SpecifiedType { span: _ } => {
+        ASTElementKind::ReturnStatement { .. } => format!(
+            "return {};",
+            source
+                .slot(RETURN_STATEMENT_EXPRESSION)
+                .map_or("".to_string(), pretty_print)
+        ),
+
+        ASTElementKind::SimpleStatement { .. } => {
+            format!(
+                "{};",
+                pretty_print(source.slot(SIMPLE_STATEMENT_EXPRESSION).unwrap())
+            )
+        }
+
+        ASTElementKind::SpecifiedType { .. } => {
             format!(
                 "{}<{}>",
                 pretty_print(source.slot(SPECIFIED_TYPE_BASE).unwrap()),
