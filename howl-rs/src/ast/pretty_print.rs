@@ -82,12 +82,12 @@ pub fn pretty_print(source: ASTElement) -> String {
         }
 
         ASTElementKind::ElseStatement { .. } => format!(
-            "else {}",
+            "/* detached */ else {}",
             pretty_print(source.slot(ELSE_STATEMENT_BODY).unwrap())
         ),
 
         ASTElementKind::ElseIfStatement { .. } => format!(
-            "else if {} {}",
+            "/* detached */ else if {} {}",
             pretty_print(source.slot(ELSE_IF_STATEMENT_CONDITION).unwrap()),
             pretty_print(source.slot(ELSE_IF_STATEMENT_BODY).unwrap())
         ),
