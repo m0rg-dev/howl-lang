@@ -166,19 +166,19 @@ impl ASTElement {
             None => "".to_string(),
         };
 
-        let temp = self.inner.borrow();
-
-        let own = match &temp.element {
-            ASTElementKind::Module { name, .. } => name,
-            ASTElementKind::Class { name, .. } => name,
-            ASTElementKind::ClassField { name, .. } => name,
-            ASTElementKind::Function { unique_name, .. } => unique_name,
-            ASTElementKind::Interface { name, .. } => name,
-            ASTElementKind::NewType { name, .. } => name,
-            _ => "__anonymous",
-        };
-
-        parent + &own
+        if let Some(parent_element) = &self.inner.borrow().parent {
+            let own = parent_element
+                .slots()
+                .into_iter()
+                .filter(|(_, element)| Rc::ptr_eq(&self.inner, &element.inner))
+                .map(|(slot, _)| slot)
+                .collect::<Vec<String>>()
+                .pop()
+                .unwrap();
+            parent + &own
+        } else {
+            "".to_string()
+        }
     }
 
     pub fn parent(&self) -> ASTElement {
