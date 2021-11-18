@@ -1,10 +1,15 @@
 use crate::{
     ast::{
-        ASTElement, ASTElementKind, ASSIGNMENT_STATEMENT_LHS, ASSIGNMENT_STATEMENT_RHS,
-        CLASS_EXTENDS, CLASS_FIELD_TYPE, FUNCTION_BODY, FUNCTION_RETURN,
+        generate_unique_name, ASTElement, ASTElementKind, ARITHMETIC_EXPRESSION_LHS,
+        ARITHMETIC_EXPRESSION_RHS, ASSIGNMENT_STATEMENT_LHS, ASSIGNMENT_STATEMENT_RHS,
+        CLASS_EXTENDS, CLASS_FIELD_TYPE, CONSTRUCTOR_CALL_EXPRESSION_SOURCE,
+        ELSE_IF_STATEMENT_BODY, ELSE_IF_STATEMENT_CONDITION, ELSE_STATEMENT_BODY, FUNCTION_BODY,
+        FUNCTION_CALL_EXPRESSION_SOURCE, FUNCTION_RETURN, IF_STATEMENT_BODY,
+        IF_STATEMENT_CONDITION, INDEX_EXPRESSION_INDEX, INDEX_EXPRESSION_SOURCE,
         LOCAL_DEFINITION_STATEMENT_INITIALIZER, LOCAL_DEFINITION_STATEMENT_TYPE,
         RAW_POINTER_TYPE_INNER, RETURN_STATEMENT_EXPRESSION, SIMPLE_STATEMENT_EXPRESSION,
-        SPECIFIED_TYPE_BASE, THROW_STATEMENT_EXPRESSION,
+        SPECIFIED_TYPE_BASE, THROW_STATEMENT_EXPRESSION, WHILE_STATEMENT_BODY,
+        WHILE_STATEMENT_CONDITION,
     },
     context::CompilationContext,
     log,
@@ -12,21 +17,80 @@ use crate::{
     parser::CSTElement,
 };
 
+macro_rules! slot_parse {
+    ($self: expr, $target: expr, $slot: expr, $source: expr, $prefix: expr) => {
+        $target.slot_insert($slot, $self.parse_cst($source.to_owned(), $prefix))
+    };
+}
+
+macro_rules! push_parse {
+    ($self: expr, $target: expr, $source: expr, $prefix: expr) => {
+        $target.slot_push($self.parse_cst($source.to_owned(), $prefix))
+    };
+}
+
+macro_rules! vec_push_parse {
+    ($self: expr, $target: expr, $source: expr, $prefix: expr) => {{
+        for item in $source {
+            push_parse!($self, $target, item, $prefix);
+        }
+    }};
+}
+
+macro_rules! build_ast {
+    (($self: expr, $prefix: expr, $kind: expr)
+        vec => $vec: expr,
+        $(
+            $slot: expr => $source: expr
+        ),*
+    ) => {{
+        let element = ASTElement::new($kind);
+        $(
+            slot_parse!($self, element, $slot, $source, $prefix);
+        )*
+        vec_push_parse!($self, element, $vec, $prefix);
+        element
+    }};
+
+    (($self: expr, $prefix: expr, $kind: expr)
+        $(
+            $slot: expr => $source: expr
+        ),*
+    ) => {{
+        let element = ASTElement::new($kind);
+        $(
+            slot_parse!($self, element, $slot, $source, $prefix);
+        )*
+        element
+    }};
+}
+
 impl CompilationContext {
     pub fn parse_cst(&self, cst: CSTElement, prefix: &str) -> ASTElement {
         match cst {
-            CSTElement::AssignmentStatement { span, lhs, rhs } => {
-                let statement = ASTElement::new(ASTElementKind::AssignmentStatement { span });
-                statement.slot_insert(
-                    ASSIGNMENT_STATEMENT_LHS,
-                    self.parse_cst(lhs.to_owned(), prefix),
-                );
-                statement.slot_insert(
-                    ASSIGNMENT_STATEMENT_RHS,
-                    self.parse_cst(rhs.to_owned(), prefix),
-                );
-                statement
-            }
+            CSTElement::ArithmeticExpression {
+                span,
+                lhs,
+                operator,
+                rhs,
+            } => build_ast! {
+                (
+                    self, prefix,
+                    ASTElementKind::ArithmeticExpression { span, operator }
+                )
+                ARITHMETIC_EXPRESSION_LHS => lhs,
+                ARITHMETIC_EXPRESSION_RHS => rhs
+            },
+
+            CSTElement::AssignmentStatement { span, lhs, rhs } => build_ast! {
+                (
+                    self, prefix,
+                    ASTElementKind::AssignmentStatement { span }
+                )
+                ASSIGNMENT_STATEMENT_LHS => lhs,
+                ASSIGNMENT_STATEMENT_RHS => rhs
+            },
+
             CSTElement::BaseType { span, name } => {
                 ASTElement::new(ASTElementKind::UnresolvedIdentifier {
                     span,
@@ -60,29 +124,20 @@ impl CompilationContext {
                     self.parse_cst(element.clone(), &class_path);
                 }
 
-                if generics.is_some() {
-                    if let Some(CSTElement::GenericList { span: _, names }) = generics {
-                        for element in names {
-                            if let CSTElement::Identifier { span: _, name } = element {
-                                self.path_set(
-                                    &(class_path.clone() + "." + name),
-                                    ASTElement::new(ASTElementKind::NewType { name: name.clone() }),
-                                );
-                            } else {
-                                unreachable!()
-                            }
+                if let Some(CSTElement::GenericList { span: _, names }) = generics {
+                    for element in names {
+                        if let CSTElement::Identifier { span: _, name } = element {
+                            self.path_set(
+                                &(class_path.clone() + "." + name),
+                                ASTElement::new(ASTElementKind::NewType { name: name.clone() }),
+                            );
+                        } else {
+                            unreachable!()
                         }
-                    } else {
-                        unreachable!()
                     }
                 }
 
-                if extends.is_some() {
-                    let extends = self
-                        .parse_cst(extends.unwrap().clone(), &class_path)
-                        .clone();
-                    class.slot_insert(CLASS_EXTENDS, extends);
-                }
+                extends.map(|x| slot_parse!(self, class, CLASS_EXTENDS, x, &class_path));
 
                 class
             }
@@ -112,32 +167,112 @@ impl CompilationContext {
                 statement
             }
 
-            CSTElement::Function {
+            CSTElement::ConstructorCallExpression {
                 span,
-                header:
-                    CSTElement::FunctionDeclaration {
-                        span: _,
-                        is_static,
-                        returntype,
-                        name: CSTElement::Identifier { span: _, name },
-                        args: CSTElement::TypedArgumentList { span: _, args },
-                        throws,
-                    },
+                source,
+                args: CSTElement::ArgumentList { span: _, args },
+            } => {
+                let element = build_ast! {
+                    (
+                        self, prefix,
+                        ASTElementKind::ConstructorCallExpression { span }
+                    )
+                    CONSTRUCTOR_CALL_EXPRESSION_SOURCE => source
+                };
+                vec_push_parse!(self, element, args, prefix);
+                element
+            }
+
+            CSTElement::ElseStatement { span, body } => build_ast! {
+                (
+                    self, prefix,
+                    ASTElementKind::ElseStatement { span }
+                )
+                ELSE_STATEMENT_BODY => body
+            },
+
+            CSTElement::ElseIfStatement {
+                span,
+                condition,
+                body,
+            } => build_ast! {
+                (
+                    self, prefix,
+                    ASTElementKind::ElseIfStatement { span }
+                )
+                ELSE_IF_STATEMENT_CONDITION => condition,
+                ELSE_IF_STATEMENT_BODY => body
+            },
+
+            CSTElement::FFICallExpression {
+                span,
+                name,
+                args: CSTElement::ArgumentList { span: _, args },
+            } => {
+                let element = ASTElement::new(ASTElementKind::FFICallExpression { span, name });
+                vec_push_parse!(self, element, args, prefix);
+                element
+            }
+
+            CSTElement::Function {
+                span: _,
+                header,
                 body,
             } => {
-                let rc = self.parse_cst((*returntype).clone(), prefix).clone();
-                let body = self.parse_cst((*body).clone(), prefix).clone();
+                let element = self.parse_cst(header.clone(), prefix);
+                slot_parse!(self, element, FUNCTION_BODY, body, &element.path());
 
-                let handle = self.path_set(
-                    &(prefix.to_owned() + "." + name),
+                element
+            }
+
+            CSTElement::FunctionCallExpression {
+                span,
+                source,
+                args: CSTElement::ArgumentList { span: _, args },
+            } => build_ast! {
+                (
+                    self, prefix,
+                    ASTElementKind::FunctionCallExpression { span }
+                )
+                vec => args,
+                FUNCTION_CALL_EXPRESSION_SOURCE => source
+            },
+
+            CSTElement::FunctionDeclaration {
+                span,
+                is_static,
+                returntype,
+                name: CSTElement::Identifier { span: _, name },
+                args: CSTElement::TypedArgumentList { span: _, args },
+                throws,
+            } => {
+                let unique_name = generate_unique_name(
+                    name,
+                    args.into_iter()
+                        .map(|x| {
+                            if let CSTElement::TypedArgument {
+                                span: _,
+                                argname: _,
+                                argtype,
+                            } = *x
+                            {
+                                self.parse_cst(argtype.clone(), prefix)
+                            } else {
+                                unreachable!()
+                            }
+                        })
+                        .collect(),
+                );
+                let element = self.path_set(
+                    &(prefix.to_owned() + "." + &unique_name),
                     ASTElement::new(ASTElementKind::Function {
                         span,
-                        is_static: *is_static,
+                        is_static,
                         name: name.to_owned(),
+                        unique_name,
                     }),
                 );
-                handle.slot_insert(FUNCTION_RETURN, rc);
-                handle.slot_insert(FUNCTION_BODY, body);
+                slot_parse!(self, element, FUNCTION_RETURN, returntype, &element.path());
 
                 for arg in args {
                     if let CSTElement::TypedArgument {
@@ -146,19 +281,15 @@ impl CompilationContext {
                         argtype,
                     } = arg
                     {
-                        let ty = self.parse_cst((*argtype).clone(), prefix).clone();
-                        handle.slot_insert(name, ty);
+                        slot_parse!(self, element, name, *argtype, prefix);
                     } else {
                         unreachable!();
                     }
                 }
 
-                for throw in throws {
-                    let throw_parsed = self.parse_cst(throw.clone(), prefix).clone();
-                    handle.slot_push(throw_parsed);
-                }
+                vec_push_parse!(self, element, throws, prefix);
 
-                handle
+                element
             }
 
             CSTElement::Identifier { span, name } => {
@@ -169,6 +300,69 @@ impl CompilationContext {
                 })
             }
 
+            CSTElement::IfStatement {
+                span,
+                condition,
+                body,
+            } => build_ast! {
+                (
+                    self, prefix,
+                    ASTElementKind::IfStatement { span }
+                )
+                IF_STATEMENT_CONDITION => condition,
+                IF_STATEMENT_BODY => body
+            },
+
+            CSTElement::IndexExpression {
+                span,
+                source,
+                index,
+            } => {
+                let element = ASTElement::new(ASTElementKind::IndexExpression { span });
+                slot_parse!(self, element, INDEX_EXPRESSION_SOURCE, source, prefix);
+                slot_parse!(self, element, INDEX_EXPRESSION_INDEX, index, prefix);
+                element
+            }
+
+            CSTElement::Interface {
+                span,
+                header:
+                    CSTElement::InterfaceHeader {
+                        span: _,
+                        name: CSTElement::Identifier { span: _, name },
+                        generics,
+                    },
+                body: CSTElement::InterfaceBody { span: _, elements },
+            } => {
+                let interface_path = prefix.to_owned() + "." + name;
+                let element = self.path_set(
+                    &interface_path,
+                    ASTElement::new(ASTElementKind::Interface {
+                        span,
+                        name: name.clone(),
+                    }),
+                );
+
+                for element in elements {
+                    self.parse_cst(element.clone(), &interface_path);
+                }
+
+                if let Some(CSTElement::GenericList { span: _, names }) = generics {
+                    for element in names {
+                        if let CSTElement::Identifier { span: _, name } = element {
+                            self.path_set(
+                                &(interface_path.clone() + "." + name),
+                                ASTElement::new(ASTElementKind::NewType { name: name.clone() }),
+                            );
+                        } else {
+                            unreachable!()
+                        }
+                    }
+                }
+
+                element
+            }
+
             CSTElement::LocalDefinitionStatement {
                 span,
                 localtype,
@@ -177,40 +371,66 @@ impl CompilationContext {
             } => {
                 let statement =
                     ASTElement::new(ASTElementKind::LocalDefinitionStatement { span, name });
-                statement.slot_insert(
+                slot_parse!(
+                    self,
+                    statement,
                     LOCAL_DEFINITION_STATEMENT_INITIALIZER,
-                    self.parse_cst(initializer.to_owned(), prefix),
+                    initializer,
+                    prefix
                 );
-                statement.slot_insert(
+                slot_parse!(
+                    self,
+                    statement,
                     LOCAL_DEFINITION_STATEMENT_TYPE,
-                    self.parse_cst(localtype.to_owned(), prefix),
+                    localtype,
+                    prefix
                 );
                 statement
             }
 
+            CSTElement::NameExpression { span, name } => {
+                ASTElement::new(ASTElementKind::NameExpression { span, name })
+            }
+
+            CSTElement::NumberExpression { span, as_text } => {
+                ASTElement::new(ASTElementKind::NumberExpression {
+                    span,
+                    value: as_text,
+                })
+            }
+
+            CSTElement::MacroCallExpression {
+                span,
+                name,
+                args: CSTElement::ArgumentList { span: _, args },
+            } => {
+                let element = ASTElement::new(ASTElementKind::MacroCallExpression { span, name });
+                vec_push_parse!(self, element, args, prefix);
+                element
+            }
+
             CSTElement::RawPointerType { span, inner } => {
-                let inner = self.parse_cst(inner.clone(), prefix).clone();
                 let handle = ASTElement::new(ASTElementKind::RawPointerType { span });
-                handle.slot_insert(RAW_POINTER_TYPE_INNER, inner);
+                slot_parse!(self, handle, RAW_POINTER_TYPE_INNER, inner, prefix);
                 handle
             }
 
             CSTElement::ReturnStatement { span, source } => {
                 let statement = ASTElement::new(ASTElementKind::ReturnStatement { span });
                 source.map(|source| {
-                    statement.slot_insert(
-                        RETURN_STATEMENT_EXPRESSION,
-                        self.parse_cst(source.clone(), prefix),
-                    )
+                    slot_parse!(self, statement, RETURN_STATEMENT_EXPRESSION, source, prefix)
                 });
                 statement
             }
 
             CSTElement::SimpleStatement { span, expression } => {
                 let statement = ASTElement::new(ASTElementKind::SimpleStatement { span });
-                statement.slot_insert(
+                slot_parse!(
+                    self,
+                    statement,
                     SIMPLE_STATEMENT_EXPRESSION,
-                    self.parse_cst(expression.to_owned(), prefix),
+                    expression,
+                    prefix
                 );
                 statement
             }
@@ -235,6 +455,13 @@ impl CompilationContext {
                 handle
             }
 
+            CSTElement::StringLiteral { span, contents } => {
+                ASTElement::new(ASTElementKind::StringExpression {
+                    span,
+                    value: contents,
+                })
+            }
+
             CSTElement::ThrowStatement { span, source } => {
                 let statement = ASTElement::new(ASTElementKind::ThrowStatement { span });
                 statement.slot_insert(
@@ -243,6 +470,19 @@ impl CompilationContext {
                 );
                 statement
             }
+
+            CSTElement::WhileStatement {
+                span,
+                condition,
+                body,
+            } => build_ast! {
+                (
+                    self, prefix,
+                    ASTElementKind::WhileStatement { span }
+                )
+                WHILE_STATEMENT_CONDITION => condition,
+                WHILE_STATEMENT_BODY => body
+            },
 
             _ => {
                 log!(LogLevel::Warning, "unimplemented parse_cst {:?}", cst);
