@@ -85,7 +85,7 @@ impl CompilationContext {
                     source_path: source_path.to_owned(),
                     span: e.lexeme().span(),
                     headline: "Parse error".to_string(),
-                    description: None,
+                    description: Some(self.describe_parse_error(e)),
                 },
             })
         });
@@ -106,6 +106,15 @@ impl CompilationContext {
             .transform("".to_string(), &|_path, el| match el.element() {
                 _ => el,
             });
+    }
+
+    pub fn describe_parse_error(&self, e: &lrpar::ParseError<u32>) -> String {
+        let repair_strings: Vec<String> = e.repairs().iter().map(|x| format!("{:?}", x)).collect();
+        format!(
+            "{} possible repairs found:\n{}",
+            e.repairs().len(),
+            repair_strings.join("\n\n")
+        )
     }
 
     pub fn print_error(&self, e: &CompilationError) {
@@ -154,6 +163,8 @@ impl CompilationContext {
                 end_line, last_line_before, last_line_after
             );
         }
+
+        e.description.as_ref().map(|x| eprintln!("{}", x));
     }
 
     pub fn dump(&self) {

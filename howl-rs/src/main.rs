@@ -28,6 +28,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut context = CompilationContext::new();
     context.compile_from(&args.source_path, &args.root_module)?;
 
+    let library_paths = std::fs::read_dir("stdlib")?;
+    for path in library_paths {
+        context.compile_from(&path.unwrap().path(), "lib")?;
+    }
+
     if context.errors().len() > 0 {
         context.errors().iter().for_each(|x| context.print_error(x));
         eprintln!("Compilation aborted.");
