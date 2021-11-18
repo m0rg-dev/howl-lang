@@ -27,12 +27,25 @@ pub fn pretty_print(source: ASTElement) -> String {
         ),
 
         ASTElementKind::Class { span: _, name } => format!(
-            "/* path: {} */\nclass {}{} {{\n{}\n}}",
+            "/* path: {} */\nclass {}{}{} {{\n{}\n}}",
             source.path(),
             name,
             match source.slot(CLASS_EXTENDS) {
                 Some(extends) => " extends ".to_string() + &pretty_print(extends.clone()),
                 None => "".to_string(),
+            },
+            if source.slot_vec().len() > 0 {
+                format!(
+                    " implements {}",
+                    source
+                        .slot_vec()
+                        .into_iter()
+                        .map(pretty_print)
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                )
+            } else {
+                "".to_string()
             },
             textwrap::indent(
                 &source

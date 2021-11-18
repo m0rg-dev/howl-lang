@@ -113,7 +113,7 @@ impl CompilationContext {
                         name: CSTElement::Identifier { span: _, name },
                         generics,
                         extends,
-                        implements: _,
+                        implements,
                     },
                 body: CSTElement::ClassBody { span: _, elements },
             } => {
@@ -146,6 +146,8 @@ impl CompilationContext {
                 extends.map(|x| {
                     slot_parse!(self, class, CLASS_EXTENDS, x, &class_path, source_path_ref)
                 });
+
+                vec_push_parse!(self, class, implements, &class_path, source_path_ref);
 
                 class
             }
