@@ -260,7 +260,6 @@ pub enum ASTElementKind {
     Module {
         name: String,
         searchpath: Vec<String>,
-        source_path: PathBuf,
     },
     NamedType {
         span: SourcedSpan,

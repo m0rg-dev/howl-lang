@@ -120,7 +120,6 @@ impl CompilationContext {
                 let class_path = prefix.to_owned() + "." + name;
                 let class = self.path_set(
                     &class_path,
-                    source_path_ref,
                     ASTElement::new(ASTElementKind::Class {
                         span: SourcedSpan { source_path, span },
                         name: name.clone(),
@@ -136,7 +135,6 @@ impl CompilationContext {
                         if let CSTElement::Identifier { span: _, name } = element {
                             self.path_set(
                                 &(class_path.clone() + "." + name),
-                                source_path_ref,
                                 ASTElement::new(ASTElementKind::NewType { name: name.clone() }),
                             );
                         } else {
@@ -162,7 +160,6 @@ impl CompilationContext {
                     .clone();
                 let handle = self.path_set(
                     &(prefix.to_owned() + "." + name),
-                    source_path_ref,
                     ASTElement::new(ASTElementKind::ClassField {
                         span: SourcedSpan { source_path, span },
                         name: name.to_owned(),
@@ -290,7 +287,6 @@ impl CompilationContext {
                 );
                 let element = self.path_set(
                     &(prefix.to_owned() + "." + &unique_name),
-                    source_path_ref,
                     ASTElement::new(ASTElementKind::Function {
                         span: SourcedSpan { source_path, span },
                         is_static,
@@ -386,7 +382,6 @@ impl CompilationContext {
                 let interface_path = prefix.to_owned() + "." + name;
                 let element = self.path_set(
                     &interface_path,
-                    source_path_ref,
                     ASTElement::new(ASTElementKind::Interface {
                         span: SourcedSpan { source_path, span },
                         name: name.clone(),
@@ -402,7 +397,6 @@ impl CompilationContext {
                         if let CSTElement::Identifier { span: _, name } = element {
                             self.path_set(
                                 &(interface_path.clone() + "." + name),
-                                source_path_ref,
                                 ASTElement::new(ASTElementKind::NewType { name: name.clone() }),
                             );
                         } else {

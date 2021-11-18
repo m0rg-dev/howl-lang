@@ -56,7 +56,26 @@ pub fn resolve_names(ctx: &CompilationContext) -> ASTElement {
                         el
                     }
                 }
-                _ => el,
+                _ => {
+                    for target in search_path(&el) {
+                        if let Some(_) = ctx.path_get(&(target.clone() + "." + &name)) {
+                            return ASTElement::new(ASTElementKind::NamedType {
+                                span,
+                                abspath: target + "." + &name,
+                            });
+                        }
+                    }
+
+                    // if we got here, we didn't find it
+                    ctx.add_error(CompilationError {
+                        source_path: span.source_path,
+                        span: span.span,
+                        headline: format!("Unknown name: {}", name),
+                        description: None,
+                    });
+
+                    el
+                }
             },
             _ => el,
         })

@@ -51,7 +51,6 @@ impl CompilationContext {
     pub fn new() -> CompilationContext {
         let root_module = ASTElement::new(ASTElementKind::Module {
             name: "".to_string(),
-            source_path: "".into(),
             searchpath: vec![".lib".to_string()],
         });
 
@@ -170,23 +169,18 @@ impl CompilationContext {
         eprintln!("{}", pretty_print(self.root_module.clone()));
     }
 
-    pub fn path_set(&self, path: &str, source_path: &Path, element: ASTElement) -> ASTElement {
+    pub fn path_set(&self, path: &str, element: ASTElement) -> ASTElement {
         let mut components: Vec<&str> = path.split(".").collect();
         let last = components.pop().unwrap();
-        let parent = self.path_create(&components.join("."), source_path);
+        let parent = self.path_create(&components.join("."));
         parent.slot_insert(last, element)
     }
 
-    pub fn path_create(&self, path: &str, source_path: &Path) -> ASTElement {
-        self.path_create_rec(self.root_module.clone(), path, source_path)
+    pub fn path_create(&self, path: &str) -> ASTElement {
+        self.path_create_rec(self.root_module.clone(), path)
     }
 
-    fn path_create_rec(
-        &self,
-        root_module: ASTElement,
-        path: &str,
-        source_path: &Path,
-    ) -> ASTElement {
+    fn path_create_rec(&self, root_module: ASTElement, path: &str) -> ASTElement {
         let components: Vec<&str> = path.split(".").collect();
         let slot_contents = { root_module.slot(components[0]) };
         let submodule = match slot_contents {
@@ -194,7 +188,6 @@ impl CompilationContext {
             None => {
                 let new_element = ASTElement::new(ASTElementKind::Module {
                     name: components[0].to_string(),
-                    source_path: source_path.into(),
                     searchpath: vec![root_module.path() + "." + components[0], ".lib".to_string()],
                 });
 
@@ -202,7 +195,7 @@ impl CompilationContext {
             }
         };
         if components.len() > 1 {
-            self.path_create_rec(submodule, &components[1..].join("."), source_path)
+            self.path_create_rec(submodule, &components[1..].join("."))
         } else {
             submodule
         }

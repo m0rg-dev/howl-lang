@@ -206,13 +206,11 @@ pub fn pretty_print(source: ASTElement) -> String {
 
         ASTElementKind::Module {
             name: _,
-            source_path,
             searchpath,
         } => {
             let header = format!(
-                "/* module: {} ({})*/\n/* search path: {} */\n\n",
+                "/* module: {} */\n/* search path: {} */\n\n",
                 source.path(),
-                source_path.to_string_lossy(),
                 searchpath.join(", ")
             );
 
