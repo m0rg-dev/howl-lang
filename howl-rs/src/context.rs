@@ -13,13 +13,14 @@ use crate::{
     ast::{pretty_print::pretty_print, ASTElement, ASTElementKind},
     log,
     logger::{LogLevel, Logger},
+    transform::resolve_names,
 };
 
 lrlex_mod!("howl.l");
 lrlex_mod!("howl.y");
 
 pub struct CompilationContext {
-    root_module: ASTElement,
+    pub root_module: ASTElement,
     lexer_def: LRNonStreamingLexerDef<u32>,
     sources: HashMap<PathBuf, String>,
     errors: RefCell<Vec<CompilationError>>,
@@ -27,10 +28,10 @@ pub struct CompilationContext {
 
 #[derive(Clone)]
 pub struct CompilationError {
-    source_path: PathBuf,
-    span: lrpar::Span,
-    headline: String,
-    description: Option<String>,
+    pub source_path: PathBuf,
+    pub span: lrpar::Span,
+    pub headline: String,
+    pub description: Option<String>,
 }
 
 impl CompilationContext {
@@ -50,6 +51,8 @@ impl CompilationContext {
     pub fn new() -> CompilationContext {
         let root_module = ASTElement::new(ASTElementKind::Module {
             name: "".to_string(),
+            source_path: "".into(),
+            searchpath: vec![".lib".to_string()],
         });
 
         CompilationContext {
@@ -92,7 +95,7 @@ impl CompilationContext {
 
         if parse_errors.len() == 0 {
             for el in cst.unwrap().unwrap() {
-                self.parse_cst(el, &prefix);
+                self.parse_cst(el, &prefix, source_path);
             }
         }
 
@@ -101,11 +104,7 @@ impl CompilationContext {
 
     pub fn link_program(&mut self) {
         log!(LogLevel::Info, "Starting link phase.");
-        self.root_module = self
-            .root_module
-            .transform("".to_string(), &|_path, el| match el.element() {
-                _ => el,
-            });
+        self.root_module = resolve_names(&self);
     }
 
     pub fn describe_parse_error(&self, e: &lrpar::ParseError<u32>) -> String {
@@ -171,18 +170,23 @@ impl CompilationContext {
         eprintln!("{}", pretty_print(self.root_module.clone()));
     }
 
-    pub fn path_set(&self, path: &str, element: ASTElement) -> ASTElement {
+    pub fn path_set(&self, path: &str, source_path: &Path, element: ASTElement) -> ASTElement {
         let mut components: Vec<&str> = path.split(".").collect();
         let last = components.pop().unwrap();
-        let parent = self.path_create(&components.join("."));
+        let parent = self.path_create(&components.join("."), source_path);
         parent.slot_insert(last, element)
     }
 
-    pub fn path_create(&self, path: &str) -> ASTElement {
-        self.path_create_rec(self.root_module.clone(), path)
+    pub fn path_create(&self, path: &str, source_path: &Path) -> ASTElement {
+        self.path_create_rec(self.root_module.clone(), path, source_path)
     }
 
-    fn path_create_rec(&self, root_module: ASTElement, path: &str) -> ASTElement {
+    fn path_create_rec(
+        &self,
+        root_module: ASTElement,
+        path: &str,
+        source_path: &Path,
+    ) -> ASTElement {
         let components: Vec<&str> = path.split(".").collect();
         let slot_contents = { root_module.slot(components[0]) };
         let submodule = match slot_contents {
@@ -190,15 +194,34 @@ impl CompilationContext {
             None => {
                 let new_element = ASTElement::new(ASTElementKind::Module {
                     name: components[0].to_string(),
+                    source_path: source_path.into(),
+                    searchpath: vec![root_module.path() + "." + components[0], ".lib".to_string()],
                 });
 
                 root_module.slot_insert(components[0], new_element)
             }
         };
         if components.len() > 1 {
-            self.path_create_rec(submodule, &components[1..].join("."))
+            self.path_create_rec(submodule, &components[1..].join("."), source_path)
         } else {
             submodule
+        }
+    }
+
+    pub fn path_get(&self, path: &str) -> Option<ASTElement> {
+        self.path_get_rec(&self.root_module, &path.trim_matches('.').to_string())
+    }
+
+    fn path_get_rec(&self, root_module: &ASTElement, path: &str) -> Option<ASTElement> {
+        let components: Vec<&str> = path.split(".").collect();
+        if components.len() > 1 {
+            let slot_contents = root_module.slot(components[0]);
+            slot_contents
+                .as_ref()
+                .map(|x| self.path_get_rec(x, &components[1..].join(".")))
+                .flatten()
+        } else {
+            root_module.slot(path)
         }
     }
 }

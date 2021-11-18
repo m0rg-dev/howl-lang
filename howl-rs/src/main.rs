@@ -12,6 +12,7 @@ mod context;
 mod cst_import;
 mod logger;
 mod parser;
+mod transform;
 
 #[derive(StructOpt)]
 pub struct Cli {

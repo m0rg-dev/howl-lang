@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use crate::ast::pretty_print::pretty_print;
@@ -167,7 +168,7 @@ impl ASTElement {
         let temp = self.inner.borrow();
 
         let own = match &temp.element {
-            ASTElementKind::Module { name } => name,
+            ASTElementKind::Module { name, .. } => name,
             ASTElementKind::Class { name, .. } => name,
             ASTElementKind::ClassField { name, .. } => name,
             ASTElementKind::Function { unique_name, .. } => unique_name,
@@ -178,6 +179,10 @@ impl ASTElement {
 
         parent + &own
     }
+
+    pub fn parent(&self) -> ASTElement {
+        self.inner.borrow().parent.as_ref().unwrap().clone()
+    }
 }
 
 pub struct ASTElementCommon {
@@ -187,105 +192,117 @@ pub struct ASTElementCommon {
 }
 
 #[derive(Clone)]
+pub struct SourcedSpan {
+    pub source_path: PathBuf,
+    pub span: lrpar::Span,
+}
+
+#[derive(Clone)]
 pub enum ASTElementKind {
     ArithmeticExpression {
-        span: lrpar::Span,
+        span: SourcedSpan,
         operator: String,
     },
     AssignmentStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     Class {
-        span: lrpar::Span,
+        span: SourcedSpan,
         name: String,
     },
     ClassField {
-        span: lrpar::Span,
+        span: SourcedSpan,
         name: String,
     },
     CompoundStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     ConstructorCallExpression {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     ElseIfStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     ElseStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     Function {
-        span: lrpar::Span,
+        span: SourcedSpan,
         is_static: bool,
         name: String,
         unique_name: String,
     },
     FFICallExpression {
-        span: lrpar::Span,
+        span: SourcedSpan,
         name: String,
     },
     FunctionCallExpression {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     IfStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     IndexExpression {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     Interface {
-        span: lrpar::Span,
+        span: SourcedSpan,
         name: String,
     },
     LocalDefinitionStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
         name: String,
     },
     MacroCallExpression {
-        span: lrpar::Span,
+        span: SourcedSpan,
         name: String,
     },
     Module {
         name: String,
+        searchpath: Vec<String>,
+        source_path: PathBuf,
+    },
+    NamedType {
+        span: SourcedSpan,
+        abspath: String,
     },
     NameExpression {
-        span: lrpar::Span,
+        span: SourcedSpan,
         name: String,
     },
     NewType {
         name: String,
     },
     NumberExpression {
-        span: lrpar::Span,
+        span: SourcedSpan,
         value: String,
     },
     RawPointerType {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     ReturnStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     SpecifiedType {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     SimpleStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     StringExpression {
-        span: lrpar::Span,
+        span: SourcedSpan,
         value: String,
     },
     ThrowStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     UnresolvedIdentifier {
-        span: lrpar::Span,
+        span: SourcedSpan,
         name: String,
         namespace: String,
     },
     WhileStatement {
-        span: lrpar::Span,
+        span: SourcedSpan,
     },
     Placeholder(),
 }
