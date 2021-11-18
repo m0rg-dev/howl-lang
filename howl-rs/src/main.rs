@@ -1,4 +1,5 @@
 use context::CompilationContext;
+use output::graphviz::output_graphviz;
 use std::error::Error;
 use structopt::StructOpt;
 
@@ -11,6 +12,7 @@ mod ast;
 mod context;
 mod cst_import;
 mod logger;
+mod output;
 mod parser;
 mod transform;
 
@@ -20,6 +22,8 @@ pub struct Cli {
     source_path: std::path::PathBuf,
     #[structopt(short = "m", long = "root-module")]
     root_module: String,
+    #[structopt(long = "graphviz-filter")]
+    graphviz_filter: Option<String>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -47,7 +51,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    context.dump();
+    // context.dump();
+    output_graphviz(&context, &args);
 
     Ok(())
 }

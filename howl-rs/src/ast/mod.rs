@@ -138,6 +138,7 @@ impl ASTElement {
             .collect()
     }
 
+    #[allow(dead_code)]
     pub fn slot_copy(&mut self, source: &ASTElement) {
         source.slots().into_iter().for_each(|(name, el)| {
             self.slot_insert(&name, el);
@@ -182,6 +183,10 @@ impl ASTElement {
 
     pub fn parent(&self) -> ASTElement {
         self.inner.borrow().parent.as_ref().unwrap().clone()
+    }
+
+    pub fn handle(&self) -> String {
+        format!("{:p}", self.inner)
     }
 }
 

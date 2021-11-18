@@ -103,6 +103,7 @@ impl CompilationContext {
 
     pub fn link_program(&mut self) {
         log!(LogLevel::Info, "Starting link phase.");
+        log!(LogLevel::Trace, "resolve_names");
         self.root_module = resolve_names(&self);
     }
 
@@ -165,6 +166,7 @@ impl CompilationContext {
         e.description.as_ref().map(|x| eprintln!("{}", x));
     }
 
+    #[allow(dead_code)]
     pub fn dump(&self) {
         eprintln!("{}", pretty_print(self.root_module.clone()));
     }
@@ -201,20 +203,36 @@ impl CompilationContext {
         }
     }
 
-    pub fn path_get(&self, path: &str) -> Option<ASTElement> {
-        self.path_get_rec(&self.root_module, &path.trim_matches('.').to_string())
+    pub fn path_get(&self, relative_to: &ASTElement, path: &str) -> Option<ASTElement> {
+        if path.starts_with(".") {
+            self.path_get_rec(&self.root_module, &path.trim_matches('.').to_string())
+        } else {
+            self.path_get_rec(relative_to, &path.trim_matches('.').to_string())
+        }
     }
 
     fn path_get_rec(&self, root_module: &ASTElement, path: &str) -> Option<ASTElement> {
         let components: Vec<&str> = path.split(".").collect();
         if components.len() > 1 {
-            let slot_contents = root_module.slot(components[0]);
+            let slot_contents = match components[0] {
+                "self" => Some(Self::get_self(root_module.to_owned())),
+                _ => root_module.slot(components[0]),
+            };
             slot_contents
                 .as_ref()
                 .map(|x| self.path_get_rec(x, &components[1..].join(".")))
                 .flatten()
         } else {
             root_module.slot(path)
+        }
+    }
+
+    fn get_self(from: ASTElement) -> ASTElement {
+        match from.element() {
+            ASTElementKind::Module { .. } => from,
+            ASTElementKind::Class { .. } => from,
+            ASTElementKind::Interface { .. } => from,
+            _ => Self::get_self(from.parent()),
         }
     }
 }

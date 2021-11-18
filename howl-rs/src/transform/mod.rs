@@ -37,7 +37,7 @@ pub fn resolve_names(ctx: &CompilationContext) -> ASTElement {
                         })
                     } else {
                         for target in search_path(&el) {
-                            if let Some(_) = ctx.path_get(&(target.clone() + "." + &name)) {
+                            if let Some(_) = ctx.path_get(&el, &(target.clone() + "." + &name)) {
                                 return ASTElement::new(ASTElementKind::NamedType {
                                     span,
                                     abspath: target + "." + &name,
@@ -58,7 +58,7 @@ pub fn resolve_names(ctx: &CompilationContext) -> ASTElement {
                 }
                 _ => {
                     for target in search_path(&el) {
-                        if let Some(_) = ctx.path_get(&(target.clone() + "." + &name)) {
+                        if let Some(_) = ctx.path_get(&el, &(target.clone() + "." + &name)) {
                             return ASTElement::new(ASTElementKind::NamedType {
                                 span,
                                 abspath: target + "." + &name,
@@ -85,7 +85,12 @@ fn search_path(source: &ASTElement) -> Vec<String> {
     match source.element() {
         ASTElementKind::Module { searchpath, .. } => searchpath.clone(),
         ASTElementKind::Class { .. } => {
-            let mut self_path = vec![source.path()];
+            let mut self_path = vec!["self".to_string()];
+            self_path.append(&mut search_path(&source.parent()));
+            self_path
+        }
+        ASTElementKind::Interface { .. } => {
+            let mut self_path = vec!["self".to_string()];
             self_path.append(&mut search_path(&source.parent()));
             self_path
         }
