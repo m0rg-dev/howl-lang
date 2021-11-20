@@ -13,7 +13,7 @@ use crate::{
     ast::{pretty_print::pretty_print, ASTElement, ASTElementKind},
     log,
     logger::{LogLevel, Logger},
-    transform::resolve_names,
+    transform::{add_self_to_functions, resolve_names},
 };
 
 lrlex_mod!("howl.l");
@@ -103,6 +103,8 @@ impl CompilationContext {
 
     pub fn link_program(&mut self) {
         log!(LogLevel::Info, "Starting link phase.");
+        log!(LogLevel::Trace, "add_self_to_functions");
+        self.root_module = add_self_to_functions(&self);
         log!(LogLevel::Trace, "resolve_names");
         self.root_module = resolve_names(&self);
     }
@@ -215,7 +217,10 @@ impl CompilationContext {
         let components: Vec<&str> = path.split(".").collect();
         if components.len() > 1 {
             let slot_contents = match components[0] {
-                "self" => Some(Self::get_self(root_module.to_owned())),
+                // "__class_scope" refers to "whatever the nearest class or module is"
+                // "__parent_scope" refers to the nearest "thing with variable names", usually a CompoundStatement or function.
+                "__class_scope" => Some(get_class_scope(root_module.parent())),
+                "__parent_scope" => get_parent_scope(root_module.parent()),
                 _ => root_module.slot(components[0]),
             };
             slot_contents
@@ -226,13 +231,22 @@ impl CompilationContext {
             root_module.slot(path)
         }
     }
+}
 
-    fn get_self(from: ASTElement) -> ASTElement {
-        match from.element() {
-            ASTElementKind::Module { .. } => from,
-            ASTElementKind::Class { .. } => from,
-            ASTElementKind::Interface { .. } => from,
-            _ => Self::get_self(from.parent()),
-        }
+pub fn get_class_scope(from: ASTElement) -> ASTElement {
+    match from.element() {
+        ASTElementKind::Module { .. } => from,
+        ASTElementKind::Class { .. } => from,
+        ASTElementKind::Interface { .. } => from,
+        _ => get_class_scope(from.parent()),
+    }
+}
+
+pub fn get_parent_scope(from: ASTElement) -> Option<ASTElement> {
+    match from.element() {
+        ASTElementKind::Function { .. } => Some(from),
+        ASTElementKind::CompoundStatement { .. } => Some(from),
+        ASTElementKind::Module { .. } => None,
+        _ => get_parent_scope(from.parent()),
     }
 }

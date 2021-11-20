@@ -47,6 +47,9 @@ fn headline(el: &ASTElement) -> String {
         ASTElementKind::ClassField { name, .. } => format!("ClassField {}", name),
         ASTElementKind::ConstructorCallExpression { .. } => format!("ConstructorCallExpression"),
         ASTElementKind::CompoundStatement { .. } => format!("CompoundStatement"),
+        ASTElementKind::FieldReferenceExpression { name, .. } => {
+            format!("FieldReferenceExpression {}", name)
+        }
         ASTElementKind::FFICallExpression { name, .. } => format!("FFICallExpression {}", name),
         ASTElementKind::Function { name, .. } => format!("Function {} ({})", el.path(), name),
         ASTElementKind::FunctionCallExpression { .. } => format!("FunctionCallExpression"),

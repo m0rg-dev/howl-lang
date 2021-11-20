@@ -440,8 +440,9 @@ impl CompilationContext {
             }
 
             CSTElement::NameExpression { span, name } => {
-                ASTElement::new(ASTElementKind::NameExpression {
+                ASTElement::new(ASTElementKind::UnresolvedIdentifier {
                     span: SourcedSpan { source_path, span },
+                    namespace: "variable".to_string(),
                     name,
                 })
             }

@@ -18,6 +18,7 @@ pub const CONSTRUCTOR_CALL_EXPRESSION_SOURCE: &str = "__source";
 pub const ELSE_IF_STATEMENT_BODY: &str = "__body";
 pub const ELSE_IF_STATEMENT_CONDITION: &str = "__body";
 pub const ELSE_STATEMENT_BODY: &str = "__body";
+pub const FIELD_REFERENCE_EXPRESSION_SOURCE: &str = "__source";
 pub const FUNCTION_BODY: &str = "__body";
 pub const FUNCTION_CALL_EXPRESSION_SOURCE: &str = "__source";
 pub const FUNCTION_RETURN: &str = "__return";
@@ -230,6 +231,10 @@ pub enum ASTElementKind {
     },
     ElseStatement {
         span: SourcedSpan,
+    },
+    FieldReferenceExpression {
+        span: SourcedSpan,
+        name: String,
     },
     Function {
         span: SourcedSpan,
