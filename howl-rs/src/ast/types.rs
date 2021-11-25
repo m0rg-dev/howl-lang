@@ -2,12 +2,13 @@ use std::collections::HashSet;
 
 use crate::{
     ast::{
-        ASTElement, ASTElementKind, CLASS_FIELD_TYPE, CONSTRUCTOR_CALL_EXPRESSION_SOURCE,
-        FIELD_REFERENCE_EXPRESSION_SOURCE, FUNCTION_CALL_EXPRESSION_SOURCE, FUNCTION_RETURN,
-        LOCAL_DEFINITION_STATEMENT_TYPE, RAW_POINTER_TYPE_INNER, SPECIFIED_TYPE_BASE,
-        TEMPORARY_SOURCE, TYPE_DEFINITION,
+        ASTElement, ASTElementKind, ARITHMETIC_EXPRESSION_LHS, ARITHMETIC_EXPRESSION_RHS,
+        CLASS_FIELD_TYPE, CONSTRUCTOR_CALL_EXPRESSION_SOURCE, FIELD_REFERENCE_EXPRESSION_SOURCE,
+        FUNCTION_CALL_EXPRESSION_SOURCE, FUNCTION_RETURN, LOCAL_DEFINITION_STATEMENT_TYPE,
+        RAW_POINTER_TYPE_INNER, SPECIFIED_TYPE_BASE, TEMPORARY_SOURCE, TYPE_DEFINITION,
     },
     context::CompilationContext,
+    log,
 };
 
 lazy_static! {
@@ -44,7 +45,31 @@ pub fn get_type_for_expression(
 ) -> Option<ASTElement> {
     match element.element() {
         // TODO
-        ASTElementKind::ArithmeticExpression { span, .. } => basetype!(span, "__any"),
+        ASTElementKind::ArithmeticExpression { span, .. } => {
+            let lhs = element
+                .slot(ARITHMETIC_EXPRESSION_LHS)
+                .map(|x| get_type_for_expression(ctx, x))
+                .flatten();
+            let rhs = element
+                .slot(ARITHMETIC_EXPRESSION_RHS)
+                .map(|x| get_type_for_expression(ctx, x))
+                .flatten();
+
+            match (lhs.map(|x| x.element()), rhs.map(|x| x.element())) {
+                (
+                    Some(ASTElementKind::NamedType {
+                        abspath: lhsname, ..
+                    }),
+                    Some(ASTElementKind::NamedType {
+                        abspath: rhsname, ..
+                    }),
+                ) => Some(ASTElement::new(ASTElementKind::NamedType {
+                    span,
+                    abspath: intersect_numerics(&lhsname, &rhsname),
+                })),
+                _ => None,
+            }
+        }
         ASTElementKind::AssignmentStatement { .. } => None,
         ASTElementKind::Class { .. } => Some(element),
         ASTElementKind::ClassField { .. } => element
@@ -128,7 +153,7 @@ pub fn type_to_string(element: ASTElement) -> String {
     match element.element() {
         ASTElementKind::Class { .. } => format!("{}", element.path()),
         ASTElementKind::Interface { .. } => format!("{}", element.path()),
-        ASTElementKind::NamedType { abspath, .. } => format!("{}", abspath),
+        ASTElementKind::NamedType { abspath, .. } => format!("'{}", abspath),
         ASTElementKind::NewType { name, .. } => format!("'{}", name),
         ASTElementKind::RawPointerType { .. } => format!(
             "*{}",
@@ -136,4 +161,68 @@ pub fn type_to_string(element: ASTElement) -> String {
         ),
         _ => unimplemented!("{:?}", element.element()),
     }
+}
+
+// TODO this sucks
+fn intersect_numerics(a: &str, b: &str) -> String {
+    if a == "__number" {
+        return b.to_string();
+    }
+
+    if b == "__number" {
+        return a.to_string();
+    }
+
+    a.to_string()
+}
+
+pub fn types_compatible(a: ASTElement, b: ASTElement) -> bool {
+    log!(
+        crate::logger::LogLevel::Trace,
+        "  types_compatible {} {}",
+        type_to_string(a.clone()),
+        type_to_string(b.clone())
+    );
+    // TODO is this valid?
+    if a.path() == b.path() {
+        return true;
+    }
+
+    let a_element = a.element();
+    let b_element = b.element();
+
+    if let ASTElementKind::NamedType { abspath, .. } = &a_element {
+        if abspath == "__any" {
+            return true;
+        }
+    }
+
+    if let ASTElementKind::NamedType { abspath, .. } = &b_element {
+        if abspath == "__any" {
+            return true;
+        }
+    }
+
+    if let (
+        ASTElementKind::NamedType {
+            abspath: a_path, ..
+        },
+        ASTElementKind::NamedType {
+            abspath: b_path, ..
+        },
+    ) = (&a_element, &b_element)
+    {
+        return a_path == b_path;
+    }
+
+    if let (ASTElementKind::RawPointerType { .. }, ASTElementKind::RawPointerType { .. }) =
+        (&a_element, &b_element)
+    {
+        return types_compatible(
+            a.slot(RAW_POINTER_TYPE_INNER).unwrap(),
+            b.slot(RAW_POINTER_TYPE_INNER).unwrap(),
+        );
+    }
+
+    false
 }

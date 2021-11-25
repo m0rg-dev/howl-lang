@@ -8,7 +8,7 @@ use crate::{
 pub fn output_graphviz(ctx: &CompilationContext, args: &Cli) {
     println!("digraph {{");
     println!("  rankdir=LR;");
-    ctx.root_module.transform("".to_string(), &|path, el| {
+    ctx.root_module.transform("".to_string(), &mut |path, el| {
         if args.graphviz_filter.is_some()
             && !(path.starts_with(args.graphviz_filter.as_ref().unwrap()))
         {

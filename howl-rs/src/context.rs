@@ -169,7 +169,9 @@ impl CompilationContext {
             );
         }
 
-        e.description.as_ref().map(|x| eprintln!("{}", x));
+        e.description
+            .as_ref()
+            .map(|x| eprintln!("{}\n", textwrap::indent(x, "  ")));
     }
 
     #[allow(dead_code)]
