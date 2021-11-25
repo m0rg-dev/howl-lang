@@ -15,7 +15,7 @@ use crate::{
     },
     context::CompilationContext,
     log,
-    logger::{LogLevel, Logger},
+    logger::LogLevel,
     parser::CSTElement,
 };
 
@@ -287,6 +287,7 @@ impl CompilationContext {
                         })
                         .collect(),
                 );
+
                 let element = self.path_set(
                     &(prefix.to_owned() + "." + &unique_name),
                     ASTElement::new(ASTElementKind::Function {
@@ -296,6 +297,7 @@ impl CompilationContext {
                         unique_name,
                     }),
                 );
+
                 slot_parse!(
                     self,
                     element,
@@ -319,6 +321,13 @@ impl CompilationContext {
                 }
 
                 vec_push_parse!(self, element, throws, prefix, source_path_ref);
+
+                self.path_set(
+                    &(prefix.to_owned() + "." + &name),
+                    ASTElement::new(ASTElementKind::UnresolvedMethod {
+                        name: name.to_owned(),
+                    }),
+                );
 
                 element
             }

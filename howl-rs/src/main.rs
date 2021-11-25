@@ -45,6 +45,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     context.link_program();
+    output_graphviz(&context, &args);
+
     if context.errors().len() > 0 {
         context.errors().iter().for_each(|x| context.print_error(x));
         eprintln!("Compilation aborted.");
@@ -52,7 +54,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // context.dump();
-    output_graphviz(&context, &args);
 
     Ok(())
 }

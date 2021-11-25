@@ -1,6 +1,7 @@
 use crate::{
     ast::{ASTElement, ASTElementKind},
     context::CompilationContext,
+    transform::get_type_for_expression,
     Cli,
 };
 
@@ -18,9 +19,12 @@ pub fn output_graphviz(ctx: &CompilationContext, args: &Cli) {
                 let mut slots_sorted = el.slots();
                 slots_sorted.sort_by(|a, b| a.0.cmp(&b.0));
                 println!(
-                    "  n_{} [shape=record label=\"{} {}\"];",
+                    "  n_{} [shape=record label=\"{}{} {}\"];",
                     el.handle(),
                     sanitize(headline(&el)),
+                    get_type_for_expression(ctx, el.clone()).map_or("".to_string(), |x| sanitize(
+                        format!(" | type: {:?}", x.element())
+                    )),
                     slots_sorted
                         .iter()
                         .map(|(slot, _)| format!(" | <{}>{}", slot, slot))
@@ -72,10 +76,15 @@ fn headline(el: &ASTElement) -> String {
         ASTElementKind::ReturnStatement { .. } => format!("ReturnStatement"),
         ASTElementKind::SimpleStatement { .. } => format!("SimpleStatement"),
         ASTElementKind::SpecifiedType { .. } => format!("SpecifiedType"),
+        ASTElementKind::StaticTableReference { .. } => format!("StaticTableReference"),
         ASTElementKind::StringExpression { value, .. } => format!("{}", value),
+        ASTElementKind::Temporary { name } => format!("Temporary {}", name),
         ASTElementKind::ThrowStatement { .. } => format!("ThrowStatement"),
         ASTElementKind::UnresolvedIdentifier { name, .. } => {
             format!("UnresolvedIdentifier {}", name)
+        }
+        ASTElementKind::UnresolvedMethod { name, .. } => {
+            format!("UnresolvedMethod {}", name)
         }
         ASTElementKind::WhileStatement { .. } => format!("WhileStatement"),
     }
@@ -85,6 +94,8 @@ fn sanitize(source: String) -> String {
     source
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
         .replace(">", "\\>")
         .replace("<", "\\<")
 }

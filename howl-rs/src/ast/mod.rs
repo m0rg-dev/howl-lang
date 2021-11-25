@@ -32,6 +32,8 @@ pub const RAW_POINTER_TYPE_INNER: &str = "__inner";
 pub const RETURN_STATEMENT_EXPRESSION: &str = "__expression";
 pub const SIMPLE_STATEMENT_EXPRESSION: &str = "__expression";
 pub const SPECIFIED_TYPE_BASE: &str = "__base";
+pub const STATIC_TABLE_REFERENCE_SOURCE: &str = "__source";
+pub const TEMPORARY_SOURCE: &str = "__source";
 pub const THROW_STATEMENT_EXPRESSION: &str = "__expression";
 pub const TYPE_DEFINITION: &str = "__definition";
 pub const WHILE_STATEMENT_BODY: &str = "__body";
@@ -146,6 +148,13 @@ impl ASTElement {
         });
     }
 
+    #[allow(dead_code)]
+    pub fn clone_tree(&self) -> ASTElement {
+        let mut new_element = ASTElement::new(self.element());
+        new_element.slot_copy(self);
+        new_element
+    }
+
     pub fn transform<T>(&self, path: String, callback: &T) -> ASTElement
     where
         T: Fn(String, ASTElement) -> ASTElement,
@@ -155,6 +164,21 @@ impl ASTElement {
         self.slots().into_iter().for_each(|(name, element)| {
             let mut element = callback(path.clone() + "." + &name, element);
             element = element.transform(path.clone() + "." + &name, callback);
+            new_element.slot_insert(&name, element);
+        });
+
+        new_element
+    }
+
+    pub fn transform_bottom_up<T>(&self, path: String, callback: &T) -> ASTElement
+    where
+        T: Fn(String, ASTElement, ASTElement) -> ASTElement,
+    {
+        let new_element = ASTElement::new(self.element());
+
+        self.slots().into_iter().for_each(|(name, element)| {
+            let mut element = element.transform_bottom_up(path.clone() + "." + &name, callback);
+            element = callback(path.clone() + "." + &name, element, self.clone());
             new_element.slot_insert(&name, element);
         });
 
@@ -182,8 +206,8 @@ impl ASTElement {
         }
     }
 
-    pub fn parent(&self) -> ASTElement {
-        self.inner.borrow().parent.as_ref().unwrap().clone()
+    pub fn parent(&self) -> Option<ASTElement> {
+        self.inner.borrow().parent.as_ref().map(|x| x.clone())
     }
 
     pub fn handle(&self) -> String {
@@ -203,7 +227,13 @@ pub struct SourcedSpan {
     pub span: lrpar::Span,
 }
 
-#[derive(Clone)]
+impl std::fmt::Debug for SourcedSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<...>")
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum ASTElementKind {
     ArithmeticExpression {
         span: SourcedSpan,
@@ -292,15 +322,21 @@ pub enum ASTElementKind {
     ReturnStatement {
         span: SourcedSpan,
     },
+    SimpleStatement {
+        span: SourcedSpan,
+    },
     SpecifiedType {
         span: SourcedSpan,
     },
-    SimpleStatement {
+    StaticTableReference {
         span: SourcedSpan,
     },
     StringExpression {
         span: SourcedSpan,
         value: String,
+    },
+    Temporary {
+        name: String,
     },
     ThrowStatement {
         span: SourcedSpan,
@@ -309,6 +345,9 @@ pub enum ASTElementKind {
         span: SourcedSpan,
         name: String,
         namespace: String,
+    },
+    UnresolvedMethod {
+        name: String,
     },
     WhileStatement {
         span: SourcedSpan,

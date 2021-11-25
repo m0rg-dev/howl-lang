@@ -6,8 +6,9 @@ use crate::ast::{
     FUNCTION_RETURN, IF_STATEMENT_BODY, IF_STATEMENT_CONDITION, INDEX_EXPRESSION_INDEX,
     INDEX_EXPRESSION_SOURCE, LOCAL_DEFINITION_STATEMENT_INITIALIZER,
     LOCAL_DEFINITION_STATEMENT_TYPE, RAW_POINTER_TYPE_INNER, RETURN_STATEMENT_EXPRESSION,
-    SIMPLE_STATEMENT_EXPRESSION, SPECIFIED_TYPE_BASE, THROW_STATEMENT_EXPRESSION, TYPE_DEFINITION,
-    WHILE_STATEMENT_BODY, WHILE_STATEMENT_CONDITION,
+    SIMPLE_STATEMENT_EXPRESSION, SPECIFIED_TYPE_BASE, STATIC_TABLE_REFERENCE_SOURCE,
+    TEMPORARY_SOURCE, THROW_STATEMENT_EXPRESSION, TYPE_DEFINITION, WHILE_STATEMENT_BODY,
+    WHILE_STATEMENT_CONDITION,
 };
 
 use super::{ASTElement, ASTElementKind};
@@ -294,7 +295,22 @@ pub fn pretty_print(source: ASTElement) -> String {
             )
         }
 
+        ASTElementKind::StaticTableReference { .. } => {
+            format!(
+                "$({})",
+                pretty_print(source.slot(STATIC_TABLE_REFERENCE_SOURCE).unwrap())
+            )
+        }
+
         ASTElementKind::StringExpression { span: _, value } => format!("{}", value),
+
+        ASTElementKind::Temporary { name } => {
+            format!(
+                "(/* temporary {} */ {}",
+                name,
+                pretty_print(source.slot(TEMPORARY_SOURCE).unwrap())
+            )
+        }
 
         ASTElementKind::ThrowStatement { .. } => {
             format!(
@@ -308,6 +324,8 @@ pub fn pretty_print(source: ASTElement) -> String {
             name,
             namespace,
         } => format!("/* unresolved {} */ {}", namespace, name),
+
+        ASTElementKind::UnresolvedMethod { name } => format!("/* unresolved method */ {}", name),
 
         ASTElementKind::WhileStatement { .. } => format!(
             "while {} {}",

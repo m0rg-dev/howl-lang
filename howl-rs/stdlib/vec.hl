@@ -29,8 +29,4 @@ class Vec<T> {
         }
         self.value[idx] = value;
     }
-
-    fn void __l_index__(i64 idx, T value) {
-        self.__index__(idx, value);
-    }
 }

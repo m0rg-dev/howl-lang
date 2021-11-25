@@ -21,3 +21,4 @@ textwrap = "0.14"
 structopt = "0.3"
 lazy_static = "1.4"
 accountable-refcell = "0.2"
+uuid = { version = "0.8", features = ["v4"] }

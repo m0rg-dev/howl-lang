@@ -12,8 +12,8 @@ use lrpar::{LexParseError, NonStreamingLexer};
 use crate::{
     ast::{pretty_print::pretty_print, ASTElement, ASTElementKind},
     log,
-    logger::{LogLevel, Logger},
-    transform::{add_self_to_functions, resolve_names},
+    logger::LogLevel,
+    transform::process_ast_transforms,
 };
 
 lrlex_mod!("howl.l");
@@ -103,10 +103,7 @@ impl CompilationContext {
 
     pub fn link_program(&mut self) {
         log!(LogLevel::Info, "Starting link phase.");
-        log!(LogLevel::Trace, "add_self_to_functions");
-        self.root_module = add_self_to_functions(&self);
-        log!(LogLevel::Trace, "resolve_names");
-        self.root_module = resolve_names(&self);
+        self.root_module = process_ast_transforms(self, self.root_module.clone());
     }
 
     pub fn describe_parse_error(&self, e: &lrpar::ParseError<u32>) -> String {
@@ -219,8 +216,8 @@ impl CompilationContext {
             let slot_contents = match components[0] {
                 // "__class_scope" refers to "whatever the nearest class or module is"
                 // "__parent_scope" refers to the nearest "thing with variable names", usually a CompoundStatement or function.
-                "__class_scope" => Some(get_class_scope(root_module.parent())),
-                "__parent_scope" => get_parent_scope(root_module.parent()),
+                "__class_scope" => Some(get_class_scope(root_module.parent()?)),
+                "__parent_scope" => get_parent_scope(root_module.parent()?),
                 _ => root_module.slot(components[0]),
             };
             slot_contents
@@ -238,7 +235,7 @@ pub fn get_class_scope(from: ASTElement) -> ASTElement {
         ASTElementKind::Module { .. } => from,
         ASTElementKind::Class { .. } => from,
         ASTElementKind::Interface { .. } => from,
-        _ => get_class_scope(from.parent()),
+        _ => get_class_scope(from.parent().unwrap()),
     }
 }
 
@@ -247,6 +244,6 @@ pub fn get_parent_scope(from: ASTElement) -> Option<ASTElement> {
         ASTElementKind::Function { .. } => Some(from),
         ASTElementKind::CompoundStatement { .. } => Some(from),
         ASTElementKind::Module { .. } => None,
-        _ => get_parent_scope(from.parent()),
+        _ => get_parent_scope(from.parent()?),
     }
 }
