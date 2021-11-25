@@ -171,19 +171,16 @@ impl ASTElement {
         new_element
     }
 
-    pub fn transform_bottom_up<T>(&self, path: String, callback: &T) -> ASTElement
+    pub fn transform_bottom_up<T>(self, path: String, callback: &T) -> ASTElement
     where
-        T: Fn(String, ASTElement, ASTElement) -> ASTElement,
+        T: Fn(String, ASTElement) -> ASTElement,
     {
-        let new_element = ASTElement::new(self.element());
-
-        self.slots().into_iter().for_each(|(name, element)| {
-            let mut element = element.transform_bottom_up(path.clone() + "." + &name, callback);
-            element = callback(path.clone() + "." + &name, element, self.clone());
-            new_element.slot_insert(&name, element);
+        self.slots().into_iter().for_each(|(name, mut element)| {
+            element = element.transform_bottom_up(path.clone() + "." + &name, callback);
+            self.slot_insert(&name, element);
         });
 
-        new_element
+        callback(path, self.clone())
     }
 
     pub fn path(&self) -> String {

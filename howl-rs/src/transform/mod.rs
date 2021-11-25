@@ -248,103 +248,106 @@ fn add_self_to_method_calls(_ctx: &CompilationContext, root_element: ASTElement)
 }
 
 fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) -> ASTElement {
-    root_element.transform(root_element.path(), &|_path, el| match el.element() {
-        ASTElementKind::FunctionCallExpression { span } => {
-            let source_element = el.slot(FUNCTION_CALL_EXPRESSION_SOURCE);
-            if let Some(ASTElementKind::FieldReferenceExpression {
-                name: fieldname,
-                span: fieldspan,
-            }) = source_element.map(|x| x.element())
-            {
-                let source_type = el
-                    .slot(FUNCTION_CALL_EXPRESSION_SOURCE)
-                    .unwrap()
-                    .slot(FIELD_REFERENCE_EXPRESSION_SOURCE)
-                    .map(|x| get_type_for_expression(ctx, x))
-                    .flatten();
-
-                log!(LogLevel::Trace, "Overload: {}", pretty_print(el.clone()));
-                log!(
-                    LogLevel::Trace,
-                    "  Arguments: {}",
-                    el.slot_vec()
-                        .into_iter()
-                        .map(|x| format!(
-                            "{}",
-                            get_type_for_expression(ctx, x)
-                                .map_or("<no type>".to_string(), type_to_string)
-                        ))
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                );
-
-                if el
-                    .slot_vec()
-                    .into_iter()
-                    .map(|x| get_type_for_expression(ctx, x))
-                    .any(|t| t.is_none())
+    root_element
+        .clone_tree()
+        .transform_bottom_up(root_element.path(), &|_path, el| match el.element() {
+            ASTElementKind::FunctionCallExpression { span } => {
+                let source_element = el.slot(FUNCTION_CALL_EXPRESSION_SOURCE);
+                if let Some(ASTElementKind::FieldReferenceExpression {
+                    name: fieldname,
+                    span: fieldspan,
+                }) = source_element.map(|x| x.element())
                 {
-                    ctx.add_error(CompilationError {
-                        source_path: span.source_path,
-                        span: span.span,
-                        headline: format!("Missing type for argument"),
-                        description: None,
-                    });
-                    return el;
-                }
+                    let source_type = el
+                        .slot(FUNCTION_CALL_EXPRESSION_SOURCE)
+                        .unwrap()
+                        .slot(FIELD_REFERENCE_EXPRESSION_SOURCE)
+                        .map(|x| get_type_for_expression(ctx, x))
+                        .flatten();
 
-                let arg_types: Vec<ASTElement> = el
-                    .slot_vec()
-                    .into_iter()
-                    .map(|x| get_type_for_expression(ctx, x).unwrap())
-                    .collect();
-
-                let mut candidates: Vec<ASTElement> = vec![];
-                match source_type.as_ref().map(|x| x.element()) {
-                    Some(ASTElementKind::Class { .. }) | Some(ASTElementKind::Interface { .. }) => {
-                        source_type
-                            .unwrap()
-                            .slots()
+                    log!(LogLevel::Trace, "Overload: {}", pretty_print(el.clone()));
+                    log!(
+                        LogLevel::Trace,
+                        "  Arguments: {}",
+                        el.slot_vec()
                             .into_iter()
-                            .for_each(|(_name, value)| {
-                                if let ASTElementKind::Function {
-                                    name,
-                                    unique_name,
-                                    argument_order,
-                                    ..
-                                } = value.element()
-                                {
-                                    if name == fieldname {
-                                        log!(
-                                            LogLevel::Trace,
-                                            "  Candidate: {} {}",
-                                            unique_name,
-                                            argument_order
-                                                .iter()
-                                                .map(|k| {
-                                                    format!(
-                                                        "{} {}",
-                                                        get_type_for_expression(
-                                                            ctx,
-                                                            value.slot(k).unwrap()
-                                                        )
-                                                        .map_or(
-                                                            "<no type>".to_string(),
-                                                            type_to_string
-                                                        ),
-                                                        k,
-                                                    )
-                                                })
-                                                .collect::<Vec<String>>()
-                                                .join(", ")
-                                        );
-                                        candidates.push(value.clone());
-                                    }
-                                }
-                            });
-                    }
-                    _ => {
+                            .map(|x| format!(
+                                "{}",
+                                get_type_for_expression(ctx, x)
+                                    .map_or("<no type>".to_string(), type_to_string)
+                            ))
+                            .collect::<Vec<String>>()
+                            .join(", ")
+                    );
+
+                    if el
+                        .slot_vec()
+                        .into_iter()
+                        .map(|x| get_type_for_expression(ctx, x))
+                        .any(|t| t.is_none())
+                    {
                         ctx.add_error(CompilationError {
+                            source_path: span.source_path,
+                            span: span.span,
+                            headline: format!("Missing type for argument"),
+                            description: None,
+                        });
+                        return el;
+                    }
+
+                    let arg_types: Vec<ASTElement> = el
+                        .slot_vec()
+                        .into_iter()
+                        .map(|x| get_type_for_expression(ctx, x).unwrap())
+                        .collect();
+
+                    let mut candidates: Vec<ASTElement> = vec![];
+                    match source_type.as_ref().map(|x| x.element()) {
+                        Some(ASTElementKind::Class { .. })
+                        | Some(ASTElementKind::Interface { .. }) => {
+                            source_type
+                                .unwrap()
+                                .slots()
+                                .into_iter()
+                                .for_each(|(_name, value)| {
+                                    if let ASTElementKind::Function {
+                                        name,
+                                        unique_name,
+                                        argument_order,
+                                        ..
+                                    } = value.element()
+                                    {
+                                        if name == fieldname {
+                                            log!(
+                                                LogLevel::Trace,
+                                                "  Candidate: {} {}",
+                                                unique_name,
+                                                argument_order
+                                                    .iter()
+                                                    .map(|k| {
+                                                        format!(
+                                                            "{} {}",
+                                                            get_type_for_expression(
+                                                                ctx,
+                                                                value.slot(k).unwrap()
+                                                            )
+                                                            .map_or(
+                                                                "<no type>".to_string(),
+                                                                type_to_string
+                                                            ),
+                                                            k,
+                                                        )
+                                                    })
+                                                    .collect::<Vec<String>>()
+                                                    .join(", ")
+                                            );
+                                            candidates.push(value.clone());
+                                        }
+                                    }
+                                });
+                        }
+                        _ => {
+                            ctx.add_error(CompilationError {
                         source_path: span.source_path.clone(),
                         span: span.span,
                         headline:
@@ -356,80 +359,87 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                             source_type.map_or("<no type>".to_string(), type_to_string)
                         )),
                     });
+                        }
                     }
-                }
-                let matches = candidates
-                    .iter()
-                    .map(|x| x.clone())
-                    .filter(|candidate| {
-                        if let ASTElementKind::Function { argument_order, .. } = candidate.element()
-                        {
-                            argument_order.into_iter().enumerate().all(|(idx, slot)| {
-                                types_compatible(
-                                    get_type_for_expression(ctx, candidate.slot(&slot).unwrap())
+                    let matches = candidates
+                        .iter()
+                        .map(|x| x.clone())
+                        .filter(|candidate| {
+                            if let ASTElementKind::Function { argument_order, .. } =
+                                candidate.element()
+                            {
+                                argument_order.into_iter().enumerate().all(|(idx, slot)| {
+                                    types_compatible(
+                                        get_type_for_expression(
+                                            ctx,
+                                            candidate.slot(&slot).unwrap(),
+                                        )
                                         .unwrap(),
-                                    arg_types[idx].clone(),
-                                )
-                            })
+                                        arg_types[idx].clone(),
+                                    )
+                                })
+                            } else {
+                                unreachable!();
+                            }
+                        })
+                        .collect::<Vec<ASTElement>>();
+                    matches.iter().for_each(|candidate| {
+                        if let ASTElementKind::Function {
+                            unique_name,
+                            argument_order,
+                            ..
+                        } = candidate.element()
+                        {
+                            log!(
+                                LogLevel::Trace,
+                                "  Match: {} {}",
+                                unique_name,
+                                argument_order
+                                    .into_iter()
+                                    .map(|k| {
+                                        format!(
+                                            "{} {}",
+                                            get_type_for_expression(
+                                                ctx,
+                                                candidate.slot(&k).unwrap()
+                                            )
+                                            .map_or("<no type>".to_string(), type_to_string),
+                                            k,
+                                        )
+                                    })
+                                    .collect::<Vec<String>>()
+                                    .join(", ")
+                            );
                         } else {
                             unreachable!();
                         }
-                    })
-                    .collect::<Vec<ASTElement>>();
-                matches.iter().for_each(|candidate| {
-                    if let ASTElementKind::Function {
-                        unique_name,
-                        argument_order,
-                        ..
-                    } = candidate.element()
-                    {
-                        log!(
-                            LogLevel::Trace,
-                            "  Match: {} {}",
-                            unique_name,
-                            argument_order
-                                .into_iter()
-                                .map(|k| {
-                                    format!(
-                                        "{} {}",
-                                        get_type_for_expression(ctx, candidate.slot(&k).unwrap())
-                                            .map_or("<no type>".to_string(), type_to_string),
-                                        k,
-                                    )
-                                })
-                                .collect::<Vec<String>>()
-                                .join(", ")
-                        );
-                    } else {
-                        unreachable!();
-                    }
-                });
+                    });
 
-                // alright now let's figure out what we got
-                if matches.len() == 0 {
-                    // nothing!
-                    ctx.add_error(CompilationError {
-                        source_path: span.source_path.clone(),
-                        span: span.span,
-                        headline: format!("No compatible overload found for {}", fieldname),
-                        description: Some(format!(
-                            "Provided arguments were: ({})\n{}",
-                            arg_types
-                                .iter()
-                                .map(|x| type_to_string(x.clone()))
-                                .collect::<Vec<String>>()
-                                .join(", "),
-                            candidates
-                                .iter()
-                                .map(|candidate| format!(
-                                    "Candidate function:      ({})",
-                                    if let ASTElementKind::Function { argument_order, .. } =
-                                        candidate.element()
-                                    {
-                                        argument_order
-                                            .iter()
-                                            .map(|k| {
-                                                format!(
+                    // alright now let's figure out what we got
+                    if matches.len() == 0 {
+                        // nothing!
+                        ctx.add_error(CompilationError {
+                            source_path: span.source_path.clone(),
+                            span: span.span,
+                            headline: format!("No compatible overload found for {}", fieldname),
+                            description: Some(format!(
+                                "Provided arguments were: ({})\n{}",
+                                arg_types
+                                    .iter()
+                                    .map(|x| type_to_string(x.clone()))
+                                    .collect::<Vec<String>>()
+                                    .join(", "),
+                                candidates
+                                    .iter()
+                                    .map(|candidate| format!(
+                                        "Candidate function:      ({})",
+                                        if let ASTElementKind::Function { argument_order, .. } =
+                                            candidate.element()
+                                        {
+                                            argument_order
+                                                .iter()
+                                                .map(|k| {
+                                                    format!(
                                                         "{}",
                                                         get_type_for_expression(
                                                             ctx,
@@ -440,51 +450,51 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                                                             type_to_string
                                                         ),
                                                     )
-                                            })
-                                            .collect::<Vec<String>>()
-                                            .join(", ")
-                                    } else {
-                                        unreachable!();
-                                    }
-                                ))
-                                .collect::<Vec<String>>()
-                                .join("\n"),
-                        )),
-                    })
-                } else if matches.len() > 1 {
-                    // too many!
-                    ctx.add_error(CompilationError {
-                        source_path: span.source_path.clone(),
-                        span: span.span,
-                        headline: format!("Multiple overloads found for {}", fieldname),
-                        description: None,
-                    });
-                } else {
-                    // alright now we can specify it
-                    if let ASTElementKind::Function { unique_name, .. } = matches[0].element() {
-                        let mut specified_call =
-                            ASTElement::new(ASTElementKind::FunctionCallExpression { span });
-                        let mut specified_fieldref =
-                            ASTElement::new(ASTElementKind::FieldReferenceExpression {
-                                span: fieldspan,
-                                name: unique_name,
-                            });
-                        specified_fieldref
-                            .slot_copy(&el.slot(FUNCTION_CALL_EXPRESSION_SOURCE).unwrap());
-                        specified_call.slot_copy(&el);
-                        specified_call
-                            .slot_insert(FUNCTION_CALL_EXPRESSION_SOURCE, specified_fieldref);
-                        return specified_call;
+                                                })
+                                                .collect::<Vec<String>>()
+                                                .join(", ")
+                                        } else {
+                                            unreachable!();
+                                        }
+                                    ))
+                                    .collect::<Vec<String>>()
+                                    .join("\n"),
+                            )),
+                        })
+                    } else if matches.len() > 1 {
+                        // too many!
+                        ctx.add_error(CompilationError {
+                            source_path: span.source_path.clone(),
+                            span: span.span,
+                            headline: format!("Multiple overloads found for {}", fieldname),
+                            description: None,
+                        });
+                    } else {
+                        // alright now we can specify it
+                        if let ASTElementKind::Function { unique_name, .. } = matches[0].element() {
+                            let mut specified_call =
+                                ASTElement::new(ASTElementKind::FunctionCallExpression { span });
+                            let mut specified_fieldref =
+                                ASTElement::new(ASTElementKind::FieldReferenceExpression {
+                                    span: fieldspan,
+                                    name: unique_name,
+                                });
+                            specified_fieldref
+                                .slot_copy(&el.slot(FUNCTION_CALL_EXPRESSION_SOURCE).unwrap());
+                            specified_call.slot_copy(&el);
+                            specified_call
+                                .slot_insert(FUNCTION_CALL_EXPRESSION_SOURCE, specified_fieldref);
+                            return specified_call;
+                        }
                     }
+                } else {
+                    todo!("you found a new error case");
                 }
-            } else {
-                todo!("you found a new error case");
-            }
 
-            el
-        }
-        _ => el,
-    })
+                el
+            }
+            _ => el,
+        })
 }
 
 fn find_variable(context: &CompilationContext, source: &ASTElement, name: &str) -> Option<String> {
