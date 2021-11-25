@@ -1,58 +1,54 @@
-use std::collections::HashSet;
-
 use crate::{
     ast::{
-        pretty_print::pretty_print, ASTElement, ASTElementKind, CLASS_FIELD_TYPE,
-        CONSTRUCTOR_CALL_EXPRESSION_SOURCE, FIELD_REFERENCE_EXPRESSION_SOURCE,
-        FUNCTION_CALL_EXPRESSION_SOURCE, FUNCTION_RETURN, LOCAL_DEFINITION_STATEMENT_TYPE,
-        SPECIFIED_TYPE_BASE, TEMPORARY_SOURCE, TYPE_DEFINITION,
+        pretty_print::pretty_print,
+        types::{get_type_for_expression, type_to_string, BASE_TYPES},
+        ASTElement, ASTElementKind, FIELD_REFERENCE_EXPRESSION_SOURCE,
+        FUNCTION_CALL_EXPRESSION_SOURCE, TEMPORARY_SOURCE,
     },
     context::{get_parent_scope, CompilationContext, CompilationError},
     log,
     logger::LogLevel,
 };
 
-lazy_static! {
-    static ref BASE_TYPES: HashSet<String> = {
-        let mut s = HashSet::new();
-        s.insert("__any".to_string());
-        s.insert("__number".to_string());
-        s.insert("void".to_string());
-        s.insert("bool".to_string());
-        s.insert("u8".to_string());
-        s.insert("u16".to_string());
-        s.insert("u32".to_string());
-        s.insert("u64".to_string());
-        s.insert("i8".to_string());
-        s.insert("i16".to_string());
-        s.insert("i32".to_string());
-        s.insert("i64".to_string());
-        s
-    };
-}
-
-pub fn process_ast_transforms(
-    ctx: &CompilationContext,
-    mut root_element: ASTElement,
-) -> ASTElement {
-    root_element = add_self_to_functions(root_element);
-    root_element = resolve_names(ctx, root_element);
-    root_element = add_self_to_method_calls(ctx, root_element);
-    root_element
+pub fn process_transforms_context(ctx: &mut CompilationContext) {
+    ctx.root_module = add_self_to_functions(ctx.root_module.clone());
+    ctx.root_module = resolve_names(ctx, ctx.root_module.clone());
+    ctx.root_module = add_self_to_method_calls(ctx, ctx.root_module.clone());
+    ctx.root_module = resolve_method_overloads(ctx, ctx.root_module.clone());
 }
 
 fn add_self_to_functions(root_element: ASTElement) -> ASTElement {
     root_element.transform(root_element.path(), &|_path, el| match el.element() {
-        ASTElementKind::Function { span, .. } => {
+        ASTElementKind::Function {
+            span,
+            is_static,
+            name,
+            unique_name,
+            mut argument_order,
+        } => {
             // TODO what if it's static
             el.slot_insert(
                 "self",
                 ASTElement::new(ASTElementKind::NamedType {
-                    span,
+                    span: span.clone(),
                     abspath: el.parent().unwrap().path(),
                 }),
             );
-            el
+
+            let mut new_argument_order = vec!["self".to_string()];
+            new_argument_order.append(&mut argument_order);
+
+            let mut new_element = ASTElement::new(ASTElementKind::Function {
+                span: span.clone(),
+                is_static,
+                name,
+                unique_name,
+                argument_order: new_argument_order,
+            });
+
+            new_element.slot_copy(&el);
+
+            new_element
         }
         _ => el,
     })
@@ -148,7 +144,7 @@ fn resolve_names(ctx: &CompilationContext, root_element: ASTElement) -> ASTEleme
     })
 }
 
-fn add_self_to_method_calls(ctx: &CompilationContext, root_element: ASTElement) -> ASTElement {
+fn add_self_to_method_calls(_ctx: &CompilationContext, root_element: ASTElement) -> ASTElement {
     root_element.transform(root_element.path(), &|_path, el| {
         match el.element() {
             ASTElementKind::FunctionCallExpression { span } => {
@@ -164,11 +160,6 @@ fn add_self_to_method_calls(ctx: &CompilationContext, root_element: ASTElement) 
                     .slot(FUNCTION_CALL_EXPRESSION_SOURCE)
                     .map(|x| x.element())
                 {
-                    log!(
-                        LogLevel::Trace,
-                        "  static method call by name: {}",
-                        pretty_print(el.clone())
-                    );
                     let mut parts: Vec<&str> = name.split(".").collect();
                     let last = parts.pop().unwrap();
                     let rest = parts.join(".");
@@ -200,7 +191,7 @@ fn add_self_to_method_calls(ctx: &CompilationContext, root_element: ASTElement) 
                     el.slot_vec().into_iter().for_each(|x| {
                         new_function_call.slot_push(x);
                     });
-                    process_ast_transforms(ctx, new_function_call)
+                    new_function_call
                 } else if let Some(ASTElementKind::FieldReferenceExpression {
                     name,
                     span: field_ref_span,
@@ -241,8 +232,13 @@ fn add_self_to_method_calls(ctx: &CompilationContext, root_element: ASTElement) 
                     el.slot_vec().into_iter().for_each(|x| {
                         new_function_call.slot_push(x);
                     });
-                    process_ast_transforms(ctx, new_function_call)
+                    new_function_call
                 } else {
+                    log!(
+                        LogLevel::Warning,
+                        "add_self_to_method_calls unexpected {}",
+                        pretty_print(el.clone())
+                    );
                     el
                 }
             }
@@ -251,123 +247,104 @@ fn add_self_to_method_calls(ctx: &CompilationContext, root_element: ASTElement) 
     })
 }
 
-macro_rules! basetype {
-    ($span: expr, $name: expr) => {
-        Some(ASTElement::new(ASTElementKind::NamedType {
-            span: $span,
-            abspath: $name.to_string(),
-        }))
-    };
-}
+fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) -> ASTElement {
+    root_element.transform(root_element.path(), &|_path, el| match el.element() {
+        ASTElementKind::FunctionCallExpression { span } => {
+            let source_element = el.slot(FUNCTION_CALL_EXPRESSION_SOURCE);
+            if let Some(ASTElementKind::FieldReferenceExpression {
+                name: fieldname, ..
+            }) = source_element.map(|x| x.element())
+            {
+                let source_type = el
+                    .slot(FUNCTION_CALL_EXPRESSION_SOURCE)
+                    .unwrap()
+                    .slot(FIELD_REFERENCE_EXPRESSION_SOURCE)
+                    .map(|x| get_type_for_expression(ctx, x))
+                    .flatten();
 
-pub fn get_type_for_expression(
-    ctx: &CompilationContext,
-    element: ASTElement,
-) -> Option<ASTElement> {
-    match element.element() {
-        // TODO
-        ASTElementKind::ArithmeticExpression { span, .. } => basetype!(span, "__any"),
-        ASTElementKind::AssignmentStatement { .. } => None,
-        ASTElementKind::Class { .. } => Some(element),
-        ASTElementKind::ClassField { .. } => element
-            .slot(CLASS_FIELD_TYPE)
-            .map(|field| get_type_for_expression(ctx, field))
-            .flatten(),
-        ASTElementKind::CompoundStatement { .. } => None,
-        ASTElementKind::ConstructorCallExpression { .. } => element
-            .slot(CONSTRUCTOR_CALL_EXPRESSION_SOURCE)
-            .map(|source| get_type_for_expression(ctx, source))
-            .flatten(),
-        ASTElementKind::ElseIfStatement { .. } => None,
-        ASTElementKind::ElseStatement { .. } => None,
-        ASTElementKind::FFICallExpression { span, .. } => basetype!(span, "__any"),
-        ASTElementKind::FieldReferenceExpression { name, .. } => element
-            .slot(FIELD_REFERENCE_EXPRESSION_SOURCE)
-            .map(|source| get_type_for_expression(ctx, source))
-            .flatten()
-            .map(|source_type| source_type.slot(&name))
-            .flatten()
-            .map(|field| get_type_for_expression(ctx, field))
-            .flatten(),
-        ASTElementKind::Function { .. } => Some(element),
-        ASTElementKind::FunctionCallExpression { .. } => element
-            .slot(FUNCTION_CALL_EXPRESSION_SOURCE)
-            .map(|source| get_type_for_expression(ctx, source))
-            .flatten()
-            .map(|source_type| source_type.slot(FUNCTION_RETURN))
-            .flatten(),
-        ASTElementKind::IfStatement { .. } => None,
-        // TODO
-        ASTElementKind::IndexExpression { span, .. } => basetype!(span, "__any"),
-        ASTElementKind::Interface { .. } => Some(element),
-        ASTElementKind::LocalDefinitionStatement { .. } => element
-            .slot(LOCAL_DEFINITION_STATEMENT_TYPE)
-            .map(|source| get_type_for_expression(ctx, source))
-            .flatten(),
-        // TODO
-        ASTElementKind::MacroCallExpression { span, .. } => basetype!(span, "__any"),
-        ASTElementKind::Module { .. } => Some(element),
-        ASTElementKind::NamedType { abspath, .. } => {
-            if BASE_TYPES.contains(&abspath) {
-                Some(element)
+                log!(LogLevel::Trace, "Overload: {}", pretty_print(el.clone()));
+                log!(
+                    LogLevel::Trace,
+                    "  Arguments: {}",
+                    el.slot_vec()
+                        .into_iter()
+                        .map(|x| format!(
+                            "{}",
+                            get_type_for_expression(ctx, x)
+                                .map_or("<no type>".to_string(), type_to_string)
+                        ))
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                );
+
+                let mut candidates: Vec<ASTElement> = vec![];
+                match source_type.as_ref().map(|x| x.element()) {
+                    Some(ASTElementKind::Class { .. }) | Some(ASTElementKind::Interface { .. }) => {
+                        source_type
+                            .unwrap()
+                            .slots()
+                            .into_iter()
+                            .for_each(|(_name, value)| {
+                                if let ASTElementKind::Function {
+                                    name,
+                                    unique_name,
+                                    argument_order,
+                                    ..
+                                } = value.element()
+                                {
+                                    if name == fieldname {
+                                        log!(
+                                            LogLevel::Trace,
+                                            "  Candidate: {} {}",
+                                            unique_name,
+                                            argument_order
+                                                .iter()
+                                                .map(|k| {
+                                                    format!(
+                                                        "{} {}",
+                                                        get_type_for_expression(
+                                                            ctx,
+                                                            value.slot(k).unwrap()
+                                                        )
+                                                        .map_or(
+                                                            "<no type>".to_string(),
+                                                            type_to_string
+                                                        ),
+                                                        k,
+                                                    )
+                                                })
+                                                .collect::<Vec<String>>()
+                                                .join(", ")
+                                        );
+                                        candidates.push(value.clone());
+                                    }
+                                }
+                            });
+                    }
+                    _ => {
+                        ctx.add_error(CompilationError {
+                        source_path: span.source_path,
+                        span: span.span,
+                        headline:
+                            "Attempt to call method on expression of non-class or interface type"
+                                .to_string(),
+                        description: Some(format!(
+                            "  source was {} = {}",
+                            pretty_print(el.slot(FUNCTION_CALL_EXPRESSION_SOURCE).unwrap()),
+                            source_type.map_or("<no type>".to_string(), type_to_string)
+                        )),
+                    });
+                    }
+                }
             } else {
-                ctx.path_get(&element, &abspath)
+                todo!("you found a new error case");
             }
-        }
-        ASTElementKind::NameExpression { name, .. } => ctx
-            .path_get(&element, &name)
-            .map(|x| get_type_for_expression(ctx, x))
-            .flatten(),
-        ASTElementKind::NewType { .. } => element
-            .slot(TYPE_DEFINITION)
-            .map(|source| get_type_for_expression(ctx, source))
-            .flatten(),
-        ASTElementKind::NumberExpression { span, .. } => basetype!(span, "__number"),
-        ASTElementKind::RawPointerType { .. } => Some(element),
-        ASTElementKind::ReturnStatement { .. } => None,
-        ASTElementKind::SimpleStatement { .. } => None,
-        // TODO
-        ASTElementKind::SpecifiedType { .. } => element
-            .slot(SPECIFIED_TYPE_BASE)
-            .map(|source| get_type_for_expression(ctx, source))
-            .flatten(),
-        ASTElementKind::StaticTableReference { .. } => Some(element),
-        // TODO
-        ASTElementKind::StringExpression { .. } => None,
-        ASTElementKind::Temporary { .. } => element
-            .slot(TEMPORARY_SOURCE)
-            .map(|source| get_type_for_expression(ctx, source))
-            .flatten(),
-        ASTElementKind::ThrowStatement { .. } => None,
-        ASTElementKind::WhileStatement { .. } => None,
-        ASTElementKind::UnresolvedIdentifier { .. } => unimplemented!("{:?}", element.element()),
-        ASTElementKind::UnresolvedMethod { .. } => Some(element),
-        ASTElementKind::Placeholder() => unimplemented!("{:?}", element.element()),
-    }
-}
 
-// fn get_type_for_path(
-//     context: &CompilationContext,
-//     relative_to: &ASTElement,
-//     path: &str,
-// ) -> Option<ASTElement> {
-//     log!(LogLevel::Trace, "get_type_for_path {}", path);
-//     context
-//         .path_get(relative_to, path)
-//         .map(|x| match x.element() {
-//             ASTElementKind::LocalDefinitionStatement { .. } => {
-//                 x.slot(LOCAL_DEFINITION_STATEMENT_TYPE)
-//             }
-//             ASTElementKind::Class { span, .. } => {
-//                 Some(ASTElement::new(ASTElementKind::NamedType {
-//                     span,
-//                     abspath: path.to_string(),
-//                 }))
-//             }
-//             _ => Some(x),
-//         })
-//         .flatten()
-// }
+            el
+        }
+        _ => el,
+    })
+}
 
 fn find_variable(context: &CompilationContext, source: &ASTElement, name: &str) -> Option<String> {
     // Try to find it in an enclosing scope.

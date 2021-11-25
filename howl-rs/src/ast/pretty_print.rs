@@ -133,6 +133,7 @@ pub fn pretty_print(source: ASTElement) -> String {
             is_static,
             name,
             unique_name,
+            argument_order,
         } => format!(
             "/* path: {} */\n{}fn {} {} /* = {} */ ({}){} {}",
             source.path(),
@@ -145,10 +146,9 @@ pub fn pretty_print(source: ASTElement) -> String {
                 .map_or("NO RETURN?!".to_string(), pretty_print),
             unique_name,
             name,
-            source
-                .slots_normal()
+            argument_order
                 .into_iter()
-                .map(|(name, el)| format!("{} {}", pretty_print(el), name))
+                .map(|name| format!("{} {}", pretty_print(source.slot(name).unwrap()), name))
                 .collect::<Vec<String>>()
                 .join(", "),
             if source.var_slot_idx() > 0 {

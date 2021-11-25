@@ -288,6 +288,22 @@ impl CompilationContext {
                         .collect(),
                 );
 
+                let argument_order = args
+                    .iter()
+                    .map(|arg| {
+                        if let CSTElement::TypedArgument {
+                            span: _,
+                            argname: CSTElement::Identifier { span: _, name },
+                            argtype,
+                        } = arg
+                        {
+                            name.to_string()
+                        } else {
+                            unreachable!();
+                        }
+                    })
+                    .collect();
+
                 let element = self.path_set(
                     &(prefix.to_owned() + "." + &unique_name),
                     ASTElement::new(ASTElementKind::Function {
@@ -295,6 +311,7 @@ impl CompilationContext {
                         is_static,
                         name: name.to_owned(),
                         unique_name,
+                        argument_order,
                     }),
                 );
 

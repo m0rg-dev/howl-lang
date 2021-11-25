@@ -7,6 +7,7 @@ use std::rc::Rc;
 use crate::ast::pretty_print::pretty_print;
 
 pub mod pretty_print;
+pub mod types;
 
 pub const ARITHMETIC_EXPRESSION_LHS: &str = "__lhs";
 pub const ARITHMETIC_EXPRESSION_RHS: &str = "__rhs";
@@ -211,7 +212,7 @@ impl ASTElement {
     }
 
     pub fn handle(&self) -> String {
-        format!("{:p}", self.inner)
+        self.path().replace(".", "_")
     }
 }
 
@@ -271,6 +272,7 @@ pub enum ASTElementKind {
         is_static: bool,
         name: String,
         unique_name: String,
+        argument_order: Vec<String>,
     },
     FFICallExpression {
         span: SourcedSpan,

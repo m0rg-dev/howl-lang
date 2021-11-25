@@ -13,7 +13,7 @@ use crate::{
     ast::{pretty_print::pretty_print, ASTElement, ASTElementKind},
     log,
     logger::LogLevel,
-    transform::process_ast_transforms,
+    transform::process_transforms_context,
 };
 
 lrlex_mod!("howl.l");
@@ -41,6 +41,13 @@ impl CompilationContext {
     }
 
     pub fn add_error(&self, item: CompilationError) {
+        log!(
+            LogLevel::Error,
+            "{:?} {:?} {}",
+            item.source_path,
+            item.span,
+            item.headline
+        );
         self.errors.borrow_mut().push(item);
     }
 
@@ -103,7 +110,7 @@ impl CompilationContext {
 
     pub fn link_program(&mut self) {
         log!(LogLevel::Info, "Starting link phase.");
-        self.root_module = process_ast_transforms(self, self.root_module.clone());
+        process_transforms_context(self);
     }
 
     pub fn describe_parse_error(&self, e: &lrpar::ParseError<u32>) -> String {
