@@ -241,6 +241,7 @@ pub fn type_to_string(element: ASTElement) -> String {
         ASTElementKind::Function { .. } => format!("{}", element.path()),
         ASTElementKind::NamedType { abspath, .. } => format!("'{}", abspath),
         ASTElementKind::NewType { name, .. } => format!("'{}", name),
+        ASTElementKind::Module { .. } => format!("module {}", element.path()),
         ASTElementKind::RawPointerType { .. } => format!(
             "*{}",
             type_to_string(element.slot(RAW_POINTER_TYPE_INNER).unwrap())

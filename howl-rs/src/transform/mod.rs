@@ -13,10 +13,10 @@ use crate::{
 pub fn process_transforms_context(ctx: &mut CompilationContext) {
     ctx.root_module = add_self_to_classes(ctx.root_module.clone());
     ctx.root_module = add_self_to_functions(ctx.root_module.clone());
-    ctx.root_module = convert_string_constants(ctx, ctx.root_module.clone());
+    ctx.root_module = convert_string_constants(ctx.root_module.clone());
     ctx.root_module = resolve_names(ctx, ctx.root_module.clone());
     ensure_types(ctx, ctx.root_module.clone());
-    ctx.root_module = add_self_to_method_calls(ctx, ctx.root_module.clone());
+    ctx.root_module = add_self_to_method_calls(ctx.root_module.clone());
     ctx.root_module = resolve_method_overloads(ctx, ctx.root_module.clone());
 }
 
@@ -90,7 +90,7 @@ fn add_self_to_functions(root_element: ASTElement) -> ASTElement {
     })
 }
 
-fn convert_string_constants(ctx: &CompilationContext, root_element: ASTElement) -> ASTElement {
+fn convert_string_constants(root_element: ASTElement) -> ASTElement {
     root_element
         .clone_tree()
         .transform_bottom_up(root_element.path(), &|_path, el| match el.element() {
@@ -214,7 +214,7 @@ fn resolve_names(ctx: &CompilationContext, root_element: ASTElement) -> ASTEleme
     })
 }
 
-fn add_self_to_method_calls(_ctx: &CompilationContext, root_element: ASTElement) -> ASTElement {
+fn add_self_to_method_calls(root_element: ASTElement) -> ASTElement {
     root_element.transform(root_element.path(), &|_path, el| {
         match el.element() {
             ASTElementKind::FunctionCallExpression { span } => {
