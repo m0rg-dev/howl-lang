@@ -1,6 +1,6 @@
 use crate::{
     ast::types::get_type_for_expression,
-    ast::{ASTElement, ASTElementKind},
+    ast::{types::type_to_string, ASTElement, ASTElementKind},
     context::CompilationContext,
     Cli,
 };
@@ -23,7 +23,7 @@ pub fn output_graphviz(ctx: &CompilationContext, args: &Cli) {
                     el.handle(),
                     sanitize(headline(&el)),
                     get_type_for_expression(ctx, el.clone()).map_or("".to_string(), |x| sanitize(
-                        format!(" | type: {:?}", x.element())
+                        format!(" | type: {}", type_to_string(x))
                     )),
                     slots_sorted
                         .iter()
@@ -67,9 +67,9 @@ fn headline(el: &ASTElement) -> String {
         }
         ASTElementKind::MacroCallExpression { name, .. } => format!("MacroCallExpression {}", name),
         ASTElementKind::Module { .. } => format!("Module {}", el.path()),
-        ASTElementKind::NamedType { abspath, .. } => format!("Type {}", abspath),
-        ASTElementKind::NameExpression { name, .. } => format!("Name {}", name),
-        ASTElementKind::NumberExpression { value, .. } => format!("Number {}", value),
+        ASTElementKind::NamedType { abspath, .. } => format!("NamedType {}", abspath),
+        ASTElementKind::NameExpression { name, .. } => format!("NameExpression {}", name),
+        ASTElementKind::NumberExpression { value, .. } => format!("NumberExpression {}", value),
         ASTElementKind::NewType { name, .. } => format!("NewType {}", name),
         ASTElementKind::Placeholder() => format!("Placeholder"),
         ASTElementKind::RawPointerType { .. } => format!("RawPointerType"),

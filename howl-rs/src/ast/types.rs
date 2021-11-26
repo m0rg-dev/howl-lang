@@ -46,7 +46,7 @@ pub fn get_type_for_expression(
     element: ASTElement,
 ) -> Option<ASTElement> {
     match element.element() {
-        // TODO
+        // TODO numeric-type-handling
         ASTElementKind::ArithmeticExpression { span, .. } => {
             let lhs = element
                 .slot(ARITHMETIC_EXPRESSION_LHS)
@@ -100,6 +100,8 @@ pub fn get_type_for_expression(
             .map(|source| get_type_for_expression(ctx, source))
             .flatten()
             .map(|source_type| source_type.slot(FUNCTION_RETURN))
+            .flatten()
+            .map(|source| get_type_for_expression(ctx, source))
             .flatten(),
         ASTElementKind::IfStatement { .. } => None,
         // TODO
@@ -130,7 +132,17 @@ pub fn get_type_for_expression(
             .map(|source| get_type_for_expression(ctx, source))
             .flatten(),
         ASTElementKind::NumberExpression { span, .. } => basetype!(span, "__number"),
-        ASTElementKind::RawPointerType { .. } => Some(element),
+        ASTElementKind::RawPointerType { span, .. } => {
+            let source_type = element
+                .slot(RAW_POINTER_TYPE_INNER)
+                .map(|source| get_type_for_expression(ctx, source))
+                .flatten()?;
+
+            let new_element = ASTElement::new(ASTElementKind::RawPointerType { span });
+            new_element.slot_insert(RAW_POINTER_TYPE_INNER, source_type);
+
+            Some(new_element)
+        }
         ASTElementKind::ReturnStatement { .. } => None,
         ASTElementKind::SimpleStatement { .. } => None,
         // TODO
@@ -138,74 +150,78 @@ pub fn get_type_for_expression(
             let source_type = element
                 .slot(SPECIFIED_TYPE_BASE)
                 .map(|source| get_type_for_expression(ctx, source))
-                .flatten();
-            if let Some(source_type) = source_type {
-                let parts = source_type
-                    .path()
-                    .split(".")
-                    .map(|x| x.to_string())
-                    .collect::<Vec<String>>();
-                let (last, rest) = parts.split_last().unwrap();
-                let new_last = generate_unique_name_type(last, element.slot_vec());
-                let new_path = rest.join(".") + "." + &new_last;
+                .flatten()?;
+            let parts = source_type
+                .path()
+                .split(".")
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>();
+            let (last, rest) = parts.split_last().unwrap();
+            let new_last = generate_unique_name_type(last, element.slot_vec());
+            let new_path = rest.join(".") + "." + &new_last;
 
-                if let Some(t) = ctx.path_get(&element, &new_path) {
-                    Some(t)
-                } else {
-                    if let ASTElementKind::Class {
-                        span,
-                        name: _,
-                        generic_order,
-                    } = source_type.element()
-                    {
-                        let mut new_class = ASTElement::new(ASTElementKind::Class {
-                            span: span.clone(),
-                            name: new_last,
-                            generic_order: vec![],
-                        });
-                        new_class.slot_clone(&source_type);
-                        generic_order
-                            .into_iter()
-                            .enumerate()
-                            .for_each(|(index, generic_slot)| {
-                                let newtype = ASTElement::new(ASTElementKind::NewType {
-                                    name: generic_slot.clone(),
-                                });
-                                newtype.slot_insert(
-                                    TYPE_DEFINITION,
-                                    element.slot_vec()[index].clone(),
-                                );
-                                new_class.slot_insert(&generic_slot, newtype);
-                            });
-
-                        ctx.path_set(&new_path.trim_start_matches("."), new_class.clone());
-                        let self_type = ASTElement::new(ASTElementKind::NewType {
-                            name: "__self".to_string(),
-                        });
-
-                        self_type.slot_insert(
-                            TYPE_DEFINITION,
-                            ASTElement::new(ASTElementKind::NamedType {
-                                span: span.clone(),
-                                abspath: new_class.path(),
-                            }),
-                        );
-
-                        new_class.slot_insert("__self", self_type);
-
-                        log!(LogLevel::Trace, "Monomorphized: {}", new_path);
-                        Some(new_class)
-                    } else {
-                        panic!();
-                    }
-                }
+            if let Some(t) = ctx.path_get(&element, &new_path) {
+                Some(t)
             } else {
-                None
+                if let ASTElementKind::Class {
+                    span,
+                    name: _,
+                    generic_order,
+                } = source_type.element()
+                {
+                    let mut new_class = ASTElement::new(ASTElementKind::Class {
+                        span: span.clone(),
+                        name: new_last,
+                        generic_order: vec![],
+                    });
+                    new_class.slot_clone(&source_type);
+                    generic_order
+                        .into_iter()
+                        .enumerate()
+                        .for_each(|(index, generic_slot)| {
+                            let newtype = ASTElement::new(ASTElementKind::NewType {
+                                name: generic_slot.clone(),
+                            });
+                            newtype.slot_insert(TYPE_DEFINITION, element.slot_vec()[index].clone());
+                            new_class.slot_insert(&generic_slot, newtype);
+                        });
+
+                    ctx.path_set(&new_path.trim_start_matches("."), new_class.clone());
+                    let self_type = ASTElement::new(ASTElementKind::NewType {
+                        name: "__self".to_string(),
+                    });
+
+                    self_type.slot_insert(
+                        TYPE_DEFINITION,
+                        ASTElement::new(ASTElementKind::NamedType {
+                            span: span.clone(),
+                            abspath: new_class.path(),
+                        }),
+                    );
+
+                    new_class.slot_insert("__self", self_type);
+
+                    log!(LogLevel::Trace, "Monomorphized: {}", new_path);
+                    Some(new_class)
+                } else {
+                    panic!();
+                }
             }
         }
         ASTElementKind::StaticTableReference { .. } => Some(element),
         // TODO
-        ASTElementKind::StringExpression { .. } => None,
+        ASTElementKind::StringExpression { span, .. } => {
+            let new_element =
+                ASTElement::new(ASTElementKind::RawPointerType { span: span.clone() });
+            new_element.slot_insert(
+                RAW_POINTER_TYPE_INNER,
+                ASTElement::new(ASTElementKind::NamedType {
+                    span,
+                    abspath: "u8".to_string(),
+                }),
+            );
+            Some(new_element)
+        }
         ASTElementKind::Temporary { .. } => element
             .slot(TEMPORARY_SOURCE)
             .map(|source| get_type_for_expression(ctx, source))
@@ -222,17 +238,19 @@ pub fn type_to_string(element: ASTElement) -> String {
     match element.element() {
         ASTElementKind::Class { .. } => format!("{}", element.path()),
         ASTElementKind::Interface { .. } => format!("{}", element.path()),
+        ASTElementKind::Function { .. } => format!("{}", element.path()),
         ASTElementKind::NamedType { abspath, .. } => format!("'{}", abspath),
         ASTElementKind::NewType { name, .. } => format!("'{}", name),
         ASTElementKind::RawPointerType { .. } => format!(
             "*{}",
             type_to_string(element.slot(RAW_POINTER_TYPE_INNER).unwrap())
         ),
+        ASTElementKind::UnresolvedMethod { .. } => format!("#{}", element.path()),
         _ => unimplemented!("{:?}", element.element()),
     }
 }
 
-// TODO this sucks
+// TODO numeric-type-handling
 fn intersect_numerics(a: &str, b: &str) -> String {
     if a == "__number" {
         return b.to_string();
@@ -245,13 +263,7 @@ fn intersect_numerics(a: &str, b: &str) -> String {
     a.to_string()
 }
 
-pub fn types_compatible(a: ASTElement, b: ASTElement) -> bool {
-    log!(
-        crate::logger::LogLevel::Trace,
-        "  types_compatible {} {}",
-        type_to_string(a.clone()),
-        type_to_string(b.clone())
-    );
+fn tc_reflexive(a: ASTElement, b: ASTElement) -> bool {
     // TODO is this valid?
     if a.path() == b.path() {
         return true;
@@ -260,28 +272,24 @@ pub fn types_compatible(a: ASTElement, b: ASTElement) -> bool {
     let a_element = a.element();
     let b_element = b.element();
 
-    if let ASTElementKind::NamedType { abspath, .. } = &a_element {
-        if abspath == "__any" {
-            return true;
-        }
-    }
-
-    if let ASTElementKind::NamedType { abspath, .. } = &b_element {
-        if abspath == "__any" {
-            return true;
-        }
-    }
-
-    if let (
-        ASTElementKind::NamedType {
-            abspath: a_path, ..
-        },
-        ASTElementKind::NamedType {
-            abspath: b_path, ..
-        },
-    ) = (&a_element, &b_element)
+    if let ASTElementKind::NamedType {
+        abspath: a_path, ..
+    } = &a_element
     {
-        return a_path == b_path;
+        if a_path == "__any" {
+            return true;
+        }
+        if let ASTElementKind::NamedType {
+            abspath: b_path, ..
+        } = &b_element
+        {
+            // TODO numeric-type-handling
+            if a_path == "__number" && BASE_TYPES.contains(b_path) {
+                return true;
+            }
+
+            return a_path == b_path;
+        }
     }
 
     if let (ASTElementKind::RawPointerType { .. }, ASTElementKind::RawPointerType { .. }) =
@@ -294,4 +302,31 @@ pub fn types_compatible(a: ASTElement, b: ASTElement) -> bool {
     }
 
     false
+}
+
+pub fn types_compatible(receiver: ASTElement, source: ASTElement) -> bool {
+    log!(
+        crate::logger::LogLevel::Trace,
+        "  types_compatible {} {}",
+        type_to_string(receiver.clone()),
+        type_to_string(source.clone())
+    );
+
+    let r_element = receiver.element();
+    let s_element = source.element();
+
+    if let (ASTElementKind::Interface { .. }, ASTElementKind::Class { .. }) = (r_element, s_element)
+    {
+        if source.slot_vec().into_iter().any(|implementation| {
+            if let ASTElementKind::NamedType { abspath, .. } = implementation.element() {
+                abspath == receiver.path()
+            } else {
+                false
+            }
+        }) {
+            return true;
+        }
+    }
+
+    tc_reflexive(receiver.clone(), source.clone()) || tc_reflexive(source, receiver)
 }

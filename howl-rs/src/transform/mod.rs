@@ -13,6 +13,7 @@ use crate::{
 pub fn process_transforms_context(ctx: &mut CompilationContext) {
     ctx.root_module = add_self_to_classes(ctx.root_module.clone());
     ctx.root_module = add_self_to_functions(ctx.root_module.clone());
+    ctx.root_module = convert_string_constants(ctx, ctx.root_module.clone());
     ctx.root_module = resolve_names(ctx, ctx.root_module.clone());
     ensure_types(ctx, ctx.root_module.clone());
     ctx.root_module = add_self_to_method_calls(ctx, ctx.root_module.clone());
@@ -87,6 +88,40 @@ fn add_self_to_functions(root_element: ASTElement) -> ASTElement {
         }
         _ => el,
     })
+}
+
+fn convert_string_constants(ctx: &CompilationContext, root_element: ASTElement) -> ASTElement {
+    root_element
+        .clone_tree()
+        .transform_bottom_up(root_element.path(), &|_path, el| match el.element() {
+            ASTElementKind::StringExpression { span, .. } => {
+                let new_function_call =
+                    ASTElement::new(ASTElementKind::FunctionCallExpression { span: span.clone() });
+                let new_function_source =
+                    ASTElement::new(ASTElementKind::FieldReferenceExpression {
+                        span: span.clone(),
+                        name: "fromBytes".to_string(),
+                    });
+                let new_field_source = ASTElement::new(ASTElementKind::NameExpression {
+                    span: span.clone(),
+                    name: ".lib.String".to_string(),
+                });
+                new_function_source
+                    .slot_insert(FIELD_REFERENCE_EXPRESSION_SOURCE, new_field_source);
+                new_function_call.slot_insert(FUNCTION_CALL_EXPRESSION_SOURCE, new_function_source);
+                new_function_call.slot_push(el.clone_tree());
+
+                let new_fficall = ASTElement::new(ASTElementKind::FFICallExpression {
+                    span: span.clone(),
+                    name: "strlen".to_string(),
+                });
+                new_fficall.slot_push(el.clone_tree());
+                new_function_call.slot_push(new_fficall);
+
+                new_function_call
+            }
+            _ => el,
+        })
 }
 
 fn resolve_names(ctx: &CompilationContext, root_element: ASTElement) -> ASTElement {
