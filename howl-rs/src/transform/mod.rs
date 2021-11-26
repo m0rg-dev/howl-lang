@@ -3,7 +3,7 @@ use crate::{
         pretty_print::pretty_print,
         types::{get_type_for_expression, type_to_string, types_compatible, BASE_TYPES},
         ASTElement, ASTElementKind, FIELD_REFERENCE_EXPRESSION_SOURCE,
-        FUNCTION_CALL_EXPRESSION_SOURCE, TEMPORARY_SOURCE,
+        FUNCTION_CALL_EXPRESSION_SOURCE, TEMPORARY_SOURCE, TYPE_DEFINITION,
     },
     context::{get_parent_scope, CompilationContext, CompilationError},
     log,
@@ -11,10 +11,45 @@ use crate::{
 };
 
 pub fn process_transforms_context(ctx: &mut CompilationContext) {
+    ctx.root_module = add_self_to_classes(ctx.root_module.clone());
     ctx.root_module = add_self_to_functions(ctx.root_module.clone());
     ctx.root_module = resolve_names(ctx, ctx.root_module.clone());
+    ensure_types(ctx, ctx.root_module.clone());
     ctx.root_module = add_self_to_method_calls(ctx, ctx.root_module.clone());
     ctx.root_module = resolve_method_overloads(ctx, ctx.root_module.clone());
+}
+
+// get_type_for_expression has useful side effects (monomorphization) but if we
+// call it during a "normal" process_transforms_context pass they'll get dropped
+// because we replace ctx.root_module outright. this probably could do with a
+// refactor.
+fn ensure_types(ctx: &CompilationContext, root_element: ASTElement) {
+    root_element.transform(root_element.path(), &|_path, el| {
+        get_type_for_expression(ctx, el.clone());
+        el
+    });
+}
+
+fn add_self_to_classes(root_element: ASTElement) -> ASTElement {
+    root_element.transform(root_element.path(), &|_path, el| match el.element() {
+        ASTElementKind::Class { span, .. } | ASTElementKind::Interface { span, .. } => {
+            let self_type = ASTElement::new(ASTElementKind::NewType {
+                name: "__self".to_string(),
+            });
+
+            self_type.slot_insert(
+                TYPE_DEFINITION,
+                ASTElement::new(ASTElementKind::NamedType {
+                    span: span.clone(),
+                    abspath: el.path(),
+                }),
+            );
+
+            el.slot_insert("__self", self_type);
+            el
+        }
+        _ => el,
+    })
 }
 
 fn add_self_to_functions(root_element: ASTElement) -> ASTElement {
@@ -31,7 +66,7 @@ fn add_self_to_functions(root_element: ASTElement) -> ASTElement {
                 "self",
                 ASTElement::new(ASTElementKind::NamedType {
                     span: span.clone(),
-                    abspath: el.parent().unwrap().path(),
+                    abspath: "__class_scope.__self".to_string(),
                 }),
             );
 
@@ -369,14 +404,13 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                                 candidate.element()
                             {
                                 argument_order.into_iter().enumerate().all(|(idx, slot)| {
-                                    types_compatible(
-                                        get_type_for_expression(
-                                            ctx,
-                                            candidate.slot(&slot).unwrap(),
-                                        )
-                                        .unwrap(),
-                                        arg_types[idx].clone(),
-                                    )
+                                    let candidate_type = get_type_for_expression(
+                                        ctx,
+                                        candidate.slot(&slot).unwrap(),
+                                    );
+                                    candidate_type.map_or(false, |t| {
+                                        types_compatible(t, arg_types[idx].clone())
+                                    })
                                 })
                             } else {
                                 unreachable!();

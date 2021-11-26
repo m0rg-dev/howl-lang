@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use crate::ast::pretty_print::pretty_print;
+use crate::log;
+use crate::logger::LogLevel;
 
 pub mod pretty_print;
 pub mod types;
@@ -142,18 +144,25 @@ impl ASTElement {
             .collect()
     }
 
-    #[allow(dead_code)]
     pub fn slot_copy(&mut self, source: &ASTElement) {
         source.slots().into_iter().for_each(|(name, el)| {
             self.slot_insert(&name, el);
         });
     }
 
-    #[allow(dead_code)]
     pub fn clone_tree(&self) -> ASTElement {
-        let mut new_element = ASTElement::new(self.element());
-        new_element.slot_copy(self);
+        let new_element = ASTElement::new(self.element());
+        self.slots().into_iter().for_each(|(name, el)| {
+            log!(LogLevel::Trace, "clone_tree {} {}", self.path(), name);
+            new_element.slot_insert(&name, el.clone_tree());
+        });
         new_element
+    }
+
+    pub fn slot_clone(&mut self, source: &ASTElement) {
+        source.slots().into_iter().for_each(|(name, el)| {
+            self.slot_insert(&name, el.clone_tree());
+        });
     }
 
     pub fn transform<T>(&self, path: String, callback: &T) -> ASTElement
@@ -196,9 +205,16 @@ impl ASTElement {
                 .filter(|(_, element)| Rc::ptr_eq(&self.inner, &element.inner))
                 .map(|(slot, _)| slot)
                 .collect::<Vec<String>>()
-                .pop()
-                .unwrap();
-            parent + &own
+                .pop();
+            if own.is_some() {
+                parent + &own.unwrap()
+            } else {
+                panic!(
+                    "tree bidirectionality failure. {:?} {:?}",
+                    self.element(),
+                    parent_element.element()
+                )
+            }
         } else {
             "".to_string()
         }
@@ -243,6 +259,7 @@ pub enum ASTElementKind {
     Class {
         span: SourcedSpan,
         name: String,
+        generic_order: Vec<String>,
     },
     ClassField {
         span: SourcedSpan,
@@ -327,6 +344,7 @@ pub enum ASTElementKind {
     SpecifiedType {
         span: SourcedSpan,
     },
+    #[allow(dead_code)]
     StaticTableReference {
         span: SourcedSpan,
     },
@@ -362,9 +380,22 @@ impl Deref for ASTElementCommon {
     }
 }
 
-pub fn generate_unique_name(name: &str, arg_types: Vec<ASTElement>) -> String {
+pub fn generate_unique_name_function(name: &str, arg_types: Vec<ASTElement>) -> String {
     format!(
         "F{}{}E{}",
+        name_string(name),
+        arg_types.len(),
+        arg_types
+            .iter()
+            .map(type_string)
+            .collect::<Vec<String>>()
+            .join("")
+    )
+}
+
+pub fn generate_unique_name_type(name: &str, arg_types: Vec<ASTElement>) -> String {
+    format!(
+        "T{}{}E{}",
         name_string(name),
         arg_types.len(),
         arg_types
@@ -400,6 +431,7 @@ fn type_string(source: &ASTElement) -> String {
                     .join("")
             )
         }
+        ASTElementKind::NamedType { abspath, .. } => name_string(&abspath.replace(".", "_")),
         ASTElementKind::UnresolvedIdentifier { name, .. } => name_string(&name),
         _ => unimplemented!(
             "Unimplemented in type_string: {}",

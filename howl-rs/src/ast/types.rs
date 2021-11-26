@@ -2,13 +2,15 @@ use std::collections::HashSet;
 
 use crate::{
     ast::{
-        ASTElement, ASTElementKind, ARITHMETIC_EXPRESSION_LHS, ARITHMETIC_EXPRESSION_RHS,
-        CLASS_FIELD_TYPE, CONSTRUCTOR_CALL_EXPRESSION_SOURCE, FIELD_REFERENCE_EXPRESSION_SOURCE,
-        FUNCTION_CALL_EXPRESSION_SOURCE, FUNCTION_RETURN, LOCAL_DEFINITION_STATEMENT_TYPE,
-        RAW_POINTER_TYPE_INNER, SPECIFIED_TYPE_BASE, TEMPORARY_SOURCE, TYPE_DEFINITION,
+        generate_unique_name_type, ASTElement, ASTElementKind, ARITHMETIC_EXPRESSION_LHS,
+        ARITHMETIC_EXPRESSION_RHS, CLASS_FIELD_TYPE, CONSTRUCTOR_CALL_EXPRESSION_SOURCE,
+        FIELD_REFERENCE_EXPRESSION_SOURCE, FUNCTION_CALL_EXPRESSION_SOURCE, FUNCTION_RETURN,
+        LOCAL_DEFINITION_STATEMENT_TYPE, RAW_POINTER_TYPE_INNER, SPECIFIED_TYPE_BASE,
+        TEMPORARY_SOURCE, TYPE_DEFINITION,
     },
     context::CompilationContext,
     log,
+    logger::LogLevel,
 };
 
 lazy_static! {
@@ -115,6 +117,8 @@ pub fn get_type_for_expression(
                 Some(element)
             } else {
                 ctx.path_get(&element, &abspath)
+                    .map(|source| get_type_for_expression(ctx, source))
+                    .flatten()
             }
         }
         ASTElementKind::NameExpression { name, .. } => ctx
@@ -130,10 +134,75 @@ pub fn get_type_for_expression(
         ASTElementKind::ReturnStatement { .. } => None,
         ASTElementKind::SimpleStatement { .. } => None,
         // TODO
-        ASTElementKind::SpecifiedType { .. } => element
-            .slot(SPECIFIED_TYPE_BASE)
-            .map(|source| get_type_for_expression(ctx, source))
-            .flatten(),
+        ASTElementKind::SpecifiedType { .. } => {
+            let source_type = element
+                .slot(SPECIFIED_TYPE_BASE)
+                .map(|source| get_type_for_expression(ctx, source))
+                .flatten();
+            if let Some(source_type) = source_type {
+                let parts = source_type
+                    .path()
+                    .split(".")
+                    .map(|x| x.to_string())
+                    .collect::<Vec<String>>();
+                let (last, rest) = parts.split_last().unwrap();
+                let new_last = generate_unique_name_type(last, element.slot_vec());
+                let new_path = rest.join(".") + "." + &new_last;
+
+                if let Some(t) = ctx.path_get(&element, &new_path) {
+                    Some(t)
+                } else {
+                    if let ASTElementKind::Class {
+                        span,
+                        name: _,
+                        generic_order,
+                    } = source_type.element()
+                    {
+                        let mut new_class = ASTElement::new(ASTElementKind::Class {
+                            span: span.clone(),
+                            name: new_last,
+                            generic_order: vec![],
+                        });
+                        new_class.slot_clone(&source_type);
+                        generic_order
+                            .into_iter()
+                            .enumerate()
+                            .for_each(|(index, generic_slot)| {
+                                let newtype = ASTElement::new(ASTElementKind::NewType {
+                                    name: generic_slot.clone(),
+                                });
+                                newtype.slot_insert(
+                                    TYPE_DEFINITION,
+                                    element.slot_vec()[index].clone(),
+                                );
+                                new_class.slot_insert(&generic_slot, newtype);
+                            });
+
+                        ctx.path_set(&new_path.trim_start_matches("."), new_class.clone());
+                        let self_type = ASTElement::new(ASTElementKind::NewType {
+                            name: "__self".to_string(),
+                        });
+
+                        self_type.slot_insert(
+                            TYPE_DEFINITION,
+                            ASTElement::new(ASTElementKind::NamedType {
+                                span: span.clone(),
+                                abspath: new_class.path(),
+                            }),
+                        );
+
+                        new_class.slot_insert("__self", self_type);
+
+                        log!(LogLevel::Trace, "Monomorphized: {}", new_path);
+                        Some(new_class)
+                    } else {
+                        panic!();
+                    }
+                }
+            } else {
+                None
+            }
+        }
         ASTElementKind::StaticTableReference { .. } => Some(element),
         // TODO
         ASTElementKind::StringExpression { .. } => None,

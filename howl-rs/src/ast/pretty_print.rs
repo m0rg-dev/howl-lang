@@ -28,7 +28,7 @@ pub fn pretty_print(source: ASTElement) -> String {
             pretty_print(source.slot(ASSIGNMENT_STATEMENT_RHS).unwrap())
         ),
 
-        ASTElementKind::Class { span: _, name } => format!(
+        ASTElementKind::Class { span: _, name, .. } => format!(
             "/* path: {} */\nclass {}{}{} {{\n{}\n}}",
             source.path(),
             name,

@@ -2,12 +2,12 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     ast::{
-        generate_unique_name, ASTElement, ASTElementKind, SourcedSpan, ARITHMETIC_EXPRESSION_LHS,
-        ARITHMETIC_EXPRESSION_RHS, ASSIGNMENT_STATEMENT_LHS, ASSIGNMENT_STATEMENT_RHS,
-        CLASS_EXTENDS, CLASS_FIELD_TYPE, CONSTRUCTOR_CALL_EXPRESSION_SOURCE,
-        ELSE_IF_STATEMENT_BODY, ELSE_IF_STATEMENT_CONDITION, ELSE_STATEMENT_BODY, FUNCTION_BODY,
-        FUNCTION_CALL_EXPRESSION_SOURCE, FUNCTION_RETURN, IF_STATEMENT_BODY,
-        IF_STATEMENT_CONDITION, INDEX_EXPRESSION_INDEX, INDEX_EXPRESSION_SOURCE,
+        generate_unique_name_function, ASTElement, ASTElementKind, SourcedSpan,
+        ARITHMETIC_EXPRESSION_LHS, ARITHMETIC_EXPRESSION_RHS, ASSIGNMENT_STATEMENT_LHS,
+        ASSIGNMENT_STATEMENT_RHS, CLASS_EXTENDS, CLASS_FIELD_TYPE,
+        CONSTRUCTOR_CALL_EXPRESSION_SOURCE, ELSE_IF_STATEMENT_BODY, ELSE_IF_STATEMENT_CONDITION,
+        ELSE_STATEMENT_BODY, FUNCTION_BODY, FUNCTION_CALL_EXPRESSION_SOURCE, FUNCTION_RETURN,
+        IF_STATEMENT_BODY, IF_STATEMENT_CONDITION, INDEX_EXPRESSION_INDEX, INDEX_EXPRESSION_SOURCE,
         LOCAL_DEFINITION_STATEMENT_INITIALIZER, LOCAL_DEFINITION_STATEMENT_TYPE,
         RAW_POINTER_TYPE_INNER, RETURN_STATEMENT_EXPRESSION, SIMPLE_STATEMENT_EXPRESSION,
         SPECIFIED_TYPE_BASE, THROW_STATEMENT_EXPRESSION, WHILE_STATEMENT_BODY,
@@ -118,11 +118,27 @@ impl CompilationContext {
                 body: CSTElement::ClassBody { span: _, elements },
             } => {
                 let class_path = prefix.to_owned() + "." + name;
+                let mut generic_order: Vec<String> = vec![];
+                if let Some(CSTElement::GenericList { span: _, names }) = generics {
+                    let mut temp: Vec<String> = names
+                        .into_iter()
+                        .map(|element| {
+                            if let CSTElement::Identifier { span: _, name } = element {
+                                name.to_string()
+                            } else {
+                                unreachable!()
+                            }
+                        })
+                        .collect();
+                    generic_order.append(&mut temp);
+                }
+
                 let class = self.path_set(
                     &class_path,
                     ASTElement::new(ASTElementKind::Class {
                         span: SourcedSpan { source_path, span },
                         name: name.clone(),
+                        generic_order,
                     }),
                 );
 
@@ -270,7 +286,7 @@ impl CompilationContext {
                 args: CSTElement::TypedArgumentList { span: _, args },
                 throws,
             } => {
-                let unique_name = generate_unique_name(
+                let unique_name = generate_unique_name_function(
                     name,
                     args.into_iter()
                         .map(|x| {

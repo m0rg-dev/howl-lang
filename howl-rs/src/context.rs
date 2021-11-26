@@ -183,6 +183,12 @@ impl CompilationContext {
         let mut components: Vec<&str> = path.split(".").collect();
         let last = components.pop().unwrap();
         let parent = self.path_create(&components.join("."));
+        log!(
+            LogLevel::Trace,
+            "path_set {} {}",
+            components.join("."),
+            last
+        );
         parent.slot_insert(last, element)
     }
 
