@@ -123,17 +123,21 @@ impl ASTElement {
     }
 
     pub fn slots(&self) -> Vec<(String, ASTElement)> {
-        self.inner
+        let mut rc = self
+            .inner
             .borrow()
             .slots
             .borrow()
             .iter()
             .map(|(name, el)| (name.clone(), el.clone()))
-            .collect()
+            .collect::<Vec<(String, ASTElement)>>();
+        rc.sort_by(|a, b| a.0.cmp(&b.0));
+        rc
     }
 
     pub fn slots_normal(&self) -> Vec<(String, ASTElement)> {
-        self.inner
+        let mut rc = self
+            .inner
             .borrow()
             .slots
             .borrow()
@@ -141,7 +145,9 @@ impl ASTElement {
             .filter(|(name, _)| !name.parse::<u64>().is_ok())
             .filter(|(name, _)| !name.starts_with("__"))
             .map(|(name, el)| (name.clone(), el.clone()))
-            .collect()
+            .collect::<Vec<(String, ASTElement)>>();
+        rc.sort_by(|a, b| a.0.cmp(&b.0));
+        rc
     }
 
     pub fn slot_copy(&mut self, source: &ASTElement) {
@@ -153,7 +159,6 @@ impl ASTElement {
     pub fn clone_tree(&self) -> ASTElement {
         let new_element = ASTElement::new(self.element());
         self.slots().into_iter().for_each(|(name, el)| {
-            log!(LogLevel::Trace, "clone_tree {} {}", self.path(), name);
             new_element.slot_insert(&name, el.clone_tree());
         });
         new_element
@@ -163,6 +168,29 @@ impl ASTElement {
         source.slots().into_iter().for_each(|(name, el)| {
             self.slot_insert(&name, el.clone_tree());
         });
+    }
+
+    pub fn walk<T>(&self, callback: &T)
+    where
+        T: Fn(ASTElement) -> bool,
+    {
+        if callback(self.clone()) {
+            let mut slots_sorted = self.slots();
+            slots_sorted.sort_by(|a, b| a.0.cmp(&b.0));
+            slots_sorted.into_iter().for_each(|(slot, element)| {
+                if !Rc::ptr_eq(&self.inner, &element.parent().unwrap().inner) {
+                    panic!(
+                        "tree bidirectionality failure. {:?} {} . {} => {:?} {}",
+                        self.element(),
+                        self.path(),
+                        slot,
+                        element.element(),
+                        element.path()
+                    )
+                }
+                element.walk(callback);
+            });
+        }
     }
 
     pub fn transform<T>(&self, path: String, callback: &T) -> ASTElement
@@ -401,6 +429,22 @@ pub fn generate_unique_name_type(name: &str, arg_types: Vec<ASTElement>) -> Stri
         arg_types
             .iter()
             .map(type_string)
+            .collect::<Vec<String>>()
+            .join("")
+    )
+}
+
+pub fn generate_unique_name_path(path: &str) -> String {
+    let parts = path.split(".").collect::<Vec<&str>>();
+    format!(
+        "P{}E{}",
+        parts.len(),
+        parts
+            .into_iter()
+            .map(|s| match s {
+                "" => "Z".to_string(),
+                _ => name_string(s),
+            })
             .collect::<Vec<String>>()
             .join("")
     )

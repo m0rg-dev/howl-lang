@@ -44,17 +44,18 @@ macro_rules! basetype {
 pub fn get_type_for_expression(
     ctx: &CompilationContext,
     element: ASTElement,
+    dereference: bool,
 ) -> Option<ASTElement> {
     match element.element() {
         // TODO numeric-type-handling
         ASTElementKind::ArithmeticExpression { span, .. } => {
             let lhs = element
                 .slot(ARITHMETIC_EXPRESSION_LHS)
-                .map(|x| get_type_for_expression(ctx, x))
+                .map(|x| get_type_for_expression(ctx, x, dereference))
                 .flatten();
             let rhs = element
                 .slot(ARITHMETIC_EXPRESSION_RHS)
-                .map(|x| get_type_for_expression(ctx, x))
+                .map(|x| get_type_for_expression(ctx, x, dereference))
                 .flatten();
 
             match (lhs.map(|x| x.element()), rhs.map(|x| x.element())) {
@@ -76,32 +77,32 @@ pub fn get_type_for_expression(
         ASTElementKind::Class { .. } => Some(element),
         ASTElementKind::ClassField { .. } => element
             .slot(CLASS_FIELD_TYPE)
-            .map(|field| get_type_for_expression(ctx, field))
+            .map(|field| get_type_for_expression(ctx, field, dereference))
             .flatten(),
         ASTElementKind::CompoundStatement { .. } => None,
         ASTElementKind::ConstructorCallExpression { .. } => element
             .slot(CONSTRUCTOR_CALL_EXPRESSION_SOURCE)
-            .map(|source| get_type_for_expression(ctx, source))
+            .map(|source| get_type_for_expression(ctx, source, dereference))
             .flatten(),
         ASTElementKind::ElseIfStatement { .. } => None,
         ASTElementKind::ElseStatement { .. } => None,
         ASTElementKind::FFICallExpression { span, .. } => basetype!(span, "__any"),
         ASTElementKind::FieldReferenceExpression { name, .. } => element
             .slot(FIELD_REFERENCE_EXPRESSION_SOURCE)
-            .map(|source| get_type_for_expression(ctx, source))
+            .map(|source| get_type_for_expression(ctx, source, dereference))
             .flatten()
             .map(|source_type| source_type.slot(&name))
             .flatten()
-            .map(|field| get_type_for_expression(ctx, field))
+            .map(|field| get_type_for_expression(ctx, field, dereference))
             .flatten(),
         ASTElementKind::Function { .. } => Some(element),
         ASTElementKind::FunctionCallExpression { .. } => element
             .slot(FUNCTION_CALL_EXPRESSION_SOURCE)
-            .map(|source| get_type_for_expression(ctx, source))
+            .map(|source| get_type_for_expression(ctx, source, dereference))
             .flatten()
             .map(|source_type| source_type.slot(FUNCTION_RETURN))
             .flatten()
-            .map(|source| get_type_for_expression(ctx, source))
+            .map(|source| get_type_for_expression(ctx, source, dereference))
             .flatten(),
         ASTElementKind::IfStatement { .. } => None,
         // TODO
@@ -109,7 +110,7 @@ pub fn get_type_for_expression(
         ASTElementKind::Interface { .. } => Some(element),
         ASTElementKind::LocalDefinitionStatement { .. } => element
             .slot(LOCAL_DEFINITION_STATEMENT_TYPE)
-            .map(|source| get_type_for_expression(ctx, source))
+            .map(|source| get_type_for_expression(ctx, source, dereference))
             .flatten(),
         // TODO
         ASTElementKind::MacroCallExpression { span, .. } => basetype!(span, "__any"),
@@ -117,39 +118,42 @@ pub fn get_type_for_expression(
         ASTElementKind::NamedType { abspath, .. } => {
             if BASE_TYPES.contains(&abspath) {
                 Some(element)
+            } else if dereference {
+                ctx.path_get(&element, &abspath)
+                    .map(|source| get_type_for_expression(ctx, source, dereference))
+                    .flatten()
             } else {
                 ctx.path_get(&element, &abspath)
-                    .map(|source| get_type_for_expression(ctx, source))
-                    .flatten()
             }
         }
         ASTElementKind::NameExpression { name, .. } => ctx
             .path_get(&element, &name)
-            .map(|x| get_type_for_expression(ctx, x))
+            .map(|x| get_type_for_expression(ctx, x, dereference))
             .flatten(),
         ASTElementKind::NewType { .. } => element
             .slot(TYPE_DEFINITION)
-            .map(|source| get_type_for_expression(ctx, source))
+            .map(|source| get_type_for_expression(ctx, source, dereference))
             .flatten(),
         ASTElementKind::NumberExpression { span, .. } => basetype!(span, "__number"),
         ASTElementKind::RawPointerType { span, .. } => {
             let source_type = element
                 .slot(RAW_POINTER_TYPE_INNER)
-                .map(|source| get_type_for_expression(ctx, source))
+                .map(|source| get_type_for_expression(ctx, source, dereference))
                 .flatten()?;
 
             let new_element = ASTElement::new(ASTElementKind::RawPointerType { span });
-            new_element.slot_insert(RAW_POINTER_TYPE_INNER, source_type);
+            // this has to be clone_tree otherwise we run into bidirectionality
+            // errors later. TODO figure out how to make this less of a footgun
+            new_element.slot_insert(RAW_POINTER_TYPE_INNER, source_type.clone_tree());
 
             Some(new_element)
         }
         ASTElementKind::ReturnStatement { .. } => None,
         ASTElementKind::SimpleStatement { .. } => None,
-        // TODO
         ASTElementKind::SpecifiedType { .. } => {
             let source_type = element
                 .slot(SPECIFIED_TYPE_BASE)
-                .map(|source| get_type_for_expression(ctx, source))
+                .map(|source| get_type_for_expression(ctx, source, dereference))
                 .flatten()?;
             let parts = source_type
                 .path()
@@ -201,7 +205,17 @@ pub fn get_type_for_expression(
 
                     new_class.slot_insert("__self", self_type);
 
-                    log!(LogLevel::Trace, "Monomorphized: {}", new_path);
+                    log!(
+                        LogLevel::Trace,
+                        "Monomorphized: {} <{}>",
+                        new_path,
+                        element
+                            .slot_vec()
+                            .into_iter()
+                            .map(|x| type_to_string(x))
+                            .collect::<Vec<String>>()
+                            .join(", ")
+                    );
                     Some(new_class)
                 } else {
                     panic!();
@@ -209,7 +223,6 @@ pub fn get_type_for_expression(
             }
         }
         ASTElementKind::StaticTableReference { .. } => Some(element),
-        // TODO
         ASTElementKind::StringExpression { span, .. } => {
             let new_element =
                 ASTElement::new(ASTElementKind::RawPointerType { span: span.clone() });
@@ -224,7 +237,7 @@ pub fn get_type_for_expression(
         }
         ASTElementKind::Temporary { .. } => element
             .slot(TEMPORARY_SOURCE)
-            .map(|source| get_type_for_expression(ctx, source))
+            .map(|source| get_type_for_expression(ctx, source, dereference))
             .flatten(),
         ASTElementKind::ThrowStatement { .. } => None,
         ASTElementKind::WhileStatement { .. } => None,

@@ -2,9 +2,11 @@ use crate::{
     ast::types::get_type_for_expression,
     ast::{types::type_to_string, ASTElement, ASTElementKind},
     context::CompilationContext,
+    output::csrc::type_to_c,
     Cli,
 };
 
+#[allow(dead_code)]
 pub fn output_graphviz(ctx: &CompilationContext, args: &Cli) {
     println!("digraph {{");
     println!("  rankdir=LR;");
@@ -19,12 +21,15 @@ pub fn output_graphviz(ctx: &CompilationContext, args: &Cli) {
                 let mut slots_sorted = el.slots();
                 slots_sorted.sort_by(|a, b| a.0.cmp(&b.0));
                 println!(
-                    "  n_{} [shape=record label=\"{}{} {}\"];",
+                    "  n_{} [shape=record label=\"{}{}{} {}\"];",
                     el.handle(),
                     sanitize(headline(&el)),
-                    get_type_for_expression(ctx, el.clone()).map_or("".to_string(), |x| sanitize(
-                        format!(" | type: {}", type_to_string(x))
-                    )),
+                    get_type_for_expression(ctx, el.clone(), true).map_or("".to_string(), |x| {
+                        sanitize(format!(" | type: {}", type_to_string(x.clone())))
+                    }),
+                    get_type_for_expression(ctx, el.clone(), false).map_or("".to_string(), |x| {
+                        sanitize(format!(" | ctype: {}", type_to_c(ctx, x.clone())))
+                    }),
                     slots_sorted
                         .iter()
                         .map(|(slot, _)| format!(" | <{}>{}", slot, slot))

@@ -26,7 +26,7 @@ pub fn process_transforms_context(ctx: &mut CompilationContext) {
 // refactor.
 fn ensure_types(ctx: &CompilationContext, root_element: ASTElement) {
     root_element.transform(root_element.path(), &|_path, el| {
-        get_type_for_expression(ctx, el.clone());
+        get_type_for_expression(ctx, el.clone(), true);
         el
     });
 }
@@ -332,7 +332,7 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                         .slot(FUNCTION_CALL_EXPRESSION_SOURCE)
                         .unwrap()
                         .slot(FIELD_REFERENCE_EXPRESSION_SOURCE)
-                        .map(|x| get_type_for_expression(ctx, x))
+                        .map(|x| get_type_for_expression(ctx, x, true))
                         .flatten();
 
                     log!(LogLevel::Trace, "Overload: {}", pretty_print(el.clone()));
@@ -343,7 +343,7 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                             .into_iter()
                             .map(|x| format!(
                                 "{}",
-                                get_type_for_expression(ctx, x)
+                                get_type_for_expression(ctx, x, true)
                                     .map_or("<no type>".to_string(), type_to_string)
                             ))
                             .collect::<Vec<String>>()
@@ -353,7 +353,7 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                     if el
                         .slot_vec()
                         .into_iter()
-                        .map(|x| get_type_for_expression(ctx, x))
+                        .map(|x| get_type_for_expression(ctx, x, true))
                         .any(|t| t.is_none())
                     {
                         ctx.add_error(CompilationError {
@@ -368,7 +368,7 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                     let arg_types: Vec<ASTElement> = el
                         .slot_vec()
                         .into_iter()
-                        .map(|x| get_type_for_expression(ctx, x).unwrap())
+                        .map(|x| get_type_for_expression(ctx, x, true).unwrap())
                         .collect();
 
                     let mut candidates: Vec<ASTElement> = vec![];
@@ -399,7 +399,8 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                                                             "{} {}",
                                                             get_type_for_expression(
                                                                 ctx,
-                                                                value.slot(k).unwrap()
+                                                                value.slot(k).unwrap(),
+                                                                true
                                                             )
                                                             .map_or(
                                                                 "<no type>".to_string(),
@@ -442,6 +443,7 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                                     let candidate_type = get_type_for_expression(
                                         ctx,
                                         candidate.slot(&slot).unwrap(),
+                                        true,
                                     );
                                     candidate_type.map_or(false, |t| {
                                         types_compatible(t, arg_types[idx].clone())
@@ -470,7 +472,8 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                                             "{} {}",
                                             get_type_for_expression(
                                                 ctx,
-                                                candidate.slot(&k).unwrap()
+                                                candidate.slot(&k).unwrap(),
+                                                true
                                             )
                                             .map_or("<no type>".to_string(), type_to_string),
                                             k,
@@ -512,7 +515,8 @@ fn resolve_method_overloads(ctx: &CompilationContext, root_element: ASTElement) 
                                                         "{}",
                                                         get_type_for_expression(
                                                             ctx,
-                                                            candidate.slot(k).unwrap()
+                                                            candidate.slot(k).unwrap(),
+                                                            true
                                                         )
                                                         .map_or(
                                                             "<no type>".to_string(),
