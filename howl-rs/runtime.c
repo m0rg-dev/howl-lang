@@ -33,3 +33,4 @@ int typeIncludes(struct stable_common stable, char *type) {
 
 int32_t __get_errno() { return errno; }
 char *__get_object_pointer(void *o) { return ((char **)o)[0]; }
+void dummy_constructor() {}

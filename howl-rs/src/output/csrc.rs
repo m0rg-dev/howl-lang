@@ -2,8 +2,14 @@ use crate::{
     ast::{
         generate_unique_name_path,
         types::{get_type_for_expression, type_to_string},
-        ASTElement, ASTElementKind, CLASS_FIELD_TYPE, FUNCTION_RETURN, RAW_POINTER_TYPE_INNER,
-        TYPE_DEFINITION,
+        ASTElement, ASTElementKind, ARITHMETIC_EXPRESSION_LHS, ARITHMETIC_EXPRESSION_RHS,
+        ASSIGNMENT_STATEMENT_LHS, ASSIGNMENT_STATEMENT_RHS, CLASS_EXTENDS, CLASS_FIELD_TYPE,
+        CONSTRUCTOR_CALL_EXPRESSION_SOURCE, ELSE_STATEMENT_BODY, FIELD_REFERENCE_EXPRESSION_SOURCE,
+        FUNCTION_BODY, FUNCTION_CALL_EXPRESSION_SOURCE, FUNCTION_RETURN, IF_STATEMENT_BODY,
+        IF_STATEMENT_CONDITION, INDEX_EXPRESSION_INDEX, INDEX_EXPRESSION_SOURCE,
+        LOCAL_DEFINITION_STATEMENT_INITIALIZER, LOCAL_DEFINITION_STATEMENT_TYPE,
+        RAW_POINTER_TYPE_INNER, RETURN_STATEMENT_EXPRESSION, SIMPLE_STATEMENT_EXPRESSION,
+        TYPE_DEFINITION, WHILE_STATEMENT_BODY, WHILE_STATEMENT_CONDITION,
     },
     context::CompilationContext,
     log,
@@ -16,7 +22,8 @@ pub fn output_csrc(ctx: &CompilationContext, _args: &Cli) {
     println!("#include \"runtime.h\"");
     output_forward_declarations(ctx);
     output_structures(ctx);
-    output_code(ctx);
+    output_tables(ctx);
+    output_functions(ctx);
     println!("#include \"runtime.c\"");
 }
 
@@ -85,6 +92,7 @@ fn output_structures(ctx: &CompilationContext) {
 
             println!("}};");
             println!("typedef struct {}_stable_t *{}_stable;\n", name, name);
+            println!("struct {}_stable_t {}_stable_obj;", name, name);
 
             // interface tables
             el.slot_vec().into_iter().for_each(|candidate| {
@@ -127,51 +135,28 @@ fn output_structures(ctx: &CompilationContext) {
             println!("}};");
 
             // constructor. first, find its arguments
-            let temp = el
-                .slots()
-                .into_iter()
-                .filter(|(_, candidate)| {
-                    if let ASTElementKind::Function { name, .. } = candidate.element() {
-                        name == "constructor"
-                    } else {
-                        false
-                    }
-                })
-                .map(|(_, candidate)| candidate)
-                .collect::<Vec<ASTElement>>();
-            let real_constructor = temp.first();
-            if let Some(constructor_element) = real_constructor {
-                if let ASTElementKind::Function { argument_order, .. } =
-                    constructor_element.element()
-                {
-                    // strip self on _alloc. we'll pass it to constructor() internally later
-                    let argument_order = argument_order.clone().drain(1..).collect::<Vec<String>>();
-                    println!(
-                        "{} {}_alloc({});",
-                        name,
-                        name,
-                        argument_order
-                            .into_iter()
-                            .map(|x| format!(
-                                "{} {}",
-                                get_type_for_expression(
-                                    ctx,
-                                    constructor_element.slot(&x).unwrap(),
-                                    false
-                                )
-                                .map_or("void".to_string(), |x| type_to_c(ctx, x)),
-                                x
-                            ))
-                            .collect::<Vec<String>>()
-                            .join(", ")
-                    );
-                } else {
-                    // TODO this is actually an error
-                    panic!(
-                        "non-function constructor {:?}",
-                        constructor_element.element()
-                    );
-                }
+            if let Some((constructor_element, argument_order)) = find_constructor(el.clone()) {
+                // strip self on _alloc. we'll pass it to constructor() internally later
+                let argument_order = argument_order.clone().drain(1..).collect::<Vec<String>>();
+                println!(
+                    "{} {}_alloc({});",
+                    name,
+                    name,
+                    argument_order
+                        .into_iter()
+                        .map(|x| format!(
+                            "{} {}",
+                            get_type_for_expression(
+                                ctx,
+                                constructor_element.slot(&x).unwrap(),
+                                false
+                            )
+                            .map_or("void".to_string(), |x| type_to_c(ctx, x)),
+                            x
+                        ))
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                );
             } else {
                 println!("{} {}_alloc();", name, name);
             }
@@ -289,7 +274,7 @@ fn output_interface_forward_declarations(_ctx: &CompilationContext, el: ASTEleme
     }
 }
 
-fn output_code(ctx: &CompilationContext) {
+fn output_tables(ctx: &CompilationContext) {
     ctx.root_module.walk(&|el| match el.element() {
         ASTElementKind::Class { generic_order, .. } => {
             if generic_order.len() > 0 {
@@ -300,15 +285,285 @@ fn output_code(ctx: &CompilationContext) {
             let name = generate_unique_name_path(&path);
 
             println!("// Class: {}", path);
+
+            // Static table.
             println!("struct {}_stable_t {}_stable_obj = {{", name, name);
             println!("  \"{}\",", name);
+            if let Some(parent) = el.slot(CLASS_EXTENDS) {
+                let ptype = get_type_for_expression(ctx, parent, true).unwrap();
+                println!(
+                    "  (struct stable_common *) &{}_stable_obj,",
+                    generate_unique_name_path(&ptype.path())
+                );
+            } else {
+                println!("  (struct stable_common *) 0,");
+            }
+            el.slots_normal()
+                .into_iter()
+                .for_each(|(_, method)| match method.element() {
+                    ASTElementKind::Function { .. } => {
+                        println!("  {},", generate_unique_name_path(&method.path()))
+                    }
+                    _ => {}
+                });
             println!("}};");
+
+            // Interface tables, where applicable.
+            el.slot_vec().into_iter().for_each(|candidate| {
+                let interface = get_type_for_expression(ctx, candidate, false).unwrap();
+                match interface.element() {
+                    ASTElementKind::Interface { .. } => {
+                        println!(
+                            "struct {}_itable_t {}_{}_itable = {{",
+                            generate_unique_name_path(&interface.path()),
+                            generate_unique_name_path(&interface.path()),
+                            name
+                        );
+                        interface
+                            .slots_normal()
+                            .into_iter()
+                            .for_each(|(_, method)| match method.element() {
+                                ASTElementKind::Function { name, .. } => {
+                                    let possible_implementations = el
+                                        .slots_normal()
+                                        .into_iter()
+                                        .filter(|(_, candidate)| match candidate.element() {
+                                            ASTElementKind::Function { name: fname, .. } => {
+                                                fname == name
+                                            }
+                                            _ => false,
+                                        })
+                                        .map(|(_, x)| x)
+                                        .collect::<Vec<ASTElement>>();
+                                    // TODO
+                                    println!(
+                                        "  {},",
+                                        generate_unique_name_path(
+                                            &possible_implementations[0].path()
+                                        )
+                                    );
+                                }
+                                _ => {}
+                            });
+                        println!("}};");
+                    }
+                    _ => {}
+                }
+            });
+
+            // Constructor.
+            if let Some((constructor_element, argument_order)) = find_constructor(el) {
+                let argument_order = argument_order.clone().drain(1..).collect::<Vec<String>>();
+                println!(
+                    "CONSTRUCTOR({}, {}, (rc {}), {})",
+                    name,
+                    generate_unique_name_path(&constructor_element.path()),
+                    argument_order
+                        .clone()
+                        .into_iter()
+                        .map(|x| format!(", {}", x))
+                        .collect::<Vec<String>>()
+                        .join(""),
+                    argument_order
+                        .into_iter()
+                        .map(|x| format!(
+                            "{} {}",
+                            get_type_for_expression(
+                                ctx,
+                                constructor_element.slot(&x).unwrap(),
+                                false
+                            )
+                            .map_or("void".to_string(), |x| type_to_c(ctx, x)),
+                            x
+                        ))
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                );
+            } else {
+                println!("CONSTRUCTOR({}, dummy_constructor, ())", name);
+            }
 
             println!("");
             false
         }
         _ => true,
     });
+}
+
+fn find_constructor(source: ASTElement) -> Option<(ASTElement, Vec<String>)> {
+    let temp = source
+        .slots()
+        .into_iter()
+        .filter(|(_, candidate)| {
+            if let ASTElementKind::Function { name, .. } = candidate.element() {
+                name == "constructor"
+            } else {
+                false
+            }
+        })
+        .map(|(_, candidate)| candidate)
+        .collect::<Vec<ASTElement>>();
+    let real_constructor = temp.first();
+    if let Some(constructor_element) = real_constructor {
+        if let ASTElementKind::Function { argument_order, .. } = constructor_element.element() {
+            return Some((constructor_element.clone(), argument_order));
+        } else {
+            // TODO this is actually an error
+            panic!(
+                "non-function constructor {:?}",
+                constructor_element.element()
+            );
+        }
+    }
+    None
+}
+
+fn output_functions(ctx: &CompilationContext) {
+    ctx.root_module.walk(&|el| match el.element() {
+        ASTElementKind::Class { generic_order, .. } => generic_order.len() == 0,
+        ASTElementKind::Function { .. } => {
+            let path = el.path();
+
+            println!("// Function: {}", path);
+            if el.slot(FUNCTION_BODY).is_some() {
+                println!(
+                    "{} {}",
+                    type_to_c(ctx, el.clone()),
+                    element_to_c(ctx, el.slot(FUNCTION_BODY).unwrap())
+                );
+            } else {
+                println!("{};", type_to_c(ctx, el.clone()));
+            }
+            println!("");
+            false
+        }
+        _ => true,
+    });
+}
+
+fn element_to_c(ctx: &CompilationContext, source: ASTElement) -> String {
+    match source.element() {
+        ASTElementKind::ArithmeticExpression { operator, .. } => format!(
+            "({} {} {})",
+            element_to_c(ctx, source.slot(ARITHMETIC_EXPRESSION_LHS).unwrap()),
+            operator,
+            element_to_c(ctx, source.slot(ARITHMETIC_EXPRESSION_RHS).unwrap())
+        ),
+        ASTElementKind::AssignmentStatement { .. } => format!(
+            "{} = {};",
+            element_to_c(ctx, source.slot(ASSIGNMENT_STATEMENT_LHS).unwrap()),
+            element_to_c(ctx, source.slot(ASSIGNMENT_STATEMENT_RHS).unwrap())
+        ),
+        ASTElementKind::CompoundStatement { .. } => format!(
+            "{{\n{}}}",
+            textwrap::indent(
+                &source
+                    .slot_vec()
+                    .into_iter()
+                    .map(|x| element_to_c(ctx, x))
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+                "  "
+            )
+        ),
+        ASTElementKind::ConstructorCallExpression { .. } => {
+            let source_type = get_type_for_expression(
+                ctx,
+                source.slot(CONSTRUCTOR_CALL_EXPRESSION_SOURCE).unwrap(),
+                true,
+            )
+            .unwrap();
+            format!(
+                "{}_alloc({})",
+                generate_unique_name_path(&source_type.path()),
+                source
+                    .slot_vec()
+                    .into_iter()
+                    .map(|arg| element_to_c(ctx, arg))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )
+        }
+        ASTElementKind::ElseStatement { .. } => format!(
+            "else {}",
+            element_to_c(ctx, source.slot(ELSE_STATEMENT_BODY).unwrap())
+        ),
+        ASTElementKind::FFICallExpression { name, .. } => format!(
+            "{}({})",
+            name,
+            source
+                .slot_vec()
+                .into_iter()
+                .map(|arg| element_to_c(ctx, arg))
+                .collect::<Vec<String>>()
+                .join(", ")
+        ),
+        ASTElementKind::FieldReferenceExpression { name, .. } => format!(
+            "({}).{}",
+            element_to_c(ctx, source.slot(FIELD_REFERENCE_EXPRESSION_SOURCE).unwrap()),
+            name
+        ),
+        ASTElementKind::FunctionCallExpression { .. } => format!(
+            "{}({})",
+            element_to_c(ctx, source.slot(FUNCTION_CALL_EXPRESSION_SOURCE).unwrap()),
+            source
+                .slot_vec()
+                .into_iter()
+                .map(|arg| element_to_c(ctx, arg))
+                .collect::<Vec<String>>()
+                .join(", ")
+        ),
+        ASTElementKind::IfStatement { .. } => format!(
+            "if({}) {}",
+            element_to_c(ctx, source.slot(IF_STATEMENT_CONDITION).unwrap()),
+            element_to_c(ctx, source.slot(IF_STATEMENT_BODY).unwrap())
+        ),
+        ASTElementKind::IndexExpression { .. } => format!(
+            "({})[{}]",
+            element_to_c(ctx, source.slot(INDEX_EXPRESSION_SOURCE).unwrap()),
+            element_to_c(ctx, source.slot(INDEX_EXPRESSION_INDEX).unwrap())
+        ),
+        ASTElementKind::LocalDefinitionStatement { name, .. } => format!(
+            "{} {} = {};",
+            get_type_for_expression(
+                ctx,
+                source.slot(LOCAL_DEFINITION_STATEMENT_TYPE).unwrap(),
+                false
+            )
+            .map_or("void".to_string(), |x| type_to_c(ctx, x)),
+            name,
+            element_to_c(
+                ctx,
+                source.slot(LOCAL_DEFINITION_STATEMENT_INITIALIZER).unwrap()
+            )
+        ),
+        // TODO
+        ASTElementKind::NameExpression { name, .. } => {
+            let source = ctx.path_get(&source, &name).unwrap();
+            let mut parts = name.split(".").collect::<Vec<&str>>();
+            match source.element() {
+                ASTElementKind::LocalDefinitionStatement { name, .. } => format!("{}", name),
+                _ => format!("{}", parts.pop().unwrap()),
+            }
+        }
+        ASTElementKind::NumberExpression { value, .. } => format!("{}", value),
+        ASTElementKind::ReturnStatement { .. } => format!(
+            "return {};",
+            element_to_c(ctx, source.slot(RETURN_STATEMENT_EXPRESSION).unwrap())
+        ),
+        ASTElementKind::SimpleStatement { .. } => format!(
+            "{};",
+            element_to_c(ctx, source.slot(SIMPLE_STATEMENT_EXPRESSION).unwrap())
+        ),
+        ASTElementKind::StringExpression { value, .. } => format!("{}", value),
+        ASTElementKind::Temporary { name, .. } => format!("t_{}", name),
+        ASTElementKind::WhileStatement { .. } => format!(
+            "while({}) {}",
+            element_to_c(ctx, source.slot(WHILE_STATEMENT_CONDITION).unwrap()),
+            element_to_c(ctx, source.slot(WHILE_STATEMENT_BODY).unwrap())
+        ),
+        _ => format!("/* placeholder {:?} */", source.element()),
+    }
 }
 
 pub fn type_to_c(ctx: &CompilationContext, source: ASTElement) -> String {
@@ -322,7 +577,7 @@ pub fn type_to_c(ctx: &CompilationContext, source: ASTElement) -> String {
         ASTElementKind::Class { .. } => generate_unique_name_path(&source.path()),
         ASTElementKind::Interface { .. } => generate_unique_name_path(&source.path()),
         ASTElementKind::Function { argument_order, .. } => format!(
-            "{} {}({});",
+            "{} {}({})",
             get_type_for_expression(ctx, source.slot(FUNCTION_RETURN).unwrap(), false)
                 .map_or("void".to_string(), |x| type_to_c(ctx, x)),
             generate_unique_name_path(&source.path()),
@@ -331,7 +586,7 @@ pub fn type_to_c(ctx: &CompilationContext, source: ASTElement) -> String {
                 .map(|x| format!(
                     "{} {}",
                     get_type_for_expression(ctx, source.slot(&x).unwrap(), false)
-                        .map_or("void".to_string(), |x| type_to_c(ctx, x)),
+                        .map_or("void*".to_string(), |x| type_to_c(ctx, x)),
                     x
                 ))
                 .collect::<Vec<String>>()

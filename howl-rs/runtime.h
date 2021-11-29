@@ -1,5 +1,6 @@
 #include <setjmp.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #ifndef RUNTIME_H
 #define RUNTIME_H
@@ -31,5 +32,16 @@ typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
+
+void dummy_constructor();
+
+#define CONSTRUCTOR(type, cfunc, order, ...)                                   \
+  type type##_alloc(__VA_ARGS__) {                                             \
+    type rc;                                                                   \
+    rc.obj = calloc(1, sizeof(struct type##_t));                               \
+    rc.stable = &type##_stable_obj;                                            \
+    cfunc order;                                                               \
+    return rc;                                                                 \
+  }
 
 #endif
