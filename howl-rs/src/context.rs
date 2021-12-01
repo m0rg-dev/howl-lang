@@ -6,6 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use inkwell::types::StructType;
 use lrlex::{lrlex_mod, LRNonStreamingLexer, LRNonStreamingLexerDef};
 use lrpar::{LexParseError, NonStreamingLexer};
 

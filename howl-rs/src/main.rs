@@ -1,5 +1,5 @@
 use context::CompilationContext;
-use output::{csrc::output_csrc, graphviz::output_graphviz};
+use output::{csrc::output_csrc, graphviz::output_graphviz, llvm::output_llvm};
 use std::error::Error;
 use structopt::StructOpt;
 
@@ -24,7 +24,7 @@ pub struct Cli {
     root_module: String,
     #[structopt(long = "graphviz-filter")]
     graphviz_filter: Option<String>,
-    #[structopt(short = "S", long = "output-format", default_value = "csrc")]
+    #[structopt(short = "S", long = "output-format", default_value = "llvm")]
     output_format: String,
 }
 
@@ -49,6 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     context.link_program();
     match args.output_format.as_str() {
         "graphviz" => output_graphviz(&context, &args),
+        "llvm" => output_llvm(&context, &args),
         "csrc" => output_csrc(&context, &args),
         _ => {}
     };

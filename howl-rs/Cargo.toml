@@ -22,3 +22,4 @@ structopt = "0.3"
 lazy_static = "1.4"
 accountable-refcell = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }

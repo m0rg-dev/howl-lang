@@ -139,7 +139,14 @@ pub fn get_type_for_expression(
             let source_type = element
                 .slot(RAW_POINTER_TYPE_INNER)
                 .map(|source| get_type_for_expression(ctx, source, dereference))
-                .flatten()?;
+                .unwrap_or_else(|| {
+                    log!(
+                        LogLevel::Bug,
+                        "no RawPointerType __inner? {}",
+                        element.path()
+                    );
+                    None
+                })?;
 
             let new_element = ASTElement::new(ASTElementKind::RawPointerType { span });
             // this has to be clone_tree otherwise we run into bidirectionality
@@ -253,7 +260,7 @@ pub fn type_to_string(element: ASTElement) -> String {
         ASTElementKind::Interface { .. } => format!("{}", element.path()),
         ASTElementKind::Function { .. } => format!("{}", element.path()),
         ASTElementKind::NamedType { abspath, .. } => format!("'{}", abspath),
-        ASTElementKind::NewType { name, .. } => format!("'{}", name),
+        ASTElementKind::NewType { name, .. } => format!("\"{}", name),
         ASTElementKind::Module { .. } => format!("module {}", element.path()),
         ASTElementKind::RawPointerType { .. } => format!(
             "*{}",
