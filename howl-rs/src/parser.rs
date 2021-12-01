@@ -1,6 +1,9 @@
 use lrpar::Span;
+use serde::ser::SerializeStruct;
+use serde::Serialize;
 use std::fmt::Debug;
 use std::fmt::Formatter;
+use std::ops::Deref;
 
 // TODO have this use an arena or something
 pub fn alloc<'a>(source: CSTElement<'a>) -> &'a CSTElement {
@@ -8,74 +11,103 @@ pub fn alloc<'a>(source: CSTElement<'a>) -> &'a CSTElement {
 }
 
 #[derive(Clone)]
+pub struct SerializableSpan(lrpar::Span);
+
+impl Serialize for SerializableSpan {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_struct("span", 2)?;
+        s.serialize_field("start", &self.0.start())?;
+        s.serialize_field("end", &self.0.end())?;
+        s.end()
+    }
+}
+
+impl Deref for SerializableSpan {
+    type Target = lrpar::Span;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<Span> for SerializableSpan {
+    fn from(a: Span) -> Self {
+        Self(a)
+    }
+}
+
+#[derive(Clone, Serialize)]
 pub enum CSTElement<'a> {
     Class {
-        span: Span,
+        span: SerializableSpan,
         header: &'a CSTElement<'a>,
         body: &'a CSTElement<'a>,
     },
     ClassBody {
-        span: Span,
+        span: SerializableSpan,
         elements: Vec<CSTElement<'a>>,
     },
     ClassHeader {
-        span: Span,
+        span: SerializableSpan,
         name: &'a CSTElement<'a>,
         generics: Option<&'a CSTElement<'a>>,
         extends: Option<&'a CSTElement<'a>>,
         implements: Vec<CSTElement<'a>>,
     },
     Interface {
-        span: Span,
+        span: SerializableSpan,
         header: &'a CSTElement<'a>,
         body: &'a CSTElement<'a>,
     },
     InterfaceBody {
-        span: Span,
+        span: SerializableSpan,
         elements: Vec<CSTElement<'a>>,
     },
     InterfaceHeader {
-        span: Span,
+        span: SerializableSpan,
         name: &'a CSTElement<'a>,
         generics: Option<&'a CSTElement<'a>>,
     },
     GenericList {
-        span: Span,
+        span: SerializableSpan,
         names: Vec<CSTElement<'a>>,
     },
     Identifier {
-        span: Span,
+        span: SerializableSpan,
         name: String,
     },
     BaseType {
-        span: Span,
+        span: SerializableSpan,
         name: String,
     },
     RawPointerType {
-        span: Span,
+        span: SerializableSpan,
         inner: &'a CSTElement<'a>,
     },
     SpecifiedType {
-        span: Span,
+        span: SerializableSpan,
         base: &'a CSTElement<'a>,
         parameters: &'a CSTElement<'a>,
     },
     TypeParameterList {
-        span: Span,
+        span: SerializableSpan,
         parameters: Vec<CSTElement<'a>>,
     },
     ClassField {
-        span: Span,
+        span: SerializableSpan,
         fieldtype: &'a CSTElement<'a>,
         fieldname: &'a CSTElement<'a>,
     },
     Function {
-        span: Span,
+        span: SerializableSpan,
         header: &'a CSTElement<'a>,
         body: &'a CSTElement<'a>,
     },
     FunctionDeclaration {
-        span: Span,
+        span: SerializableSpan,
         is_static: bool,
         returntype: &'a CSTElement<'a>,
         name: &'a CSTElement<'a>,
@@ -83,120 +115,120 @@ pub enum CSTElement<'a> {
         throws: Vec<CSTElement<'a>>,
     },
     TypedArgumentList {
-        span: Span,
+        span: SerializableSpan,
         args: Vec<CSTElement<'a>>,
     },
     TypedArgument {
-        span: Span,
+        span: SerializableSpan,
         argtype: &'a CSTElement<'a>,
         argname: &'a CSTElement<'a>,
     },
     CompoundStatement {
-        span: Span,
+        span: SerializableSpan,
         statements: Vec<CSTElement<'a>>,
     },
     SimpleStatement {
-        span: Span,
+        span: SerializableSpan,
         expression: &'a CSTElement<'a>,
     },
     AssignmentStatement {
-        span: Span,
+        span: SerializableSpan,
         lhs: &'a CSTElement<'a>,
         rhs: &'a CSTElement<'a>,
     },
     NameExpression {
-        span: Span,
+        span: SerializableSpan,
         name: String,
     },
     FieldReferenceExpression {
-        span: Span,
+        span: SerializableSpan,
         source: &'a CSTElement<'a>,
         name: String,
     },
     ArgumentList {
-        span: Span,
+        span: SerializableSpan,
         args: Vec<CSTElement<'a>>,
     },
     FunctionCallExpression {
-        span: Span,
+        span: SerializableSpan,
         source: &'a CSTElement<'a>,
         args: &'a CSTElement<'a>,
     },
     FFICallExpression {
-        span: Span,
+        span: SerializableSpan,
         name: String,
         args: &'a CSTElement<'a>,
     },
     MacroCallExpression {
-        span: Span,
+        span: SerializableSpan,
         name: String,
         args: &'a CSTElement<'a>,
     },
     ConstructorCallExpression {
-        span: Span,
+        span: SerializableSpan,
         source: &'a CSTElement<'a>,
         args: &'a CSTElement<'a>,
     },
     NumberExpression {
-        span: Span,
+        span: SerializableSpan,
         as_text: String,
     },
     IndexExpression {
-        span: Span,
+        span: SerializableSpan,
         source: &'a CSTElement<'a>,
         index: &'a CSTElement<'a>,
     },
     ArithmeticExpression {
-        span: Span,
+        span: SerializableSpan,
         operator: String,
         lhs: &'a CSTElement<'a>,
         rhs: &'a CSTElement<'a>,
     },
     ReturnStatement {
-        span: Span,
+        span: SerializableSpan,
         source: Option<&'a CSTElement<'a>>,
     },
     ThrowStatement {
-        span: Span,
+        span: SerializableSpan,
         source: &'a CSTElement<'a>,
     },
     IfStatement {
-        span: Span,
+        span: SerializableSpan,
         condition: &'a CSTElement<'a>,
         body: &'a CSTElement<'a>,
     },
     ElseIfStatement {
-        span: Span,
+        span: SerializableSpan,
         condition: &'a CSTElement<'a>,
         body: &'a CSTElement<'a>,
     },
     ElseStatement {
-        span: Span,
+        span: SerializableSpan,
         body: &'a CSTElement<'a>,
     },
     TryStatement {
-        span: Span,
+        span: SerializableSpan,
         body: &'a CSTElement<'a>,
     },
     CatchStatement {
-        span: Span,
+        span: SerializableSpan,
         exctype: &'a CSTElement<'a>,
         excname: String,
         body: &'a CSTElement<'a>,
     },
     WhileStatement {
-        span: Span,
+        span: SerializableSpan,
         condition: &'a CSTElement<'a>,
         body: &'a CSTElement<'a>,
     },
     LocalDefinitionStatement {
-        span: Span,
+        span: SerializableSpan,
         localtype: &'a CSTElement<'a>,
         name: String,
         initializer: &'a CSTElement<'a>,
     },
     StringLiteral {
-        span: Span,
+        span: SerializableSpan,
         contents: String,
     },
 }

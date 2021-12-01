@@ -1,6 +1,7 @@
-use context::CompilationContext;
-use output::{csrc::output_csrc, graphviz::output_graphviz, llvm::output_llvm};
-use std::error::Error;
+//use context::CompilationContext;
+//use output::{csrc::output_csrc, graphviz::output_graphviz, llvm::output_llvm};
+use lrlex::lrlex_mod;
+use std::{error::Error, fs};
 use structopt::StructOpt;
 
 use crate::logger::Logger;
@@ -8,13 +9,16 @@ use crate::logger::Logger;
 #[macro_use(lazy_static)]
 extern crate lazy_static;
 
-mod ast;
-mod context;
-mod cst_import;
+//mod ast;
+//mod context;
+//mod cst_import;
 mod logger;
-mod output;
+//mod output;
 mod parser;
-mod transform;
+//mod transform;
+
+lrlex_mod!("howl.l");
+lrlex_mod!("howl.y");
 
 #[derive(StructOpt)]
 pub struct Cli {
@@ -32,35 +36,45 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::from_args();
     Logger::init(&args);
 
-    let mut context = CompilationContext::new();
-    context.compile_from(&args.source_path, &args.root_module)?;
+    let src = fs::read_to_string(&args.source_path)?;
 
-    let library_paths = std::fs::read_dir("stdlib")?;
-    for path in library_paths {
-        context.compile_from(&path.unwrap().path(), "lib")?;
+    let lexerdef = howl_l::lexerdef();
+    let lexer = lexerdef.lexer(&src);
+    let (cst, parse_errors) = howl_y::parse(&lexer);
+
+    if let Some(Ok(cst)) = cst {
+        println!("{}", serde_json::to_string_pretty(&cst[0])?);
     }
+    /*
+        let mut context = CompilationContext::new();
+        context.compile_from(&args.source_path, &args.root_module)?;
 
-    if context.errors().len() > 0 {
-        context.errors().iter().for_each(|x| context.print_error(x));
-        eprintln!("Compilation aborted.");
-        return Ok(());
-    }
+        let library_paths = std::fs::read_dir("stdlib")?;
+        for path in library_paths {
+            context.compile_from(&path.unwrap().path(), "lib")?;
+        }
 
-    context.link_program();
-    match args.output_format.as_str() {
-        "graphviz" => output_graphviz(&context, &args),
-        "llvm" => output_llvm(&context, &args),
-        "csrc" => output_csrc(&context, &args),
-        _ => {}
-    };
+        if context.errors().len() > 0 {
+            context.errors().iter().for_each(|x| context.print_error(x));
+            eprintln!("Compilation aborted.");
+            return Ok(());
+        }
 
-    if context.errors().len() > 0 {
-        context.errors().iter().for_each(|x| context.print_error(x));
-        eprintln!("Compilation aborted.");
-        return Ok(());
-    }
+        context.link_program();
+        match args.output_format.as_str() {
+            "graphviz" => output_graphviz(&context, &args),
+            "llvm" => output_llvm(&context, &args),
+            "csrc" => output_csrc(&context, &args),
+            _ => {}
+        };
 
-    // context.dump();
+        if context.errors().len() > 0 {
+            context.errors().iter().for_each(|x| context.print_error(x));
+            eprintln!("Compilation aborted.");
+            return Ok(());
+        }
 
+        // context.dump();
+    */
     Ok(())
 }
