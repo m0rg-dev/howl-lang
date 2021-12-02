@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (cst, parse_errors) = howl_y::parse(&lexer);
 
     if let Some(Ok(cst)) = cst {
-        println!("{}", serde_json::to_string_pretty(&cst[0])?);
+        println!("{}", serde_json::to_string(&cst)?);
     }
     /*
         let mut context = CompilationContext::new();
