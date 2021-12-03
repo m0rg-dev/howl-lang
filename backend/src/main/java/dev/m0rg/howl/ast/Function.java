@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Map.Entry;
 
-public class Function extends ASTElement {
+public class Function extends ASTElement implements NamedElement {
     boolean is_static;
     String name;
     TypeElement rc;

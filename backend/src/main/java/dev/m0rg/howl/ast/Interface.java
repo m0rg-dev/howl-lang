@@ -3,7 +3,7 @@ package dev.m0rg.howl.ast;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Interface extends ASTElement {
+public class Interface extends ASTElement implements NamedElement {
     String name;
     List<String> generics;
     List<Function> methods;
@@ -39,5 +39,9 @@ public class Interface extends ASTElement {
     public void insertMethod(Function method) {
         method.assertInsertable();
         this.methods.add((Function) method.setParent(this));
+    }
+
+    public String getName() {
+        return this.name;
     }
 }

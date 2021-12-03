@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
-public class Class extends ASTElement {
+public class Class extends ASTElement implements NamedElement {
     String name;
     List<String> generics;
     LinkedHashMap<String, TypeElement> fields;
@@ -51,5 +51,9 @@ public class Class extends ASTElement {
     public void insertMethod(Function method) {
         method.assertInsertable();
         this.methods.add((Function) method.setParent(this));
+    }
+
+    public String getName() {
+        return this.name;
     }
 }
