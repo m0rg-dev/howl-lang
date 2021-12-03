@@ -1,7 +1,7 @@
 package dev.m0rg.howl.ast;
 
-public class RawPointerType<T extends TypeElement> extends TypeElement {
-    T inner;
+public class RawPointerType extends TypeElement {
+    TypeElement inner;
 
     public RawPointerType(Span span) {
         super(span);
@@ -12,10 +12,8 @@ public class RawPointerType<T extends TypeElement> extends TypeElement {
         return "*" + inner.format();
     }
 
-    @SuppressWarnings("unchecked")
-    public RawPointerType<T> setInner(T inner) {
+    public void setInner(TypeElement inner) {
         inner.assertInsertable();
-        this.inner = (T) inner.setParent(this);
-        return this;
+        this.inner = (TypeElement) inner.setParent(this);
     }
 }

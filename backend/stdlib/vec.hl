@@ -28,5 +28,7 @@ class Vec<T> {
             self.length = idx + 1;
         }
         self.value[idx] = value;
+        // just in here to test
+        return;
     }
 }
