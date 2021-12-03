@@ -14,12 +14,17 @@ public class IndexExpression extends Expression {
     }
 
     public void setSource(Expression source) {
-        source.assertInsertable();
         this.source = (Expression) source.setParent(this);
     }
 
     public void setIndex(Expression index) {
-        index.assertInsertable();
         this.index = (Expression) index.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        source.transform(t);
+        this.setSource(t.transform(source));
+        index.transform(t);
+        this.setIndex(t.transform(index));
     }
 }

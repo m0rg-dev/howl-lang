@@ -12,7 +12,6 @@ public abstract class CallExpressionBase extends Expression {
     }
 
     public void insertArgument(Expression arg) {
-        arg.assertInsertable();
         this.args.add((Expression) arg.setParent(this));
     }
 
@@ -22,5 +21,14 @@ public abstract class CallExpressionBase extends Expression {
             contents.add(a.format());
         }
         return "(" + String.join(", ", contents) + ")";
+    }
+
+    protected void transformArguments(ASTTransformer t) {
+        int index = 0;
+        for (Expression arg : args) {
+            arg.transform(t);
+            args.set(index, (Expression) t.transform(arg).setParent(this));
+            index++;
+        }
     }
 }

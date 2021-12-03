@@ -22,12 +22,22 @@ public class SpecifiedType extends TypeElement {
     }
 
     public void setBase(TypeElement base) {
-        base.assertInsertable();
         this.base = (TypeElement) base.setParent(this);
     }
 
     public void insertParameter(TypeElement parameter) {
-        parameter.assertInsertable();
         this.parameters.add((TypeElement) parameter.setParent(this));
+    }
+
+    public void transform(ASTTransformer t) {
+        this.base.transform(t);
+        this.setBase(t.transform(this.base));
+
+        int index = 0;
+        for (TypeElement parameter : parameters) {
+            parameter.transform(t);
+            this.parameters.set(index, (TypeElement) t.transform(parameter).setParent(this));
+            index++;
+        }
     }
 }

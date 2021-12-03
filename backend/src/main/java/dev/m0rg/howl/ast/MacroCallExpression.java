@@ -11,4 +11,8 @@ public class MacroCallExpression extends CallExpressionBase {
     public String format() {
         return "!" + this.name + this.getArgString();
     }
+
+    public void transform(ASTTransformer t) {
+        this.transformArguments(t);
+    }
 }

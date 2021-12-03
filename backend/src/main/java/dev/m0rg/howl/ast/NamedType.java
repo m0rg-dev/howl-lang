@@ -12,4 +12,8 @@ public class NamedType extends TypeElement {
     public String format() {
         return "'" + this.name;
     }
+
+    public void transform(ASTTransformer t) {
+        ;
+    }
 }

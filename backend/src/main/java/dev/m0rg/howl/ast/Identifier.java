@@ -19,4 +19,8 @@ public class Identifier extends ASTElement {
     public String format() {
         return name;
     }
+
+    public void transform(ASTTransformer t) {
+        ;
+    }
 }

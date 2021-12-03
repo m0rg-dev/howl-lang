@@ -13,7 +13,11 @@ public class ThrowStatement extends Statement {
     }
 
     public void setSource(Expression source) {
-        source.assertInsertable();
         this.source = (Expression) source.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        this.source.transform(t);
+        this.setSource(t.transform(this.source));
     }
 }

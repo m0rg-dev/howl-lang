@@ -14,12 +14,17 @@ public class AssignmentStatement extends Statement {
     }
 
     public void setLHS(Expression lhs) {
-        lhs.assertInsertable();
         this.lhs = (Expression) lhs.setParent(this);
     }
 
     public void setRHS(Expression rhs) {
-        rhs.assertInsertable();
         this.rhs = (Expression) rhs.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        this.lhs.transform(t);
+        this.setLHS(t.transform(lhs));
+        this.rhs.transform(t);
+        this.setRHS(t.transform(rhs));
     }
 }

@@ -13,7 +13,11 @@ public class SimpleStatement extends Statement {
     }
 
     public void setExpression(Expression expression) {
-        expression.assertInsertable();
         this.expression = (Expression) expression.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        this.expression.transform(t);
+        this.setExpression(t.transform(this.expression));
     }
 }

@@ -11,4 +11,8 @@ public class StringLiteral extends Expression {
     public String format() {
         return this.contents;
     }
+
+    public void transform(ASTTransformer t) {
+        ;
+    }
 }

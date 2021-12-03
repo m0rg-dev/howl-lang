@@ -44,13 +44,25 @@ public class Class extends ASTElement implements NamedElement {
     }
 
     public void insertField(String name, TypeElement contents) {
-        contents.assertInsertable();
         this.fields.put(name, (TypeElement) contents.setParent(this));
     }
 
     public void insertMethod(Function method) {
-        method.assertInsertable();
         this.methods.add((Function) method.setParent(this));
+    }
+
+    public void transform(ASTTransformer t) {
+        for (Entry<String, TypeElement> field : fields.entrySet()) {
+            field.getValue().transform(t);
+            fields.replace(field.getKey(), (TypeElement) t.transform(field.getValue()).setParent(this));
+        }
+
+        int index = 0;
+        for (Function method : methods) {
+            method.transform(t);
+            methods.set(index, (Function) t.transform(method).setParent(this));
+            index++;
+        }
     }
 
     public String getName() {

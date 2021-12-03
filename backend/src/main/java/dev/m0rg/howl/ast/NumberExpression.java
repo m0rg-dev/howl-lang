@@ -11,4 +11,8 @@ public class NumberExpression extends Expression {
     public String format() {
         return this.as_text;
     }
+
+    public void transform(ASTTransformer t) {
+        ;
+    }
 }

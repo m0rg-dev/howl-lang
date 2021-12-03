@@ -20,7 +20,13 @@ public class ReturnStatement extends Statement {
     }
 
     public void setSource(Expression source) {
-        source.assertInsertable();
         this.source = Optional.of((Expression) source.setParent(this));
+    }
+
+    public void transform(ASTTransformer t) {
+        if (source.isPresent()) {
+            this.source.get().transform(t);
+            this.setSource(t.transform(this.source.get()));
+        }
     }
 }

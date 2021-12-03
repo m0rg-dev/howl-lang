@@ -13,7 +13,11 @@ public class RawPointerType extends TypeElement {
     }
 
     public void setInner(TypeElement inner) {
-        inner.assertInsertable();
         this.inner = (TypeElement) inner.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        inner.transform(t);
+        this.setInner(t.transform(inner));
     }
 }

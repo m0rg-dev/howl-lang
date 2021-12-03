@@ -37,8 +37,16 @@ public class Interface extends ASTElement implements NamedElement {
     }
 
     public void insertMethod(Function method) {
-        method.assertInsertable();
         this.methods.add((Function) method.setParent(this));
+    }
+
+    public void transform(ASTTransformer t) {
+        int index = 0;
+        for (Function method : methods) {
+            method.transform(t);
+            methods.set(index, (Function) t.transform(method).setParent(this));
+            index++;
+        }
     }
 
     public String getName() {

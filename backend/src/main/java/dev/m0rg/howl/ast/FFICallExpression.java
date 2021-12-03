@@ -11,4 +11,8 @@ public class FFICallExpression extends CallExpressionBase {
     public String format() {
         return "fficall " + this.name + this.getArgString();
     }
+
+    public void transform(ASTTransformer t) {
+        this.transformArguments(t);
+    }
 }

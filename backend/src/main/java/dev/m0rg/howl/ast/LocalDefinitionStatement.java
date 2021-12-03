@@ -16,12 +16,17 @@ public class LocalDefinitionStatement extends Statement {
     }
 
     public void setInitializer(Expression initializer) {
-        initializer.assertInsertable();
         this.initializer = (Expression) initializer.setParent(this);
     }
 
     public void setLocaltype(TypeElement localtype) {
-        localtype.assertInsertable();
         this.localtype = (TypeElement) localtype.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        localtype.transform(t);
+        this.setLocaltype(t.transform(localtype));
+        initializer.transform(t);
+        this.setInitializer(t.transform(initializer));
     }
 }

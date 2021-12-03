@@ -8,20 +8,16 @@ public abstract class ASTElement {
         this.span = span;
     }
 
-    public boolean isOwned() {
-        return this.parent != null;
-    }
-
     public ASTElement setParent(ASTElement parent) {
-        this.parent = parent;
-        return this;
-    }
-
-    public void assertInsertable() {
-        if (this.isOwned()) {
-            throw new IllegalArgumentException("Attempted to move owned element");
+        if (this.parent == null || this.parent == parent) {
+            this.parent = parent;
+            return this;
+        } else {
+            throw new RuntimeException("Attempt to move owned ASTElement");
         }
     }
 
     public abstract String format();
+
+    public abstract void transform(ASTTransformer t);
 }

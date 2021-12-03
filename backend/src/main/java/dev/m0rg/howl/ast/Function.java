@@ -51,20 +51,32 @@ public class Function extends ASTElement implements NamedElement {
     }
 
     public void insertArgument(String name, TypeElement contents) {
-        contents.assertInsertable();
         ASTElement associated = contents.setParent(this);
         this.args.put(name, (TypeElement) associated);
     }
 
     public void setReturn(TypeElement rc) {
-        rc.assertInsertable();
         ASTElement associated = rc.setParent(this);
         this.rc = (TypeElement) associated;
     }
 
     public void setBody(CompoundStatement body) {
-        body.assertInsertable();
         ASTElement associated = body.setParent(this);
         this.body = Optional.of((CompoundStatement) associated);
+    }
+
+    public void transform(ASTTransformer t) {
+        rc.transform(t);
+        rc = t.transform(rc);
+
+        for (Entry<String, TypeElement> arg : args.entrySet()) {
+            arg.getValue().transform(t);
+            args.replace(arg.getKey(), (TypeElement) t.transform(arg.getValue()).setParent(this));
+        }
+
+        if (this.body.isPresent()) {
+            this.body.get().transform(t);
+            this.setBody(t.transform(this.body.get()));
+        }
     }
 }

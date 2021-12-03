@@ -21,7 +21,15 @@ public class CompoundStatement extends Statement {
     }
 
     public void insertStatement(Statement statement) {
-        statement.assertInsertable();
         this.statements.add((Statement) statement.setParent(this));
+    }
+
+    public void transform(ASTTransformer t) {
+        int index = 0;
+        for (Statement statement : statements) {
+            statement.transform(t);
+            statements.set(index, (Statement) t.transform(statement).setParent(this));
+            index++;
+        }
     }
 }

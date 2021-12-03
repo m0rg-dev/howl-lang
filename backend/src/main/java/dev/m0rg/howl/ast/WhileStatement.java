@@ -14,12 +14,17 @@ public class WhileStatement extends Statement {
     }
 
     public void setCondition(Expression condition) {
-        condition.assertInsertable();
         this.condition = (Expression) condition.setParent(this);
     }
 
     public void setBody(CompoundStatement body) {
-        body.assertInsertable();
         this.body = (CompoundStatement) body.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        condition.transform(t);
+        this.setCondition(t.transform(condition));
+        body.transform(t);
+        this.setBody(t.transform(body));
     }
 }

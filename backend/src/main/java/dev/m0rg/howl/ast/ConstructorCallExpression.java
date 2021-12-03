@@ -13,7 +13,12 @@ public class ConstructorCallExpression extends CallExpressionBase {
     }
 
     public void setSource(TypeElement source) {
-        source.assertInsertable();
         this.source = (TypeElement) source.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        source.transform(t);
+        this.setSource(t.transform(source));
+        this.transformArguments(t);
     }
 }

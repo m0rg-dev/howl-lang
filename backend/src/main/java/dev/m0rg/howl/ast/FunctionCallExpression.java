@@ -13,7 +13,12 @@ public class FunctionCallExpression extends CallExpressionBase {
     }
 
     public void setSource(Expression source) {
-        source.assertInsertable();
         this.source = (Expression) source.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        source.transform(t);
+        this.setSource(t.transform(source));
+        this.transformArguments(t);
     }
 }

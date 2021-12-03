@@ -12,4 +12,8 @@ public class NameExpression extends Expression {
     public String format() {
         return this.name;
     }
+
+    public void transform(ASTTransformer t) {
+        ;
+    }
 }

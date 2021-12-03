@@ -24,7 +24,6 @@ public class Module extends ASTElement implements NamedElement {
     }
 
     public void insertItem(ASTElement item) {
-        item.assertInsertable();
         this.contents.add(item.setParent(this));
     }
 
@@ -55,6 +54,15 @@ public class Module extends ASTElement implements NamedElement {
             Module new_module = new Module(parts[0]);
             new_module.insertPath(String.join(".", Arrays.copyOfRange(parts, 1, parts.length)), item);
             this.insertItem(new_module);
+        }
+    }
+
+    public void transform(ASTTransformer t) {
+        int index = 0;
+        for (ASTElement item : contents) {
+            item.transform(t);
+            contents.set(index, t.transform(item).setParent(this));
+            index++;
         }
     }
 }

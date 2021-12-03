@@ -18,6 +18,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.ArithmeticExpression;
 import dev.m0rg.howl.ast.AssignmentStatement;
 import dev.m0rg.howl.ast.Class;
@@ -577,6 +578,9 @@ public class CSTImporter {
         public String format() {
             throw new UnsupportedOperationException();
         }
+
+        public void transform(ASTTransformer t) {
+        }
     }
 
     static class InterfaceHeader extends ASTElement {
@@ -591,6 +595,9 @@ public class CSTImporter {
 
         public String format() {
             throw new UnsupportedOperationException();
+        }
+
+        public void transform(ASTTransformer t) {
         }
     }
 
@@ -607,6 +614,9 @@ public class CSTImporter {
         public String format() {
             throw new UnsupportedOperationException();
         }
+
+        public void transform(ASTTransformer t) {
+        }
     }
 
     static class TypedArgument<T extends TypeElement> extends ASTElement {
@@ -621,6 +631,9 @@ public class CSTImporter {
 
         public String format() {
             throw new UnsupportedOperationException();
+        }
+
+        public void transform(ASTTransformer t) {
         }
     }
 }

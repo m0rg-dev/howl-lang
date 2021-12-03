@@ -13,7 +13,11 @@ public class ElseStatement extends Statement {
     }
 
     public void setBody(CompoundStatement body) {
-        body.assertInsertable();
         this.body = (CompoundStatement) body.setParent(this);
+    }
+
+    public void transform(ASTTransformer t) {
+        body.transform(t);
+        this.setBody(t.transform(body));
     }
 }
