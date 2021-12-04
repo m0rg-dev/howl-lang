@@ -8,6 +8,14 @@ public class FFICallExpression extends CallExpressionBase {
         this.name = name;
     }
 
+    @Override
+    public ASTElement detach() {
+        FFICallExpression rc = new FFICallExpression(span, name);
+        this.copyArguments(rc);
+        return rc;
+    }
+
+    @Override
     public String format() {
         return "fficall " + this.name + this.getArgString();
     }

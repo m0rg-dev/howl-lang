@@ -11,6 +11,14 @@ public class LocalDefinitionStatement extends Statement implements NamedElement 
     }
 
     @Override
+    public ASTElement detach() {
+        LocalDefinitionStatement rc = new LocalDefinitionStatement(span, name);
+        rc.setInitializer((Expression) initializer.detach());
+        rc.setLocaltype((TypeElement) localtype.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return "let " + this.localtype.format() + " " + this.name + " = " + this.initializer.format() + ";";
     }

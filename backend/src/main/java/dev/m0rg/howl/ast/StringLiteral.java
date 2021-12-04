@@ -8,6 +8,10 @@ public class StringLiteral extends Expression {
         this.contents = contents;
     }
 
+    public ASTElement detach() {
+        return new StringLiteral(this.span, this.contents);
+    }
+
     public String format() {
         return this.contents;
     }

@@ -9,6 +9,14 @@ public class Field extends ASTElement implements NamedElement {
         this.name = name;
     }
 
+    @Override
+    public ASTElement detach() {
+        Field rc = new Field(span, name);
+        rc.setType((TypeElement) fieldtype.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return fieldtype.format() + " " + name;
     }

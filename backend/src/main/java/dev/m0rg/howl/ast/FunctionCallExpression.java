@@ -8,6 +8,14 @@ public class FunctionCallExpression extends CallExpressionBase {
     }
 
     @Override
+    public ASTElement detach() {
+        FunctionCallExpression rc = new FunctionCallExpression(span);
+        rc.setSource((Expression) source.detach());
+        this.copyArguments(rc);
+        return rc;
+    }
+
+    @Override
     public String format() {
         return this.source.format() + this.getArgString();
     }

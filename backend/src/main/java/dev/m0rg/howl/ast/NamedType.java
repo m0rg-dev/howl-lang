@@ -31,6 +31,11 @@ public class NamedType extends TypeElement {
     }
 
     @Override
+    public ASTElement detach() {
+        return new NamedType(span, name);
+    }
+
+    @Override
     public String format() {
         String resolution = "\u001b[31m/* = <unresolved> */\u001b[0m";
         if (base_types.contains(this.name)) {

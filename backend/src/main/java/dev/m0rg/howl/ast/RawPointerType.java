@@ -8,6 +8,13 @@ public class RawPointerType extends TypeElement {
     }
 
     @Override
+    public ASTElement detach() {
+        RawPointerType rc = new RawPointerType(span);
+        rc.setInner((TypeElement) inner.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return "*" + inner.format();
     }

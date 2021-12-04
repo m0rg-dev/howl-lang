@@ -13,6 +13,15 @@ public class CompoundStatement extends Statement implements NameHolder {
     }
 
     @Override
+    public ASTElement detach() {
+        CompoundStatement rc = new CompoundStatement(span);
+        for (Statement s : statements) {
+            rc.insertStatement((Statement) s.detach());
+        }
+        return rc;
+    }
+
+    @Override
     public String format() {
         List<String> contents = new ArrayList<String>(this.statements.size());
         for (Statement s : this.statements) {

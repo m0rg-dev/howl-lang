@@ -590,6 +590,10 @@ public class CSTImporter {
             this.ext = ext;
         }
 
+        public ASTElement detach() {
+            throw new UnsupportedOperationException();
+        }
+
         public String format() {
             throw new UnsupportedOperationException();
         }
@@ -606,6 +610,10 @@ public class CSTImporter {
             super(span);
             this.name = name;
             this.generics = generics;
+        }
+
+        public ASTElement detach() {
+            throw new UnsupportedOperationException();
         }
 
         public String format() {

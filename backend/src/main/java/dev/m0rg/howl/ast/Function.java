@@ -21,6 +21,20 @@ public class Function extends ASTElement implements NamedElement, NameHolder {
         this.body = Optional.empty();
     }
 
+    @Override
+    public ASTElement detach() {
+        Function rc = new Function(span, is_static, name);
+        rc.setReturn((TypeElement) this.rc.detach());
+        for (Entry<String, Field> field : args.entrySet()) {
+            rc.insertArgument((Field) field.getValue().detach());
+        }
+        if (this.body.isPresent()) {
+            rc.setBody((CompoundStatement) this.body.get().detach());
+        }
+        return rc;
+    }
+
+    @Override
     public String format() {
         StringBuilder rc = new StringBuilder();
         if (this.is_static) {

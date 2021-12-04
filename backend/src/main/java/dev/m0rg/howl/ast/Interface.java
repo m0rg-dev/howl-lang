@@ -17,6 +17,15 @@ public class Interface extends ASTElement implements NamedElement, NameHolder {
     }
 
     @Override
+    public ASTElement detach() {
+        Interface rc = new Interface(span, name, new ArrayList<>(generics));
+        for (Function method : methods) {
+            rc.insertMethod((Function) method.detach());
+        }
+        return rc;
+    }
+
+    @Override
     public String format() {
         StringBuilder rc = new StringBuilder();
         rc.append("interface ");

@@ -8,6 +8,14 @@ public class MacroCallExpression extends CallExpressionBase {
         this.name = name;
     }
 
+    @Override
+    public ASTElement detach() {
+        MacroCallExpression rc = new MacroCallExpression(span, name);
+        copyArguments(rc);
+        return rc;
+    }
+
+    @Override
     public String format() {
         return "!" + this.name + this.getArgString();
     }

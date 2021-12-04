@@ -15,6 +15,14 @@ public class ArithmeticExpression extends Expression {
         return "(" + this.lhs.format() + ") " + this.operator + " (" + this.rhs.format() + ")";
     }
 
+    @Override
+    public ASTElement detach() {
+        ArithmeticExpression rc = new ArithmeticExpression(span, operator);
+        rc.setLHS((Expression) this.lhs.detach());
+        rc.setRHS((Expression) this.rhs.detach());
+        return rc;
+    }
+
     public void setLHS(Expression lhs) {
         this.lhs = (Expression) lhs.setParent(this);
     }

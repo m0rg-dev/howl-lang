@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 public class Class extends ASTElement implements NamedElement, NameHolder {
     String name;
@@ -30,6 +30,26 @@ public class Class extends ASTElement implements NamedElement, NameHolder {
         }
     }
 
+    @Override
+    public ASTElement detach() {
+        Class rc = new Class(span, name, new ArrayList<>(generics));
+        for (Entry<String, NewType> generic : generic_types.entrySet()) {
+            if (generic.getValue().getResolution().isPresent()) {
+                rc.setGeneric(generic.getKey(), (TypeElement) generic.getValue().getResolution().get().detach());
+            }
+        }
+
+        for (Entry<String, Field> field : fields.entrySet()) {
+            rc.insertField((Field) field.getValue().detach());
+        }
+
+        for (Function method : methods) {
+            rc.insertMethod((Function) method.detach());
+        }
+        return rc;
+    }
+
+    @Override
     public String format() {
         StringBuilder rc = new StringBuilder();
         rc.append("class ");
@@ -73,6 +93,10 @@ public class Class extends ASTElement implements NamedElement, NameHolder {
         this.methods.add((Function) method.setParent(this));
     }
 
+    public void setGeneric(String name, TypeElement res) {
+        this.generic_types.get(name).setResolution(res);
+    }
+
     public void transform(ASTTransformer t) {
         for (Entry<String, Field> field : fields.entrySet()) {
             field.getValue().transform(t);
@@ -85,6 +109,13 @@ public class Class extends ASTElement implements NamedElement, NameHolder {
             methods.set(index, (Function) t.transform(method).setParent(this));
             index++;
         }
+    }
+
+    public void setName(String name) {
+        if (this.parent != null) {
+            throw new RuntimeException("setting the name on an owned Class is a terrible idea");
+        }
+        this.name = name;
     }
 
     public String getName() {

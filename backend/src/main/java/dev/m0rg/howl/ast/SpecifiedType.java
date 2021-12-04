@@ -13,6 +13,16 @@ public class SpecifiedType extends TypeElement {
     }
 
     @Override
+    public ASTElement detach() {
+        SpecifiedType rc = new SpecifiedType(span);
+        rc.setBase((TypeElement) base.detach());
+        for (TypeElement t : this.parameters) {
+            rc.insertParameter((TypeElement) t.detach());
+        }
+        return rc;
+    }
+
+    @Override
     public String format() {
         List<String> contents = new ArrayList<String>(this.parameters.size());
         for (TypeElement t : this.parameters) {

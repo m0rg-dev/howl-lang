@@ -29,6 +29,11 @@ public abstract class ASTElement {
         return this.span;
     }
 
+    /**
+     * Returns a copy of this ASTElement and its subtree with no parent set.
+     */
+    public abstract ASTElement detach();
+
     public abstract String format();
 
     public abstract void transform(ASTTransformer t);

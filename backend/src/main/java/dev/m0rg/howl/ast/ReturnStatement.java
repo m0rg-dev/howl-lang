@@ -11,6 +11,15 @@ public class ReturnStatement extends Statement {
     }
 
     @Override
+    public ASTElement detach() {
+        ReturnStatement rc = new ReturnStatement(span);
+        if (source.isPresent()) {
+            rc.setSource((Expression) source.get().detach());
+        }
+        return rc;
+    }
+
+    @Override
     public String format() {
         if (this.source.isPresent()) {
             return "return " + this.source.get().format() + ";";

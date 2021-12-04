@@ -8,6 +8,13 @@ public class SimpleStatement extends Statement {
     }
 
     @Override
+    public ASTElement detach() {
+        SimpleStatement rc = new SimpleStatement(span);
+        rc.setExpression((Expression) expression.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return this.expression.format() + ";";
     }

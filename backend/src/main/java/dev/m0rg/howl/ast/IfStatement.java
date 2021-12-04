@@ -9,6 +9,14 @@ public class IfStatement extends Statement {
     }
 
     @Override
+    public ASTElement detach() {
+        IfStatement rc = new IfStatement(span);
+        rc.setBody((CompoundStatement) body.detach());
+        rc.setCondition((Expression) condition.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return "if " + this.condition.format() + " " + this.body.format();
     }

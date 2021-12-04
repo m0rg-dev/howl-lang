@@ -8,6 +8,12 @@ public class NumberExpression extends Expression {
         this.as_text = as_text;
     }
 
+    @Override
+    public ASTElement detach() {
+        return new NumberExpression(span, as_text);
+    }
+
+    @Override
     public String format() {
         return this.as_text;
     }

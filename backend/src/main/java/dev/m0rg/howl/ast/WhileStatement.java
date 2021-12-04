@@ -9,6 +9,14 @@ public class WhileStatement extends Statement {
     }
 
     @Override
+    public ASTElement detach() {
+        WhileStatement rc = new WhileStatement(span);
+        rc.setBody((CompoundStatement) body.detach());
+        rc.setCondition((Expression) condition.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return "while " + this.condition.format() + " " + this.body.format();
     }

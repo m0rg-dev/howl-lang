@@ -16,6 +16,12 @@ public class Identifier extends ASTElement {
         this.name = name;
     }
 
+    @Override
+    public ASTElement detach() {
+        return new Identifier(span, name);
+    }
+
+    @Override
     public String format() {
         return name;
     }

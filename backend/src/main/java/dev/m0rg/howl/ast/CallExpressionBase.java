@@ -31,4 +31,10 @@ public abstract class CallExpressionBase extends Expression {
             index++;
         }
     }
+
+    protected void copyArguments(CallExpressionBase target) {
+        for (Expression arg : args) {
+            target.insertArgument((Expression) arg.detach());
+        }
+    }
 }

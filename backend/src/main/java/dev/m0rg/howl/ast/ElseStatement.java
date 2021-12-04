@@ -8,6 +8,13 @@ public class ElseStatement extends Statement {
     }
 
     @Override
+    public ASTElement detach() {
+        ElseStatement rc = new ElseStatement(span);
+        rc.setBody((CompoundStatement) this.body.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return "else " + this.body.format();
     }

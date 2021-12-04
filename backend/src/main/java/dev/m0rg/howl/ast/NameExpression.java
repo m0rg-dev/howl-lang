@@ -11,6 +11,11 @@ public class NameExpression extends Expression {
     }
 
     @Override
+    public ASTElement detach() {
+        return new NameExpression(span, name);
+    }
+
+    @Override
     public String format() {
         String resolution = "\u001b[31m/* = <unresolved> */\u001b[0m";
         Optional<ASTElement> target = this.resolveName(this.name);

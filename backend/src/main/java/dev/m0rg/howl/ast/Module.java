@@ -16,6 +16,15 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
     }
 
     @Override
+    public ASTElement detach() {
+        Module rc = new Module(name);
+        for (ASTElement item : contents) {
+            rc.insertItem(item.detach());
+        }
+        return rc;
+    }
+
+    @Override
     public String format() {
         List<String> contents = new ArrayList<String>(this.contents.size());
         for (ASTElement s : this.contents) {
@@ -30,6 +39,13 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
 
     public String getName() {
         return this.name;
+    }
+
+    public void setName(String name) {
+        if (this.parent != null) {
+            throw new RuntimeException("setting the name on an owned Module is a terrible idea");
+        }
+        this.name = name;
     }
 
     public Optional<ASTElement> getChild(String name) {

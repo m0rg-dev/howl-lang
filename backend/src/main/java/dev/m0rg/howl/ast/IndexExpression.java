@@ -9,6 +9,14 @@ public class IndexExpression extends Expression {
     }
 
     @Override
+    public ASTElement detach() {
+        IndexExpression rc = new IndexExpression(span);
+        rc.setSource((Expression) source.detach());
+        rc.setIndex((Expression) index.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return this.source.format() + "[" + this.index.format() + "]";
     }

@@ -13,6 +13,14 @@ public class AssignmentStatement extends Statement {
         return this.lhs.format() + " = " + this.rhs.format() + ";";
     }
 
+    @Override
+    public ASTElement detach() {
+        AssignmentStatement rc = new AssignmentStatement(span);
+        rc.setLHS((Expression) this.lhs.detach());
+        rc.setRHS((Expression) this.rhs.detach());
+        return rc;
+    }
+
     public void setLHS(Expression lhs) {
         this.lhs = (Expression) lhs.setParent(this);
     }

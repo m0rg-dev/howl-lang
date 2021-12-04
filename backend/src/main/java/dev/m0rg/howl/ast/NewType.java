@@ -13,6 +13,15 @@ public class NewType extends TypeElement implements NamedElement {
     }
 
     @Override
+    public ASTElement detach() {
+        NewType rc = new NewType(span, name);
+        if (this.resolution.isPresent()) {
+            rc.setResolution((TypeElement) this.resolution.get().detach());
+        }
+        return rc;
+    }
+
+    @Override
     public String format() {
         StringBuilder rc = new StringBuilder();
         rc.append("type ");
@@ -28,6 +37,10 @@ public class NewType extends TypeElement implements NamedElement {
 
     public void setResolution(TypeElement res) {
         this.resolution = Optional.of((TypeElement) res.setParent(this));
+    }
+
+    public Optional<TypeElement> getResolution() {
+        return this.resolution;
     }
 
     public String getName() {

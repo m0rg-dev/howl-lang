@@ -8,6 +8,13 @@ public class ThrowStatement extends Statement {
     }
 
     @Override
+    public ASTElement detach() {
+        ThrowStatement rc = new ThrowStatement(span);
+        rc.setSource((Expression) source.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return "throw " + this.source.format() + ";";
     }

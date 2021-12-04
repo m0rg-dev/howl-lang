@@ -8,6 +8,14 @@ public class ConstructorCallExpression extends CallExpressionBase {
     }
 
     @Override
+    public ASTElement detach() {
+        ConstructorCallExpression rc = new ConstructorCallExpression(span);
+        rc.setSource((TypeElement) source.detach());
+        this.copyArguments(rc);
+        return rc;
+    }
+
+    @Override
     public String format() {
         return "new " + this.source.format() + this.getArgString();
     }

@@ -10,6 +10,13 @@ public class FieldReferenceExpression extends Expression {
     }
 
     @Override
+    public ASTElement detach() {
+        FieldReferenceExpression rc = new FieldReferenceExpression(span, name);
+        rc.setSource((Expression) source.detach());
+        return rc;
+    }
+
+    @Override
     public String format() {
         return this.source.format() + "." + this.name;
     }
