@@ -26,7 +26,7 @@ public class Class extends ASTElement implements NamedElement, NameHolder {
         this.ext = Optional.empty();
 
         for (String generic : generics) {
-            generic_types.put(generic, new NewType(span));
+            generic_types.put(generic, (NewType) new NewType(span, generic).setParent(this));
         }
     }
 
@@ -47,7 +47,7 @@ public class Class extends ASTElement implements NamedElement, NameHolder {
 
         rc.append(" {\n");
         for (Entry<String, NewType> generic : generic_types.entrySet()) {
-            rc.append("  " + generic.getKey() + " = " + generic.getValue().format() + ";\n");
+            rc.append("  " + generic.getValue().format() + ";\n");
         }
         for (Entry<String, Field> field : fields.entrySet()) {
             rc.append("  " + field.getValue().format() + ";\n");
