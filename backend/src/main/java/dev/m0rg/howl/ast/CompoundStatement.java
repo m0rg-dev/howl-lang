@@ -2,8 +2,9 @@ package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-public class CompoundStatement extends Statement {
+public class CompoundStatement extends Statement implements NameHolder {
     List<Statement> statements;
 
     public CompoundStatement(Span span) {
@@ -22,6 +23,18 @@ public class CompoundStatement extends Statement {
 
     public void insertStatement(Statement statement) {
         this.statements.add((Statement) statement.setParent(this));
+    }
+
+    public Optional<ASTElement> getChild(String name) {
+        for (Statement s : this.statements) {
+            if (s instanceof LocalDefinitionStatement) {
+                LocalDefinitionStatement as_local = (LocalDefinitionStatement) s;
+                if (as_local.getName().equals(name)) {
+                    return Optional.of(as_local);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     public void transform(ASTTransformer t) {

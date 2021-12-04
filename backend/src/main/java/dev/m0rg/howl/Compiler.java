@@ -13,7 +13,8 @@ import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
-import dev.m0rg.howl.transform.TestTransformer;
+import dev.m0rg.howl.transform.AddSelfToMethods;
+import dev.m0rg.howl.transform.NameResolver;
 
 public class Compiler {
     final String[] frontend_command = { "../howl-rs/target/debug/howl-rs", "--root-module", "h" };
@@ -60,8 +61,9 @@ public class Compiler {
 
         cc.ingest(FileSystems.getDefault().getPath(args[0]), "main");
 
-        System.err.println(cc.root_module.format());
+        cc.root_module.transform(new AddSelfToMethods());
+        cc.root_module.transform(new NameResolver());
 
-        cc.root_module.transform(new TestTransformer());
+        System.err.println(cc.root_module.format());
     }
 }

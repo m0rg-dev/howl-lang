@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,6 +23,7 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.ArithmeticExpression;
 import dev.m0rg.howl.ast.AssignmentStatement;
 import dev.m0rg.howl.ast.Class;
+import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.CompoundStatement;
 import dev.m0rg.howl.ast.ConstructorCallExpression;
 import dev.m0rg.howl.ast.ElseStatement;
@@ -184,10 +186,14 @@ public class CSTImporter {
                 chain(source, "body", "ClassBody").get("elements").getAsJsonArray());
         Class rc = new Class(extractSpan(source), header.name, header.generics);
 
+        if (header.ext.isPresent()) {
+            NamedType ext_type = new NamedType(header.ext.get().getSpan(), header.ext.get().getName());
+            rc.setExtends(ext_type);
+        }
+
         for (ASTElement el : body) {
-            if (el instanceof ClassField) {
-                ClassField<?> field = (ClassField<?>) el;
-                rc.insertField(field.name, field.type);
+            if (el instanceof Field) {
+                rc.insertField((Field) el);
             } else if (el instanceof Function) {
                 rc.insertMethod((Function) el);
             }
@@ -196,12 +202,13 @@ public class CSTImporter {
         return rc;
     }
 
-    ClassField<TypeElement> parseClassField(JsonObject source) {
+    Field parseClassField(JsonObject source) {
         Identifier name = parseIdentifier(chain(source, "fieldname", "Identifier"));
         ASTElement type = parseElement(source.get("fieldtype"));
         if (type instanceof TypeElement) {
-            return new ClassField<TypeElement>(extractSpan(source), name.getName(),
-                    (TypeElement) type);
+            Field rc = new Field(extractSpan(source), name.getName());
+            rc.setType((TypeElement) type);
+            return rc;
         } else {
             throw new IllegalArgumentException();
         }
@@ -219,7 +226,12 @@ public class CSTImporter {
             }
         }
 
-        return new ClassHeader(extractSpan(source), name.getName(), generics);
+        Optional<Identifier> ext = Optional.empty();
+        if (!source.get("extends").isJsonNull()) {
+            ext = Optional.of(parseIdentifier(chain(source, "extends", "Identifier")));
+        }
+
+        return new ClassHeader(extractSpan(source), name.getName(), generics, ext);
     }
 
     CompoundStatement parseCompoundStatement(JsonObject source) {
@@ -328,8 +340,8 @@ public class CSTImporter {
         JsonArray args_raw = chain(source, "args", "TypedArgumentList").get("args").getAsJsonArray();
         Function rc = new Function(extractSpan(source), source.get("is_static").getAsBoolean(), name.getName());
         for (JsonElement el : args_raw) {
-            TypedArgument<?> parsed = parseTypedArgument(el.getAsJsonObject().get("TypedArgument").getAsJsonObject());
-            rc.insertArgument(parsed.name, parsed.type);
+            Field parsed = parseTypedArgument(el.getAsJsonObject().get("TypedArgument").getAsJsonObject());
+            rc.insertArgument(parsed);
         }
         ASTElement returntype = parseElement(source.get("returntype"));
         if (returntype instanceof TypeElement) {
@@ -529,12 +541,13 @@ public class CSTImporter {
         return rc;
     }
 
-    TypedArgument<TypeElement> parseTypedArgument(JsonObject source) {
+    Field parseTypedArgument(JsonObject source) {
         Identifier name = parseIdentifier(chain(source, "argname", "Identifier"));
         ASTElement type = parseElement(source.get("argtype"));
         if (type instanceof TypeElement) {
-            return new TypedArgument<TypeElement>(extractSpan(source), name.getName(),
-                    (TypeElement) type);
+            Field rc = new Field(extractSpan(source), name.getName());
+            rc.setType((TypeElement) type);
+            return rc;
         } else {
             throw new IllegalArgumentException();
         }
@@ -568,11 +581,13 @@ public class CSTImporter {
     static class ClassHeader extends ASTElement {
         String name;
         List<String> generics;
+        Optional<Identifier> ext;
 
-        public ClassHeader(Span span, String name, List<String> generics) {
+        public ClassHeader(Span span, String name, List<String> generics, Optional<Identifier> ext) {
             super(span);
             this.name = name;
             this.generics = generics;
+            this.ext = ext;
         }
 
         public String format() {
@@ -591,42 +606,6 @@ public class CSTImporter {
             super(span);
             this.name = name;
             this.generics = generics;
-        }
-
-        public String format() {
-            throw new UnsupportedOperationException();
-        }
-
-        public void transform(ASTTransformer t) {
-        }
-    }
-
-    static class ClassField<T extends TypeElement> extends ASTElement {
-        String name;
-        T type;
-
-        public ClassField(Span span, String name, T type) {
-            super(span);
-            this.name = name;
-            this.type = type;
-        }
-
-        public String format() {
-            throw new UnsupportedOperationException();
-        }
-
-        public void transform(ASTTransformer t) {
-        }
-    }
-
-    static class TypedArgument<T extends TypeElement> extends ASTElement {
-        String name;
-        T type;
-
-        public TypedArgument(Span span, String name, T type) {
-            super(span);
-            this.name = name;
-            this.type = type;
         }
 
         public String format() {

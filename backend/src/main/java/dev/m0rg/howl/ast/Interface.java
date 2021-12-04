@@ -2,8 +2,9 @@ package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-public class Interface extends ASTElement implements NamedElement {
+public class Interface extends ASTElement implements NamedElement, NameHolder {
     String name;
     List<String> generics;
     List<Function> methods;
@@ -51,5 +52,14 @@ public class Interface extends ASTElement implements NamedElement {
 
     public String getName() {
         return this.name;
+    }
+
+    public Optional<ASTElement> getChild(String name) {
+        for (Function e : this.methods) {
+            if (e.getName() == name) {
+                return Optional.of(e);
+            }
+        }
+        return Optional.empty();
     }
 }

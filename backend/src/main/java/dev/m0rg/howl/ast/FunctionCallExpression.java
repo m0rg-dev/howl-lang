@@ -9,7 +9,7 @@ public class FunctionCallExpression extends CallExpressionBase {
 
     @Override
     public String format() {
-        return "new " + this.source.format() + this.getArgString();
+        return this.source.format() + this.getArgString();
     }
 
     public void setSource(Expression source) {

@@ -3,8 +3,9 @@ package dev.m0rg.howl.ast;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
-public class Module extends ASTElement implements NamedElement {
+public class Module extends ASTElement implements NamedElement, NameHolder {
     String name;
     List<ASTElement> contents;
 
@@ -29,6 +30,18 @@ public class Module extends ASTElement implements NamedElement {
 
     public String getName() {
         return this.name;
+    }
+
+    public Optional<ASTElement> getChild(String name) {
+        for (ASTElement e : this.contents) {
+            if (e instanceof NamedElement) {
+                NamedElement as_named = (NamedElement) e;
+                if (as_named.getName().equals(name)) {
+                    return Optional.of(e);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     public void insertPath(String path, ASTElement item) {
