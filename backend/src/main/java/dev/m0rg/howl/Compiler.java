@@ -14,6 +14,7 @@ import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
 import dev.m0rg.howl.transform.AddSelfToMethods;
+import dev.m0rg.howl.transform.CheckTypes;
 import dev.m0rg.howl.transform.MonomorphizeClasses;
 import dev.m0rg.howl.transform.ResolveNames;
 
@@ -21,9 +22,15 @@ public class Compiler {
     final String[] frontend_command = { "../howl-rs/target/debug/howl-rs", "--root-module", "h" };
 
     Module root_module;
+    boolean successful = true;
 
     Compiler() {
         this.root_module = new Module("root");
+    }
+
+    public void addError(CompilationError e) {
+        System.err.println(e);
+        successful = false;
     }
 
     public void ingest(Path file, String prefix) throws IOException, InterruptedException {
@@ -34,7 +41,7 @@ public class Compiler {
         int exit = frontend.waitFor();
         if (exit == 0) {
             byte[] raw = frontend.getInputStream().readAllBytes();
-            CSTImporter importer = new CSTImporter(file);
+            CSTImporter importer = new CSTImporter(this, file);
             ASTElement[] parsed = importer.importProgram(raw);
             for (ASTElement el : parsed) {
                 if (el instanceof NamedElement) {
@@ -65,6 +72,7 @@ public class Compiler {
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new MonomorphizeClasses());
+        cc.root_module.transform(new CheckTypes());
 
         System.err.println(cc.root_module.format());
     }

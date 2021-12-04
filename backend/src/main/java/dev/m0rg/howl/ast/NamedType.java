@@ -20,6 +20,9 @@ public class NamedType extends TypeElement {
         b.add("u64");
         b.add("bool");
         b.add("void");
+        b.add("__any");
+        b.add("__error");
+        b.add("__numeric");
         base_types = Collections.unmodifiableSet(b);
     }
 
@@ -38,7 +41,9 @@ public class NamedType extends TypeElement {
     @Override
     public String format() {
         String resolution = "\u001b[31m/* = <unresolved> */\u001b[0m";
-        if (base_types.contains(this.name)) {
+        if (this.name.equals("__error")) {
+            resolution = "\u001b[31;1m/* error */\u001b[0m";
+        } else if (base_types.contains(this.name)) {
             resolution = "\u001b[34m/* base */\u001b[0m";
         } else {
             Optional<ASTElement> target = this.resolveName(this.name);
@@ -47,6 +52,10 @@ public class NamedType extends TypeElement {
             }
         }
         return "'" + this.name + " " + resolution;
+    }
+
+    public boolean isBase() {
+        return base_types.contains(this.name);
     }
 
     public String getName() {

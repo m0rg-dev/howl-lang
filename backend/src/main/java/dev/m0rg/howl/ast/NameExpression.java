@@ -32,4 +32,20 @@ public class NameExpression extends Expression {
     public String getName() {
         return this.name;
     }
+
+    @Override
+    public TypeElement getType() {
+        Optional<ASTElement> target = this.resolveName(this.name);
+        if (target.isPresent()) {
+            if (target.get() instanceof TypeElement) {
+                return (TypeElement) target.get();
+            } else if (target.get() instanceof HasOwnType) {
+                return ((HasOwnType) target.get()).getOwnType();
+            } else {
+                return new NamedType(span, "__error");
+            }
+        } else {
+            return new NamedType(span, "__error");
+        }
+    }
 }

@@ -19,6 +19,10 @@ public class RawPointerType extends TypeElement {
         return "*" + inner.format();
     }
 
+    public TypeElement getInner() {
+        return inner;
+    }
+
     public void setInner(TypeElement inner) {
         this.inner = (TypeElement) inner.setParent(this);
     }

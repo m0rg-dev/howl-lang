@@ -21,4 +21,9 @@ public class NumberExpression extends Expression {
     public void transform(ASTTransformer t) {
         ;
     }
+
+    @Override
+    public TypeElement getType() {
+        return new NamedType(span, "__numeric");
+    }
 }

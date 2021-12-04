@@ -23,4 +23,9 @@ public class FFICallExpression extends CallExpressionBase {
     public void transform(ASTTransformer t) {
         this.transformArguments(t);
     }
+
+    @Override
+    public TypeElement getType() {
+        return new NamedType(span, "__any");
+    }
 }

@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 
-public class Class extends ASTElement implements NamedElement, NameHolder {
+public class Class extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     String name;
     Optional<NamedType> ext;
     List<String> generics;
@@ -90,6 +90,10 @@ public class Class extends ASTElement implements NamedElement, NameHolder {
         this.fields.put(contents.getName(), (Field) contents.setParent(this));
     }
 
+    public Optional<Field> getField(String name) {
+        return Optional.ofNullable(fields.get(name));
+    }
+
     public void insertMethod(Function method) {
         this.methods.add((Function) method.setParent(this));
     }
@@ -100,6 +104,10 @@ public class Class extends ASTElement implements NamedElement, NameHolder {
 
     public List<String> getGenericNames() {
         return Collections.unmodifiableList(generics);
+    }
+
+    public List<String> getFieldNames() {
+        return Collections.unmodifiableList(new ArrayList<>(fields.keySet()));
     }
 
     public void clearGenerics() {
@@ -146,5 +154,10 @@ public class Class extends ASTElement implements NamedElement, NameHolder {
             }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public TypeElement getOwnType() {
+        return (TypeElement) new ClassType(span, this.getPath()).setParent(this);
     }
 }

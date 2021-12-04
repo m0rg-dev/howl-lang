@@ -19,4 +19,11 @@ public class StringLiteral extends Expression {
     public void transform(ASTTransformer t) {
         ;
     }
+
+    @Override
+    public TypeElement getType() {
+        RawPointerType rc = new RawPointerType(span);
+        rc.setInner(new NamedType(span, "u8"));
+        return rc;
+    }
 }

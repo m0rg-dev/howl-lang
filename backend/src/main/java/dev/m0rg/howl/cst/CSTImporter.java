@@ -5,8 +5,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -18,17 +18,18 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
+import dev.m0rg.howl.Compiler;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.ArithmeticExpression;
 import dev.m0rg.howl.ast.AssignmentStatement;
 import dev.m0rg.howl.ast.Class;
-import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.CompoundStatement;
 import dev.m0rg.howl.ast.ConstructorCallExpression;
 import dev.m0rg.howl.ast.ElseStatement;
 import dev.m0rg.howl.ast.Expression;
 import dev.m0rg.howl.ast.FFICallExpression;
+import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.FunctionCallExpression;
 import dev.m0rg.howl.ast.Identifier;
@@ -53,9 +54,11 @@ import dev.m0rg.howl.ast.WhileStatement;
 
 public class CSTImporter {
     Path source_path;
+    Compiler context;
 
-    public CSTImporter(Path source_path) {
+    public CSTImporter(Compiler context, Path source_path) {
         this.source_path = source_path;
+        this.context = context;
     }
 
     public ASTElement[] importProgram(byte[] source) throws JsonParseException, IOException {
@@ -574,7 +577,7 @@ public class CSTImporter {
     }
 
     Span extractSpan(JsonObject source) {
-        return Span.fromJson(source_path, source.get("span"));
+        return Span.fromJson(this.context, source_path, source.get("span"));
     }
 
     // CST-only elements below this line

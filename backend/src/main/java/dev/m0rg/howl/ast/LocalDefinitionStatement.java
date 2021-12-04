@@ -1,6 +1,6 @@
 package dev.m0rg.howl.ast;
 
-public class LocalDefinitionStatement extends Statement implements NamedElement {
+public class LocalDefinitionStatement extends Statement implements NamedElement, HasOwnType {
     TypeElement localtype;
     Expression initializer;
     String name;
@@ -33,6 +33,10 @@ public class LocalDefinitionStatement extends Statement implements NamedElement 
 
     public String getName() {
         return this.name;
+    }
+
+    public TypeElement getOwnType() {
+        return localtype;
     }
 
     public void transform(ASTTransformer t) {

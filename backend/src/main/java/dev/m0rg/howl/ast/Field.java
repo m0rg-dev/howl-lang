@@ -1,6 +1,6 @@
 package dev.m0rg.howl.ast;
 
-public class Field extends ASTElement implements NamedElement {
+public class Field extends ASTElement implements NamedElement, HasOwnType {
     String name;
     TypeElement fieldtype;
 
@@ -32,5 +32,10 @@ public class Field extends ASTElement implements NamedElement {
     public void transform(ASTTransformer t) {
         fieldtype.transform(t);
         setType(t.transform(fieldtype));
+    }
+
+    @Override
+    public TypeElement getOwnType() {
+        return fieldtype;
     }
 }
