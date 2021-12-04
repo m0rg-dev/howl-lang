@@ -70,6 +70,10 @@ public abstract class ASTElement {
     }
 
     Optional<ASTElement> resolveNameInt(String name) {
+        if (name.startsWith("root.") && this.parent == null) {
+            return this.resolveNameInt(name.replaceFirst("root\\.", ""));
+        }
+
         if (this instanceof NameHolder) {
             return ((NameHolder) this).getPath(name).or(() -> {
                 if (this.parent == null) {
@@ -79,7 +83,11 @@ public abstract class ASTElement {
                 }
             });
         } else {
-            return this.parent.resolveNameInt(name);
+            if (this.parent == null) {
+                return Optional.empty();
+            } else {
+                return this.parent.resolveNameInt(name);
+            }
         }
     }
 

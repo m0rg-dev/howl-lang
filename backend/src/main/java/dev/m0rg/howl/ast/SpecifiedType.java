@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class SpecifiedType extends TypeElement {
@@ -31,12 +32,20 @@ public class SpecifiedType extends TypeElement {
         return base.format() + "<" + String.join(", ", contents) + ">";
     }
 
+    public TypeElement getBase() {
+        return base;
+    }
+
     public void setBase(TypeElement base) {
         this.base = (TypeElement) base.setParent(this);
     }
 
     public void insertParameter(TypeElement parameter) {
         this.parameters.add((TypeElement) parameter.setParent(this));
+    }
+
+    public List<TypeElement> getParameters() {
+        return Collections.unmodifiableList(parameters);
     }
 
     public void transform(ASTTransformer t) {
@@ -49,5 +58,13 @@ public class SpecifiedType extends TypeElement {
             this.parameters.set(index, (TypeElement) t.transform(parameter).setParent(this));
             index++;
         }
+    }
+
+    public String mangle() {
+        List<String> contents = new ArrayList<String>(this.parameters.size());
+        for (TypeElement t : this.parameters) {
+            contents.add(t.mangle());
+        }
+        return "S" + base.mangle() + parameters.size() + "E" + String.join("", contents);
     }
 }

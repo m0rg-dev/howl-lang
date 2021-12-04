@@ -27,4 +27,8 @@ public class RawPointerType extends TypeElement {
         inner.transform(t);
         this.setInner(t.transform(inner));
     }
+
+    public String mangle() {
+        return "R" + inner.mangle();
+    }
 }

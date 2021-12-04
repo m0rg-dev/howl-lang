@@ -47,6 +47,10 @@ public class NewType extends TypeElement implements NamedElement {
         return this.name;
     }
 
+    public String mangle() {
+        return "T" + name.length() + name;
+    }
+
     public void transform(ASTTransformer t) {
         if (this.resolution.isPresent()) {
             this.resolution.get().transform(t);

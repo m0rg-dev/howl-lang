@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -95,6 +96,14 @@ public class Class extends ASTElement implements NamedElement, NameHolder {
 
     public void setGeneric(String name, TypeElement res) {
         this.generic_types.get(name).setResolution(res);
+    }
+
+    public List<String> getGenericNames() {
+        return Collections.unmodifiableList(generics);
+    }
+
+    public void clearGenerics() {
+        generics = new ArrayList<>();
     }
 
     public void transform(ASTTransformer t) {

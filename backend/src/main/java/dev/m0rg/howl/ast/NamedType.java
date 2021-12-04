@@ -49,6 +49,14 @@ public class NamedType extends TypeElement {
         return "'" + this.name + " " + resolution;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public String mangle() {
+        return name.length() + name.replace(".", "_");
+    }
+
     public void transform(ASTTransformer t) {
         ;
     }

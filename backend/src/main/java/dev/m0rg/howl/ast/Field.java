@@ -31,6 +31,6 @@ public class Field extends ASTElement implements NamedElement {
 
     public void transform(ASTTransformer t) {
         fieldtype.transform(t);
-        fieldtype = t.transform(fieldtype);
+        setType(t.transform(fieldtype));
     }
 }

@@ -9,7 +9,7 @@ import dev.m0rg.howl.ast.Expression;
 import dev.m0rg.howl.ast.FieldReferenceExpression;
 import dev.m0rg.howl.ast.NameExpression;
 
-public class NameResolver implements ASTTransformer {
+public class ResolveNames implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof NameExpression) {
             NameExpression name_expression = (NameExpression) e;
@@ -33,7 +33,7 @@ public class NameResolver implements ASTTransformer {
                     String.join(".", parts.subList(0, split_point)));
 
             if (!name_expression.resolveName(((NameExpression) rc).getName()).isPresent()) {
-                throw new RuntimeException("TODO unresolved name");
+                throw new RuntimeException("COMPILATION-ERROR unresolved name");
             }
 
             for (String remaining_part : parts.subList(split_point, parts.size())) {

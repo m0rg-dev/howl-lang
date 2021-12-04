@@ -88,9 +88,10 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
 
     public void transform(ASTTransformer t) {
         int index = 0;
+        ASTElement[] contents = this.contents.toArray(new ASTElement[0]);
         for (ASTElement item : contents) {
             item.transform(t);
-            contents.set(index, t.transform(item).setParent(this));
+            this.contents.set(index, t.transform(item).setParent(this));
             index++;
         }
     }

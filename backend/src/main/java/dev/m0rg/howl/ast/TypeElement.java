@@ -4,4 +4,6 @@ public abstract class TypeElement extends ASTElement {
     public TypeElement(Span span) {
         super(span);
     }
+
+    public abstract String mangle();
 }
