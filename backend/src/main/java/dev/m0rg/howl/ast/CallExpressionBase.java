@@ -17,7 +17,7 @@ public abstract class CallExpressionBase extends Expression {
     }
 
     public void prependArgument(Expression arg) {
-        this.args.add(0, arg);
+        this.args.add(0, (Expression) arg.setParent(this));
     }
 
     public List<Expression> getArguments() {

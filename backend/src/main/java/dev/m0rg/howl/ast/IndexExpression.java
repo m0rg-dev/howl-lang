@@ -21,8 +21,16 @@ public class IndexExpression extends Expression {
         return this.source.format() + "[" + this.index.format() + "]";
     }
 
+    public Expression getSource() {
+        return source;
+    }
+
     public void setSource(Expression source) {
         this.source = (Expression) source.setParent(this);
+    }
+
+    public Expression getIndex() {
+        return index;
     }
 
     public void setIndex(Expression index) {

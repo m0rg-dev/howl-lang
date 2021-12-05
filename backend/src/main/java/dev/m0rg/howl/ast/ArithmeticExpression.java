@@ -40,8 +40,20 @@ public class ArithmeticExpression extends Expression {
         return rc;
     }
 
+    public String getOperator() {
+        return operator;
+    }
+
+    public Expression getLHS() {
+        return lhs;
+    }
+
     public void setLHS(Expression lhs) {
         this.lhs = (Expression) lhs.setParent(this);
+    }
+
+    public Expression getRHS() {
+        return rhs;
     }
 
     public void setRHS(Expression rhs) {

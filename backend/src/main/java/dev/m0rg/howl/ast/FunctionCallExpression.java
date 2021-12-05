@@ -2,6 +2,7 @@ package dev.m0rg.howl.ast;
 
 public class FunctionCallExpression extends CallExpressionBase {
     Expression source;
+    boolean resolved;
 
     public FunctionCallExpression(Span span) {
         super(span);
@@ -12,6 +13,7 @@ public class FunctionCallExpression extends CallExpressionBase {
         FunctionCallExpression rc = new FunctionCallExpression(span);
         rc.setSource((Expression) source.detach());
         this.copyArguments(rc);
+        rc.resolved = resolved;
         return rc;
     }
 
@@ -44,5 +46,13 @@ public class FunctionCallExpression extends CallExpressionBase {
             }
         }
         return super.getType();
+    }
+
+    public boolean isResolved() {
+        return resolved;
+    }
+
+    public void resolve() {
+        resolved = true;
     }
 }

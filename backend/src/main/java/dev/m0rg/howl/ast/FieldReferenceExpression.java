@@ -41,7 +41,7 @@ public class FieldReferenceExpression extends Expression {
 
     public void transform(ASTTransformer t) {
         source.transform(t);
-        source = t.transform(source);
+        setSource(t.transform(source));
     }
 
     @Override

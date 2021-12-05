@@ -15,6 +15,8 @@ import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
+import dev.m0rg.howl.transform.ConvertCustomOverloads;
+import dev.m0rg.howl.transform.ConvertStrings;
 import dev.m0rg.howl.transform.IndirectMethodCalls;
 import dev.m0rg.howl.transform.MonomorphizeClasses;
 import dev.m0rg.howl.transform.ResolveNames;
@@ -74,6 +76,8 @@ public class Compiler {
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new MonomorphizeClasses());
+        cc.root_module.transform(new ConvertStrings());
+        cc.root_module.transform(new ConvertCustomOverloads());
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());

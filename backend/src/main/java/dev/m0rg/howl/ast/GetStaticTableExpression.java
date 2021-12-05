@@ -34,6 +34,9 @@ public class GetStaticTableExpression extends Expression {
         if (source_type instanceof ClassType) {
             Class source = ((ClassType) source_type).getSource();
             return source.getStaticType();
+        } else if (source_type instanceof InterfaceType) {
+            Interface source = ((InterfaceType) source_type).getSource();
+            return source.getStaticType();
         } else {
             return NamedType.build(span, "__error");
         }

@@ -231,6 +231,16 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         return Optional.empty();
     }
 
+    public boolean doesImplement(InterfaceType t) {
+        for (NamedType imp : impl) {
+            Optional<String> n = imp.resolveName(imp.getName()).map(x -> x.getPath());
+            if (n.isPresent() && n.get().equals(t.getSource().getPath())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public TypeElement getOwnType() {
         return (TypeElement) new ClassType(span, this.getPath()).setParent(this);
