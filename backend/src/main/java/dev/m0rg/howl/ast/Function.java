@@ -6,9 +6,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Map.Entry;
 
-public class Function extends ASTElement implements NamedElement, NameHolder {
+public class Function extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     boolean is_static;
     String name;
+    String original_name;
     TypeElement rc;
     LinkedHashMap<String, Field> args;
     Optional<CompoundStatement> body;
@@ -16,7 +17,7 @@ public class Function extends ASTElement implements NamedElement, NameHolder {
     public Function(Span span, boolean is_static, String name) {
         super(span);
         this.is_static = is_static;
-        this.name = name;
+        this.name = this.original_name = name;
         this.args = new LinkedHashMap<String, Field>();
         this.body = Optional.empty();
     }
@@ -31,6 +32,7 @@ public class Function extends ASTElement implements NamedElement, NameHolder {
         if (this.body.isPresent()) {
             rc.setBody((CompoundStatement) this.body.get().detach());
         }
+        rc.original_name = original_name;
         return rc;
     }
 
@@ -64,6 +66,10 @@ public class Function extends ASTElement implements NamedElement, NameHolder {
         return name;
     }
 
+    public String getOriginalName() {
+        return original_name;
+    }
+
     public void prependArgument(Field arg) {
         LinkedHashMap<String, Field> new_map = new LinkedHashMap<String, Field>();
         new_map.put(arg.getName(), (Field) arg.setParent(this));
@@ -77,6 +83,14 @@ public class Function extends ASTElement implements NamedElement, NameHolder {
         this.args.put(arg.getName(), (Field) arg.setParent(this));
     }
 
+    public List<Field> getArgumentList() {
+        return new ArrayList<>(this.args.values());
+    }
+
+    public TypeElement getReturn() {
+        return this.rc;
+    }
+
     public void setReturn(TypeElement rc) {
         ASTElement associated = rc.setParent(this);
         this.rc = (TypeElement) associated;
@@ -85,6 +99,13 @@ public class Function extends ASTElement implements NamedElement, NameHolder {
     public void setBody(CompoundStatement body) {
         ASTElement associated = body.setParent(this);
         this.body = Optional.of((CompoundStatement) associated);
+    }
+
+    public void setName(String name) {
+        if (this.parent != null) {
+            throw new RuntimeException("setting the name on an owned Function is a terrible idea");
+        }
+        this.name = name;
     }
 
     public Optional<ASTElement> getChild(String name) {
@@ -108,5 +129,14 @@ public class Function extends ASTElement implements NamedElement, NameHolder {
             this.body.get().transform(t);
             this.setBody(t.transform(this.body.get()));
         }
+    }
+
+    @Override
+    public TypeElement getOwnType() {
+        return (TypeElement) new FunctionType(span, this.getPath()).setParent(this);
+    }
+
+    public boolean isStatic() {
+        return is_static;
     }
 }

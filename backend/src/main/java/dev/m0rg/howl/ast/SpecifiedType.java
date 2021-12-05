@@ -67,4 +67,9 @@ public class SpecifiedType extends TypeElement {
         }
         return "S" + base.mangle() + parameters.size() + "E" + String.join("", contents);
     }
+
+    @Override
+    public boolean accepts(TypeElement other) {
+        return false;
+    }
 }

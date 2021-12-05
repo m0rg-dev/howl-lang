@@ -28,9 +28,19 @@ public class NamedType extends TypeElement {
 
     String name;
 
-    public NamedType(Span span, String name) {
+    protected NamedType(Span span, String name) {
         super(span);
         this.name = name;
+    }
+
+    public static NamedType build(Span span, String name) {
+        NamedType rc = new NamedType(span, name);
+        Optional<NumericType> as_numeric = NumericType.try_from(rc);
+        if (as_numeric.isPresent()) {
+            return as_numeric.get();
+        } else {
+            return rc;
+        }
     }
 
     @Override
@@ -68,5 +78,17 @@ public class NamedType extends TypeElement {
 
     public void transform(ASTTransformer t) {
         ;
+    }
+
+    @Override
+    public boolean accepts(TypeElement other) {
+        if (this.name == "__any") {
+            return true;
+        } else if (other instanceof NamedType) {
+            NamedType nt = (NamedType) other;
+            return nt.name.equals(this.name) || nt.name.equals("__any");
+        } else {
+            return false;
+        }
     }
 }

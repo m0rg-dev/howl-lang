@@ -57,4 +57,13 @@ public class NewType extends TypeElement implements NamedElement {
             this.resolution = Optional.of(t.transform(this.resolution.get()));
         }
     }
+
+    @Override
+    public boolean accepts(TypeElement other) {
+        if (this.resolution.isPresent()) {
+            return this.resolution.get().accepts(other);
+        } else {
+            return false;
+        }
+    }
 }

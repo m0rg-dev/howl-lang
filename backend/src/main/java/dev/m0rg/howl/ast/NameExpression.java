@@ -39,6 +39,9 @@ public class NameExpression extends Expression {
         if (target.isPresent()) {
             if (target.get() instanceof TypeElement) {
                 return (TypeElement) target.get();
+            } else if (target.get() instanceof Class) {
+                Class c = (Class) target.get();
+                return (TypeElement) new ClassStaticType(c.getSpan(), c.getPath()).setParent(c);
             } else if (target.get() instanceof HasOwnType) {
                 return ((HasOwnType) target.get()).getOwnType();
             } else {

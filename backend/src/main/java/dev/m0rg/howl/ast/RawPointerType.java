@@ -35,4 +35,14 @@ public class RawPointerType extends TypeElement {
     public String mangle() {
         return "R" + inner.mangle();
     }
+
+    @Override
+    public boolean accepts(TypeElement other) {
+        if (other instanceof RawPointerType) {
+            RawPointerType rpt = (RawPointerType) other;
+            return this.inner.accepts(rpt.inner);
+        } else {
+            return false;
+        }
+    }
 }

@@ -180,7 +180,7 @@ public class CSTImporter {
     }
 
     NamedType parseBaseType(JsonObject source) {
-        return new NamedType(extractSpan(source), source.get("name").getAsString());
+        return NamedType.build(extractSpan(source), source.get("name").getAsString());
     }
 
     Class parseClass(JsonObject source) {
@@ -190,8 +190,12 @@ public class CSTImporter {
         Class rc = new Class(extractSpan(source), header.name, header.generics);
 
         if (header.ext.isPresent()) {
-            NamedType ext_type = new NamedType(header.ext.get().getSpan(), header.ext.get().getName());
+            NamedType ext_type = NamedType.build(header.ext.get().getSpan(), header.ext.get().getName());
             rc.setExtends(ext_type);
+        }
+
+        for (NamedType imp : header.impl) {
+            rc.insertImplementation(imp);
         }
 
         for (ASTElement el : body) {
@@ -234,7 +238,14 @@ public class CSTImporter {
             ext = Optional.of(parseIdentifier(chain(source, "extends", "Identifier")));
         }
 
-        return new ClassHeader(extractSpan(source), name.getName(), generics, ext);
+        JsonArray impl_raw = source.get("implements").getAsJsonArray();
+        List<NamedType> impl = new ArrayList<>();
+        for (JsonElement el : impl_raw) {
+            NamedType parsed = parseBaseType(el.getAsJsonObject().get("BaseType").getAsJsonObject());
+            impl.add(parsed);
+        }
+
+        return new ClassHeader(extractSpan(source), name.getName(), generics, ext, impl);
     }
 
     CompoundStatement parseCompoundStatement(JsonObject source) {
@@ -585,12 +596,15 @@ public class CSTImporter {
         String name;
         List<String> generics;
         Optional<Identifier> ext;
+        List<NamedType> impl;
 
-        public ClassHeader(Span span, String name, List<String> generics, Optional<Identifier> ext) {
+        public ClassHeader(Span span, String name, List<String> generics, Optional<Identifier> ext,
+                List<NamedType> impl) {
             super(span);
             this.name = name;
             this.generics = generics;
             this.ext = ext;
+            this.impl = impl;
         }
 
         public ASTElement detach() {
@@ -602,6 +616,7 @@ public class CSTImporter {
         }
 
         public void transform(ASTTransformer t) {
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -624,6 +639,7 @@ public class CSTImporter {
         }
 
         public void transform(ASTTransformer t) {
+            throw new UnsupportedOperationException();
         }
     }
 }

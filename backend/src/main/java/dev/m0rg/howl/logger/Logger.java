@@ -10,6 +10,10 @@ public class Logger {
         }
     }
 
+    public static void trace(String message) {
+        log(LogLevel.Trace, message);
+    }
+
     public enum LogLevel {
         Trace
     }

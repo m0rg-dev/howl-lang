@@ -22,7 +22,7 @@ public class MonomorphizeClasses implements ASTTransformer {
                 Optional<ASTElement> target = base.resolveName(base.getName());
                 if (target.isPresent() && target.get() instanceof Class) {
                     if (((NameHolder) target.get().getParent()).getChild(st.mangle()).isPresent()) {
-                        return new NamedType(st.getSpan(),
+                        return NamedType.build(st.getSpan(),
                                 ((NameHolder) target.get().getParent()).getChild(st.mangle()).get().getPath());
                     } else {
                         Logger.log(LogLevel.Trace, "Monomorphize: " + st.mangle());
@@ -36,7 +36,7 @@ public class MonomorphizeClasses implements ASTTransformer {
                         if (target.get().getParent() instanceof Module) {
                             Module m = (Module) target.get().getParent();
                             m.insertItem(specified);
-                            return new NamedType(st.getSpan(), specified.getPath());
+                            return NamedType.build(st.getSpan(), specified.getPath());
                         } else {
                             throw new RuntimeException();
                         }

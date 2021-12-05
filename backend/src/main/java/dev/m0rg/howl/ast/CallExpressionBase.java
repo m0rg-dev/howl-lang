@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class CallExpressionBase extends Expression {
@@ -13,6 +14,14 @@ public abstract class CallExpressionBase extends Expression {
 
     public void insertArgument(Expression arg) {
         this.args.add((Expression) arg.setParent(this));
+    }
+
+    public void prependArgument(Expression arg) {
+        this.args.add(0, arg);
+    }
+
+    public List<Expression> getArguments() {
+        return Collections.unmodifiableList(args);
     }
 
     protected String getArgString() {

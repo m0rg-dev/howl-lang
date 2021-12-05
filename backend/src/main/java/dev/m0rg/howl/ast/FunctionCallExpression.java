@@ -20,6 +20,10 @@ public class FunctionCallExpression extends CallExpressionBase {
         return this.source.format() + this.getArgString();
     }
 
+    public Expression getSource() {
+        return source;
+    }
+
     public void setSource(Expression source) {
         this.source = (Expression) source.setParent(this);
     }
@@ -28,5 +32,17 @@ public class FunctionCallExpression extends CallExpressionBase {
         source.transform(t);
         this.setSource(t.transform(source));
         this.transformArguments(t);
+    }
+
+    @Override
+    public TypeElement getType() {
+        TypeElement source_type = source.getResolvedType();
+        if (source_type instanceof FunctionType) {
+            FunctionType ft = (FunctionType) source_type;
+            if (ft.isValid()) {
+                return ft.getReturnType();
+            }
+        }
+        return super.getType();
     }
 }

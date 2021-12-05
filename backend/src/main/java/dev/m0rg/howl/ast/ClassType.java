@@ -1,10 +1,9 @@
 package dev.m0rg.howl.ast;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class ClassType extends TypeElement {
+public class ClassType extends TypeElement implements StructureType {
     String source_path;
 
     public ClassType(Span span, String source_path) {
@@ -19,7 +18,7 @@ public class ClassType extends TypeElement {
 
     @Override
     public String format() {
-        return this.source_path;
+        return "class " + this.source_path;
     }
 
     public void transform(ASTTransformer t) {
@@ -30,26 +29,36 @@ public class ClassType extends TypeElement {
         return source_path.length() + source_path.replace(".", "_");
     }
 
-    public Optional<Field> getField(String name) {
+    public Class getSource() {
         Optional<ASTElement> target = this.resolveName(source_path);
         if (target.isPresent() && target.get() instanceof Class) {
-            return ((Class) target.get()).getField(name);
+            return (Class) target.get();
         } else {
             if (target.isPresent()) {
                 throw new RuntimeException(
-                        "ClassType of non-Class " + source_path + "? (" + target.get().getClass().getName() + ")");
+                        "ClassType of non-Class " + source_path + "? (" + target.get().getClass().getName()
+                                + ")");
             } else {
                 throw new RuntimeException("ClassType of unresolvable " + source_path + "?");
             }
         }
     }
 
+    public Optional<Field> getField(String name) {
+        return getSource().getField(name);
+    }
+
     public List<String> getFieldNames() {
-        Optional<ASTElement> target = this.resolveName(source_path);
-        if (target.isPresent() && target.get() instanceof Class) {
-            return ((Class) target.get()).getFieldNames();
+        return getSource().getFieldNames();
+    }
+
+    @Override
+    public boolean accepts(TypeElement other) {
+        if (other instanceof ClassType) {
+            ClassType ct = (ClassType) other;
+            return ct.source_path.equals(this.source_path);
         } else {
-            return new ArrayList<>();
+            return false;
         }
     }
 }

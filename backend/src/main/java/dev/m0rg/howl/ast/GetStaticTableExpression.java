@@ -1,47 +1,39 @@
 package dev.m0rg.howl.ast;
 
-public class IndexExpression extends Expression {
+public class GetStaticTableExpression extends Expression {
     Expression source;
-    Expression index;
 
-    public IndexExpression(Span span) {
+    public GetStaticTableExpression(Span span) {
         super(span);
     }
 
     @Override
     public ASTElement detach() {
-        IndexExpression rc = new IndexExpression(span);
+        GetStaticTableExpression rc = new GetStaticTableExpression(span);
         rc.setSource((Expression) source.detach());
-        rc.setIndex((Expression) index.detach());
         return rc;
     }
 
     @Override
     public String format() {
-        return this.source.format() + "[" + this.index.format() + "]";
+        return "$(" + this.source.format() + ")";
     }
 
     public void setSource(Expression source) {
         this.source = (Expression) source.setParent(this);
     }
 
-    public void setIndex(Expression index) {
-        this.index = (Expression) index.setParent(this);
-    }
-
     public void transform(ASTTransformer t) {
         source.transform(t);
         this.setSource(t.transform(source));
-        index.transform(t);
-        this.setIndex(t.transform(index));
     }
 
     @Override
     public TypeElement getType() {
         TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof RawPointerType) {
-            RawPointerType as_ptr = (RawPointerType) source_type;
-            return as_ptr.getInner();
+        if (source_type instanceof ClassType) {
+            Class source = ((ClassType) source_type).getSource();
+            return source.getStaticType();
         } else {
             return NamedType.build(span, "__error");
         }

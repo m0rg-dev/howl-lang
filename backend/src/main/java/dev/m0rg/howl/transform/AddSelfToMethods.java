@@ -11,9 +11,11 @@ public class AddSelfToMethods implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof Function && e.getParent() instanceof Class) {
             Function f = (Function) e;
-            Field self_field = new Field(f.getSpan(), "self");
-            self_field.setType(new NamedType(self_field.getSpan(), "Self"));
-            f.prependArgument(self_field);
+            if (!f.isStatic()) {
+                Field self_field = new Field(f.getSpan(), "self");
+                self_field.setType(NamedType.build(self_field.getSpan(), "Self"));
+                f.prependArgument(self_field);
+            }
         }
         return e;
     }

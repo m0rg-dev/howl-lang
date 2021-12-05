@@ -15,8 +15,10 @@ import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
+import dev.m0rg.howl.transform.IndirectMethodCalls;
 import dev.m0rg.howl.transform.MonomorphizeClasses;
 import dev.m0rg.howl.transform.ResolveNames;
+import dev.m0rg.howl.transform.ResolveOverloads;
 
 public class Compiler {
     final String[] frontend_command = { "../howl-rs/target/debug/howl-rs", "--root-module", "h" };
@@ -72,6 +74,8 @@ public class Compiler {
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new MonomorphizeClasses());
+        cc.root_module.transform(new IndirectMethodCalls());
+        cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());
 
         System.err.println(cc.root_module.format());

@@ -3,15 +3,18 @@ package dev.m0rg.howl.ast;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 
 public class Class extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     String name;
     Optional<NamedType> ext;
+    List<NamedType> impl;
     List<String> generics;
     LinkedHashMap<String, Field> fields;
     Map<String, NewType> generic_types;
@@ -25,6 +28,7 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         this.methods = new ArrayList<Function>();
         this.generic_types = new HashMap<String, NewType>();
         this.ext = Optional.empty();
+        this.impl = new ArrayList<>();
 
         for (String generic : generics) {
             generic_types.put(generic, (NewType) new NewType(span, generic).setParent(this));
@@ -47,6 +51,15 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         for (Function method : methods) {
             rc.insertMethod((Function) method.detach());
         }
+
+        if (ext.isPresent()) {
+            rc.setExtends((NamedType) ext.get().detach());
+        }
+
+        for (NamedType imp : this.impl) {
+            rc.insertImplementation((NamedType) imp.detach());
+        }
+
         return rc;
     }
 
@@ -64,6 +77,15 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
 
         if (this.ext.isPresent()) {
             rc.append(" extends " + this.ext.get().format());
+        }
+
+        if (!this.impl.isEmpty()) {
+            rc.append(" implements ");
+            List<String> inames = new ArrayList<>(this.impl.size());
+            for (NamedType imp : impl) {
+                inames.add(imp.format());
+            }
+            rc.append(String.join(", ", inames));
         }
 
         rc.append(" {\n");
@@ -86,15 +108,55 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         this.ext = Optional.of((NamedType) ext.setParent(this));
     }
 
+    public void insertImplementation(NamedType impl) {
+        this.impl.add((NamedType) impl.setParent(this));
+    }
+
     public void insertField(Field contents) {
         this.fields.put(contents.getName(), (Field) contents.setParent(this));
     }
 
     public Optional<Field> getField(String name) {
-        return Optional.ofNullable(fields.get(name));
+        if (fields.containsKey(name)) {
+            return Optional.of(fields.get(name));
+        } else if (this.ext.isPresent()) {
+            ClassType t = (ClassType) this.ext.get().resolve();
+            return t.getField(name);
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<Function> getMethod(String name) {
+        for (Function m : methods) {
+            if (m.getName().equals(name)) {
+                return Optional.of(m);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public List<Function> getOverloadCandidates(String name) {
+        List<Function> rc = new ArrayList<>();
+        for (Function m : methods) {
+            if (m.getOriginalName().equals(name)) {
+                rc.add(m);
+            }
+        }
+        return rc;
     }
 
     public void insertMethod(Function method) {
+        List<Field> args = method.getArgumentList();
+        StringBuilder mangled_name = new StringBuilder("_Z");
+        mangled_name.append(method.getOriginalName().length());
+        mangled_name.append(method.getOriginalName());
+        mangled_name.append(args.size());
+        mangled_name.append("E");
+        for (Field f : args) {
+            mangled_name.append(f.getOwnType().mangle());
+        }
+        method.setName(mangled_name.toString());
         this.methods.add((Function) method.setParent(this));
     }
 
@@ -107,7 +169,19 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     }
 
     public List<String> getFieldNames() {
-        return Collections.unmodifiableList(new ArrayList<>(fields.keySet()));
+        List<String> names = new ArrayList<>(fields.keySet());
+        if (this.ext.isPresent()) {
+            names.addAll(((ClassType) this.ext.get().resolve()).getFieldNames());
+        }
+        return Collections.unmodifiableList(names);
+    }
+
+    public List<String> getMethodNames() {
+        Set<String> names = new HashSet<>();
+        for (Function m : methods) {
+            names.add(m.getName());
+        }
+        return new ArrayList<>(names);
     }
 
     public void clearGenerics() {
@@ -148,16 +222,21 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
             return Optional.of(this.generic_types.get(name));
         }
 
-        for (Function e : this.methods) {
-            if (e.getName().equals(name) && e.is_static) {
-                return Optional.of(e);
+        for (Function m : methods) {
+            if (m.name.equals(name)) {
+                return Optional.of(m);
             }
         }
+
         return Optional.empty();
     }
 
     @Override
     public TypeElement getOwnType() {
         return (TypeElement) new ClassType(span, this.getPath()).setParent(this);
+    }
+
+    public ClassStaticType getStaticType() {
+        return (ClassStaticType) new ClassStaticType(span, this.getPath()).setParent(this);
     }
 }

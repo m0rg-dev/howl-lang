@@ -9,13 +9,20 @@ public abstract class TypeElement extends ASTElement {
 
     public abstract String mangle();
 
+    public abstract boolean accepts(TypeElement other);
+
     public TypeElement resolve() {
         TypeElement rc = this;
         while (true) {
             if (rc instanceof NamedType) {
                 NamedType named = (NamedType) rc;
                 if (named.isBase()) {
-                    return named;
+                    Optional<NumericType> as_numeric = NumericType.try_from(named);
+                    if (as_numeric.isPresent()) {
+                        return as_numeric.get();
+                    } else {
+                        return named;
+                    }
                 }
 
                 Optional<ASTElement> target = named.resolveName(named.getName());
@@ -34,7 +41,7 @@ public abstract class TypeElement extends ASTElement {
                     rc = nt.getResolution().get();
                     continue;
                 } else {
-                    return new NamedType(span, "__error");
+                    return new NamedType(span, "__any");
                 }
             } else if (rc instanceof RawPointerType) {
                 RawPointerType new_rc = (RawPointerType) rc.detach();
