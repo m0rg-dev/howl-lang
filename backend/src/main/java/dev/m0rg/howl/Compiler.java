@@ -33,6 +33,7 @@ public class Compiler {
     }
 
     public void addError(CompilationError e) {
+        Logger.error(e.message);
         System.err.println(e);
         successful = false;
     }

@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class IndexExpression extends Expression {
     Expression source;
     Expression index;
@@ -53,5 +56,15 @@ public class IndexExpression extends Expression {
         } else {
             return NamedType.build(span, "__error");
         }
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
+                () -> new NamedType(this.span, "__any")));
+        rc.put("index", new FieldHandle(() -> this.getIndex(), (e) -> this.setIndex(e),
+                () -> new NamedType(this.span, "__numeric")));
+        return rc;
     }
 }

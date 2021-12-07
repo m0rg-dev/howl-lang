@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class FunctionCallExpression extends CallExpressionBase {
     Expression source;
     boolean resolved;
@@ -54,5 +57,26 @@ public class FunctionCallExpression extends CallExpressionBase {
 
     public void resolve() {
         resolved = true;
+    }
+
+    @Override
+    protected TypeElement getTypeForArgument(int index) {
+        TypeElement source_type = source.getResolvedType();
+        if (source_type instanceof FunctionType) {
+            FunctionType ft = (FunctionType) source_type;
+            if (ft.isValid()) {
+                return ft.getArgumentTypes().get(index);
+            }
+        }
+        return new NamedType(span, "__any");
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        rc.put("source",
+                new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e), () -> new NamedType(span, "__any")));
+        addFields(rc);
+        return rc;
     }
 }

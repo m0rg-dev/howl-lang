@@ -1,5 +1,7 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class NameExpression extends Expression {
@@ -50,5 +52,11 @@ public class NameExpression extends Expression {
         } else {
             return new NamedType(span, "__error");
         }
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        return rc;
     }
 }

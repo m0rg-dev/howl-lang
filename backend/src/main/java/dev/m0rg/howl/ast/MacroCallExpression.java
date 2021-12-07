@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MacroCallExpression extends CallExpressionBase {
     String name;
 
@@ -22,5 +25,17 @@ public class MacroCallExpression extends CallExpressionBase {
 
     public void transform(ASTTransformer t) {
         this.transformArguments(t);
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        addFields(rc);
+        return rc;
+    }
+
+    @Override
+    protected TypeElement getTypeForArgument(int index) {
+        return new NamedType(this.span, "__any");
     }
 }

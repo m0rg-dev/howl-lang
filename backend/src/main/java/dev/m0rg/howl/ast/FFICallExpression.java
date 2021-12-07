@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class FFICallExpression extends CallExpressionBase {
     String name;
 
@@ -27,5 +30,17 @@ public class FFICallExpression extends CallExpressionBase {
     @Override
     public TypeElement getType() {
         return new NamedType(span, "__any");
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        addFields(rc);
+        return rc;
+    }
+
+    @Override
+    protected TypeElement getTypeForArgument(int index) {
+        return new NamedType(this.span, "__any");
     }
 }

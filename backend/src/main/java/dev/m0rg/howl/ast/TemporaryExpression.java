@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class TemporaryExpression extends Expression {
     static int counter = 0;
 
@@ -34,6 +37,10 @@ public class TemporaryExpression extends Expression {
         this.setSource(t.transform(source));
     }
 
+    public Expression getSource() {
+        return source;
+    }
+
     public void setSource(Expression source) {
         this.source = (Expression) source.setParent(this);
     }
@@ -41,5 +48,13 @@ public class TemporaryExpression extends Expression {
     @Override
     public TypeElement getType() {
         return source.getType();
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
+                () -> new NamedType(this.span, "__any")));
+        return rc;
     }
 }

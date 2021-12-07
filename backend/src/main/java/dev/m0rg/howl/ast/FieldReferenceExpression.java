@@ -1,5 +1,7 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class FieldReferenceExpression extends Expression {
@@ -63,5 +65,13 @@ public class FieldReferenceExpression extends Expression {
             throw new RuntimeException(
                     "COMPILATION-ERROR attempt to take fields on non-structure " + source_type.format());
         }
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
+                () -> new NamedType(this.span, "__any")));
+        return rc;
     }
 }

@@ -3,6 +3,7 @@ package dev.m0rg.howl.ast;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public abstract class CallExpressionBase extends Expression {
     List<Expression> args;
@@ -44,6 +45,18 @@ public abstract class CallExpressionBase extends Expression {
     protected void copyArguments(CallExpressionBase target) {
         for (Expression arg : args) {
             target.insertArgument((Expression) arg.detach());
+        }
+    }
+
+    protected abstract TypeElement getTypeForArgument(int index);
+
+    protected void addFields(Map<String, FieldHandle> target) {
+        int index = 0;
+        for (Expression arg : args) {
+            int i2 = index;
+            target.put(((Number) index).toString(), new FieldHandle(() -> arg,
+                    (e) -> this.args.set(i2, (Expression) e.setParent(this)), () -> this.getTypeForArgument(i2)));
+            index++;
         }
     }
 }

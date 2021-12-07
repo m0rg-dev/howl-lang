@@ -86,7 +86,8 @@ public class NamedType extends TypeElement {
             return true;
         } else if (other instanceof NamedType) {
             NamedType nt = (NamedType) other;
-            if (this instanceof NumericType && nt instanceof NumericType) {
+            if ((this instanceof NumericType && nt instanceof NumericType)
+                    || (this.name.equals("__numeric") && nt instanceof NumericType)) {
                 return true;
             }
             return nt.name.equals(this.name) || nt.name.equals("__any");

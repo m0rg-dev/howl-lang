@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class GetStaticTableExpression extends Expression {
     Expression source;
 
@@ -17,6 +20,10 @@ public class GetStaticTableExpression extends Expression {
     @Override
     public String format() {
         return "$(" + this.source.format() + ")";
+    }
+
+    public Expression getSource() {
+        return source;
     }
 
     public void setSource(Expression source) {
@@ -40,5 +47,13 @@ public class GetStaticTableExpression extends Expression {
         } else {
             return NamedType.build(span, "__error");
         }
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
+                () -> new NamedType(this.span, "__any")));
+        return rc;
     }
 }

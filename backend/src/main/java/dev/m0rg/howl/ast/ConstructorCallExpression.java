@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class ConstructorCallExpression extends CallExpressionBase {
     TypeElement source;
 
@@ -33,5 +36,18 @@ public class ConstructorCallExpression extends CallExpressionBase {
     @Override
     public TypeElement getType() {
         return source;
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        addFields(rc);
+        return rc;
+    }
+
+    @Override
+    protected TypeElement getTypeForArgument(int index) {
+        // TODO
+        return new NamedType(this.span, "__any");
     }
 }

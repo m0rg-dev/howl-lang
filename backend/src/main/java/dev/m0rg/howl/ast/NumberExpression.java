@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class NumberExpression extends Expression {
     String as_text;
 
@@ -25,5 +28,11 @@ public class NumberExpression extends Expression {
     @Override
     public TypeElement getType() {
         return new NamedType(span, "__numeric");
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        return rc;
     }
 }

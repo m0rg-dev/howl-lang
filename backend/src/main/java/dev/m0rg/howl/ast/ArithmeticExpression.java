@@ -1,7 +1,9 @@
 package dev.m0rg.howl.ast;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class ArithmeticExpression extends Expression {
@@ -101,5 +103,15 @@ public class ArithmeticExpression extends Expression {
         } else {
             return NamedType.build(span, "__error");
         }
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        rc.put("lhs", new FieldHandle(() -> this.getLHS(), (e) -> this.setLHS(e),
+                () -> new NamedType(this.span, "__numeric")));
+        rc.put("rhs", new FieldHandle(() -> this.getRHS(), (e) -> this.setRHS(e),
+                () -> new NamedType(this.span, "__numeric")));
+        return rc;
     }
 }

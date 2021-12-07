@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class StringLiteral extends Expression {
     String contents;
 
@@ -24,6 +27,12 @@ public class StringLiteral extends Expression {
     public TypeElement getType() {
         RawPointerType rc = new RawPointerType(span);
         rc.setInner(new NamedType(span, "u8"));
+        return rc;
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
         return rc;
     }
 }
