@@ -13,6 +13,7 @@ import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
+import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
@@ -82,6 +83,7 @@ public class Compiler {
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());
+        cc.root_module.transform(new AddInterfaceCasts());
 
         System.err.println(cc.root_module.format());
     }
