@@ -1,7 +1,13 @@
 package dev.m0rg.howl.ast;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import dev.m0rg.howl.llvm.LLVMContext;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMStructureType;
+import dev.m0rg.howl.llvm.LLVMType;
 
 public class ClassType extends TypeElement implements StructureType {
     String source_path;
@@ -60,5 +66,22 @@ public class ClassType extends TypeElement implements StructureType {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public LLVMType generate(LLVMContext context) {
+        return context.getOrCreateStructureType(this.getSource().getPath(), () -> {
+            LLVMStructureType rc = new LLVMStructureType(context, this.getSource().getPath());
+
+            LLVMStructureType object_type = new LLVMStructureType(context, new ArrayList<>(), true);
+
+            LLVMStructureType static_type = new LLVMStructureType(context, new ArrayList<>(), true);
+
+            List<LLVMType> ty = new ArrayList<>();
+            ty.add(new LLVMPointerType<>(object_type));
+            ty.add(new LLVMPointerType<>(static_type));
+            rc.setBody(ty, true);
+            return rc;
+        });
     }
 }

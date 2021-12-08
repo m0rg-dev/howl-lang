@@ -2,6 +2,9 @@ package dev.m0rg.howl.ast;
 
 import java.util.Optional;
 
+import dev.m0rg.howl.llvm.LLVMContext;
+import dev.m0rg.howl.llvm.LLVMType;
+
 public abstract class TypeElement extends ASTElement {
     public TypeElement(Span span) {
         super(span);
@@ -52,5 +55,9 @@ public abstract class TypeElement extends ASTElement {
                 return rc;
             }
         }
+    }
+
+    public LLVMType generate(LLVMContext c) {
+        return null;
     }
 }

@@ -6,11 +6,14 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.cst.CSTImporter;
+import dev.m0rg.howl.llvm.LLVMContext;
+import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
 import dev.m0rg.howl.transform.AddInterfaceCasts;
@@ -86,5 +89,11 @@ public class Compiler {
         cc.root_module.transform(new AddInterfaceCasts());
 
         System.err.println(cc.root_module.format());
+
+        LLVMContext context = new LLVMContext();
+        List<LLVMModule> modules = cc.root_module.generate(context);
+        for (LLVMModule module : modules) {
+            module.dump();
+        }
     }
 }

@@ -11,7 +11,12 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
-public class Class extends ASTElement implements NamedElement, NameHolder, HasOwnType {
+import dev.m0rg.howl.llvm.LLVMFunction;
+import dev.m0rg.howl.llvm.LLVMFunctionType;
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMType;
+
+public class Class extends ASTElement implements NamedElement, NameHolder, HasOwnType, GeneratesTopLevelItems {
     String name;
     Optional<NamedType> ext;
     List<NamedType> impl;
@@ -248,5 +253,12 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
 
     public ClassStaticType getStaticType() {
         return (ClassStaticType) new ClassStaticType(span, this.getPath()).setParent(this);
+    }
+
+    @Override
+    public void generate(LLVMModule module) {
+        LLVMType this_structure_type = this.getOwnType().generate(module.getContext());
+        LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, new ArrayList<>());
+        LLVMFunction allocator = new LLVMFunction(module, this.getPath() + "_alloc", allocator_type);
     }
 }

@@ -5,6 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import dev.m0rg.howl.llvm.LLVMContext;
+import dev.m0rg.howl.llvm.LLVMModule;
+
 public class Module extends ASTElement implements NamedElement, NameHolder {
     String name;
     List<ASTElement> contents;
@@ -94,5 +97,22 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
             this.contents.set(index, t.transform(item).setParent(this));
             index++;
         }
+    }
+
+    public List<LLVMModule> generate(LLVMContext context) {
+        List<LLVMModule> rc = new ArrayList<>();
+        LLVMModule this_module = new LLVMModule(this.getPath(), context);
+        rc.add(this_module);
+
+        for (ASTElement item : contents) {
+            if (item instanceof Module) {
+                List<LLVMModule> submodules = ((Module) item).generate(context);
+                rc.addAll(submodules);
+            } else if (item instanceof GeneratesTopLevelItems) {
+                ((GeneratesTopLevelItems) item).generate(this_module);
+            }
+        }
+
+        return rc;
     }
 }
