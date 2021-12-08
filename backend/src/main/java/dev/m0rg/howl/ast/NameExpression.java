@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMGlobalVariable;
+import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
 
@@ -80,6 +82,11 @@ public class NameExpression extends Expression {
                 }
             }
             throw new IllegalStateException();
+        } else if (target instanceof Class) {
+            Class c = (Class) target;
+            LLVMType static_type = c.getStaticType().generate(builder.getModule());
+            LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, c.getPath() + "_static");
+            return g;
         } else {
             Logger.error("unimplemented NameExpression resolution of type " + target.getClass().getName());
             return super.generate(builder);

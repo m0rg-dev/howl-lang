@@ -11,9 +11,13 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
+import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
+import dev.m0rg.howl.llvm.LLVMGlobalVariable;
 import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 
 public class Class extends ASTElement implements NamedElement, NameHolder, HasOwnType, GeneratesTopLevelItems {
@@ -265,6 +269,35 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
             LLVMType this_structure_type = this.getOwnType().generate(module);
             LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, new ArrayList<>());
             LLVMFunction allocator = new LLVMFunction(module, this.getPath() + "_alloc", allocator_type);
+        }
+    }
+
+    public void generateMethods(LLVMModule module) {
+        if (this.generics.isEmpty()) {
+            List<LLVMConstant> methods = new ArrayList<>();
+            for (String name : this.getMethodNames()) {
+                Function m = this.getMethod(name).get();
+                methods.add(m.generate(module));
+            }
+
+            LLVMStructureType static_type = this.getStaticType().generate(module);
+            LLVMGlobalVariable g = module.getOrInsertGlobal(static_type, this.getPath() + "_static");
+            LLVMConstant stable = static_type.createConstant(module.getContext(), methods);
+            g.setInitializer(stable);
+
+            for (NamedType itype : this.interfaces()) {
+                InterfaceType res = (InterfaceType) itype.resolve();
+                LLVMStructureType itable_type = res.getSource().getStaticType().generate(module);
+                LLVMGlobalVariable itable = module.getOrInsertGlobal(itable_type,
+                        this.getPath() + "_interface_" + res.getSource().getPath());
+                List<LLVMConstant> imethods = new ArrayList<>();
+                for (String name : res.getSource().getMethodNames()) {
+                    Function m = this.getMethod(name).get();
+                    LLVMType method_type = res.getSource().getMethod(name).get().getOwnType().generate(module);
+                    imethods.add(m.generate(module).cast(new LLVMPointerType<LLVMType>(method_type)));
+                }
+                itable.setInitializer(itable_type.createConstant(module.getContext(), imethods));
+            }
         }
     }
 }

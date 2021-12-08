@@ -2,6 +2,8 @@ package dev.m0rg.howl.llvm;
 
 import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.PointerPointer;
+import org.bytedeco.llvm.LLVM.LLVMTypeRef;
+
 import static org.bytedeco.llvm.global.LLVM.*;
 
 import java.util.List;
@@ -13,5 +15,9 @@ public class LLVMFunctionType extends LLVMType {
             parameters_raw.put(i, parameters.get(i).getInternal());
         }
         obj = LLVMFunctionType(returntype.getInternal(), parameters_raw, parameters.size(), 0);
+    }
+
+    public LLVMFunctionType(LLVMTypeRef obj) {
+        this.obj = obj;
     }
 }

@@ -67,6 +67,10 @@ public class LLVMModule {
                 Arrays.asList(new LLVMType[] {
                         new LLVMIntType(context, 64),
                 })), "malloc", f -> f.setExternal());
+
+        this.getOrInsertFunction(new LLVMFunctionType(new LLVMIntType(context, 64), Arrays.asList(new LLVMType[] {
+                new LLVMPointerType<>(new LLVMIntType(context, 8)),
+        })), "strlen", f -> f.setExternal());
     }
 
     public LLVMContext getContext() {

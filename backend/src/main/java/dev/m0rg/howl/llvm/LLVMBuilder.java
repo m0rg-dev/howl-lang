@@ -1,6 +1,13 @@
 package dev.m0rg.howl.llvm;
 
-import static org.bytedeco.llvm.global.LLVM.*;
+import static org.bytedeco.llvm.global.LLVM.LLVMBuildAlloca;
+import static org.bytedeco.llvm.global.LLVM.LLVMBuildCall;
+import static org.bytedeco.llvm.global.LLVM.LLVMBuildLoad;
+import static org.bytedeco.llvm.global.LLVM.LLVMBuildStore;
+import static org.bytedeco.llvm.global.LLVM.LLVMBuildStructGEP2;
+import static org.bytedeco.llvm.global.LLVM.LLVMCreateBuilderInContext;
+import static org.bytedeco.llvm.global.LLVM.LLVMDisposeBuilder;
+import static org.bytedeco.llvm.global.LLVM.LLVMPositionBuilderAtEnd;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -42,13 +49,32 @@ public class LLVMBuilder implements AutoCloseable {
         return LLVMValue.build(this.getModule(), LLVMBuildAlloca(this.getInternal(), type.getInternal(), name));
     }
 
-    public LLVMValue buildCall(LLVMFunction f, List<LLVMValue> args, String name) {
+    public LLVMValue buildCall(LLVMValue f, List<LLVMValue> args, String name) {
+        LLVMType source_type = f.getType();
+        if (!(source_type instanceof LLVMPointerType)) {
+            throw new IllegalArgumentException("attempt to call non-pointer type " + source_type.getClass().getName());
+        }
+
+        @SuppressWarnings("unchecked")
+        LLVMType inner_type = ((LLVMPointerType<LLVMType>) source_type).getInner();
+        if (!(inner_type instanceof LLVMFunctionType)) {
+            f.dump();
+            throw new IllegalArgumentException(
+                    "attempt to call non-function-pointer type * " + source_type.getClass().getName());
+        }
+
         PointerPointer<Pointer> args_raw = new PointerPointer<>(args.size());
         for (int i = 0; i < args.size(); i++) {
             args_raw.put(i, args.get(i).getInternal());
         }
         return LLVMValue.build(this.getModule(),
+
                 LLVMBuildCall(this.getInternal(), f.getInternal(), args_raw, args.size(), name));
+    }
+
+    public LLVMValue buildStructGEP(LLVMType element_type, LLVMValue source, int idx, String name) {
+        return LLVMValue.build(this.getModule(),
+                LLVMBuildStructGEP2(this.getInternal(), element_type.getInternal(), source.getInternal(), idx, name));
     }
 
     public LLVMValue buildLoad(LLVMValue source, String name) {

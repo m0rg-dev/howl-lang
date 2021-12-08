@@ -113,6 +113,12 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
             }
         }
 
+        for (ASTElement item : contents) {
+            if (item instanceof Class) {
+                ((Class) item).generateMethods(this_module);
+            }
+        }
+
         return rc;
     }
 }

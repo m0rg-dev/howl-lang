@@ -3,6 +3,10 @@ package dev.m0rg.howl.ast;
 import java.util.HashMap;
 import java.util.Map;
 
+import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
+
 public class GetStaticTableExpression extends Expression {
     Expression source;
 
@@ -55,5 +59,22 @@ public class GetStaticTableExpression extends Expression {
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
                 () -> new NamedType(this.span, "__any")));
         return rc;
+    }
+
+    @Override
+    public LLVMValue generate(LLVMBuilder builder) {
+        TypeElement source_type = source.getResolvedType();
+        if (source_type instanceof ClassType) {
+            Logger.trace("Loading static table. Source is " + this.source.format());
+            LLVMValue src_value = builder.buildAlloca(source_type.generate(builder.getModule()), "");
+            builder.buildStore(source.generate(builder), src_value);
+            // static table is field 1
+            LLVMValue rc = builder.buildLoad(builder.buildStructGEP(
+                    this.source.getResolvedType().generate(builder.getModule()),
+                    src_value, 1, ""), "");
+            return rc;
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 }

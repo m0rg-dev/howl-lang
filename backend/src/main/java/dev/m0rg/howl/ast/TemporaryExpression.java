@@ -3,11 +3,16 @@ package dev.m0rg.howl.ast;
 import java.util.HashMap;
 import java.util.Map;
 
+import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMValue;
+
 public class TemporaryExpression extends Expression {
     static int counter = 0;
 
     Expression source;
     int index;
+    boolean generated = false;
+    LLVMValue storage;
 
     public TemporaryExpression(Span span) {
         super(span);
@@ -28,7 +33,7 @@ public class TemporaryExpression extends Expression {
 
     @Override
     public String format() {
-        return "%" + index + " /* = " + source.format() + " */";
+        return "T%" + index + " /* = " + source.format() + " */";
     }
 
     @Override
@@ -56,5 +61,15 @@ public class TemporaryExpression extends Expression {
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
                 () -> new NamedType(this.span, "__any")));
         return rc;
+    }
+
+    @Override
+    public LLVMValue generate(LLVMBuilder builder) {
+        if (this.generated)
+            return builder.buildLoad(this.storage, "");
+        this.storage = builder.buildAlloca(this.getType().resolve().generate(builder.getModule()), "temp_" + index);
+        builder.buildStore(source.generate(builder), storage);
+        this.generated = true;
+        return builder.buildLoad(this.storage, "");
     }
 }

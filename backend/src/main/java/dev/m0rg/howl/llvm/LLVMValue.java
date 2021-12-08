@@ -16,6 +16,9 @@ public abstract class LLVMValue {
                 return new LLVMArgument(source);
             case LLVMFunctionValueKind:
                 return new LLVMFunction(module, source);
+            case LLVMGlobalVariableValueKind:
+                return new LLVMGlobalVariable(source);
+            case LLVMConstantExprValueKind:
             case LLVMConstantIntValueKind:
                 return new LLVMConstant(source);
             case LLVMInstructionValueKind:
@@ -24,4 +27,14 @@ public abstract class LLVMValue {
                 throw new IllegalArgumentException("LLVMValue of kind " + LLVMGetValueKind(source));
         }
     }
+
+    public LLVMType getType() {
+        return LLVMType.build(LLVMTypeOf(obj));
+    }
+
+    public void dump() {
+        LLVMDumpValue(obj);
+        System.out.println();
+    }
+
 }

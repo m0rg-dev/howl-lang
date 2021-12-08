@@ -1,7 +1,12 @@
 package dev.m0rg.howl.ast;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMValue;
 
 public class FunctionCallExpression extends CallExpressionBase {
     Expression source;
@@ -78,5 +83,16 @@ public class FunctionCallExpression extends CallExpressionBase {
                 new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e), () -> new NamedType(span, "__any")));
         addFields(rc);
         return rc;
+    }
+
+    @Override
+    public LLVMValue generate(LLVMBuilder builder) {
+        LLVMValue callee = this.getSource().generate(builder);
+        List<LLVMValue> args = new ArrayList<>(this.args.size());
+        for (Expression e : this.args) {
+            args.add(e.generate(builder));
+        }
+
+        return builder.buildCall(callee, args, "");
     }
 }
