@@ -2,7 +2,7 @@ package dev.m0rg.howl.ast;
 
 import java.util.Optional;
 
-import dev.m0rg.howl.llvm.LLVMContext;
+import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMType;
 
 public abstract class TypeElement extends ASTElement {
@@ -57,7 +57,5 @@ public abstract class TypeElement extends ASTElement {
         }
     }
 
-    public LLVMType generate(LLVMContext c) {
-        return null;
-    }
+    public abstract LLVMType generate(LLVMModule module);
 }

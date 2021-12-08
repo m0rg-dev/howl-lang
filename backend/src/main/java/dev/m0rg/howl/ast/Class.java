@@ -152,13 +152,13 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     }
 
     public void insertMethod(Function method) {
-        List<Field> args = method.getArgumentList();
+        List<Argument> args = method.getArgumentList();
         StringBuilder mangled_name = new StringBuilder("_Z");
         mangled_name.append(method.getOriginalName().length());
         mangled_name.append(method.getOriginalName());
         mangled_name.append(args.size());
         mangled_name.append("E");
-        for (Field f : args) {
+        for (Argument f : args) {
             mangled_name.append(f.getOwnType().mangle());
         }
         method.setName(mangled_name.toString());
@@ -246,6 +246,10 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         return false;
     }
 
+    public List<NamedType> interfaces() {
+        return Collections.unmodifiableList(impl);
+    }
+
     @Override
     public TypeElement getOwnType() {
         return (TypeElement) new ClassType(span, this.getPath()).setParent(this);
@@ -257,8 +261,10 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
 
     @Override
     public void generate(LLVMModule module) {
-        LLVMType this_structure_type = this.getOwnType().generate(module.getContext());
-        LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, new ArrayList<>());
-        LLVMFunction allocator = new LLVMFunction(module, this.getPath() + "_alloc", allocator_type);
+        if (this.generics.isEmpty()) {
+            LLVMType this_structure_type = this.getOwnType().generate(module);
+            LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, new ArrayList<>());
+            LLVMFunction allocator = new LLVMFunction(module, this.getPath() + "_alloc", allocator_type);
+        }
     }
 }

@@ -2,6 +2,9 @@ package dev.m0rg.howl.ast;
 
 import java.util.Optional;
 
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMType;
+
 public class NewType extends TypeElement implements NamedElement {
     Optional<TypeElement> resolution;
     String name;
@@ -65,5 +68,10 @@ public class NewType extends TypeElement implements NamedElement {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public LLVMType generate(LLVMModule module) {
+        throw new UnsupportedOperationException();
     }
 }

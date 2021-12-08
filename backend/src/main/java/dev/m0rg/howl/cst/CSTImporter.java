@@ -21,6 +21,7 @@ import com.google.gson.JsonParser;
 import dev.m0rg.howl.Compiler;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
+import dev.m0rg.howl.ast.Argument;
 import dev.m0rg.howl.ast.ArithmeticExpression;
 import dev.m0rg.howl.ast.AssignmentStatement;
 import dev.m0rg.howl.ast.Class;
@@ -354,7 +355,7 @@ public class CSTImporter {
         JsonArray args_raw = chain(source, "args", "TypedArgumentList").get("args").getAsJsonArray();
         Function rc = new Function(extractSpan(source), source.get("is_static").getAsBoolean(), name.getName());
         for (JsonElement el : args_raw) {
-            Field parsed = parseTypedArgument(el.getAsJsonObject().get("TypedArgument").getAsJsonObject());
+            Argument parsed = parseTypedArgument(el.getAsJsonObject().get("TypedArgument").getAsJsonObject());
             rc.insertArgument(parsed);
         }
         ASTElement returntype = parseElement(source.get("returntype"));
@@ -555,11 +556,11 @@ public class CSTImporter {
         return rc;
     }
 
-    Field parseTypedArgument(JsonObject source) {
+    Argument parseTypedArgument(JsonObject source) {
         Identifier name = parseIdentifier(chain(source, "argname", "Identifier"));
         ASTElement type = parseElement(source.get("argtype"));
         if (type instanceof TypeElement) {
-            Field rc = new Field(extractSpan(source), name.getName());
+            Argument rc = new Argument(extractSpan(source), name.getName());
             rc.setType((TypeElement) type);
             return rc;
         } else {

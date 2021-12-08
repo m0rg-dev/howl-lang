@@ -5,6 +5,11 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import dev.m0rg.howl.llvm.LLVMIntType;
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMType;
+import dev.m0rg.howl.llvm.LLVMVoidType;
+
 public class NamedType extends TypeElement {
     static final Set<String> base_types;
 
@@ -82,7 +87,7 @@ public class NamedType extends TypeElement {
 
     @Override
     public boolean accepts(TypeElement other) {
-        if (this.name == "__any") {
+        if (this.name.equals("__any")) {
             return true;
         } else if (other instanceof NamedType) {
             NamedType nt = (NamedType) other;
@@ -93,6 +98,17 @@ public class NamedType extends TypeElement {
             return nt.name.equals(this.name) || nt.name.equals("__any");
         } else {
             return false;
+        }
+    }
+
+    @Override
+    public LLVMType generate(LLVMModule module) {
+        if (this.name.equals("void")) {
+            return new LLVMVoidType(module.getContext());
+        } else if (this.name.equals("bool")) {
+            return new LLVMIntType(module.getContext(), 1);
+        } else {
+            throw new UnsupportedOperationException("NamedType " + this.name);
         }
     }
 }

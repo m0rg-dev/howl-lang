@@ -3,22 +3,26 @@ package dev.m0rg.howl.ast;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
+
+import dev.m0rg.howl.llvm.LLVMFunction;
+import dev.m0rg.howl.llvm.LLVMFunctionType;
+import dev.m0rg.howl.llvm.LLVMModule;
 
 public class Function extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     boolean is_static;
     String name;
     String original_name;
     TypeElement rc;
-    LinkedHashMap<String, Field> args;
+    LinkedHashMap<String, Argument> args;
     Optional<CompoundStatement> body;
 
     public Function(Span span, boolean is_static, String name) {
         super(span);
         this.is_static = is_static;
         this.name = this.original_name = name;
-        this.args = new LinkedHashMap<String, Field>();
+        this.args = new LinkedHashMap<String, Argument>();
         this.body = Optional.empty();
     }
 
@@ -26,8 +30,8 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
     public ASTElement detach() {
         Function rc = new Function(span, is_static, name);
         rc.setReturn((TypeElement) this.rc.detach());
-        for (Entry<String, Field> field : args.entrySet()) {
-            rc.insertArgument((Field) field.getValue().detach());
+        for (Entry<String, Argument> field : args.entrySet()) {
+            rc.insertArgument((Argument) field.getValue().detach());
         }
         if (this.body.isPresent()) {
             rc.setBody((CompoundStatement) this.body.get().detach());
@@ -48,7 +52,7 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         rc.append("(");
 
         List<String> arg_strings = new ArrayList<String>(this.args.size());
-        for (Entry<String, Field> field : args.entrySet()) {
+        for (Entry<String, Argument> field : args.entrySet()) {
             arg_strings.add(field.getValue().format());
         }
         rc.append(String.join(", ", arg_strings));
@@ -70,20 +74,20 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         return original_name;
     }
 
-    public void prependArgument(Field arg) {
-        LinkedHashMap<String, Field> new_map = new LinkedHashMap<String, Field>();
-        new_map.put(arg.getName(), (Field) arg.setParent(this));
-        for (Entry<String, Field> field : args.entrySet()) {
+    public void prependArgument(Argument arg) {
+        LinkedHashMap<String, Argument> new_map = new LinkedHashMap<String, Argument>();
+        new_map.put(arg.getName(), (Argument) arg.setParent(this));
+        for (Entry<String, Argument> field : args.entrySet()) {
             new_map.put(field.getKey(), field.getValue());
         }
         this.args = new_map;
     }
 
-    public void insertArgument(Field arg) {
-        this.args.put(arg.getName(), (Field) arg.setParent(this));
+    public void insertArgument(Argument arg) {
+        this.args.put(arg.getName(), (Argument) arg.setParent(this));
     }
 
-    public List<Field> getArgumentList() {
+    public List<Argument> getArgumentList() {
         return new ArrayList<>(this.args.values());
     }
 
@@ -120,9 +124,9 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         rc.transform(t);
         rc = t.transform(rc);
 
-        for (Entry<String, Field> arg : args.entrySet()) {
+        for (Entry<String, Argument> arg : args.entrySet()) {
             arg.getValue().transform(t);
-            args.replace(arg.getKey(), (Field) t.transform(arg.getValue()).setParent(this));
+            args.replace(arg.getKey(), (Argument) t.transform(arg.getValue()).setParent(this));
         }
 
         if (this.body.isPresent()) {
@@ -132,11 +136,22 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
     }
 
     @Override
-    public TypeElement getOwnType() {
-        return (TypeElement) new FunctionType(span, this.getPath()).setParent(this);
+    public FunctionType getOwnType() {
+        return (FunctionType) new FunctionType(span, this.getPath()).setParent(this);
     }
 
     public boolean isStatic() {
         return is_static;
+    }
+
+    public LLVMFunction generate(LLVMModule module) {
+        LLVMFunctionType type = (LLVMFunctionType) this.getOwnType().resolve().generate(module);
+        LLVMFunction rc = module.getOrInsertFunction(type, this.getPath(), (f) -> {
+            if (this.body.isPresent()) {
+                f.appendBasicBlock("entry");
+                this.body.get().generate(f);
+            }
+        });
+        return rc;
     }
 }

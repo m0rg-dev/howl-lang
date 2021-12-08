@@ -32,11 +32,24 @@ public class LLVMStructureType extends LLVMType {
         return LLVMIsOpaqueStruct(obj) != 0;
     }
 
+    public boolean isPacked() {
+        return LLVMIsPackedStruct(obj) != 0;
+    }
+
     public void setBody(List<LLVMType> contents, boolean packed) {
         PointerPointer<Pointer> contents_raw = new PointerPointer<>(contents.size());
         for (int i = 0; i < contents.size(); i++) {
             contents_raw.put(i, contents.get(i).getInternal());
         }
         LLVMStructSetBody(obj, contents_raw, contents.size(), packed ? 1 : 0);
+    }
+
+    public LLVMConstant createConstant(LLVMContext context, List<LLVMConstant> contents) {
+        PointerPointer<Pointer> contents_raw = new PointerPointer<>(contents.size());
+        for (int i = 0; i < contents.size(); i++) {
+            contents_raw.put(i, contents.get(i).getInternal());
+        }
+        return new LLVMConstant(LLVMConstStructInContext(context.getInternal(), contents_raw, contents.size(),
+                this.isPacked() ? 1 : 0));
     }
 }

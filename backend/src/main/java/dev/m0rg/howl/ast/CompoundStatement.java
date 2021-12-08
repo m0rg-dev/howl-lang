@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import dev.m0rg.howl.llvm.LLVMFunction;
+
 public class CompoundStatement extends Statement implements NameHolder {
     List<Statement> statements;
 
@@ -52,6 +54,13 @@ public class CompoundStatement extends Statement implements NameHolder {
             statement.transform(t);
             statements.set(index, (Statement) t.transform(statement).setParent(this));
             index++;
+        }
+    }
+
+    @Override
+    public void generate(LLVMFunction f) {
+        for (Statement statement : statements) {
+            statement.generate(f);
         }
     }
 }

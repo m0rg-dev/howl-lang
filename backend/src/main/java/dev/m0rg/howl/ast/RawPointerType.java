@@ -1,5 +1,9 @@
 package dev.m0rg.howl.ast;
 
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMType;
+
 public class RawPointerType extends TypeElement {
     TypeElement inner;
 
@@ -44,5 +48,10 @@ public class RawPointerType extends TypeElement {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public LLVMType generate(LLVMModule module) {
+        return new LLVMPointerType<LLVMType>(this.getInner().resolve().generate(module));
     }
 }

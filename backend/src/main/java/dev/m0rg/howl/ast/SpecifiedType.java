@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMType;
+
 public class SpecifiedType extends TypeElement {
     TypeElement base;
     List<TypeElement> parameters;
@@ -71,5 +74,10 @@ public class SpecifiedType extends TypeElement {
     @Override
     public boolean accepts(TypeElement other) {
         return false;
+    }
+
+    @Override
+    public LLVMType generate(LLVMModule module) {
+        throw new UnsupportedOperationException();
     }
 }

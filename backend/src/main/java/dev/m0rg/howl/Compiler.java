@@ -94,6 +94,7 @@ public class Compiler {
         List<LLVMModule> modules = cc.root_module.generate(context);
         for (LLVMModule module : modules) {
             module.dump();
+            module.verify();
         }
     }
 }

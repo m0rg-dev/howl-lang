@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import dev.m0rg.howl.llvm.LLVMFunctionType;
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMType;
+
 public class FunctionType extends TypeElement {
     String source_path;
 
@@ -69,5 +73,15 @@ public class FunctionType extends TypeElement {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public LLVMFunctionType generate(LLVMModule module) {
+        LLVMType returntype = this.getReturnType().resolve().generate(module);
+        List<LLVMType> args = new ArrayList<>(this.getArgumentTypes().size());
+        for (TypeElement argtype : this.getArgumentTypes()) {
+            args.add(argtype.resolve().generate(module));
+        }
+        return new LLVMFunctionType(returntype, args);
     }
 }

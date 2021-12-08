@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import dev.m0rg.howl.llvm.LLVMContext;
+import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
@@ -68,14 +68,27 @@ public class ClassType extends TypeElement implements StructureType {
         }
     }
 
+    LLVMStructureType generateObjectType(LLVMModule module) {
+        return module.getContext().getOrCreateStructureType(this.getSource().getPath() + "_object", () -> {
+            List<LLVMType> contents = new ArrayList<>();
+            for (String name : this.getSource().getFieldNames()) {
+                Field f = this.getSource().getField(name).get();
+                contents.add(f.getOwnType().resolve().generate(module));
+            }
+            LLVMStructureType object_type = new LLVMStructureType(module.getContext(),
+                    this.getSource().getPath() + "_object");
+            object_type.setBody(contents, true);
+            return object_type;
+        });
+    }
+
     @Override
-    public LLVMType generate(LLVMContext context) {
-        return context.getOrCreateStructureType(this.getSource().getPath(), () -> {
-            LLVMStructureType rc = new LLVMStructureType(context, this.getSource().getPath());
+    public LLVMType generate(LLVMModule module) {
+        return module.getContext().getOrCreateStructureType(this.getSource().getPath(), () -> {
+            LLVMStructureType rc = new LLVMStructureType(module.getContext(), this.getSource().getPath());
 
-            LLVMStructureType object_type = new LLVMStructureType(context, new ArrayList<>(), true);
-
-            LLVMStructureType static_type = new LLVMStructureType(context, new ArrayList<>(), true);
+            LLVMStructureType object_type = this.generateObjectType(module);
+            LLVMType static_type = this.getSource().getStaticType().generate(module);
 
             List<LLVMType> ty = new ArrayList<>();
             ty.add(new LLVMPointerType<>(object_type));

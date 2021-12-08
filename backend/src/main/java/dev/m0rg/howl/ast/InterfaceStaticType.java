@@ -1,7 +1,13 @@
 package dev.m0rg.howl.ast;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMStructureType;
+import dev.m0rg.howl.llvm.LLVMType;
 
 public class InterfaceStaticType extends TypeElement implements StructureType {
     String source_path;
@@ -68,5 +74,22 @@ public class InterfaceStaticType extends TypeElement implements StructureType {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public LLVMStructureType generate(LLVMModule module) {
+        return module.getContext().getOrCreateStructureType(this.getSource().getPath() + "_interface", () -> {
+            List<LLVMType> contents = new ArrayList<>();
+            for (String name : this.getSource().getMethodNames()) {
+                Function m = this.getSource().getMethod(name).get();
+                contents.add(new LLVMPointerType<LLVMType>(m.getOwnType().resolve().generate(module)));
+            }
+
+            LLVMStructureType static_type = new LLVMStructureType(module.getContext(),
+                    this.getSource().getPath() + "_interface");
+            static_type.setBody(contents, true);
+
+            return static_type;
+        });
     }
 }
