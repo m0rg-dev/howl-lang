@@ -1,4 +1,0 @@
-static fn i32 Main() {
-    IO.print("Awoooooooo~!\n");
-    return 0;
-}

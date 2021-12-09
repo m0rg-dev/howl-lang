@@ -1,0 +1,19 @@
+class SillyHTTPServer implements SocketServer {
+    fn void handle(i32 childfd) throws ErrnoException {
+        let *i8 req_buf = fficall malloc(1024);
+        fficall read(childfd, req_buf, 1024);
+        let String msg = "HTTP/1.1 200 OK\r\nConnection: Close\r\nContent-Type: text/plain\r\n\r\nHowl HTTP server test\r\n";
+        fficall write(childfd, msg.contents.value, msg.contents.length);
+        fficall close(childfd);
+        
+        // lol
+        fficall free(req_buf);
+        return;
+    }
+}
+
+static fn i32 Main() {
+    let InetSocket listener = new InetSocket(8080, 0);
+    listener.serve(5, new SillyHTTPServer());
+    return 0;
+}

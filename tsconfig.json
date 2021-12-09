@@ -1,7 +1,0 @@
-{
-    "compilerOptions": {
-        "lib": ["es2021"],
-        "downlevelIteration": true,
-        "inlineSourceMap": true
-    }
-}

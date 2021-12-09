@@ -1,0 +1,25 @@
+// Structure to facilitate pointer shenanigans.
+class Pointer<T> {
+    *T value;
+
+    fn void constructor(T value) {
+        !pointer_assign(fficall malloc(!sizeof(self.value[0])), self.value);
+        self.value[0] = value;
+    }
+
+    fn i32 size() {
+        return !sizeof(self.value[0]);
+    }
+
+    fn T dereference() {
+        return self.value[0];
+    }
+
+    fn *i8 structure_pointer() {
+        return !get_object_pointer(self.value);
+    }
+
+    fn *T value_pointer() {
+        return self.value;
+    }
+}

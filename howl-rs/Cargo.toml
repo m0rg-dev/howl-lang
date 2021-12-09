@@ -1,0 +1,27 @@
+[package]
+name = "howl-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+use_accountable_refcell=[]
+
+[build-dependencies]
+cfgrammar = "0.10"
+lrlex = "0.10"
+lrpar = "0.10"
+
+[dependencies]
+cfgrammar = "0.10"
+lrlex = "0.10"
+lrpar = "0.10"
+textwrap = "0.14"
+structopt = "0.3"
+lazy_static = "1.4"
+accountable-refcell = "0.2"
+uuid = { version = "0.8", features = ["v4"] }
+# inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }

@@ -1,8 +1,4 @@
-*.js
-node_modules/*
-coverage/
-a.out
-howl-linux
-howl-macos
-howl-win.exe
-**/target
+*.log
+howl_target
+target
+howl-rs/target
