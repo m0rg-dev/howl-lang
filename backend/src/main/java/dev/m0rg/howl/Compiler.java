@@ -21,6 +21,7 @@ import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
+import dev.m0rg.howl.transform.CoalesceElse;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertStrings;
 import dev.m0rg.howl.transform.IndirectMethodCalls;
@@ -88,6 +89,7 @@ public class Compiler {
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());
+        cc.root_module.transform(new CoalesceElse());
         cc.root_module.transform(new AddNumericCasts());
         cc.root_module.transform(new AddInterfaceCasts());
 

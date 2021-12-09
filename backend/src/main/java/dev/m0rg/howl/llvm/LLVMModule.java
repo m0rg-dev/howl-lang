@@ -56,6 +56,17 @@ public class LLVMModule {
                 new LLVMPointerType<>(new LLVMIntType(context, 32)),
         })), "accept", f -> f.setExternal());
 
+        this.getOrInsertFunction(new LLVMFunctionType(new LLVMIntType(context, 64), Arrays.asList(new LLVMType[] {
+                new LLVMIntType(context, 32),
+                new LLVMPointerType<>(new LLVMIntType(context, 8)),
+                new LLVMIntType(context, 32),
+        })), "bind", f -> f.setExternal());
+
+        this.getOrInsertFunction(new LLVMFunctionType(new LLVMIntType(context, 32), Arrays.asList(new LLVMType[] {
+                new LLVMIntType(context, 32),
+                new LLVMIntType(context, 32),
+        })), "listen", f -> f.setExternal());
+
         this.getOrInsertFunction(new LLVMFunctionType(new LLVMPointerType<>(new LLVMIntType(context, 8)),
                 Arrays.asList(new LLVMType[] {
                         new LLVMIntType(context, 64),

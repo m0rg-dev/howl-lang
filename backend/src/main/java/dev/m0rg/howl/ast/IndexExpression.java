@@ -1,7 +1,13 @@
 package dev.m0rg.howl.ast;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMType;
+import dev.m0rg.howl.llvm.LLVMValue;
 
 public class IndexExpression extends Expression {
     Expression source;
@@ -66,5 +72,15 @@ public class IndexExpression extends Expression {
         rc.put("index", new FieldHandle(() -> this.getIndex(), (e) -> this.setIndex(e),
                 () -> new NamedType(this.span, "__numeric")));
         return rc;
+    }
+
+    @Override
+    public LLVMValue generate(LLVMBuilder builder) {
+        LLVMValue src = source.generate(builder);
+        @SuppressWarnings("unchecked")
+        LLVMPointerType<LLVMType> t = (LLVMPointerType<LLVMType>) src.getType();
+        return builder.buildLoad(builder.buildGEP(t.getInner(), src,
+                Arrays.asList(new LLVMValue[] { index.generate(builder) }), ""), "");
+
     }
 }

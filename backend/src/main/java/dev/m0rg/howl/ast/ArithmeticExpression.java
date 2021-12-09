@@ -6,6 +6,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMIntPredicate;
+import dev.m0rg.howl.llvm.LLVMValue;
+
 public class ArithmeticExpression extends Expression {
     static final Set<String> comparison_operators;
 
@@ -113,5 +117,41 @@ public class ArithmeticExpression extends Expression {
         rc.put("rhs", new FieldHandle(() -> this.getRHS(), (e) -> this.setRHS(e),
                 () -> new NamedType(this.span, "__numeric")));
         return rc;
+    }
+
+    @Override
+    public LLVMValue generate(LLVMBuilder builder) {
+        switch (operator) {
+            case "+":
+                return builder.buildAdd(this.lhs.generate(builder), this.rhs.generate(builder), "");
+            case "-":
+                return builder.buildSub(this.lhs.generate(builder), this.rhs.generate(builder), "");
+            case "*":
+                return builder.buildMul(this.lhs.generate(builder), this.rhs.generate(builder), "");
+            case "/":
+                return builder.buildSDiv(this.lhs.generate(builder), this.rhs.generate(builder), "");
+            case "%":
+                return builder.buildSRem(this.lhs.generate(builder), this.rhs.generate(builder), "");
+            case ">":
+                return builder.buildICmp(LLVMIntPredicate.LLVMIntSGT, this.lhs.generate(builder),
+                        this.rhs.generate(builder), "");
+            case "<":
+                return builder.buildICmp(LLVMIntPredicate.LLVMIntSLT, this.lhs.generate(builder),
+                        this.rhs.generate(builder), "");
+            case ">=":
+                return builder.buildICmp(LLVMIntPredicate.LLVMIntSGE, this.lhs.generate(builder),
+                        this.rhs.generate(builder), "");
+            case "<=":
+                return builder.buildICmp(LLVMIntPredicate.LLVMIntSLE, this.lhs.generate(builder),
+                        this.rhs.generate(builder), "");
+            case "==":
+                return builder.buildICmp(LLVMIntPredicate.LLVMIntEQ, this.lhs.generate(builder),
+                        this.rhs.generate(builder), "");
+            case "!=":
+                return builder.buildICmp(LLVMIntPredicate.LLVMIntNE, this.lhs.generate(builder),
+                        this.rhs.generate(builder), "");
+            default:
+                throw new RuntimeException("unimplemented operator " + operator);
+        }
     }
 }

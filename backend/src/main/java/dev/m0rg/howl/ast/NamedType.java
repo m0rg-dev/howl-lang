@@ -107,6 +107,8 @@ public class NamedType extends TypeElement {
             return new LLVMVoidType(module.getContext());
         } else if (this.name.equals("bool")) {
             return new LLVMIntType(module.getContext(), 1);
+        } else if (this.name.equals("__numeric")) {
+            return new LLVMIntType(module.getContext(), 64);
         } else {
             throw new UnsupportedOperationException("NamedType " + this.name);
         }

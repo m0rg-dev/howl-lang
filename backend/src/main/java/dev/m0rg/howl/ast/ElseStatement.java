@@ -1,22 +1,26 @@
 package dev.m0rg.howl.ast;
 
 public class ElseStatement extends Statement {
-    CompoundStatement body;
+    private CompoundStatement body;
 
     public ElseStatement(Span span) {
         super(span);
     }
 
+    public CompoundStatement getBody() {
+        return body;
+    }
+
     @Override
     public ASTElement detach() {
         ElseStatement rc = new ElseStatement(span);
-        rc.setBody((CompoundStatement) this.body.detach());
+        rc.setBody((CompoundStatement) this.getBody().detach());
         return rc;
     }
 
     @Override
     public String format() {
-        return "else " + this.body.format();
+        return "else " + this.getBody().format();
     }
 
     public void setBody(CompoundStatement body) {
@@ -24,7 +28,7 @@ public class ElseStatement extends Statement {
     }
 
     public void transform(ASTTransformer t) {
-        body.transform(t);
-        this.setBody(t.transform(body));
+        getBody().transform(t);
+        this.setBody(t.transform(getBody()));
     }
 }

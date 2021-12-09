@@ -39,16 +39,25 @@ public class LLVMBuilder implements AutoCloseable {
         LLVMDisposeBuilder(obj);
     }
 
-    public LLVMValue buildAlloca(LLVMType type, String name) {
-        return LLVMValue.build(this.getModule(), LLVMBuildAlloca(this.getInternal(), type.getInternal(), name));
+    public LLVMInstruction buildAdd(LLVMValue lhs, LLVMValue rhs, String name) {
+        return new LLVMInstruction(
+                LLVMBuildAdd(this.getInternal(), lhs.getInternal(), rhs.getInternal(), name));
     }
 
-    public LLVMValue buildBitcast(LLVMValue source, LLVMType type, String name) {
-        return LLVMValue.build(this.getModule(),
+    public LLVMInstruction buildAlloca(LLVMType type, String name) {
+        return new LLVMInstruction(LLVMBuildAlloca(this.getInternal(), type.getInternal(), name));
+    }
+
+    public LLVMInstruction buildBitcast(LLVMValue source, LLVMType type, String name) {
+        return new LLVMInstruction(
                 LLVMBuildBitCast(this.getInternal(), source.getInternal(), type.getInternal(), name));
     }
 
-    public LLVMValue buildCall(LLVMValue f, List<LLVMValue> args, String name) {
+    public LLVMInstruction buildBr(LLVMBasicBlock dest) {
+        return new LLVMInstruction(LLVMBuildBr(this.getInternal(), dest.getInternal()));
+    }
+
+    public LLVMInstruction buildCall(LLVMValue f, List<LLVMValue> args, String name) {
         LLVMType source_type = f.getType();
         if (!(source_type instanceof LLVMPointerType)) {
             throw new IllegalArgumentException("attempt to call non-pointer type " + source_type.getClass().getName());
@@ -66,44 +75,87 @@ public class LLVMBuilder implements AutoCloseable {
         for (int i = 0; i < args.size(); i++) {
             args_raw.put(i, args.get(i).getInternal());
         }
-        return LLVMValue.build(this.getModule(),
-
+        return new LLVMInstruction(
                 LLVMBuildCall(this.getInternal(), f.getInternal(), args_raw, args.size(), name));
     }
 
-    public LLVMValue buildStructGEP(LLVMType element_type, LLVMValue source, int idx, String name) {
-        return LLVMValue.build(this.getModule(),
+    public LLVMInstruction buildCondBr(LLVMValue cond, LLVMBasicBlock true_branch, LLVMBasicBlock false_branch) {
+        return new LLVMInstruction(LLVMBuildCondBr(this.getInternal(), cond.getInternal(),
+                true_branch.getInternal(), false_branch.getInternal()));
+    }
+
+    public LLVMInstruction buildGEP(LLVMType type, LLVMValue source, List<LLVMValue> indices, String name) {
+        PointerPointer<Pointer> indices_raw = new PointerPointer<>(indices.size());
+        for (int i = 0; i < indices.size(); i++) {
+            indices_raw.put(i, indices.get(i).getInternal());
+        }
+        return new LLVMInstruction(LLVMBuildGEP2(this.getInternal(), type.getInternal(), source.getInternal(),
+                indices_raw, indices.size(), name));
+    }
+
+    public LLVMInstruction buildICmp(LLVMIntPredicate op, LLVMValue lhs, LLVMValue rhs, String name) {
+        return new LLVMInstruction(
+                LLVMBuildICmp(this.getInternal(), op.value, lhs.getInternal(), rhs.getInternal(), name));
+    }
+
+    public LLVMInstruction buildLoad(LLVMValue source, String name) {
+        return new LLVMInstruction(LLVMBuildLoad(this.getInternal(), source.getInternal(), name));
+    }
+
+    public LLVMInstruction buildMul(LLVMValue lhs, LLVMValue rhs, String name) {
+        return new LLVMInstruction(
+                LLVMBuildMul(this.getInternal(), lhs.getInternal(), rhs.getInternal(), name));
+    }
+
+    public LLVMInstruction buildReturn() {
+        return new LLVMInstruction(LLVMBuildRetVoid(this.getInternal()));
+    }
+
+    public LLVMInstruction buildReturn(LLVMValue source) {
+        return new LLVMInstruction(LLVMBuildRet(this.getInternal(), source.getInternal()));
+    }
+
+    public LLVMInstruction buildSDiv(LLVMValue lhs, LLVMValue rhs, String name) {
+        return new LLVMInstruction(
+                LLVMBuildSDiv(this.getInternal(), lhs.getInternal(), rhs.getInternal(), name));
+    }
+
+    public LLVMInstruction buildSExt(LLVMValue source, LLVMType dest, String name) {
+        return new LLVMInstruction(
+                LLVMBuildSExt(this.getInternal(), source.getInternal(), dest.getInternal(), name));
+    }
+
+    public LLVMInstruction buildSRem(LLVMValue lhs, LLVMValue rhs, String name) {
+        return new LLVMInstruction(
+                LLVMBuildSRem(this.getInternal(), lhs.getInternal(), rhs.getInternal(), name));
+    }
+
+    public LLVMInstruction buildStructGEP(LLVMType element_type, LLVMValue source, int idx, String name) {
+        return new LLVMInstruction(
                 LLVMBuildStructGEP2(this.getInternal(), element_type.getInternal(), source.getInternal(), idx, name));
     }
 
-    public LLVMValue buildLoad(LLVMValue source, String name) {
-        return LLVMValue.build(this.getModule(), LLVMBuildLoad(this.getInternal(), source.getInternal(), name));
-    }
-
-    public LLVMValue buildReturn() {
-        return LLVMValue.build(this.getModule(), LLVMBuildRetVoid(this.getInternal()));
-    }
-
-    public LLVMValue buildReturn(LLVMValue source) {
-        return LLVMValue.build(this.getModule(), LLVMBuildRet(this.getInternal(), source.getInternal()));
-    }
-
-    public LLVMValue buildStore(LLVMValue source, LLVMValue dest) {
-        return LLVMValue.build(this.getModule(),
+    public LLVMInstruction buildStore(LLVMValue source, LLVMValue dest) {
+        return new LLVMInstruction(
                 LLVMBuildStore(this.getInternal(), source.getInternal(), dest.getInternal()));
     }
 
-    public LLVMValue buildTruncOrBitCast(LLVMValue source, LLVMType dest, String name) {
-        return LLVMValue.build(this.getModule(),
-                LLVMBuildTruncOrBitCast(this.getInternal(), source.getInternal(), dest.getInternal(), name));
+    public LLVMInstruction buildSub(LLVMValue lhs, LLVMValue rhs, String name) {
+        return new LLVMInstruction(
+                LLVMBuildSub(this.getInternal(), lhs.getInternal(), rhs.getInternal(), name));
     }
 
-    public LLVMValue buildSizeofHack(LLVMType el) {
+    public LLVMInstruction buildTrunc(LLVMValue source, LLVMType dest, String name) {
+        return new LLVMInstruction(
+                LLVMBuildTrunc(this.getInternal(), source.getInternal(), dest.getInternal(), name));
+    }
+
+    public LLVMInstruction buildSizeofHack(LLVMType el) {
         LLVMType p = new LLVMPointerType<>(el);
         PointerPointer<Pointer> crud = new PointerPointer<>(1);
         crud.put(0, LLVMConstInt(LLVMInt32Type(), 1, 0));
         LLVMValueRef sizeptr = LLVMBuildGEP2(this.getInternal(), el.getInternal(), LLVMConstNull(p.getInternal()), crud,
                 1, "");
-        return LLVMValue.build(this.getModule(), LLVMBuildPtrToInt(this.getInternal(), sizeptr, LLVMInt32Type(), ""));
+        return new LLVMInstruction(LLVMBuildPtrToInt(this.getInternal(), sizeptr, LLVMInt32Type(), ""));
     }
 }

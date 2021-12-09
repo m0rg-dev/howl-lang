@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +35,10 @@ public class CompoundStatement extends Statement implements NameHolder {
 
     public void insertStatement(Statement statement) {
         this.statements.add((Statement) statement.setParent(this));
+    }
+
+    public List<Statement> getContents() {
+        return Collections.unmodifiableList(statements);
     }
 
     public Optional<ASTElement> getChild(String name) {

@@ -4,6 +4,8 @@ import java.lang.ref.WeakReference;
 
 import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 
+import static org.bytedeco.llvm.global.LLVM.*;
+
 public class LLVMBasicBlock {
     LLVMBasicBlockRef obj;
     WeakReference<LLVMModule> module;
@@ -23,5 +25,9 @@ public class LLVMBasicBlock {
 
     public LLVMModule getModule() {
         return module.get();
+    }
+
+    public boolean hasTerminator() {
+        return LLVMGetBasicBlockTerminator(obj) != null;
     }
 }

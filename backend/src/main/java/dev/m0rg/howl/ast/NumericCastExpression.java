@@ -59,6 +59,20 @@ public class NumericCastExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        return builder.buildTruncOrBitCast(source.generate(builder), target.generate(builder.getModule()), "");
+        int source_width = 64;
+        int dest_width = 64;
+        TypeElement source_type = source.getResolvedType();
+        if (source_type instanceof NumericType) {
+            source_width = ((NumericType) source_type).getWidth();
+        }
+        TypeElement dest_type = target.resolve();
+        if (dest_type instanceof NumericType) {
+            dest_width = ((NumericType) dest_type).getWidth();
+        }
+        if (source_width > dest_width) {
+            return builder.buildTrunc(source.generate(builder), target.generate(builder.getModule()), "");
+        } else {
+            return builder.buildSExt(source.generate(builder), target.generate(builder.getModule()), "");
+        }
     }
 }
