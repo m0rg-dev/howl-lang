@@ -116,7 +116,7 @@ public class NamedType extends TypeElement {
         } else if (this.name.equals("__numeric")) {
             return new LLVMIntType(module.getContext(), 64);
         } else {
-            throw new UnsupportedOperationException("NamedType " + this.name);
+            throw new UnsupportedOperationException("NamedType " + this.name + " @ " + this.getPath());
         }
     }
 }

@@ -43,13 +43,17 @@ public class StringLiteral extends Expression {
         return rc;
     }
 
+    public String real_string() {
+        return contents
+                .substring(1, contents.length() - 1)
+                .replaceAll("(?<!\\\\)\\\\n", "\n")
+                .replaceAll("(?<!\\\\)\\\\r", "\r");
+    }
+
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
         // TODO
-        LLVMConstant string = builder.getModule().stringConstant(contents
-                .substring(1, contents.length() - 1)
-                .replaceAll("(?<!\\\\)\\\\n", "\n")
-                .replaceAll("(?<!\\\\)\\\\r", "\r"));
+        LLVMConstant string = builder.getModule().stringConstant(this.real_string());
         LLVMValue temp = builder.buildAlloca(string.getType(), "");
         builder.buildStore(string, temp);
         return builder.buildBitcast(temp, new LLVMPointerType<LLVMType>(new LLVMIntType(builder.getContext(), 8)), "");

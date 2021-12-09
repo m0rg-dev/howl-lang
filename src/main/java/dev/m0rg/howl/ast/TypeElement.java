@@ -14,6 +14,17 @@ public abstract class TypeElement extends ASTElement {
 
     public abstract boolean accepts(TypeElement other);
 
+    public boolean isBase() {
+        TypeElement res = this.resolve();
+        if (res instanceof NamedType) {
+            return true;
+        } else if (res instanceof RawPointerType) {
+            return ((RawPointerType) res).getInner().resolve().isBase();
+        } else {
+            return false;
+        }
+    }
+
     public TypeElement resolve() {
         TypeElement rc = this;
         while (true) {

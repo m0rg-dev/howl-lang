@@ -160,9 +160,6 @@
                     "include": "#loops_conditionals"
                 },
                 {
-                    "include": "#fficall"
-                },
-                {
                     "include": "#let"
                 },
                 {
@@ -183,17 +180,6 @@
         "loops_conditionals": {
             "match": "(?<=\\W)(if|while)(?=\\W)",
             "name": "keyword.control"
-        },
-        "fficall": {
-            "match": "(fficall\\s+)([_A-Za-z0-9]+)",
-            "captures": {
-                "1": {
-                    "name": "keyword.control"
-                },
-                "2": {
-                    "name": "support.function"
-                }
-            }
         },
         "let": {
             "match": "(let\\s+)([*_A-Za-z0-9<>,\\s]+\\s+)([_A-Za-z0-9]+)",

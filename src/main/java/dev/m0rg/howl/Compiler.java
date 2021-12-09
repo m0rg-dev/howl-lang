@@ -24,6 +24,8 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.cst.CSTImporter;
+import dev.m0rg.howl.lint.ExternFunctionBaseTypesOnly;
+import dev.m0rg.howl.lint.ExternFunctionNoAliasing;
 import dev.m0rg.howl.llvm.LLVMContext;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
@@ -127,9 +129,15 @@ public class Compiler {
         cc.root_module.transform(new AddNumericCasts());
         cc.root_module.transform(new AddInterfaceCasts());
 
+        cc.root_module.transform(new ExternFunctionBaseTypesOnly());
+        cc.root_module.transform(new ExternFunctionNoAliasing());
+
+        List<LLVMModule> modules = new ArrayList<>();
         if (cc.successful) {
             LLVMContext context = new LLVMContext();
-            List<LLVMModule> modules = cc.root_module.generate(context, true);
+            modules = cc.root_module.generate(context, true);
+        }
+        if (cc.successful) {
             for (LLVMModule module : modules) {
                 Files.createDirectories(FileSystems.getDefault().getPath("howl_target"));
                 Files.writeString(FileSystems.getDefault().getPath("howl_target", module.getName() + ".ll"),

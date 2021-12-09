@@ -2,8 +2,10 @@
 class Pointer<T> {
     *T value;
 
+    extern fn *i8 malloc(i64 size);
+
     fn void constructor(T value) {
-        !pointer_assign(fficall malloc(!sizeof(self.value[0])), self.value);
+        !pointer_assign(Self.malloc(!sizeof(self.value[0])), self.value);
         self.value[0] = value;
     }
 
