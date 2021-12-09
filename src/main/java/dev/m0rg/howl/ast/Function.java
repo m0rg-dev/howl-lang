@@ -154,6 +154,10 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         return is_static;
     }
 
+    public boolean isExtern() {
+        return is_extern;
+    }
+
     public LLVMFunction generate(LLVMModule module) {
         LLVMFunctionType type = (LLVMFunctionType) this.getOwnType().resolve().generate(module);
         if (this.is_extern) {
