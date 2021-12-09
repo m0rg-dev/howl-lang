@@ -31,7 +31,7 @@ import dev.m0rg.howl.transform.ResolveNames;
 import dev.m0rg.howl.transform.ResolveOverloads;
 
 public class Compiler {
-    final String[] frontend_command = { "../howl-rs/target/debug/howl-rs", "--root-module", "h" };
+    final String[] frontend_command = { "../howl-rs/target/debug/howl-rs" };
 
     Module root_module;
     boolean successful = true;
@@ -68,6 +68,7 @@ public class Compiler {
             }
         } else {
             System.err.println("Parse failed with code " + exit);
+            System.err.write(frontend.getErrorStream().readAllBytes());
             System.exit(1);
         }
     }

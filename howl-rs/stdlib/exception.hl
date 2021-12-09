@@ -1,7 +1,0 @@
-class Exception {
-    String message;
-
-    fn void constructor(String message) {
-        self.message = message;
-    }
-}

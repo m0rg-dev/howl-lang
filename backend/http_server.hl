@@ -15,6 +15,5 @@ class SillyHTTPServer implements SocketServer {
 static fn i32 Main() {
     let InetSocket listener = new InetSocket(8080, 0);
     listener.serve(5, new SillyHTTPServer());
-
     return 0;
 }
