@@ -7,7 +7,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Module;
@@ -32,17 +43,21 @@ import dev.m0rg.howl.transform.ResolveOverloads;
 
 public class Compiler {
     final String[] frontend_command = { "./howl-rs/target/debug/howl-rs" };
+    public static CommandLine cmd;
 
     Module root_module;
+    List<CompilationError> errors;
+    Set<CompilationError> errors_displayed;
     boolean successful = true;
 
     Compiler() {
         this.root_module = new Module("root");
+        this.errors = new LinkedList<>();
+        this.errors_displayed = new HashSet<>();
     }
 
     public void addError(CompilationError e) {
-        Logger.error(e.message);
-        System.err.println(e);
+        errors.add(e);
         successful = false;
     }
 
@@ -74,6 +89,22 @@ public class Compiler {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        Options options = new Options();
+        Option logTrace = new Option("trace", "Enable TRACE level logging (extremely verbose)");
+        options.addOption(logTrace);
+
+        CommandLineParser opt_parser = new DefaultParser();
+        HelpFormatter formatter = new HelpFormatter();
+
+        try {
+            cmd = opt_parser.parse(options, args);
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            formatter.printHelp("howlc", options);
+
+            System.exit(1);
+        }
+
         Compiler cc = new Compiler();
 
         File stdlib = new File("stdlib/");
@@ -96,14 +127,22 @@ public class Compiler {
         cc.root_module.transform(new AddNumericCasts());
         cc.root_module.transform(new AddInterfaceCasts());
 
-        System.err.println(cc.root_module.format());
-
-        LLVMContext context = new LLVMContext();
-        List<LLVMModule> modules = cc.root_module.generate(context, true);
-        for (LLVMModule module : modules) {
-            Files.createDirectories(FileSystems.getDefault().getPath("howl_target"));
-            Files.writeString(FileSystems.getDefault().getPath("howl_target", module.getName() + ".ll"),
-                    module.toString());
+        if (cc.successful) {
+            LLVMContext context = new LLVMContext();
+            List<LLVMModule> modules = cc.root_module.generate(context, true);
+            for (LLVMModule module : modules) {
+                Files.createDirectories(FileSystems.getDefault().getPath("howl_target"));
+                Files.writeString(FileSystems.getDefault().getPath("howl_target", module.getName() + ".ll"),
+                        module.toString());
+            }
+        } else {
+            for (CompilationError e : cc.errors) {
+                if (cc.errors_displayed.contains(e))
+                    continue;
+                System.err.println(e.format());
+                cc.errors_displayed.add(e);
+            }
+            Logger.error("(compilation aborted due to errors)");
         }
     }
 }

@@ -19,7 +19,8 @@ import dev.m0rg.howl.logger.Logger;
 public class ResolveOverloads implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof FunctionCallExpression && !((FunctionCallExpression) e).isResolved()) {
-            Expression source = ((FunctionCallExpression) e).getSource();
+            FunctionCallExpression as_call = (FunctionCallExpression) e;
+            Expression source = as_call.getSource();
             if (source instanceof FieldReferenceExpression) {
                 FieldReferenceExpression frex = (FieldReferenceExpression) source;
                 TypeElement source_type = frex.getSource().getResolvedType();
@@ -27,7 +28,7 @@ public class ResolveOverloads implements ASTTransformer {
                     Logger.trace("ResolveOverloads " + frex.getSource().format() + " -> " + frex.getName());
                     Logger.trace("  source type " + source_type.format());
                     List<String> argument_types = new ArrayList<>();
-                    for (Expression arg : ((FunctionCallExpression) e).getArguments()) {
+                    for (Expression arg : as_call.getArguments()) {
                         argument_types.add(arg.getResolvedType().format());
                     }
                     Logger.trace("  argument types " + String.join(", ", argument_types));
@@ -46,15 +47,11 @@ public class ResolveOverloads implements ASTTransformer {
                     for (Function candidate : candidates) {
                         List<String> candidate_types = new ArrayList<>();
                         boolean all_match = true;
-                        if ((((FunctionType) candidate.getOwnType()).getArgumentTypes())
-                                .size() == ((FunctionCallExpression) e).getArguments().size()) {
-                            for (int i = 0; i < (((FunctionType) candidate.getOwnType()).getArgumentTypes())
-                                    .size(); i++) {
-                                TypeElement argtype = (((FunctionType) candidate.getOwnType()).getArgumentTypes())
-                                        .get(i)
-                                        .resolve();
-                                TypeElement sourcearg = ((FunctionCallExpression) e).getArguments().get(i)
-                                        .getResolvedType();
+                        List<TypeElement> argtypes = candidate.getOwnType().getArgumentTypes();
+                        if (argtypes.size() == as_call.getArguments().size()) {
+                            for (int i = 0; i < argtypes.size(); i++) {
+                                TypeElement argtype = argtypes.get(i).resolve();
+                                TypeElement sourcearg = as_call.getArguments().get(i).getResolvedType();
                                 if (argtype.accepts(sourcearg)) {
                                     candidate_types.add(argtype.format() + " \u001b[32m✔︎\u001b[0m");
                                 } else {
@@ -75,6 +72,44 @@ public class ResolveOverloads implements ASTTransformer {
                         Logger.trace("  ambiguous.");
                     } else if (matches.size() == 0) {
                         Logger.trace("  invalid.");
+                        List<String> description = new ArrayList<>(candidates.size() + 1);
+                        description.add("Argument types: " + String.join(", ", argument_types));
+                        for (Function candidate : candidates) {
+                            FunctionType t = candidate.getOwnType();
+                            StringBuilder this_line = new StringBuilder();
+                            this_line.append("candidate: ");
+                            this_line.append(candidate.getOriginalName());
+                            this_line.append("(");
+
+                            List<TypeElement> argtypes = t.getArgumentTypes();
+                            List<String> args_formatted = new ArrayList<>();
+
+                            for (int i = 0; i < argtypes.size(); i++) {
+                                TypeElement argtype = argtypes.get(i);
+                                if (i < as_call.getArguments().size()) {
+                                    TypeElement sourcearg = as_call.getArguments().get(i).getResolvedType();
+                                    if (argtype.resolve().accepts(sourcearg)) {
+                                        args_formatted.add("\u001b[32m" + argtype.format() + "\u001b[0m");
+                                    } else {
+                                        args_formatted.add("\u001b[31m" + argtype.format() + "\u001b[0m");
+                                    }
+                                } else {
+                                    args_formatted.add("\u001b[33m" + argtype.format() + "\u001b[0m");
+                                }
+                            }
+
+                            if (argtypes.size() < as_call.getArguments().size()) {
+                                for (int i = argtypes.size(); i < as_call.getArguments().size(); i++) {
+                                    args_formatted
+                                            .add("\u001b[35m" + as_call.getArguments().get(i).format() + "\u001b[0m");
+                                }
+                            }
+
+                            this_line.append(String.join(", ", args_formatted));
+                            this_line.append(")");
+                            description.add(this_line.toString());
+                        }
+                        e.getSpan().addError("No valid overload found", String.join("\n", description));
                     } else {
                         Logger.trace("  resolved to " + matches.get(0).getName() + ".");
 

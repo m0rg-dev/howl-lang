@@ -63,8 +63,10 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
             if (f.isPresent()) {
                 return f.get().getOwnType();
             } else {
-                span.addError("Attempt to access nonexistent field `" + name + "' on " + ct.format(),
-                        "available fields are: " + String.join(", ", ct.getFieldNames()));
+                // TODO
+                // span.addError("Attempt to access nonexistent field `" + name + "' on " +
+                // ct.format(),
+                // "available fields are: " + String.join(", ", ct.getFieldNames()));
                 return new NamedType(span, "__error");
             }
         } else {

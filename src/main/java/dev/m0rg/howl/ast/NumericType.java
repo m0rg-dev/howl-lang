@@ -50,11 +50,6 @@ public class NumericType extends NamedType {
     }
 
     @Override
-    public String format() {
-        return "'" + this.name + " \u001b[34m/* numeric */\u001b[0m";
-    }
-
-    @Override
     public ASTElement detach() {
         return new NumericType(span, name, width, signed, is_literal);
     }

@@ -1,11 +1,14 @@
 package dev.m0rg.howl.logger;
 
-public class Logger {
+import dev.m0rg.howl.Compiler;
 
+public class Logger {
     public static void log(LogLevel level, String message) {
         switch (level) {
             case Trace:
-                System.err.println("\u001b[34mTRACE\u001b[0m " + message);
+                if (Compiler.cmd.hasOption("trace")) {
+                    System.err.println("\u001b[34mTRACE\u001b[0m " + message);
+                }
                 break;
             case Error:
                 System.err.println("\u001b[31mERROR\u001b[0m " + message);

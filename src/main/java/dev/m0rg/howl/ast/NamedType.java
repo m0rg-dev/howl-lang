@@ -55,18 +55,24 @@ public class NamedType extends TypeElement {
 
     @Override
     public String format() {
-        String resolution = "\u001b[31m/* = <unresolved> */\u001b[0m";
-        if (this.name.equals("__error")) {
-            resolution = "\u001b[31;1m/* error */\u001b[0m";
-        } else if (base_types.contains(this.name)) {
-            resolution = "\u001b[34m/* base */\u001b[0m";
-        } else {
-            Optional<ASTElement> target = this.resolveName(this.name);
-            if (target.isPresent()) {
-                resolution = "\u001b[32m/* = " + target.get().getPath() + " */\u001b[0m";
-            }
+        if (this.name.equals("__numeric")) {
+            return "<numeric constant>";
         }
-        return "'" + this.name + " " + resolution;
+
+        if (this.name.equals("__error")) {
+            return "<error>";
+        }
+
+        if (base_types.contains(this.name)) {
+            return this.name;
+        }
+
+        Optional<ASTElement> target = this.resolveName(this.name);
+        if (target.isPresent()) {
+            return target.get().getPath();
+        }
+
+        return this.name + "?";
     }
 
     public boolean isBase() {
