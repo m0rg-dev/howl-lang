@@ -66,23 +66,10 @@
             <archive>
               <manifest>
                 <addClasspath>true</addClasspath>
-                <classpathPrefix>lib/</classpathPrefix>
+                <classpathPrefix>dependency/</classpathPrefix>
                 <mainClass>dev.m0rg.howl.Compiler</mainClass>
               </manifest>
             </archive>
-          </configuration>
-        </plugin>
-        <plugin>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <configuration>
-            <archive>
-              <manifest>
-                <mainClass>dev.m0rg.howl.Compiler</mainClass>
-              </manifest>
-            </archive>
-            <descriptorRefs>
-              <descriptorRef>jar-with-dependencies</descriptorRef>
-            </descriptorRefs>
           </configuration>
         </plugin>
         <plugin>

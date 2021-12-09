@@ -1,11 +1,13 @@
 A prototype programming language. Shades of Java, but compiles to LLVM IR.
 
 ```
-$ npm install
 $ make
-$ ./howl-<platform> test_packages/hello
-$ ./test_packages/hello/target/bin/hello
-Awoooooooo~!
+$ java -jar target/howlc-1.0-SNAPSHOT.jar test.hl
+$ cc -o test howl_target/*.ll hrt0.c -Wno-override-module
+$ ./test
+Hello, World!
 ```
 
-Most of the "interesting" syntax is in `assets/lib/*.hl` for now. Documentation is coming...
+Requires Rust, Java 1.17, and Maven (at least).
+
+Language documentation is coming.
