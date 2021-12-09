@@ -48,7 +48,8 @@ public class StringLiteral extends Expression {
         // TODO
         LLVMConstant string = builder.getModule().stringConstant(contents
                 .substring(1, contents.length() - 1)
-                .replaceAll("(?<!\\\\)\\\\n", "\n"));
+                .replaceAll("(?<!\\\\)\\\\n", "\n")
+                .replaceAll("(?<!\\\\)\\\\r", "\r"));
         LLVMValue temp = builder.buildAlloca(string.getType(), "");
         builder.buildStore(string, temp);
         return builder.buildBitcast(temp, new LLVMPointerType<LLVMType>(new LLVMIntType(builder.getContext(), 8)), "");

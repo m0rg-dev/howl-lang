@@ -291,7 +291,7 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
             }
             LLVMType this_structure_type = this.getOwnType().generate(module);
             LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, argtypes);
-            allocator = new LLVMFunction(module, this.getPath() + "_alloc", allocator_type);
+            allocator = module.getOrInsertFunction(allocator_type, this.getPath() + "_alloc", f -> f.setExternal());
         }
     }
 

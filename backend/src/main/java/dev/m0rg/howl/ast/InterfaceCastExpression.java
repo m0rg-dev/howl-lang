@@ -4,6 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMGlobalVariable;
+import dev.m0rg.howl.llvm.LLVMIntType;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMValue;
 
 public class InterfaceCastExpression extends Expression {
@@ -59,6 +63,24 @@ public class InterfaceCastExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        throw new UnsupportedOperationException();
+        ClassType source_type = (ClassType) source.getResolvedType();
+        LLVMValue source_alloca = builder.buildAlloca(source_type.generate(builder.getModule()), "");
+        builder.buildStore(source.generate(builder), source_alloca);
+        LLVMValue source_object_pointer = builder.buildStructGEP(source_type.generate(builder.getModule()),
+                source_alloca, 0,
+                "");
+        LLVMValue target_alloca = builder.buildAlloca(this.target.resolve().generate(builder.getModule()), "");
+        LLVMValue target_object_pointer = builder.buildStructGEP(this.target.resolve().generate(builder.getModule()),
+                target_alloca, 0, "");
+        LLVMValue target_stable_pointer = builder.buildStructGEP(this.target.resolve().generate(builder.getModule()),
+                target_alloca, 1, "");
+        InterfaceType res = (InterfaceType) target.resolve();
+        LLVMStructureType itable_type = res.getSource().getStaticType().generate(builder.getModule());
+        LLVMGlobalVariable itable = builder.getModule().getOrInsertGlobal(itable_type,
+                source_type.getSource().getPath() + "_interface_" + res.getSource().getPath());
+        builder.buildStore(builder.buildBitcast(source_object_pointer,
+                new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)), ""), target_object_pointer);
+        builder.buildStore(itable, target_stable_pointer);
+        return builder.buildLoad(target_alloca, "");
     }
 }
