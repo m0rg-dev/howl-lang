@@ -1,13 +1,12 @@
 package dev.m0rg.howl.ast;
 
-import java.util.Map;
-
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMUndefinedValue;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
-public abstract class Expression extends ASTElement {
+public abstract class Expression extends ASTElement implements HasUpstreamFields {
     public Expression(Span span) {
         super(span);
     }
@@ -20,9 +19,8 @@ public abstract class Expression extends ASTElement {
         return this.getType().resolve();
     }
 
-    public abstract Map<String, FieldHandle> getUpstreamFields();
-
     public LLVMValue generate(LLVMBuilder b) {
+        Logger.error("le i1 undef has arrived  " + this.format());
         return new LLVMUndefinedValue(new LLVMIntType(b.getContext(), 1));
     }
 

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 
+import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMModule;
@@ -150,6 +151,13 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
             if (this.body.isPresent()) {
                 f.appendBasicBlock("entry");
                 this.body.get().generate(f);
+
+                if (this.rc instanceof NamedType && ((NamedType) this.rc).getName().equals("void")) {
+                    try (LLVMBuilder builder = new LLVMBuilder(f.getModule())) {
+                        builder.positionAtEnd(f.lastBasicBlock());
+                        builder.buildReturn();
+                    }
+                }
             }
         });
         return rc;

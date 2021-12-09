@@ -3,6 +3,7 @@ package dev.m0rg.howl;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,6 +18,7 @@ import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
 import dev.m0rg.howl.transform.AddInterfaceCasts;
+import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
@@ -86,6 +88,7 @@ public class Compiler {
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());
+        cc.root_module.transform(new AddNumericCasts());
         cc.root_module.transform(new AddInterfaceCasts());
 
         System.err.println(cc.root_module.format());
@@ -93,7 +96,9 @@ public class Compiler {
         LLVMContext context = new LLVMContext();
         List<LLVMModule> modules = cc.root_module.generate(context);
         for (LLVMModule module : modules) {
-            module.dump();
+            Files.createDirectories(FileSystems.getDefault().getPath("howl_target"));
+            Files.writeString(FileSystems.getDefault().getPath("howl_target", module.getName() + ".ll"),
+                    module.toString());
         }
     }
 }

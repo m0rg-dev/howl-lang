@@ -8,6 +8,7 @@ class SillyHTTPServer implements SocketServer {
         
         // lol
         fficall free(req_buf);
+        return;
     }
 }
 

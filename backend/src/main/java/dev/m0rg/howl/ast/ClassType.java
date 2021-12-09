@@ -68,7 +68,7 @@ public class ClassType extends TypeElement implements StructureType {
         }
     }
 
-    LLVMStructureType generateObjectType(LLVMModule module) {
+    public LLVMStructureType generateObjectType(LLVMModule module) {
         return module.getContext().getOrCreateStructureType(this.getSource().getPath() + "_object", () -> {
             List<LLVMType> contents = new ArrayList<>();
             for (String name : this.getSource().getFieldNames()) {

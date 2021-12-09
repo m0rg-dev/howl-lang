@@ -1,13 +1,6 @@
 package dev.m0rg.howl.llvm;
 
-import static org.bytedeco.llvm.global.LLVM.LLVMAddGlobalInAddressSpace;
-import static org.bytedeco.llvm.global.LLVM.LLVMDisposeMessage;
-import static org.bytedeco.llvm.global.LLVM.LLVMDumpModule;
-import static org.bytedeco.llvm.global.LLVM.LLVMGetNamedFunction;
-import static org.bytedeco.llvm.global.LLVM.LLVMGetNamedGlobal;
-import static org.bytedeco.llvm.global.LLVM.LLVMModuleCreateWithNameInContext;
-import static org.bytedeco.llvm.global.LLVM.LLVMPrintMessageAction;
-import static org.bytedeco.llvm.global.LLVM.LLVMVerifyModule;
+import static org.bytedeco.llvm.global.LLVM.*;
 
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
@@ -60,7 +53,7 @@ public class LLVMModule {
         this.getOrInsertFunction(new LLVMFunctionType(new LLVMIntType(context, 32), Arrays.asList(new LLVMType[] {
                 new LLVMIntType(context, 32),
                 new LLVMPointerType<>(new LLVMIntType(context, 8)),
-                new LLVMPointerType<>(new LLVMIntType(context, 8)),
+                new LLVMPointerType<>(new LLVMIntType(context, 32)),
         })), "accept", f -> f.setExternal());
 
         this.getOrInsertFunction(new LLVMFunctionType(new LLVMPointerType<>(new LLVMIntType(context, 8)),
@@ -119,5 +112,16 @@ public class LLVMModule {
             return false;
         }
         return true;
+    }
+
+    public LLVMConstant stringConstant(String s) {
+        return new LLVMConstant(LLVMConstStringInContext(this.getContext().getInternal(), s, s.length(), 0));
+    }
+
+    public String toString() {
+        BytePointer p = LLVMPrintModuleToString(obj);
+        String rc = new String(p.getString());
+        LLVMDisposeMessage(p);
+        return rc;
     }
 }

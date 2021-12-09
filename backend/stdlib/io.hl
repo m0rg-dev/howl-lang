@@ -1,6 +1,7 @@
 class IO {
     static fn void print(String s) {
-        fficall write(1, s.contents.value, s.contents.length);
+        let i32 fd = 1;
+        fficall write(fd, s.contents.value, s.contents.length);
     }
 
     static fn void println(String s) {

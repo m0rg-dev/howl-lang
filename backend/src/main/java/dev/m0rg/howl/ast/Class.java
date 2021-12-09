@@ -29,6 +29,8 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     Map<String, NewType> generic_types;
     List<Function> methods;
 
+    LLVMFunction allocator;
+
     public Class(Span span, String name, List<String> generics) {
         super(span);
         this.name = name;
@@ -155,6 +157,13 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         return rc;
     }
 
+    public Optional<Function> getConstructor() {
+        List<Function> c = getOverloadCandidates("constructor");
+        if (c.isEmpty())
+            return Optional.empty();
+        return Optional.of(c.get(0));
+    }
+
     public void insertMethod(Function method) {
         List<Argument> args = method.getArgumentList();
         StringBuilder mangled_name = new StringBuilder("_Z");
@@ -267,8 +276,16 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     public void generate(LLVMModule module) {
         if (this.generics.isEmpty()) {
             LLVMType this_structure_type = this.getOwnType().generate(module);
-            LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, new ArrayList<>());
-            LLVMFunction allocator = new LLVMFunction(module, this.getPath() + "_alloc", allocator_type);
+            List<LLVMType> argtypes = new ArrayList<>();
+            Optional<Function> constructor = this.getConstructor();
+            if (constructor.isPresent()) {
+                for (Argument a : constructor.get().getArgumentList().subList(1,
+                        constructor.get().getArgumentList().size())) {
+                    argtypes.add(a.getOwnType().resolve().generate(module));
+                }
+            }
+            LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, argtypes);
+            allocator = new LLVMFunction(module, this.getPath() + "_alloc", allocator_type);
         }
     }
 

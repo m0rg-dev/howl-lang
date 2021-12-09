@@ -1,13 +1,6 @@
 package dev.m0rg.howl.llvm;
 
-import static org.bytedeco.llvm.global.LLVM.LLVMBuildAlloca;
-import static org.bytedeco.llvm.global.LLVM.LLVMBuildCall;
-import static org.bytedeco.llvm.global.LLVM.LLVMBuildLoad;
-import static org.bytedeco.llvm.global.LLVM.LLVMBuildStore;
-import static org.bytedeco.llvm.global.LLVM.LLVMBuildStructGEP2;
-import static org.bytedeco.llvm.global.LLVM.LLVMCreateBuilderInContext;
-import static org.bytedeco.llvm.global.LLVM.LLVMDisposeBuilder;
-import static org.bytedeco.llvm.global.LLVM.LLVMPositionBuilderAtEnd;
+import static org.bytedeco.llvm.global.LLVM.*;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -15,6 +8,7 @@ import java.util.List;
 import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.PointerPointer;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
+import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 public class LLVMBuilder implements AutoCloseable {
     LLVMBuilderRef obj;
@@ -49,6 +43,11 @@ public class LLVMBuilder implements AutoCloseable {
         return LLVMValue.build(this.getModule(), LLVMBuildAlloca(this.getInternal(), type.getInternal(), name));
     }
 
+    public LLVMValue buildBitcast(LLVMValue source, LLVMType type, String name) {
+        return LLVMValue.build(this.getModule(),
+                LLVMBuildBitCast(this.getInternal(), source.getInternal(), type.getInternal(), name));
+    }
+
     public LLVMValue buildCall(LLVMValue f, List<LLVMValue> args, String name) {
         LLVMType source_type = f.getType();
         if (!(source_type instanceof LLVMPointerType)) {
@@ -81,8 +80,30 @@ public class LLVMBuilder implements AutoCloseable {
         return LLVMValue.build(this.getModule(), LLVMBuildLoad(this.getInternal(), source.getInternal(), name));
     }
 
+    public LLVMValue buildReturn() {
+        return LLVMValue.build(this.getModule(), LLVMBuildRetVoid(this.getInternal()));
+    }
+
+    public LLVMValue buildReturn(LLVMValue source) {
+        return LLVMValue.build(this.getModule(), LLVMBuildRet(this.getInternal(), source.getInternal()));
+    }
+
     public LLVMValue buildStore(LLVMValue source, LLVMValue dest) {
         return LLVMValue.build(this.getModule(),
                 LLVMBuildStore(this.getInternal(), source.getInternal(), dest.getInternal()));
+    }
+
+    public LLVMValue buildTruncOrBitCast(LLVMValue source, LLVMType dest, String name) {
+        return LLVMValue.build(this.getModule(),
+                LLVMBuildTruncOrBitCast(this.getInternal(), source.getInternal(), dest.getInternal(), name));
+    }
+
+    public LLVMValue buildSizeofHack(LLVMType el) {
+        LLVMType p = new LLVMPointerType<>(el);
+        PointerPointer<Pointer> crud = new PointerPointer<>(1);
+        crud.put(0, LLVMConstInt(LLVMInt32Type(), 1, 0));
+        LLVMValueRef sizeptr = LLVMBuildGEP2(this.getInternal(), el.getInternal(), LLVMConstNull(p.getInternal()), crud,
+                1, "");
+        return LLVMValue.build(this.getModule(), LLVMBuildPtrToInt(this.getInternal(), sizeptr, LLVMInt32Type(), ""));
     }
 }

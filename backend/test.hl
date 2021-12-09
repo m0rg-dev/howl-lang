@@ -1,0 +1,4 @@
+fn i32 Main() {
+    lib.IO.println("Hello, World!\n");
+    return 0;
+}

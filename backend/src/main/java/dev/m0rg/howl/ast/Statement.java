@@ -10,4 +10,11 @@ public abstract class Statement extends ASTElement {
     public void generate(LLVMFunction f) {
         // TODO
     }
+
+    public Function getContainingFunction() {
+        ASTElement p = this.getParent();
+        while (!(p instanceof Function))
+            p = p.getParent();
+        return (Function) p;
+    }
 }

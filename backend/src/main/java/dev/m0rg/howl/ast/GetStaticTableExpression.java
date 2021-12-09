@@ -64,7 +64,7 @@ public class GetStaticTableExpression extends Expression {
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
         TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof ClassType) {
+        if (source_type instanceof ClassType || source_type instanceof InterfaceType) {
             Logger.trace("Loading static table. Source is " + this.source.format());
             LLVMValue src_value = builder.buildAlloca(source_type.generate(builder.getModule()), "");
             builder.buildStore(source.generate(builder), src_value);

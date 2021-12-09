@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
@@ -91,15 +92,16 @@ public class FieldReferenceExpression extends Expression {
             LLVMValue src;
 
             if (source_type instanceof ClassType) {
-                src = builder.buildAlloca(source_type.generate(builder.getModule()), "");
-                builder.buildStore(source.generate(builder), src);
+                LLVMValue temp = builder.buildAlloca(source_type.generate(builder.getModule()), "");
+                builder.buildStore(source.generate(builder), temp);
+                src = builder.buildLoad(builder.buildStructGEP(source_type.generate(builder.getModule()), temp, 0, ""),
+                        "");
             } else {
                 src = source.generate(builder);
             }
-            LLVMType element_type = source.getResolvedType().generate(builder.getModule());
-
-            LLVMValue rc = builder.buildLoad(
-                    builder.buildStructGEP(element_type, src, index, ""), "");
+            @SuppressWarnings("unchecked")
+            LLVMPointerType<LLVMType> t = (LLVMPointerType<LLVMType>) src.getType();
+            LLVMValue rc = builder.buildLoad(builder.buildStructGEP(t.getInner(), src, index, ""), "");
 
             return rc;
         } else {

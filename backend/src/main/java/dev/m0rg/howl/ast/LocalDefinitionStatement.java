@@ -1,10 +1,13 @@
 package dev.m0rg.howl.ast;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMValue;
 
-public class LocalDefinitionStatement extends Statement implements NamedElement, HasOwnType {
+public class LocalDefinitionStatement extends Statement implements NamedElement, HasOwnType, HasUpstreamFields {
     TypeElement localtype;
     Expression initializer;
     String name;
@@ -29,6 +32,10 @@ public class LocalDefinitionStatement extends Statement implements NamedElement,
         return "let " + this.localtype.format() + " " + this.name + " = " + this.initializer.format() + ";";
     }
 
+    public Expression getInitializer() {
+        return initializer;
+    }
+
     public void setInitializer(Expression initializer) {
         this.initializer = (Expression) initializer.setParent(this);
     }
@@ -50,6 +57,14 @@ public class LocalDefinitionStatement extends Statement implements NamedElement,
         this.setLocaltype(t.transform(localtype));
         initializer.transform(t);
         this.setInitializer(t.transform(initializer));
+    }
+
+    @Override
+    public Map<String, FieldHandle> getUpstreamFields() {
+        HashMap<String, FieldHandle> rc = new HashMap<>();
+        rc.put("initializer", new FieldHandle(() -> this.getInitializer(), (e) -> this.setInitializer(e),
+                () -> (TypeElement) this.localtype.detach()));
+        return rc;
     }
 
     @Override

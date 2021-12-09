@@ -18,6 +18,8 @@ public abstract class LLVMType {
                 return new LLVMFunctionType(source);
             case LLVMStructTypeKind:
                 return new LLVMStructureType(source);
+            case LLVMArrayTypeKind:
+                return new LLVMArrayType(source);
             case LLVMPointerTypeKind:
                 return new LLVMPointerType<LLVMType>(source);
             default:

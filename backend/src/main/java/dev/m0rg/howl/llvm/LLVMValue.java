@@ -19,6 +19,7 @@ public abstract class LLVMValue {
             case LLVMGlobalVariableValueKind:
                 return new LLVMGlobalVariable(source);
             case LLVMConstantExprValueKind:
+            case LLVMConstantDataArrayValueKind:
             case LLVMConstantIntValueKind:
                 return new LLVMConstant(source);
             case LLVMInstructionValueKind:

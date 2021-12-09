@@ -3,6 +3,13 @@ package dev.m0rg.howl.ast;
 import java.util.HashMap;
 import java.util.Map;
 
+import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMConstant;
+import dev.m0rg.howl.llvm.LLVMIntType;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMType;
+import dev.m0rg.howl.llvm.LLVMValue;
+
 public class StringLiteral extends Expression {
     String contents;
 
@@ -34,5 +41,13 @@ public class StringLiteral extends Expression {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         return rc;
+    }
+
+    @Override
+    public LLVMValue generate(LLVMBuilder builder) {
+        LLVMConstant string = builder.getModule().stringConstant(contents);
+        LLVMValue temp = builder.buildAlloca(string.getType(), "");
+        builder.buildStore(string, temp);
+        return builder.buildBitcast(temp, new LLVMPointerType<LLVMType>(new LLVMIntType(builder.getContext(), 8)), "");
     }
 }

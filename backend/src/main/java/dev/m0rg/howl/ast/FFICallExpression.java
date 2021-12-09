@@ -8,6 +8,9 @@ import java.util.Optional;
 
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
+import dev.m0rg.howl.llvm.LLVMIntType;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
 
@@ -54,6 +57,18 @@ public class FFICallExpression extends CallExpressionBase {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
+        // le epic hack XD
+        if (this.name.equals("sizeof")) {
+            return builder.buildSizeofHack(this.args.get(0).getResolvedType().generate(builder.getModule()));
+        } else if (this.name.equals("__get_object_pointer")) {
+            // TODO this especially does not need to live here
+            // idea is to turn a *someclass into a *i8 pointing to its object
+            // we'll just cast it to a **i8 and deref accordingly
+            LLVMType ppi8 = new LLVMPointerType<>(new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)));
+            LLVMValue cast = builder.buildBitcast(this.args.get(0).generate(builder), ppi8, "");
+            return builder.buildLoad(cast, "");
+        }
+
         Optional<LLVMFunction> callee = builder.getModule().getFunction(this.name);
         if (callee.isPresent()) {
             List<LLVMValue> args = new ArrayList<>(this.args.size());
