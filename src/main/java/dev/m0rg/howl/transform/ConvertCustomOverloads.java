@@ -2,14 +2,14 @@ package dev.m0rg.howl.transform;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.ArithmeticExpression;
-import dev.m0rg.howl.ast.Expression;
-import dev.m0rg.howl.ast.FieldReferenceExpression;
-import dev.m0rg.howl.ast.FunctionCallExpression;
-import dev.m0rg.howl.ast.IndexExpression;
-import dev.m0rg.howl.ast.NumericType;
-import dev.m0rg.howl.ast.RawPointerType;
-import dev.m0rg.howl.ast.TypeElement;
+import dev.m0rg.howl.ast.expression.ArithmeticExpression;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
+import dev.m0rg.howl.ast.expression.FunctionCallExpression;
+import dev.m0rg.howl.ast.expression.IndexExpression;
+import dev.m0rg.howl.ast.type.NumericType;
+import dev.m0rg.howl.ast.type.RawPointerType;
+import dev.m0rg.howl.ast.type.TypeElement;
 
 public class ConvertCustomOverloads implements ASTTransformer {
     public ASTElement transform(ASTElement e) {

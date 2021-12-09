@@ -2,14 +2,14 @@ package dev.m0rg.howl.transform;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.AssignmentStatement;
-import dev.m0rg.howl.ast.Expression;
-import dev.m0rg.howl.ast.FieldReferenceExpression;
-import dev.m0rg.howl.ast.FunctionCallExpression;
-import dev.m0rg.howl.ast.IndexExpression;
-import dev.m0rg.howl.ast.RawPointerType;
-import dev.m0rg.howl.ast.SimpleStatement;
-import dev.m0rg.howl.ast.TypeElement;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
+import dev.m0rg.howl.ast.expression.FunctionCallExpression;
+import dev.m0rg.howl.ast.expression.IndexExpression;
+import dev.m0rg.howl.ast.statement.AssignmentStatement;
+import dev.m0rg.howl.ast.statement.SimpleStatement;
+import dev.m0rg.howl.ast.type.RawPointerType;
+import dev.m0rg.howl.ast.type.TypeElement;
 
 public class ConvertIndexLvalue implements ASTTransformer {
     public ASTElement transform(ASTElement e) {

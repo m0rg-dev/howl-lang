@@ -7,8 +7,8 @@ import java.util.Map;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Function;
-import dev.m0rg.howl.ast.FunctionType;
-import dev.m0rg.howl.ast.TypeElement;
+import dev.m0rg.howl.ast.type.FunctionType;
+import dev.m0rg.howl.ast.type.TypeElement;
 
 public class ExternFunctionNoAliasing extends LintPass {
     class Location {

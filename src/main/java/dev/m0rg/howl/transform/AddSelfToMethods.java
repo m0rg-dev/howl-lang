@@ -6,7 +6,7 @@ import dev.m0rg.howl.ast.Argument;
 import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Interface;
-import dev.m0rg.howl.ast.NamedType;
+import dev.m0rg.howl.ast.type.NamedType;
 
 public class AddSelfToMethods implements ASTTransformer {
     public ASTElement transform(ASTElement e) {

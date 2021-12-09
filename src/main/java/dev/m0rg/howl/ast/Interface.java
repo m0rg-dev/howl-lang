@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import dev.m0rg.howl.ast.type.HasOwnType;
+import dev.m0rg.howl.ast.type.InterfaceStaticType;
+import dev.m0rg.howl.ast.type.InterfaceType;
+
 public class Interface extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     String name;
     List<String> generics;

@@ -1,5 +1,10 @@
 package dev.m0rg.howl.ast;
 
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.statement.CompoundStatement;
+import dev.m0rg.howl.ast.statement.Statement;
+import dev.m0rg.howl.ast.type.TypeElement;
+
 public interface ASTTransformer {
     default Expression transform(Expression element) {
         ASTElement rc = this.transform((ASTElement) element);

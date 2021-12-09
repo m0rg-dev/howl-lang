@@ -7,9 +7,9 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NameHolder;
-import dev.m0rg.howl.ast.NamedType;
-import dev.m0rg.howl.ast.SpecifiedType;
-import dev.m0rg.howl.ast.TypeElement;
+import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.SpecifiedType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
 

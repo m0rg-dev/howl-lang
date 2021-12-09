@@ -2,12 +2,12 @@ package dev.m0rg.howl.transform;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.Expression;
-import dev.m0rg.howl.ast.FieldReferenceExpression;
-import dev.m0rg.howl.ast.FunctionCallExpression;
-import dev.m0rg.howl.ast.NameExpression;
-import dev.m0rg.howl.ast.NumberExpression;
-import dev.m0rg.howl.ast.StringLiteral;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
+import dev.m0rg.howl.ast.expression.FunctionCallExpression;
+import dev.m0rg.howl.ast.expression.NameExpression;
+import dev.m0rg.howl.ast.expression.NumberExpression;
+import dev.m0rg.howl.ast.expression.StringLiteral;
 
 public class ConvertStrings implements ASTTransformer {
     public ASTElement transform(ASTElement e) {

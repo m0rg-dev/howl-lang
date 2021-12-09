@@ -4,13 +4,13 @@ import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.ClassType;
-import dev.m0rg.howl.ast.Expression;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.HasUpstreamFields;
-import dev.m0rg.howl.ast.InterfaceCastExpression;
-import dev.m0rg.howl.ast.InterfaceType;
-import dev.m0rg.howl.ast.TypeElement;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.InterfaceCastExpression;
+import dev.m0rg.howl.ast.type.ClassType;
+import dev.m0rg.howl.ast.type.InterfaceType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.logger.Logger;
 
 public class AddInterfaceCasts implements ASTTransformer {

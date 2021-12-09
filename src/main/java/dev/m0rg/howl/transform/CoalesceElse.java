@@ -5,10 +5,10 @@ import java.util.List;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.CompoundStatement;
-import dev.m0rg.howl.ast.ElseStatement;
-import dev.m0rg.howl.ast.IfStatement;
-import dev.m0rg.howl.ast.Statement;
+import dev.m0rg.howl.ast.statement.CompoundStatement;
+import dev.m0rg.howl.ast.statement.ElseStatement;
+import dev.m0rg.howl.ast.statement.IfStatement;
+import dev.m0rg.howl.ast.statement.Statement;
 
 public class CoalesceElse implements ASTTransformer {
     public ASTElement transform(ASTElement e) {

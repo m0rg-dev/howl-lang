@@ -4,13 +4,13 @@ import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.Expression;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.HasUpstreamFields;
-import dev.m0rg.howl.ast.NamedType;
-import dev.m0rg.howl.ast.NumericCastExpression;
-import dev.m0rg.howl.ast.NumericType;
-import dev.m0rg.howl.ast.TypeElement;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.NumericCastExpression;
+import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.NumericType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.logger.Logger;
 
 public class AddNumericCasts implements ASTTransformer {

@@ -6,6 +6,11 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 
+import dev.m0rg.howl.ast.statement.CompoundStatement;
+import dev.m0rg.howl.ast.type.FunctionType;
+import dev.m0rg.howl.ast.type.HasOwnType;
+import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;

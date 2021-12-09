@@ -5,9 +5,9 @@ import java.util.Map.Entry;
 import dev.m0rg.howl.CompilationError;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.Expression;
 import dev.m0rg.howl.ast.FieldHandle;
-import dev.m0rg.howl.ast.TypeElement;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.logger.Logger;
 
 public class CheckTypes implements ASTTransformer {

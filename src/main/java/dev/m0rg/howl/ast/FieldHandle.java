@@ -3,6 +3,9 @@ package dev.m0rg.howl.ast;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.type.TypeElement;
+
 public class FieldHandle {
     Supplier<Expression> _get;
     Consumer<Expression> _set;

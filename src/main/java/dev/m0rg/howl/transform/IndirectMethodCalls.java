@@ -2,14 +2,14 @@ package dev.m0rg.howl.transform;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.ClassType;
-import dev.m0rg.howl.ast.Expression;
-import dev.m0rg.howl.ast.FieldReferenceExpression;
-import dev.m0rg.howl.ast.FunctionCallExpression;
-import dev.m0rg.howl.ast.GetStaticTableExpression;
-import dev.m0rg.howl.ast.InterfaceType;
-import dev.m0rg.howl.ast.TemporaryExpression;
-import dev.m0rg.howl.ast.TypeElement;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
+import dev.m0rg.howl.ast.expression.FunctionCallExpression;
+import dev.m0rg.howl.ast.expression.GetStaticTableExpression;
+import dev.m0rg.howl.ast.expression.TemporaryExpression;
+import dev.m0rg.howl.ast.type.ClassType;
+import dev.m0rg.howl.ast.type.InterfaceType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.logger.Logger;
 
 public class IndirectMethodCalls implements ASTTransformer {

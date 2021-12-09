@@ -5,9 +5,9 @@ import java.util.List;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.Expression;
-import dev.m0rg.howl.ast.FieldReferenceExpression;
-import dev.m0rg.howl.ast.NameExpression;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
+import dev.m0rg.howl.ast.expression.NameExpression;
 
 public class ResolveNames implements ASTTransformer {
     public ASTElement transform(ASTElement e) {

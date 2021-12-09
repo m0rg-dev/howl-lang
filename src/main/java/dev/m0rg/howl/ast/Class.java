@@ -12,6 +12,13 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
+import dev.m0rg.howl.ast.type.ClassStaticType;
+import dev.m0rg.howl.ast.type.ClassType;
+import dev.m0rg.howl.ast.type.HasOwnType;
+import dev.m0rg.howl.ast.type.InterfaceType;
+import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.NewType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMFunction;
@@ -356,5 +363,9 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
                 builder.buildReturn(builder.buildLoad(alloca, ""));
             }
         }
+    }
+
+    public LLVMFunction getAllocator() {
+        return allocator;
     }
 }

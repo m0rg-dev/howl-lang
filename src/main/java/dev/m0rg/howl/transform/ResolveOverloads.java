@@ -5,15 +5,15 @@ import java.util.List;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.ClassStaticType;
-import dev.m0rg.howl.ast.Expression;
-import dev.m0rg.howl.ast.FieldReferenceExpression;
 import dev.m0rg.howl.ast.Function;
-import dev.m0rg.howl.ast.FunctionCallExpression;
-import dev.m0rg.howl.ast.FunctionType;
-import dev.m0rg.howl.ast.InterfaceStaticType;
-import dev.m0rg.howl.ast.StructureType;
-import dev.m0rg.howl.ast.TypeElement;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
+import dev.m0rg.howl.ast.expression.FunctionCallExpression;
+import dev.m0rg.howl.ast.type.ClassStaticType;
+import dev.m0rg.howl.ast.type.FunctionType;
+import dev.m0rg.howl.ast.type.InterfaceStaticType;
+import dev.m0rg.howl.ast.type.StructureType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.logger.Logger;
 
 public class ResolveOverloads implements ASTTransformer {

@@ -6,7 +6,7 @@ import java.util.Optional;
 
 public abstract class ASTElement {
     ASTElement parent;
-    Span span;
+    protected Span span;
 
     public ASTElement(Span span) {
         this.span = span;
