@@ -61,9 +61,11 @@ ClassBody -> Result<CSTElement<'input>, ()>:
 
 ClassBodyInner -> Result<Vec<CSTElement<'input>>, ()>:
     ClassField { Ok(vec![$1?]) }
+    | ExternFunctionHeader ';' { Ok(vec![$1?]) }
     | Function { Ok(vec![$1?]) }
     | ClassBodyInner ClassField { flatten($1, $2) }
     | ClassBodyInner Function { flatten($1, $2) }
+    | ClassBodyInner ExternFunctionHeader ';' { flatten($1, $2) }
     ;
 
 InterfaceHeader -> Result<CSTElement<'input>, ()>:
@@ -92,11 +94,26 @@ Function -> Result<CSTElement<'input>, ()>:
     }
     ;
 
+ExternFunctionHeader -> Result<CSTElement<'input>, ()>:
+    'EXTERN' 'FN' Type Identifier TypedArgumentList ThrowsList { 
+        Ok(CSTElement::FunctionDeclaration{
+            span: $span.into(),
+            is_static: false,
+            is_extern: true,
+            returntype: alloc($3?),
+            name: alloc($4?),
+            args: alloc($5?),
+            throws: $6?
+        })
+    }
+    ;
+
 FunctionHeader -> Result<CSTElement<'input>, ()>:
     'STATIC' 'FN' Type Identifier TypedArgumentList ThrowsList { 
         Ok(CSTElement::FunctionDeclaration{
             span: $span.into(),
             is_static: true,
+            is_extern: false,
             returntype: alloc($3?),
             name: alloc($4?),
             args: alloc($5?),
@@ -107,6 +124,7 @@ FunctionHeader -> Result<CSTElement<'input>, ()>:
         Ok(CSTElement::FunctionDeclaration{
             span: $span.into(),
             is_static: false,
+            is_extern: false,
             returntype: alloc($2?),
             name: alloc($3?),
             args: alloc($4?),
@@ -303,12 +321,6 @@ Expression3 -> Result<CSTElement<'input>, ()>:
     }
     | "NEW" Type ArgumentList {
         Ok(CSTElement::ConstructorCallExpression{span: $span.into(), source: alloc($2?), args: alloc($3?)})
-    }
-    | "FFICALL" 'identifier' ArgumentList {
-        match $2 {
-            Ok(_) => Ok(CSTElement::FFICallExpression{span: $span.into(), name: $lexer.span_str($2.as_ref().unwrap().span()).to_string(), args: alloc($3?)}),
-            Err(_) => Err(())
-        }
     }
     | "!" 'identifier' ArgumentList {
         match $2 {

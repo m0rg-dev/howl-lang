@@ -1,13 +1,29 @@
 class IO {
     static fn void print(String s) {
-        let i32 fd = 1;
-        fficall write(fd, s.contents.value, s.contents.length);
+        RawIO.write(1, s.contents.value, s.contents.length);
     }
 
     static fn void println(String s) {
         IO.print(s);
         IO.print("\n");
     }
+}
+
+class RawIO {
+    extern fn i64 read(i32 fildes, *i8 buf, i64 nbyte);
+    extern fn i64 write(i32 fildes, *i8 buf, i64 nbyte);
+    extern fn i32 close(i32 fildes);
+
+    extern fn *i8 strerror(i32 errnum);
+    extern fn i32 __get_errno();
+    
+    extern fn i64 strlen(*i8 str);
+
+    extern fn i32 socket(i32 domain, i32 type, i32 protocol);
+    extern fn i32 bind(i32 socket, *i8 address, i32 size);
+    extern fn i32 listen(i32 socket, i32 backlog);
+    extern fn i32 accept(i32 socket, *i8 address, *i32 address_len);
+    extern fn i16 htons(i16 hostshort);
 }
 
 class sockaddr_in {
@@ -27,8 +43,8 @@ class sockaddr_in {
 class ErrnoException extends Exception {
     fn void constructor(String desc) {
         // strerror is fine here because String.fromBytes() will copy it out
-        let *u8 raw_error = fficall strerror(fficall __get_errno());
-        self.message = desc + ": " + String.fromBytes(raw_error, fficall strlen(raw_error));
+        let *u8 raw_error = RawIO.strerror(RawIO.__get_errno());
+        self.message = desc + ": " + String.fromBytes(raw_error, RawIO.strlen(raw_error));
     }
 }
 
@@ -43,22 +59,21 @@ class InetSocket {
     fn void constructor(u16 port, u32 address) {
         let i32 c_AF_INET = 2;
         let i32 c_SOCK_STREAM = 1;
-        let i32 proto = 0;
 
-        self.fd = fficall socket(c_AF_INET, c_SOCK_STREAM, proto);
+        self.fd = RawIO.socket(c_AF_INET, c_SOCK_STREAM, 0);
         self.addr = new Pointer<sockaddr_in>(new sockaddr_in(
             c_AF_INET,
-            fficall htons(port),
+            RawIO.htons(port),
             address
         ));
     }
 
     fn void listen(i32 queue_size) throws ErrnoException {
-        if fficall bind(self.fd, self.addr.structure_pointer(), self.addr.size()) < 0 {
+        if RawIO.bind(self.fd, self.addr.structure_pointer(), self.addr.size()) < 0 {
             throw new ErrnoException("bind");
         }
 
-        if fficall listen(self.fd, queue_size) < 0 {
+        if RawIO.listen(self.fd, queue_size) < 0 {
             throw new ErrnoException("listen");
         }
     }
@@ -66,7 +81,7 @@ class InetSocket {
     fn i32 accept() throws ErrnoException {
         let Pointer<sockaddr_in> clientaddr = new Pointer<sockaddr_in>(new sockaddr_in(0, 0, 0));
         let Pointer<i32> clientlen = new Pointer<i32>(clientaddr.size());
-        let i32 childfd = fficall accept(self.fd, clientaddr.structure_pointer(), clientlen.value_pointer());
+        let i32 childfd = RawIO.accept(self.fd, clientaddr.structure_pointer(), clientlen.value_pointer());
         if childfd < 0 {
             throw new ErrnoException("accept");
         }

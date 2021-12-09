@@ -35,7 +35,17 @@ public class MacroCallExpression extends CallExpressionBase {
 
     @Override
     public TypeElement getType() {
-        return new NamedType(span, "__any");
+        if (this.name.equals("sizeof")) {
+            return (TypeElement) NumericType.build(span, 64, true).setParent(this);
+        } else if (this.name.equals("as_raw") || this.name.equals("get_object_pointer")) {
+            RawPointerType rc = new RawPointerType(span);
+            rc.setInner(NumericType.build(span, 8, true));
+            return (TypeElement) rc.setParent(this);
+        } else if (this.name.equals("pointer_assign")) {
+            return (TypeElement) new NamedType(span, "void").setParent(this);
+        } else {
+            throw new IllegalArgumentException("unknown macro " + name);
+        }
     }
 
     @Override
@@ -47,7 +57,7 @@ public class MacroCallExpression extends CallExpressionBase {
 
     @Override
     protected TypeElement getTypeForArgument(int index) {
-        return new NamedType(this.span, "__any");
+        return (TypeElement) new NamedType(this.span, "__any").setParent(this);
     }
 
     @Override

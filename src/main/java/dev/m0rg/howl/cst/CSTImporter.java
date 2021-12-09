@@ -29,7 +29,6 @@ import dev.m0rg.howl.ast.CompoundStatement;
 import dev.m0rg.howl.ast.ConstructorCallExpression;
 import dev.m0rg.howl.ast.ElseStatement;
 import dev.m0rg.howl.ast.Expression;
-import dev.m0rg.howl.ast.FFICallExpression;
 import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.FunctionCallExpression;
@@ -96,8 +95,6 @@ public class CSTImporter {
                 return this.parseConstructorCallExpression(inner_obj);
             case "ElseStatement":
                 return this.parseElseStatement(inner_obj);
-            case "FFICallExpression":
-                return this.parseFFICallExpression(inner_obj);
             case "FunctionCallExpression":
                 return this.parseFunctionCallExpression(inner_obj);
             case "FunctionDeclaration":
@@ -298,20 +295,6 @@ public class CSTImporter {
         return rc;
     }
 
-    FFICallExpression parseFFICallExpression(JsonObject source) {
-        FFICallExpression rc = new FFICallExpression(extractSpan(source), source.get("name").getAsString());
-        JsonArray args_raw = chain(source, "args", "ArgumentList").get("args").getAsJsonArray();
-        for (JsonElement el : args_raw) {
-            ASTElement arg = parseElement(el);
-            if (arg instanceof Expression) {
-                rc.insertArgument((Expression) arg);
-            } else {
-                throw new IllegalArgumentException();
-            }
-        }
-        return rc;
-    }
-
     Function parseFunction(JsonObject source) {
         ASTElement header_raw = parseElement(source.get("header"));
         if (header_raw instanceof Function) {
@@ -353,7 +336,8 @@ public class CSTImporter {
     Function parseFunctionDeclaration(JsonObject source) {
         Identifier name = parseIdentifier(chain(source, "name", "Identifier"));
         JsonArray args_raw = chain(source, "args", "TypedArgumentList").get("args").getAsJsonArray();
-        Function rc = new Function(extractSpan(source), source.get("is_static").getAsBoolean(), name.getName());
+        Function rc = new Function(extractSpan(source), source.get("is_static").getAsBoolean(),
+                source.get("is_extern").getAsBoolean(), name.getName());
         for (JsonElement el : args_raw) {
             Argument parsed = parseTypedArgument(el.getAsJsonObject().get("TypedArgument").getAsJsonObject());
             rc.insertArgument(parsed);

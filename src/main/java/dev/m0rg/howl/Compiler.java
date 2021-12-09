@@ -127,9 +127,12 @@ public class Compiler {
         cc.root_module.transform(new AddNumericCasts());
         cc.root_module.transform(new AddInterfaceCasts());
 
+        List<LLVMModule> modules = new ArrayList<>();
         if (cc.successful) {
             LLVMContext context = new LLVMContext();
-            List<LLVMModule> modules = cc.root_module.generate(context, true);
+            modules = cc.root_module.generate(context, true);
+        }
+        if (cc.successful) {
             for (LLVMModule module : modules) {
                 Files.createDirectories(FileSystems.getDefault().getPath("howl_target"));
                 Files.writeString(FileSystems.getDefault().getPath("howl_target", module.getName() + ".ll"),
