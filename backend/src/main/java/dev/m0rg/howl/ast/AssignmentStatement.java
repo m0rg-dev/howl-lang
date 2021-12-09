@@ -1,23 +1,34 @@
 package dev.m0rg.howl.ast;
 
+import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMFunction;
+
 public class AssignmentStatement extends Statement {
-    Expression lhs;
-    Expression rhs;
+    private Expression lhs;
+    private Expression rhs;
 
     public AssignmentStatement(Span span) {
         super(span);
     }
 
+    public Expression getRHS() {
+        return rhs;
+    }
+
+    public Expression getLHS() {
+        return lhs;
+    }
+
     @Override
     public String format() {
-        return this.lhs.format() + " = " + this.rhs.format() + ";";
+        return this.getLHS().format() + " = " + this.getRHS().format() + ";";
     }
 
     @Override
     public ASTElement detach() {
         AssignmentStatement rc = new AssignmentStatement(span);
-        rc.setLHS((Expression) this.lhs.detach());
-        rc.setRHS((Expression) this.rhs.detach());
+        rc.setLHS((Expression) this.getLHS().detach());
+        rc.setRHS((Expression) this.getRHS().detach());
         return rc;
     }
 
@@ -30,9 +41,22 @@ public class AssignmentStatement extends Statement {
     }
 
     public void transform(ASTTransformer t) {
-        this.lhs.transform(t);
-        this.setLHS(t.transform(lhs));
-        this.rhs.transform(t);
-        this.setRHS(t.transform(rhs));
+        this.getLHS().transform(t);
+        this.setLHS(t.transform(getLHS()));
+        this.getRHS().transform(t);
+        this.setRHS(t.transform(getRHS()));
+    }
+
+    @Override
+    public void generate(LLVMFunction f) {
+        if (this.getLHS() instanceof Lvalue) {
+            Lvalue l = (Lvalue) this.getLHS();
+            try (LLVMBuilder builder = new LLVMBuilder(f.getModule())) {
+                builder.positionAtEnd(f.lastBasicBlock());
+                builder.buildStore(this.getRHS().generate(builder), l.getPointer(builder));
+            }
+        } else {
+            throw new IllegalArgumentException("assign to non-lvalue " + this.getLHS().format());
+        }
     }
 }

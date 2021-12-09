@@ -9,9 +9,8 @@ import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMGlobalVariable;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
-import dev.m0rg.howl.logger.Logger;
 
-public class NameExpression extends Expression {
+public class NameExpression extends Expression implements Lvalue {
     String name;
 
     public NameExpression(Span span, String name) {
@@ -88,8 +87,19 @@ public class NameExpression extends Expression {
             LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, c.getPath() + "_static");
             return g;
         } else {
-            Logger.error("unimplemented NameExpression resolution of type " + target.getClass().getName());
-            return super.generate(builder);
+            throw new RuntimeException(
+                    "unimplemented NameExpression resolution of type " + target.getClass().getName());
+        }
+    }
+
+    @Override
+    public LLVMValue getPointer(LLVMBuilder builder) {
+        ASTElement target = this.resolveName(this.name).get();
+        if (target instanceof LocalDefinitionStatement) {
+            return ((LocalDefinitionStatement) target).getStorage();
+        } else {
+            throw new RuntimeException(
+                    "unimplemented NameExpression lvalue resolution of type " + target.getClass().getName());
         }
     }
 }

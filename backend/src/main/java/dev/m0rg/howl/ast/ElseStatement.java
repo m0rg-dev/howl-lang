@@ -1,5 +1,7 @@
 package dev.m0rg.howl.ast;
 
+import dev.m0rg.howl.llvm.LLVMFunction;
+
 public class ElseStatement extends Statement {
     private CompoundStatement body;
 
@@ -30,5 +32,10 @@ public class ElseStatement extends Statement {
     public void transform(ASTTransformer t) {
         getBody().transform(t);
         this.setBody(t.transform(getBody()));
+    }
+
+    @Override
+    public void generate(LLVMFunction f) {
+        throw new UnsupportedOperationException();
     }
 }

@@ -7,9 +7,7 @@ public abstract class Statement extends ASTElement {
         super(span);
     }
 
-    public void generate(LLVMFunction f) {
-        // TODO
-    }
+    public abstract void generate(LLVMFunction f);
 
     public Function getContainingFunction() {
         ASTElement p = this.getParent();

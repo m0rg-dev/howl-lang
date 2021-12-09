@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,14 +12,17 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
+import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMGlobalVariable;
+import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
+import dev.m0rg.howl.llvm.LLVMValue;
 
 public class Class extends ASTElement implements NamedElement, NameHolder, HasOwnType, GeneratesTopLevelItems {
     String name;
@@ -264,8 +268,8 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     }
 
     @Override
-    public TypeElement getOwnType() {
-        return (TypeElement) new ClassType(span, this.getPath()).setParent(this);
+    public ClassType getOwnType() {
+        return (ClassType) new ClassType(span, this.getPath()).setParent(this);
     }
 
     public ClassStaticType getStaticType() {
@@ -275,7 +279,8 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     @Override
     public void generate(LLVMModule module) {
         if (this.generics.isEmpty()) {
-            LLVMType this_structure_type = this.getOwnType().generate(module);
+            this.getOwnType().generate(module);
+
             List<LLVMType> argtypes = new ArrayList<>();
             Optional<Function> constructor = this.getConstructor();
             if (constructor.isPresent()) {
@@ -284,6 +289,7 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
                     argtypes.add(a.getOwnType().resolve().generate(module));
                 }
             }
+            LLVMType this_structure_type = this.getOwnType().generate(module);
             LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, argtypes);
             allocator = new LLVMFunction(module, this.getPath() + "_alloc", allocator_type);
         }
@@ -314,6 +320,40 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
                     imethods.add(m.generate(module).cast(new LLVMPointerType<LLVMType>(method_type)));
                 }
                 itable.setInitializer(itable_type.createConstant(module.getContext(), imethods));
+            }
+
+            try (LLVMBuilder builder = new LLVMBuilder(allocator.getModule())) {
+                allocator.appendBasicBlock("entry");
+                builder.positionAtEnd(allocator.lastBasicBlock());
+                LLVMStructureType object_type = this.getOwnType().generateObjectType(module);
+                LLVMValue object_allocation = builder.buildCall(module.getFunction("calloc").get(),
+                        Arrays.asList(new LLVMValue[] {
+                                (new LLVMIntType(module.getContext(), 64)).getConstant(module, 1),
+                                builder.buildSizeofHack(object_type)
+                        }), "");
+                LLVMValue alloca = builder.buildAlloca(this.getOwnType().generate(module), "");
+                LLVMValue object_pointer = builder.buildStructGEP(this.getOwnType().generate(module), alloca, 0,
+                        "");
+                builder.buildStore(builder.buildBitcast(object_allocation, new LLVMPointerType<>(object_type), ""),
+                        object_pointer);
+                LLVMValue stable_pointer = builder.buildStructGEP(this.getOwnType().generate(module), alloca, 1,
+                        "");
+                builder.buildStore(g, stable_pointer);
+
+                Optional<Function> constructor = this.getConstructor();
+                if (constructor.isPresent()) {
+                    List<LLVMValue> cargs = new ArrayList<LLVMValue>();
+                    cargs.add(builder.buildLoad(alloca, ""));
+                    int i = 0;
+                    for (Argument a : constructor.get().getArgumentList().subList(1,
+                            constructor.get().getArgumentList().size())) {
+                        cargs.add(allocator.getParam(i));
+                        i++;
+                    }
+                    builder.buildCall(constructor.get().generate(module), cargs, "");
+                }
+
+                builder.buildReturn(builder.buildLoad(alloca, ""));
             }
         }
     }

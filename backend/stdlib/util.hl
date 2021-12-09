@@ -3,12 +3,12 @@ class Pointer<T> {
     *T value;
 
     fn void constructor(T value) {
-        self.value = fficall malloc(fficall sizeof(self.value));
+        !pointer_assign(fficall malloc(!sizeof(self.value[0])), self.value);
         self.value[0] = value;
     }
 
     fn i32 size() {
-        return fficall sizeof(self.value[0]);
+        return !sizeof(self.value[0]);
     }
 
     fn T dereference() {
@@ -16,7 +16,7 @@ class Pointer<T> {
     }
 
     fn *i8 structure_pointer() {
-        return fficall __get_object_pointer(self.value);
+        return !get_object_pointer(self.value);
     }
 
     fn *T value_pointer() {

@@ -28,7 +28,7 @@ public class AddNumericCasts implements ASTTransformer {
                         NumericCastExpression nce = new NumericCastExpression(
                                 ent.getValue().getSubexpression().getSpan());
                         nce.setSource((Expression) ent.getValue().getSubexpression().detach());
-                        nce.setTarget((TypeElement) ent.getValue().getExpectedType().detach());
+                        nce.setTarget((TypeElement) ent.getValue().getExpectedType().resolve().detach());
                         ent.getValue().setSubexpression(nce);
                     }
                 }

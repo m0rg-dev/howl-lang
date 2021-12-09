@@ -3,6 +3,9 @@ package dev.m0rg.howl.ast;
 import java.util.HashMap;
 import java.util.Map;
 
+import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMValue;
+
 public class InterfaceCastExpression extends Expression {
     Expression source;
     TypeElement target;
@@ -52,5 +55,10 @@ public class InterfaceCastExpression extends Expression {
     public void transform(ASTTransformer t) {
         source.transform(t);
         this.setSource(t.transform(source));
+    }
+
+    @Override
+    public LLVMValue generate(LLVMBuilder builder) {
+        throw new UnsupportedOperationException();
     }
 }

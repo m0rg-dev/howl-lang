@@ -156,6 +156,6 @@ public class LLVMBuilder implements AutoCloseable {
         crud.put(0, LLVMConstInt(LLVMInt32Type(), 1, 0));
         LLVMValueRef sizeptr = LLVMBuildGEP2(this.getInternal(), el.getInternal(), LLVMConstNull(p.getInternal()), crud,
                 1, "");
-        return new LLVMInstruction(LLVMBuildPtrToInt(this.getInternal(), sizeptr, LLVMInt32Type(), ""));
+        return new LLVMInstruction(LLVMBuildPtrToInt(this.getInternal(), sizeptr, LLVMInt64Type(), ""));
     }
 }

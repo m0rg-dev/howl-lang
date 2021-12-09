@@ -5,7 +5,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMContext;
+import dev.m0rg.howl.llvm.LLVMFunction;
+import dev.m0rg.howl.llvm.LLVMFunctionType;
+import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMModule;
 
 public class Module extends ASTElement implements NamedElement, NameHolder {
@@ -99,14 +103,14 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
         }
     }
 
-    public List<LLVMModule> generate(LLVMContext context) {
+    public List<LLVMModule> generate(LLVMContext context, boolean isMain) {
         List<LLVMModule> rc = new ArrayList<>();
         LLVMModule this_module = new LLVMModule(this.getPath(), context);
         rc.add(this_module);
 
         for (ASTElement item : contents) {
             if (item instanceof Module) {
-                List<LLVMModule> submodules = ((Module) item).generate(context);
+                List<LLVMModule> submodules = ((Module) item).generate(context, false);
                 rc.addAll(submodules);
             } else if (item instanceof GeneratesTopLevelItems) {
                 ((GeneratesTopLevelItems) item).generate(this_module);
@@ -119,6 +123,19 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
             } else if (item instanceof Function) {
                 ((Function) item).generate(this_module);
             }
+        }
+
+        if (isMain) {
+            LLVMFunctionType mainType = new LLVMFunctionType(new LLVMIntType(context, 32), new ArrayList<>());
+            this_module.getOrInsertFunction(mainType, "main", (LLVMFunction f) -> {
+                try (LLVMBuilder builder = new LLVMBuilder(f.getModule())) {
+                    f.appendBasicBlock("entry");
+                    builder.positionAtEnd(f.lastBasicBlock());
+                    builder.buildReturn(builder.buildCall(
+                            this_module.getOrInsertFunction(mainType, "root.main.Main", g -> g.setExternal()),
+                            new ArrayList<>(), ""));
+                }
+            });
         }
 
         return rc;

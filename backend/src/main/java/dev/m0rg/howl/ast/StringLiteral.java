@@ -45,7 +45,10 @@ public class StringLiteral extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        LLVMConstant string = builder.getModule().stringConstant(contents);
+        // TODO
+        LLVMConstant string = builder.getModule().stringConstant(contents
+                .substring(1, contents.length() - 1)
+                .replaceAll("(?<!\\\\)\\\\n", "\n"));
         LLVMValue temp = builder.buildAlloca(string.getType(), "");
         builder.buildStore(string, temp);
         return builder.buildBitcast(temp, new LLVMPointerType<LLVMType>(new LLVMIntType(builder.getContext(), 8)), "");

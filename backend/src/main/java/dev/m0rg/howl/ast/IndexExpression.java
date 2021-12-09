@@ -9,7 +9,7 @@ import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 
-public class IndexExpression extends Expression {
+public class IndexExpression extends Expression implements Lvalue {
     Expression source;
     Expression index;
 
@@ -76,11 +76,16 @@ public class IndexExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
+        return builder.buildLoad(this.getPointer(builder), "");
+    }
+
+    @Override
+    public LLVMValue getPointer(LLVMBuilder builder) {
         LLVMValue src = source.generate(builder);
         @SuppressWarnings("unchecked")
         LLVMPointerType<LLVMType> t = (LLVMPointerType<LLVMType>) src.getType();
-        return builder.buildLoad(builder.buildGEP(t.getInner(), src,
-                Arrays.asList(new LLVMValue[] { index.generate(builder) }), ""), "");
+        return builder.buildGEP(t.getInner(), src,
+                Arrays.asList(new LLVMValue[] { index.generate(builder) }), "");
 
     }
 }

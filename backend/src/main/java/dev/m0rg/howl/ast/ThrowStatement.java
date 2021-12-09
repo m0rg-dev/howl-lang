@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast;
 
+import dev.m0rg.howl.llvm.LLVMFunction;
+import dev.m0rg.howl.logger.Logger;
+
 public class ThrowStatement extends Statement {
     Expression source;
 
@@ -26,5 +29,10 @@ public class ThrowStatement extends Statement {
     public void transform(ASTTransformer t) {
         this.source.transform(t);
         this.setSource(t.transform(this.source));
+    }
+
+    @Override
+    public void generate(LLVMFunction f) {
+        Logger.error("skipping throw " + format());
     }
 }

@@ -67,14 +67,41 @@ public class LLVMModule {
                 new LLVMIntType(context, 32),
         })), "listen", f -> f.setExternal());
 
+        this.getOrInsertFunction(new LLVMFunctionType(new LLVMIntType(context, 32), Arrays.asList(new LLVMType[] {
+                new LLVMIntType(context, 32),
+                new LLVMIntType(context, 32),
+                new LLVMIntType(context, 32),
+        })), "socket", f -> f.setExternal());
+
+        this.getOrInsertFunction(new LLVMFunctionType(new LLVMIntType(context, 16), Arrays.asList(new LLVMType[] {
+                new LLVMIntType(context, 16),
+        })), "htons", f -> f.setExternal());
+
         this.getOrInsertFunction(new LLVMFunctionType(new LLVMPointerType<>(new LLVMIntType(context, 8)),
                 Arrays.asList(new LLVMType[] {
                         new LLVMIntType(context, 64),
                 })), "malloc", f -> f.setExternal());
 
+        this.getOrInsertFunction(new LLVMFunctionType(new LLVMPointerType<>(new LLVMIntType(context, 8)),
+                Arrays.asList(new LLVMType[] {
+                        new LLVMIntType(context, 64),
+                        new LLVMIntType(context, 64),
+                })), "calloc", f -> f.setExternal());
+
+        this.getOrInsertFunction(new LLVMFunctionType(new LLVMPointerType<>(new LLVMIntType(context, 8)),
+                Arrays.asList(new LLVMType[] {
+                        new LLVMPointerType<>(new LLVMIntType(context, 8)),
+                        new LLVMIntType(context, 64),
+                })), "realloc", f -> f.setExternal());
+
         this.getOrInsertFunction(new LLVMFunctionType(new LLVMIntType(context, 64), Arrays.asList(new LLVMType[] {
                 new LLVMPointerType<>(new LLVMIntType(context, 8)),
         })), "strlen", f -> f.setExternal());
+
+        this.getOrInsertFunction(new LLVMFunctionType(new LLVMVoidType(context), Arrays.asList(new LLVMType[] {
+                new LLVMIntType(context, 64),
+                new LLVMPointerType<>(new LLVMIntType(context, 8)),
+        })), "test1", f -> f.setExternal());
     }
 
     public LLVMContext getContext() {

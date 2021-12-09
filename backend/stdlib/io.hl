@@ -43,8 +43,9 @@ class InetSocket {
     fn void constructor(u16 port, u32 address) {
         let i32 c_AF_INET = 2;
         let i32 c_SOCK_STREAM = 1;
+        let i32 proto = 0;
 
-        self.fd = fficall socket(c_AF_INET, c_SOCK_STREAM, 0);
+        self.fd = fficall socket(c_AF_INET, c_SOCK_STREAM, proto);
         self.addr = new Pointer<sockaddr_in>(new sockaddr_in(
             c_AF_INET,
             fficall htons(port),
@@ -74,7 +75,7 @@ class InetSocket {
 
     fn void serve(i32 queue_size, SocketServer server) {
         self.listen(queue_size);
-        while 1 {
+        while 1 == 1 {
             server.handle(self.accept());
         }
     }

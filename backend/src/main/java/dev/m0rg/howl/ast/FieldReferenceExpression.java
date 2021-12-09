@@ -10,7 +10,7 @@ import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
 
-public class FieldReferenceExpression extends Expression {
+public class FieldReferenceExpression extends Expression implements Lvalue {
     String name;
     Expression source;
 
@@ -83,6 +83,11 @@ public class FieldReferenceExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
+        return builder.buildLoad(this.getPointer(builder), "");
+    }
+
+    @Override
+    public LLVMValue getPointer(LLVMBuilder builder) {
         TypeElement source_type = source.getResolvedType();
         if (source_type instanceof StructureType) {
             StructureType ct = (StructureType) source_type;
@@ -101,7 +106,7 @@ public class FieldReferenceExpression extends Expression {
             }
             @SuppressWarnings("unchecked")
             LLVMPointerType<LLVMType> t = (LLVMPointerType<LLVMType>) src.getType();
-            LLVMValue rc = builder.buildLoad(builder.buildStructGEP(t.getInner(), src, index, ""), "");
+            LLVMValue rc = builder.buildStructGEP(t.getInner(), src, index, "");
 
             return rc;
         } else {

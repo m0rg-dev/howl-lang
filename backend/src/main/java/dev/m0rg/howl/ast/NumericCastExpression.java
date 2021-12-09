@@ -70,9 +70,9 @@ public class NumericCastExpression extends Expression {
             dest_width = ((NumericType) dest_type).getWidth();
         }
         if (source_width > dest_width) {
-            return builder.buildTrunc(source.generate(builder), target.generate(builder.getModule()), "");
+            return builder.buildTrunc(source.generate(builder), dest_type.generate(builder.getModule()), "");
         } else {
-            return builder.buildSExt(source.generate(builder), target.generate(builder.getModule()), "");
+            return builder.buildSExt(source.generate(builder), dest_type.generate(builder.getModule()), "");
         }
     }
 }

@@ -23,6 +23,7 @@ import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
 import dev.m0rg.howl.transform.CoalesceElse;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
+import dev.m0rg.howl.transform.ConvertIndexLvalue;
 import dev.m0rg.howl.transform.ConvertStrings;
 import dev.m0rg.howl.transform.IndirectMethodCalls;
 import dev.m0rg.howl.transform.MonomorphizeClasses;
@@ -85,6 +86,7 @@ public class Compiler {
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new MonomorphizeClasses());
         cc.root_module.transform(new ConvertStrings());
+        cc.root_module.transform(new ConvertIndexLvalue());
         cc.root_module.transform(new ConvertCustomOverloads());
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
@@ -96,7 +98,7 @@ public class Compiler {
         System.err.println(cc.root_module.format());
 
         LLVMContext context = new LLVMContext();
-        List<LLVMModule> modules = cc.root_module.generate(context);
+        List<LLVMModule> modules = cc.root_module.generate(context, true);
         for (LLVMModule module : modules) {
             Files.createDirectories(FileSystems.getDefault().getPath("howl_target"));
             Files.writeString(FileSystems.getDefault().getPath("howl_target", module.getName() + ".ll"),
