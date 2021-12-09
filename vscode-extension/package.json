@@ -1,27 +1,33 @@
 {
     "name": "howl-lang",
+    "displayName": "howl",
+    "description": "",
     "version": "0.0.1",
     "engines": {
-        "vscode": ">=0.9.0-pre.1"
+        "vscode": "^1.63.0"
     },
-    "publisher": "Morgan Thomas",
+    "categories": [
+        "Programming Languages"
+    ],
     "contributes": {
         "languages": [
             {
                 "id": "howl",
                 "aliases": [
-                    "Howl"
+                    "Howl",
+                    "howl"
                 ],
                 "extensions": [
                     ".hl"
-                ]
+                ],
+                "configuration": "./language-configuration.json"
             }
         ],
         "grammars": [
             {
                 "language": "howl",
                 "scopeName": "source.howl",
-                "path": "./syntaxes/howl.json"
+                "path": "./syntaxes/howl.tmLanguage.json"
             }
         ]
     }

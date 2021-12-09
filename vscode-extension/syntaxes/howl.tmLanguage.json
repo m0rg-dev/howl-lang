@@ -1,0 +1,73 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Howl",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#constants"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.howl",
+					"match": "\\b(if|else|while|for|return|let|throw|try|catch|new)\\b"
+				},
+				{
+					"name": "storage.type",
+					"match": "\\b(class|interface|fn)\\b"
+				},
+				{
+					"name": "storage.modifier",
+					"match": "\\b(extern|static|extends|implements|throws)\\b"
+				},
+				{
+					"name": "support.type",
+					"match": "\\b(([iu](8|16|32|64))|bool|void)\\b"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.howl",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.howl",
+					"match": "\\\\."
+				}
+			]
+		},
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.block",
+					"begin": "/\\*",
+					"end": "\\*/"
+				},
+				{
+					"name": "comment.line.double-slash",
+					"match": "//.*"
+				}
+			]
+		},
+		"constants": {
+			"patterns": [
+				{
+					"name": "constant.numeric",
+					"match": "\\b\\d+\\b"
+				}
+			]
+		}
+	},
+	"scopeName": "source.howl"
+}
