@@ -13,6 +13,9 @@
 		},
 		{
 			"include": "#constants"
+		},
+		{
+			"include": "#macros"
 		}
 	],
 	"repository": {
@@ -32,7 +35,11 @@
 				},
 				{
 					"name": "support.type",
-					"match": "\\b(([iu](8|16|32|64))|bool|void)\\b"
+					"match": "\\b(([iu](8|16|32|64))|bool|void|Self)\\b"
+				},
+				{
+					"name": "variable.language",
+					"match": "\\b(self)\\b"
 				}
 			]
 		},
@@ -64,7 +71,15 @@
 			"patterns": [
 				{
 					"name": "constant.numeric",
-					"match": "\\b\\d+\\b"
+					"match": "\\b(\\d+)\\b"
+				}
+			]
+		},
+		"macros": {
+			"patterns": [
+				{
+					"name": "constant.language",
+					"match": "(!\\w+)\\b"
 				}
 			]
 		}
