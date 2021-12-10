@@ -6,15 +6,15 @@ import dev.m0rg.howl.CompilationError;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
-import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.logger.Logger;
 
 public class CheckTypes implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
-        if (e instanceof Expression) {
+        if (e instanceof HasUpstreamFields) {
             Logger.trace("CheckTypes: " + e.format());
-            for (Entry<String, FieldHandle> ent : ((Expression) e).getUpstreamFields().entrySet()) {
+            for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
                 TypeElement expected = ent.getValue().getExpectedType().resolve();
                 TypeElement provided = ent.getValue().getSubexpression().getResolvedType();
                 Logger.trace(

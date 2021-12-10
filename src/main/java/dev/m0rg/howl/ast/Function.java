@@ -137,7 +137,7 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
 
     public void transform(ASTTransformer t) {
         rc.transform(t);
-        rc = t.transform(rc);
+        setReturn(t.transform(rc));
 
         for (Entry<String, Argument> arg : args.entrySet()) {
             arg.getValue().transform(t);

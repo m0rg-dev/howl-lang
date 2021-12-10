@@ -65,7 +65,7 @@ public class CompilationError {
         rc.append("\n");
 
         if (lines_in_play.size() == 1) {
-            rc.append(String.format("    \u001b[32m%5d\u001b[0m \u001b[97m%s\u001b[0m\n", start.line,
+            rc.append(String.format("    \u001b[32m%5d\u001b[0m %s\n", start.line,
                     lines_in_play.get(0)));
             rc.append("         \u001b[1;35m");
             rc.append(" ".repeat(start.column));

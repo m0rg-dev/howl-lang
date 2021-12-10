@@ -94,6 +94,11 @@ pub enum CSTElement<'a> {
         span: SerializableSpan,
         parameters: Vec<CSTElement<'a>>,
     },
+    SpecifiedTypeExpression {
+        span: SerializableSpan,
+        base: &'a CSTElement<'a>,
+        parameters: &'a CSTElement<'a>,
+    },
     ClassField {
         span: SerializableSpan,
         fieldtype: &'a CSTElement<'a>,

@@ -94,7 +94,7 @@ class InetSocket {
 
     fn void serve(i32 queue_size, SocketServer server) {
         self.listen(queue_size);
-        while 1 == 1 {
+        while true {
             server.handle(self.accept());
         }
     }

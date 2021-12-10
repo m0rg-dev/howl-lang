@@ -99,6 +99,8 @@ public class MacroCallExpression extends CallExpressionBase {
             return builder.buildBitcast(this.args.get(0).generate(builder),
                     new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)),
                     "");
+        } else if (this.name.equals("unreachable")) {
+            return builder.buildUnreachable();
         } else {
             throw new IllegalArgumentException("unknown macro " + name);
         }

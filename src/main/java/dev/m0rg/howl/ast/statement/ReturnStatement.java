@@ -60,7 +60,7 @@ public class ReturnStatement extends Statement implements HasUpstreamFields {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         if (this.source.isPresent()) {
             rc.put("source", new FieldHandle(() -> this.getSource().get(), (e) -> this.setSource(e),
-                    () -> (TypeElement) this.getContainingFunction().getReturn().detach()));
+                    () -> (TypeElement) this.getContainingFunction().getReturn()));
         }
         return rc;
     }

@@ -39,7 +39,7 @@
 				},
 				{
 					"name": "variable.language",
-					"match": "\\b(self)\\b"
+					"match": "\\b(self|true|false)\\b"
 				}
 			]
 		},

@@ -25,7 +25,12 @@ class Exception implements Display {
         let StaticTable what = StaticTable.load(!get_stable_pointer(real));
 
         lib.IO.println("Uncaught exception: " + real);
-        lib.IO.println("  (" + what.getName() + ")");
+        lib.IO.println("  Exception type: " + what.getName());
+        let Option<StaticTable> parent = what.getParent();
+        while parent.isSome() {
+            lib.IO.println("    -> " + parent.unwrap().getName());
+            parent = parent.unwrap().getParent();
+        }
         Exception.exit(1);
     }
 

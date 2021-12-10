@@ -150,6 +150,10 @@ public class LLVMBuilder implements AutoCloseable {
                 LLVMBuildTrunc(this.getInternal(), source.getInternal(), dest.getInternal(), name));
     }
 
+    public LLVMInstruction buildUnreachable() {
+        return new LLVMInstruction(LLVMBuildUnreachable(this.getInternal()));
+    }
+
     public LLVMInstruction buildSizeofHack(LLVMType el) {
         LLVMType p = new LLVMPointerType<>(el);
         PointerPointer<Pointer> crud = new PointerPointer<>(1);

@@ -307,6 +307,7 @@ Expression3 -> Result<CSTElement<'input>, ()>:
             Err(_) => Err(())
         }
     }
+    | Expression3 ':' ':' TypeParameterList { Ok(CSTElement::SpecifiedTypeExpression{span: $span.into(), base: alloc($1?), parameters: alloc($4?) }) }
     | Expression3 '.' 'identifier' {
         match $3 {
             Ok(_) => Ok(CSTElement::FieldReferenceExpression{span: $span.into(), source: alloc($1?), name: $lexer.span_str($3.as_ref().unwrap().span()).to_string()}),

@@ -41,22 +41,3 @@ class ExternalPointer<T> {
         return self.value[0];
     }
 }
-
-class StaticTable {
-    *i8 name;
-    *i8 parent;
-
-    extern fn i64 strlen(*i8 s);
-
-    // stable_pointer: *{*name, *parent, ...}
-    static fn StaticTable load(*i8 stable_pointer) {
-        let ExternalPointer<*i8> real_ptr = new ExternalPointer<*i8>(stable_pointer);
-        let StaticTable rc = new StaticTable();
-        rc.name = real_ptr.dereference();
-        return rc;
-    }
-
-    fn String getName() {
-        return String.fromBytes(self.name, StaticTable.strlen(self.name));
-    } 
-}

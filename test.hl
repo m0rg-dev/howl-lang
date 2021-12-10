@@ -1,6 +1,12 @@
+class SubclassedException extends Exception {
+    fn void constructor(String message) {
+        self.message = message;
+    }
+}
+
 fn i32 Main() {
     try {
-        throw new Exception("heck!");
+        throw new SubclassedException("heck!");
     } catch Exception e {
         lib.IO.println(e);
     }

@@ -31,11 +31,13 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.ArithmeticExpression;
 import dev.m0rg.howl.ast.expression.ConstructorCallExpression;
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
 import dev.m0rg.howl.ast.expression.FunctionCallExpression;
 import dev.m0rg.howl.ast.expression.IndexExpression;
 import dev.m0rg.howl.ast.expression.MacroCallExpression;
 import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.NumberExpression;
+import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.expression.StringLiteral;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
@@ -99,6 +101,8 @@ public class CSTImporter {
                 return this.parseConstructorCallExpression(inner_obj);
             case "ElseStatement":
                 return this.parseElseStatement(inner_obj);
+            case "FieldReferenceExpression":
+                return this.parseFieldReferenceExpression(inner_obj);
             case "FunctionCallExpression":
                 return this.parseFunctionCallExpression(inner_obj);
             case "FunctionDeclaration":
@@ -127,6 +131,8 @@ public class CSTImporter {
                 return this.parseSimpleStatement(inner_obj);
             case "SpecifiedType":
                 return this.parseSpecifiedType(inner_obj);
+            case "SpecifiedTypeExpression":
+                return this.parseSpecifiedTypeExpression(inner_obj);
             case "StringLiteral":
                 return this.parseStringLiteral(inner_obj);
             case "ThrowStatement":
@@ -314,6 +320,20 @@ public class CSTImporter {
         ASTElement body = parseElement(source.get("body"));
         if (body instanceof CompoundStatement) {
             rc.setBody((CompoundStatement) body);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        return rc;
+    }
+
+    FieldReferenceExpression parseFieldReferenceExpression(JsonObject source) {
+        FieldReferenceExpression rc = new FieldReferenceExpression(extractSpan(source),
+                source.get("name").getAsString());
+
+        ASTElement f_source = parseElement(source.get("source"));
+        if (f_source instanceof Expression) {
+            rc.setSource((Expression) f_source);
         } else {
             throw new IllegalArgumentException();
         }
@@ -534,6 +554,28 @@ public class CSTImporter {
         ASTElement base = parseElement(source.get("base"));
         if (base instanceof TypeElement) {
             rc.setBase((TypeElement) base);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        JsonArray parameters_raw = chain(source, "parameters", "TypeParameterList").get("parameters").getAsJsonArray();
+        for (JsonElement el : parameters_raw) {
+            ASTElement parameter = parseElement(el);
+            if (parameter instanceof TypeElement) {
+                rc.insertParameter((TypeElement) parameter);
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
+
+        return rc;
+    }
+
+    SpecifiedTypeExpression parseSpecifiedTypeExpression(JsonObject source) {
+        SpecifiedTypeExpression rc = new SpecifiedTypeExpression(extractSpan(source));
+        ASTElement base = parseElement(source.get("base"));
+        if (base instanceof Expression) {
+            rc.setSource((Expression) base);
         } else {
             throw new IllegalArgumentException();
         }

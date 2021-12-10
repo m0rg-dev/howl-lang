@@ -7,6 +7,8 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NameHolder;
+import dev.m0rg.howl.ast.expression.NameExpression;
+import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
@@ -43,10 +45,22 @@ public class MonomorphizeClasses implements ASTTransformer {
 
                     }
                 } else {
-                    throw new RuntimeException("COMPILATION-ERROR specification of non-class");
+                    throw new RuntimeException("COMPILATION-ERROR specification of non-class " + base.format());
                 }
             } else {
                 throw new RuntimeException("COMPILATION-ERROR specification of non-named");
+            }
+        } else if (e instanceof SpecifiedTypeExpression) {
+            SpecifiedTypeExpression ste = (SpecifiedTypeExpression) e;
+            TypeElement synthesized_type = ste.getType();
+            if (synthesized_type instanceof SpecifiedType) {
+                TypeElement transformed = this.transform(synthesized_type);
+                if (transformed instanceof NamedType) {
+                    return new NameExpression(e.getSpan(), ((NamedType) transformed).getName());
+                }
+                throw new RuntimeException("frick " + transformed.format());
+            } else {
+                throw new RuntimeException("COMPILATION-ERROR some kind of specification problem");
             }
         } else {
             return e;

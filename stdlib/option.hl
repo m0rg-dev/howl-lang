@@ -1,0 +1,40 @@
+class Option<T> {
+    bool has_value;
+    T value;
+
+    fn void constructor() {
+        self.has_value = false;
+    }
+
+    static fn Self some(T value) {
+        let Self rc = new Self();
+        rc.value = value;
+        rc.has_value = true;
+        return rc;
+    }
+
+    static fn Self none() {
+        return new Self();
+    }
+
+    fn T unwrap() throws NoSuchValueException {
+        if self.has_value {
+            return self.value;
+        } else {
+            throw new NoSuchValueException();
+        }
+        // TODO: Compiler should be able to run reachability analysis and
+        // generate this automatically
+        !unreachable();
+    }
+
+    fn bool isSome() {
+        return self.has_value;
+    }
+}
+
+class NoSuchValueException extends Exception {
+    fn void constructor() {
+        self.message = "Attempt to unwrap none value";
+    }
+}

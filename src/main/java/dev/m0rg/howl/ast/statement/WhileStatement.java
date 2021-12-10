@@ -9,7 +9,7 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
-import dev.m0rg.howl.ast.type.NumericType;
+import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.llvm.LLVMBasicBlock;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
@@ -59,7 +59,7 @@ public class WhileStatement extends Statement implements HasUpstreamFields {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("condition", new FieldHandle(() -> this.getCondition(), (e) -> this.setCondition(e),
-                () -> NumericType.build(span, 1, true)));
+                () -> NamedType.build(span, "bool")));
         return rc;
     }
 
@@ -73,6 +73,7 @@ public class WhileStatement extends Statement implements HasUpstreamFields {
 
             LLVMBasicBlock true_block = f.appendBasicBlock("true");
             body.generate(f);
+            LLVMBasicBlock last_true_block = f.lastBasicBlock();
 
             LLVMBasicBlock exit_block = f.appendBasicBlock("exit");
 
@@ -83,11 +84,8 @@ public class WhileStatement extends Statement implements HasUpstreamFields {
             builder.positionAtEnd(condition_block);
             builder.buildCondBr(condition, true_block, exit_block);
 
-            // some shenanigans to avoid generating blocks with 2 terminators
-            if (!true_block.hasTerminator()) {
-                builder.positionAtEnd(true_block);
-                builder.buildBr(condition_block);
-            }
+            builder.positionAtEnd(last_true_block);
+            builder.buildBr(condition_block);
         }
     }
 }

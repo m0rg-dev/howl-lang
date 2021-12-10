@@ -37,6 +37,7 @@ import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
 import dev.m0rg.howl.transform.CoalesceCatch;
 import dev.m0rg.howl.transform.CoalesceElse;
+import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertIndexLvalue;
 import dev.m0rg.howl.transform.ConvertStrings;
@@ -124,6 +125,7 @@ public class Compiler {
         cc.root_module.transform(new CoalesceCatch());
         cc.root_module.transform(new ConvertTryCatch());
         cc.root_module.transform(new ConvertThrow());
+        cc.root_module.transform(new ConvertBooleans());
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new MonomorphizeClasses());

@@ -315,8 +315,18 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
 
             methods.add(name_var
                     .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
-            methods.add(name_var
-                    .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
+
+            if (this.ext.isPresent()) {
+                Class ext = ((ClassType) this.ext.get().resolve()).getSource();
+                LLVMStructureType parent_type = ext.getStaticType().generate(module);
+                LLVMGlobalVariable parent_stable = module.getOrInsertGlobal(
+                        parent_type,
+                        ext.getPath() + "_static");
+                methods.add(parent_stable
+                        .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
+            } else {
+                methods.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)).getNull());
+            }
 
             for (String name : this.getMethodNames()) {
                 Function m = this.getMethod(name).get();
