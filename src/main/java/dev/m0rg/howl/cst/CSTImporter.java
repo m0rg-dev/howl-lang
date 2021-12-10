@@ -51,6 +51,8 @@ import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.statement.ThrowStatement;
 import dev.m0rg.howl.ast.statement.TryStatement;
 import dev.m0rg.howl.ast.statement.WhileStatement;
+import dev.m0rg.howl.ast.type.FunctionType;
+import dev.m0rg.howl.ast.type.LambdaType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
@@ -109,6 +111,8 @@ public class CSTImporter {
                 return this.parseFunctionDeclaration(inner_obj);
             case "Function":
                 return this.parseFunction(inner_obj);
+            case "FunctionType":
+                return this.parseFunctionType(inner_obj);
             case "IfStatement":
                 return this.parseIfStatement(inner_obj);
             case "IndexExpression":
@@ -394,6 +398,23 @@ public class CSTImporter {
         } else {
             throw new IllegalArgumentException();
         }
+        return rc;
+    }
+
+    FunctionType parseFunctionType(JsonObject source) {
+        JsonArray args_raw = chain(source, "args", "TypedArgumentList").get("args").getAsJsonArray();
+        LambdaType rc = new LambdaType(extractSpan(source));
+        for (JsonElement el : args_raw) {
+            Argument parsed = parseTypedArgument(el.getAsJsonObject().get("TypedArgument").getAsJsonObject());
+            rc.insertArgument(parsed.getOwnType());
+        }
+        ASTElement returntype = parseElement(source.get("returntype"));
+        if (returntype instanceof TypeElement) {
+            rc.setReturn((TypeElement) returntype);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
         return rc;
     }
 

@@ -350,6 +350,7 @@ Type -> Result<CSTElement<'input>, ()>:
 Type1 -> Result<CSTElement<'input>, ()>:
     '(' Type ')' { Ok($2?) }
     | Type1 TypeParameterList { Ok(CSTElement::SpecifiedType{span: $span.into(), base: alloc($1?), parameters: alloc($2?) }) }
+    | 'FN' Type1 TypedArgumentList { Ok(CSTElement::FunctionType{span: $span.into(), returntype: alloc($2?), args: alloc($3?) }) }
     | 'identifier' { 
         match $1 {
             Ok(_) => Ok(CSTElement::BaseType{span: $span.into(), name: $lexer.span_str($1.as_ref().unwrap().span()).to_string()}),

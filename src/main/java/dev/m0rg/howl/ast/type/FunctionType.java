@@ -81,7 +81,7 @@ public class FunctionType extends TypeElement {
     }
 
     @Override
-    public LLVMFunctionType generate(LLVMModule module) {
+    public LLVMType generate(LLVMModule module) {
         LLVMType returntype = this.getReturnType().resolve().generate(module);
         List<LLVMType> args = new ArrayList<>(this.getArgumentTypes().size());
         for (TypeElement argtype : this.getArgumentTypes()) {

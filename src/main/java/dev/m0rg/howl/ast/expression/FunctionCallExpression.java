@@ -13,6 +13,7 @@ import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMValue;
 
 public class FunctionCallExpression extends CallExpressionBase {
@@ -96,6 +97,7 @@ public class FunctionCallExpression extends CallExpressionBase {
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
         LLVMValue callee = this.getSource().generate(builder);
+
         List<LLVMValue> args = new ArrayList<>(this.args.size());
         for (Expression e : this.args) {
             args.add(e.generate(builder));

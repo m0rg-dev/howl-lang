@@ -1,0 +1,12 @@
+static fn void apply(fn void() source) {
+    source();
+}
+
+static fn void test() {
+    lib.IO.println("boing!");
+}
+
+static fn i32 Main() {
+    apply(test);
+    return 0;
+}

@@ -230,4 +230,9 @@ pub enum CSTElement<'a> {
         span: SerializableSpan,
         contents: String,
     },
+    FunctionType {
+        span: SerializableSpan,
+        returntype: &'a CSTElement<'a>,
+        args: &'a CSTElement<'a>,
+    },
 }

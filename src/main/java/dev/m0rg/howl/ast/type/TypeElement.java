@@ -16,6 +16,10 @@ public abstract class TypeElement extends ASTElement {
 
     public abstract boolean accepts(TypeElement other);
 
+    public boolean acceptsReflexive(TypeElement other) {
+        return this.accepts(other) && other.accepts(this);
+    }
+
     public boolean isBase() {
         TypeElement res = this.resolve();
         if (res instanceof NamedType) {
