@@ -33,6 +33,10 @@ public class CatchStatement extends Statement implements NameHolder, HasOwnType 
         return "catch " + this.getType().format() + " " + this.excname + " " + this.getBody().format();
     }
 
+    public String getExcname() {
+        return excname;
+    }
+
     public CompoundStatement getBody() {
         return body;
     }

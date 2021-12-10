@@ -32,6 +32,10 @@ public class LLVMFunction extends LLVMConstant {
         LLVMSetLinkage(obj, LLVMExternalLinkage);
     }
 
+    public boolean isExternal() {
+        return LLVMIsDeclaration(obj) > 0;
+    }
+
     public LLVMValue getParam(int index) {
         return LLVMValue.build(this.module.get(), LLVMGetParam(this.getInternal(), index));
     }

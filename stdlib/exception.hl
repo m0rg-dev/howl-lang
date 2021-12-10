@@ -17,21 +17,31 @@ class Exception implements Display {
         return self.message;
     }
 
-    static fn void recover() throws Exception {
+    static fn Exception exc_get() {
         let ExternalPointer<Exception> tmp_buf
             = new ExternalPointer<Exception>(Exception.__exc_get());
-        let Exception real = tmp_buf.dereference();
+        return tmp_buf.dereference();
+    }
 
-        let StaticTable what = StaticTable.load(!get_stable_pointer(real));
+    static fn bool exc_check(String catch_class) {
+        lib.IO.println("exc_check " + catch_class);
+        let Exception real = Exception.exc_get();
 
-        lib.IO.println("Uncaught exception: " + real);
-        lib.IO.println("  Exception type: " + what.getName());
-        let Option<StaticTable> parent = what.getParent();
-        while parent.isSome() {
-            lib.IO.println("    -> " + parent.unwrap().getName());
-            parent = parent.unwrap().getParent();
+        let Option<StaticTable> attempt = Option::<StaticTable>.some(
+            StaticTable.load(!get_stable_pointer(real))
+        );
+
+        lib.IO.println("actual exception type is " + attempt.unwrap().getName());
+
+        while attempt.isSome() {
+            lib.IO.println("exc_check against " + attempt.unwrap().getName());
+            if attempt.unwrap().getName().equals(catch_class) {
+                return true;
+            }
+            attempt = attempt.unwrap().getParent();
         }
-        Exception.exit(1);
+
+        return false;
     }
 
     static fn void __exc_throw(Exception object) {

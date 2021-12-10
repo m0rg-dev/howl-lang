@@ -18,6 +18,7 @@ import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMGlobalVariable;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
@@ -98,6 +99,10 @@ public class NameExpression extends Expression implements Lvalue {
             LLVMType static_type = c.getStaticType().generate(builder.getModule());
             LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, c.getPath() + "_static");
             return g;
+        } else if (target instanceof Function) {
+            Function f = (Function) target;
+            LLVMFunctionType type = (LLVMFunctionType) f.getOwnType().resolve().generate(builder.getModule());
+            return builder.getModule().getOrInsertFunction(type, f.getPath(), x -> x.setExternal(), true);
         } else {
             throw new RuntimeException(
                     "unimplemented NameExpression resolution of type " + target.getClass().getName());

@@ -167,7 +167,7 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         LLVMFunctionType type = (LLVMFunctionType) this.getOwnType().resolve().generate(module);
         if (this.is_extern) {
             // TODO check for duplicate extern functions
-            return module.getOrInsertFunction(type, this.getOriginalName(), f -> f.setExternal());
+            return module.getOrInsertFunction(type, this.getOriginalName(), f -> f.setExternal(), true);
         } else {
             return module.getOrInsertFunction(type, this.getPath(), (f) -> {
                 if (this.body.isPresent()) {
@@ -181,7 +181,7 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
                         }
                     }
                 }
-            });
+            }, false);
         }
     }
 }

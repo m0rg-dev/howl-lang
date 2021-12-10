@@ -13,7 +13,7 @@ class String {
         let String rc = String.from(self);
 
         let i64 i = 0;
-        while i < other.contents.length {
+        while i < other.contents.length() {
             rc.contents.push(other.contents[i]);
             i = i + 1;
         }
@@ -29,6 +29,20 @@ class String {
         return self + other.toString();
     }
 
+    fn bool equals(String other) {
+        let i64 i = 0;
+        while i < self.contents.length() {
+            if i >= other.contents.length() {
+                return false;
+            }
+            if self.contents[i] != other.contents[i] {
+                return false;
+            }
+            i = i + 1;
+         }
+        return true;
+    }
+
     static fn String fromBytes(*u8 bytes, i64 length) {
         let String rc = new String();
 
@@ -42,7 +56,7 @@ class String {
     }
 
     static fn String from(String other) {
-        return String.fromBytes(other.contents.value, other.contents.length);
+        return String.fromBytes(other.contents.value, other.contents.length());
     }
 
     static fn String from(i64 value) {

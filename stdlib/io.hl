@@ -1,6 +1,6 @@
 class IO {
     static fn void print(String s) {
-        RawIO.write(1, s.contents.value, s.contents.length);
+        RawIO.write(1, s.contents.value, s.contents.length());
     }
 
     static fn void println(String s) {

@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast.statement;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import dev.m0rg.howl.ast.ASTElement;
@@ -43,6 +44,10 @@ public class TryStatement extends Statement {
 
     public void insertAlternative(CatchStatement a) {
         this.alternatives.add((CatchStatement) a.setParent(this));
+    }
+
+    public List<CatchStatement> getAlternatives() {
+        return Collections.unmodifiableList(alternatives);
     }
 
     public void transform(ASTTransformer t) {

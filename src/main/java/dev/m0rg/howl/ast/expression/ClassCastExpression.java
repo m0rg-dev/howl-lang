@@ -55,8 +55,12 @@ public class ClassCastExpression extends Expression {
     @Override
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
+        // TODO we use source resolved type here to let us get away with
+        // upcasting in ConvertTryCatch - is this reasonable, or should we
+        // add a different way to do that upcast and leave this as target
+        // type so it sanity-checks?
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> (TypeElement) this.target.detach()));
+                () -> (TypeElement) this.getSource().getResolvedType()));
         return rc;
     }
 

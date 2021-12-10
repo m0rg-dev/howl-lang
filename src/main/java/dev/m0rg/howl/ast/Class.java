@@ -30,6 +30,7 @@ import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
 public class Class extends ASTElement implements NamedElement, NameHolder, HasOwnType, GeneratesTopLevelItems {
     String name;
@@ -159,7 +160,19 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
                 return Optional.of(m);
             }
         }
+        if (this.ext.isPresent()) {
+            return ((ClassType) this.ext.get().resolve()).getSource().getMethod(name);
+        }
         return Optional.empty();
+    }
+
+    public boolean isOwnMethod(String name) {
+        for (Function m : methods) {
+            if (m.getName().equals(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<Function> getOverloadCandidates(String name) {
@@ -211,6 +224,10 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
 
     public List<String> getMethodNames() {
         Set<String> names = new HashSet<>();
+        if (this.ext.isPresent()) {
+            names.addAll(((ClassType) this.ext.get().resolve()).getSource().getMethodNames());
+        }
+
         for (Function m : methods) {
             names.add(m.getName());
         }
@@ -302,7 +319,8 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
             }
             LLVMType this_structure_type = this.getOwnType().generate(module);
             LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, argtypes);
-            allocator = module.getOrInsertFunction(allocator_type, this.getPath() + "_alloc", f -> f.setExternal());
+            allocator = module.getOrInsertFunction(allocator_type, this.getPath() + "_alloc", f -> f.setExternal(),
+                    true);
         }
     }
 
@@ -329,8 +347,20 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
             }
 
             for (String name : this.getMethodNames()) {
-                Function m = this.getMethod(name).get();
-                methods.add(m.generate(module));
+                if (this.isOwnMethod(name)) {
+                    Function m = this.getMethod(name).get();
+                    Logger.trace("generating: " + name);
+                    methods.add(m.generate(module));
+                } else {
+                    Function f = (Function) this.getMethod(name).get();
+                    LLVMFunctionType type = (LLVMFunctionType) f.getOwnType().resolve().generate(module);
+
+                    if (f.is_extern) {
+                        methods.add(module.getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true));
+                    } else {
+                        methods.add(module.getOrInsertFunction(type, f.getPath(), x -> x.setExternal(), true));
+                    }
+                }
             }
 
             LLVMStructureType static_type = this.getStaticType().generate(module);

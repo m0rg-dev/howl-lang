@@ -26,7 +26,7 @@ public class LLVMModule {
                 Arrays.asList(new LLVMType[] {
                         new LLVMIntType(context, 64),
                         new LLVMIntType(context, 64),
-                })), "calloc", f -> f.setExternal());
+                })), "calloc", f -> f.setExternal(), true);
     }
 
     public LLVMContext getContext() {
@@ -55,10 +55,21 @@ public class LLVMModule {
         return Optional.ofNullable(r).map(r2 -> new LLVMFunction(this, r2));
     }
 
-    public LLVMFunction getOrInsertFunction(LLVMFunctionType type, String name, Consumer<LLVMFunction> callback) {
+    public LLVMFunction getOrInsertFunction(LLVMFunctionType type, String name, Consumer<LLVMFunction> callback,
+            boolean allowExternal) {
         LLVMValueRef r = LLVMGetNamedFunction(this.getInternal(), name);
         if (r != null) {
-            return new LLVMFunction(this, r);
+            LLVMFunction rc = new LLVMFunction(this, r);
+            if (rc.isExternal()) {
+                if (allowExternal) {
+                    return rc;
+                } else {
+                    callback.accept(rc);
+                    return rc;
+                }
+            } else {
+                return rc;
+            }
         }
         LLVMFunction rc = new LLVMFunction(this, name, type);
         callback.accept(rc);

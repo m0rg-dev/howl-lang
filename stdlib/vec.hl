@@ -1,6 +1,6 @@
 class Vec<T> {
     *T value;
-    i64 length;
+    i64 _length;
     i64 element_size;
 
     extern fn *i8 malloc(i64 size);
@@ -9,16 +9,20 @@ class Vec<T> {
     fn void constructor() {
         !pointer_assign(Self.malloc(0), self.value);
         self.element_size = !sizeof(self.value[0]);
-        self.length = 0;
+        self._length = 0;
     }
 
     fn void push(T element) {
-        self[self.length] = element;
+        self[self._length] = element;
     }
 
     fn T pop() {
-        self.length = self.length - 1;
-        return self[self.length];
+        self._length = self._length - 1;
+        return self[self._length];
+    }
+
+    fn i64 length() {
+        return self._length;
     }
 
     fn T __index__(i64 idx) {
@@ -26,12 +30,12 @@ class Vec<T> {
     }
 
     fn void __index__(i64 idx, T value) {
-        if idx >= self.length {
+        if idx >= self._length {
             !pointer_assign(
                 Self.realloc(!as_raw(self.value), self.element_size * (idx + 1)),
                 self.value
             );
-            self.length = idx + 1;
+            self._length = idx + 1;
         }
         self.value[idx] = value;
     }
