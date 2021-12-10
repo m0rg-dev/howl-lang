@@ -282,7 +282,7 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     }
 
     public boolean doesImplement(InterfaceType t) {
-        for (NamedType imp : impl) {
+        for (NamedType imp : this.interfaces()) {
             Optional<String> n = imp.resolveName(imp.getName()).map(x -> x.getPath());
             if (n.isPresent() && n.get().equals(t.getSource().getPath())) {
                 return true;
@@ -292,7 +292,12 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     }
 
     public List<NamedType> interfaces() {
-        return Collections.unmodifiableList(impl);
+        Set<NamedType> rc = new HashSet<>();
+        if (this.ext.isPresent()) {
+            rc.addAll(((ClassType) this.ext.get().resolve()).getSource().interfaces());
+        }
+        rc.addAll(impl);
+        return Collections.unmodifiableList(new ArrayList<>(rc));
     }
 
     @Override
@@ -420,5 +425,9 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
 
     public LLVMFunction getAllocator() {
         return allocator;
+    }
+
+    public boolean isMonomorphic() {
+        return this.generics.isEmpty();
     }
 }

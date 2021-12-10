@@ -59,7 +59,7 @@ public class InterfaceCastExpression extends Expression {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> (TypeElement) this.target.detach()));
+                () -> (TypeElement) this.getSource().getResolvedType()));
         return rc;
     }
 

@@ -24,17 +24,13 @@ class Exception implements Display {
     }
 
     static fn bool exc_check(String catch_class) {
-        lib.IO.println("exc_check " + catch_class);
         let Exception real = Exception.exc_get();
 
         let Option<StaticTable> attempt = Option::<StaticTable>.some(
             StaticTable.load(!get_stable_pointer(real))
         );
 
-        lib.IO.println("actual exception type is " + attempt.unwrap().getName());
-
         while attempt.isSome() {
-            lib.IO.println("exc_check against " + attempt.unwrap().getName());
             if attempt.unwrap().getName().equals(catch_class) {
                 return true;
             }

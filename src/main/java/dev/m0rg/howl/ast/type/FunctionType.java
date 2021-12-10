@@ -49,7 +49,7 @@ public class FunctionType extends TypeElement {
                         "FunctionType of non-Function " + source_path + "? (" + target.get().getClass().getName()
                                 + ")");
             } else {
-                throw new RuntimeException("FunctionType of unresolvable " + source_path + "?");
+                throw new RuntimeException("FunctionType of unresolvable " + source_path + "? " + this.getPath());
             }
         }
     }

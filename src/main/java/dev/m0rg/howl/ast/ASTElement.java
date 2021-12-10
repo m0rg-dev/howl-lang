@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import dev.m0rg.howl.logger.Logger;
+
 public abstract class ASTElement {
     ASTElement parent;
     protected Span span;

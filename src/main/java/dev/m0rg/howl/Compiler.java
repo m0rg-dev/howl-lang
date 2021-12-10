@@ -32,6 +32,7 @@ import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
 import dev.m0rg.howl.transform.AddClassCasts;
 import dev.m0rg.howl.transform.AddInterfaceCasts;
+import dev.m0rg.howl.transform.AddInterfaceConverters;
 import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
@@ -132,6 +133,7 @@ public class Compiler {
         cc.root_module.transform(new ConvertStrings());
         cc.root_module.transform(new ConvertIndexLvalue());
         cc.root_module.transform(new ConvertCustomOverloads());
+        cc.root_module.transform(new AddInterfaceConverters());
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());
