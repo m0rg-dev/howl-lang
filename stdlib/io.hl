@@ -7,6 +7,10 @@ class IO {
         IO.print(s);
         IO.print("\n");
     }
+
+    static fn void println(Display d) {
+        IO.println(d.toString());
+    }
 }
 
 class RawIO {

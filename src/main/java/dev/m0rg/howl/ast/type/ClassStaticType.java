@@ -10,6 +10,7 @@ import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
+import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
@@ -68,7 +69,12 @@ public class ClassStaticType extends TypeElement implements StructureType {
     }
 
     public List<String> getFieldNames() {
-        return getSource().getMethodNames();
+        List<String> methods = getSource().getMethodNames();
+        List<String> rc = new ArrayList<>();
+        rc.add("__name");
+        rc.add("__parent");
+        rc.addAll(methods);
+        return rc;
     }
 
     @Override
@@ -85,6 +91,10 @@ public class ClassStaticType extends TypeElement implements StructureType {
     public LLVMStructureType generate(LLVMModule module) {
         return module.getContext().getOrCreateStructureType(this.getSource().getPath() + "_stable", () -> {
             List<LLVMType> contents = new ArrayList<>();
+            // name
+            contents.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
+            // parent
+            contents.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
             for (String name : this.getSource().getMethodNames()) {
                 Function m = this.getSource().getMethod(name).get();
                 contents.add(new LLVMPointerType<LLVMType>(m.getOwnType().resolve().generate(module)));

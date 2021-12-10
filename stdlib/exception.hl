@@ -1,7 +1,36 @@
-class Exception {
+class Exception implements Display {
     String message;
+
+    extern fn void exit(i32 code);
+    extern fn *i8 __exc_push();
+    extern fn void __exc_pop(*i8 handler);
+    extern fn void __exc_throw(*i8 object);
+    extern fn *i8 __exc_get();
+    extern fn *i32 __jmp_buf();
+    extern fn i32 setjmp(*i32 jmp_buf);
 
     fn void constructor(String message) {
         self.message = message;
+    }
+
+    fn String toString() {
+        return self.message;
+    }
+
+    static fn void recover() throws Exception {
+        let ExternalPointer<Exception> tmp_buf
+            = new ExternalPointer<Exception>(Exception.__exc_get());
+        let Exception real = tmp_buf.dereference();
+
+        let StaticTable what = StaticTable.load(!get_stable_pointer(real));
+
+        lib.IO.println("Uncaught exception: " + real);
+        lib.IO.println("  (" + what.getName() + ")");
+        Exception.exit(1);
+    }
+
+    static fn void __exc_throw(Exception object) {
+        let Pointer<Exception> e = new Pointer<Exception>(object);
+        Self.__exc_throw(!as_raw(e.value_pointer()));
     }
 }

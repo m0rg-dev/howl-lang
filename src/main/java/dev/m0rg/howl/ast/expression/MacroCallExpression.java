@@ -45,7 +45,8 @@ public class MacroCallExpression extends CallExpressionBase {
     public TypeElement getType() {
         if (this.name.equals("sizeof")) {
             return (TypeElement) NumericType.build(span, 64, true).setParent(this);
-        } else if (this.name.equals("as_raw") || this.name.equals("get_object_pointer")) {
+        } else if (this.name.equals("as_raw") || this.name.equals("get_object_pointer")
+                || this.name.equals("get_stable_pointer")) {
             RawPointerType rc = new RawPointerType(span);
             rc.setInner(NumericType.build(span, 8, true));
             return (TypeElement) rc.setParent(this);
@@ -79,6 +80,14 @@ public class MacroCallExpression extends CallExpressionBase {
             LLVMType ppi8 = new LLVMPointerType<>(new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)));
             LLVMValue cast = builder.buildBitcast(this.args.get(0).generate(builder), ppi8, "");
             return builder.buildLoad(cast, "");
+        } else if (this.name.equals("get_stable_pointer")) {
+            TypeElement source_type = this.args.get(0).getResolvedType();
+            LLVMValue source_alloca = builder.buildAlloca(source_type.generate(builder.getModule()), "");
+            builder.buildStore(this.args.get(0).generate(builder), source_alloca);
+            return builder
+                    .buildBitcast(builder.buildLoad(builder.buildStructGEP(source_type.generate(builder.getModule()),
+                            source_alloca, 1,
+                            ""), ""), new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)), "");
         } else if (this.name.equals("pointer_assign")) {
             // !pointer_assign(*i8 untyped_source, *T typed_target)
             return builder.buildStore(this.args.get(0).generate(builder),

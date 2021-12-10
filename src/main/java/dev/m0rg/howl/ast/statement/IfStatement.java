@@ -33,6 +33,9 @@ public class IfStatement extends Statement implements HasUpstreamFields {
         IfStatement rc = new IfStatement(span);
         rc.setBody((CompoundStatement) body.detach());
         rc.setCondition((Expression) condition.detach());
+        if (this.alternative.isPresent()) {
+            rc.setAlternative((CompoundStatement) this.alternative.get().detach());
+        }
         return rc;
     }
 
@@ -66,6 +69,10 @@ public class IfStatement extends Statement implements HasUpstreamFields {
         this.setCondition(t.transform(condition));
         body.transform(t);
         this.setBody(t.transform(body));
+        if (this.alternative.isPresent()) {
+            this.alternative.get().transform(t);
+            this.setAlternative(t.transform(this.alternative.get()));
+        }
     }
 
     @Override

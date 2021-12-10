@@ -26,6 +26,10 @@ public class ThrowStatement extends Statement {
         return "throw " + this.source.format() + ";";
     }
 
+    public Expression getSource() {
+        return source;
+    }
+
     public void setSource(Expression source) {
         this.source = (Expression) source.setParent(this);
     }

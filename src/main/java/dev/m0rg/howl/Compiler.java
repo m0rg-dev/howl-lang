@@ -30,14 +30,18 @@ import dev.m0rg.howl.llvm.LLVMContext;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.logger.Logger.LogLevel;
+import dev.m0rg.howl.transform.AddClassCasts;
 import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
+import dev.m0rg.howl.transform.CoalesceCatch;
 import dev.m0rg.howl.transform.CoalesceElse;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertIndexLvalue;
 import dev.m0rg.howl.transform.ConvertStrings;
+import dev.m0rg.howl.transform.ConvertThrow;
+import dev.m0rg.howl.transform.ConvertTryCatch;
 import dev.m0rg.howl.transform.IndirectMethodCalls;
 import dev.m0rg.howl.transform.MonomorphizeClasses;
 import dev.m0rg.howl.transform.ResolveNames;
@@ -116,6 +120,10 @@ public class Compiler {
 
         cc.ingest(FileSystems.getDefault().getPath(args[0]), "main");
 
+        cc.root_module.transform(new CoalesceElse());
+        cc.root_module.transform(new CoalesceCatch());
+        cc.root_module.transform(new ConvertTryCatch());
+        cc.root_module.transform(new ConvertThrow());
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new MonomorphizeClasses());
@@ -125,12 +133,16 @@ public class Compiler {
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());
-        cc.root_module.transform(new CoalesceElse());
         cc.root_module.transform(new AddNumericCasts());
         cc.root_module.transform(new AddInterfaceCasts());
+        cc.root_module.transform(new AddClassCasts());
 
         cc.root_module.transform(new ExternFunctionBaseTypesOnly());
         cc.root_module.transform(new ExternFunctionNoAliasing());
+
+        if (cmd.hasOption("trace")) {
+            System.err.println(cc.root_module.format());
+        }
 
         List<LLVMModule> modules = new ArrayList<>();
         if (cc.successful) {

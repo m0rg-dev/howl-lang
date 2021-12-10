@@ -29,12 +29,12 @@ public class ResolveNames implements ASTTransformer {
                 }
             }
 
+            if (split_point == 0) {
+                e.getSpan().addError("unresolved name");
+            }
+
             Expression rc = new NameExpression(name_expression.getSpan(),
                     String.join(".", parts.subList(0, split_point)));
-
-            if (!name_expression.resolveName(((NameExpression) rc).getName()).isPresent()) {
-                throw new RuntimeException("COMPILATION-ERROR unresolved name");
-            }
 
             for (String remaining_part : parts.subList(split_point, parts.size())) {
                 FieldReferenceExpression new_rc = new FieldReferenceExpression(rc.getSpan(), remaining_part);

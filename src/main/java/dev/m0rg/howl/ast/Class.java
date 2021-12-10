@@ -126,6 +126,10 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         return rc.toString();
     }
 
+    public Optional<NamedType> getExtends() {
+        return ext;
+    }
+
     public void setExtends(NamedType ext) {
         this.ext = Optional.of((NamedType) ext.setParent(this));
     }
@@ -305,6 +309,15 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     public void generateMethods(LLVMModule module) {
         if (this.generics.isEmpty()) {
             List<LLVMConstant> methods = new ArrayList<>();
+            LLVMConstant str = module.stringConstant(this.getPath());
+            LLVMGlobalVariable name_var = module.getOrInsertGlobal(str.getType(), this.getPath() + "_name");
+            name_var.setInitializer(str);
+
+            methods.add(name_var
+                    .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
+            methods.add(name_var
+                    .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
+
             for (String name : this.getMethodNames()) {
                 Function m = this.getMethod(name).get();
                 methods.add(m.generate(module));

@@ -67,7 +67,15 @@ public class ClassType extends TypeElement implements StructureType {
     public boolean accepts(TypeElement other) {
         if (other instanceof ClassType) {
             ClassType ct = (ClassType) other;
-            return ct.source_path.equals(this.source_path);
+            if (ct.source_path.equals(this.source_path)) {
+                return true;
+            }
+
+            if (ct.getSource().getExtends().isPresent()) {
+                return ct.getSource().getExtends().get().resolve().accepts(this);
+            }
+
+            return false;
         } else {
             return false;
         }

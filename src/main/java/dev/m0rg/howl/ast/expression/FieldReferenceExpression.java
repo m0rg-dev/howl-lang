@@ -117,7 +117,7 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
             }
             @SuppressWarnings("unchecked")
             LLVMPointerType<LLVMType> t = (LLVMPointerType<LLVMType>) src.getType();
-            LLVMValue rc = builder.buildStructGEP(t.getInner(), src, index, "");
+            LLVMValue rc = builder.buildStructGEP(t.getInner(), src, index, name);
 
             return rc;
         } else {

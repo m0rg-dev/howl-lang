@@ -9,6 +9,10 @@ class Pointer<T> {
         self.value[0] = value;
     }
 
+    fn void import(*i8 other) {
+        !pointer_assign(other, self.value);
+    }
+
     fn i32 size() {
         return !sizeof(self.value[0]);
     }
@@ -24,4 +28,35 @@ class Pointer<T> {
     fn *T value_pointer() {
         return self.value;
     }
+}
+
+class ExternalPointer<T> {
+    *T value;
+
+    fn void constructor(*i8 value) {
+        !pointer_assign(value, self.value);
+    }
+
+    fn T dereference() {
+        return self.value[0];
+    }
+}
+
+class StaticTable {
+    *i8 name;
+    *i8 parent;
+
+    extern fn i64 strlen(*i8 s);
+
+    // stable_pointer: *{*name, *parent, ...}
+    static fn StaticTable load(*i8 stable_pointer) {
+        let ExternalPointer<*i8> real_ptr = new ExternalPointer<*i8>(stable_pointer);
+        let StaticTable rc = new StaticTable();
+        rc.name = real_ptr.dereference();
+        return rc;
+    }
+
+    fn String getName() {
+        return String.fromBytes(self.name, StaticTable.strlen(self.name));
+    } 
 }

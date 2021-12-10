@@ -1,4 +1,9 @@
 fn i32 Main() {
+    try {
+        throw new Exception("heck!");
+    } catch Exception e {
+        lib.IO.println(e);
+    }
     lib.IO.println("Hello, World!");
     return 0;
 }

@@ -38,6 +38,7 @@ import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.NumberExpression;
 import dev.m0rg.howl.ast.expression.StringLiteral;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
+import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
 import dev.m0rg.howl.ast.statement.ElseStatement;
 import dev.m0rg.howl.ast.statement.IfStatement;
@@ -46,6 +47,7 @@ import dev.m0rg.howl.ast.statement.ReturnStatement;
 import dev.m0rg.howl.ast.statement.SimpleStatement;
 import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.statement.ThrowStatement;
+import dev.m0rg.howl.ast.statement.TryStatement;
 import dev.m0rg.howl.ast.statement.WhileStatement;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.RawPointerType;
@@ -85,6 +87,8 @@ public class CSTImporter {
                 return this.parseAssignmentStatement(inner_obj);
             case "BaseType":
                 return this.parseBaseType(inner_obj);
+            case "CatchStatement":
+                return this.parseCatchStatement(inner_obj);
             case "Class":
                 return this.parseClass(inner_obj);
             case "ClassField":
@@ -127,6 +131,8 @@ public class CSTImporter {
                 return this.parseStringLiteral(inner_obj);
             case "ThrowStatement":
                 return this.parseThrowStatement(inner_obj);
+            case "TryStatement":
+                return this.parseTryStatement(inner_obj);
             case "TypedArgument":
                 return this.parseTypedArgument(inner_obj);
             case "WhileStatement":
@@ -179,6 +185,26 @@ public class CSTImporter {
 
     NamedType parseBaseType(JsonObject source) {
         return NamedType.build(extractSpan(source), source.get("name").getAsString());
+    }
+
+    CatchStatement parseCatchStatement(JsonObject source) {
+        CatchStatement rc = new CatchStatement(extractSpan(source), source.get("excname").getAsString());
+
+        ASTElement body = parseElement(source.get("body"));
+        if (body instanceof CompoundStatement) {
+            rc.setBody((CompoundStatement) body);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        ASTElement type = parseElement(source.get("exctype"));
+        if (type instanceof TypeElement) {
+            rc.setType((TypeElement) type);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        return rc;
     }
 
     Class parseClass(JsonObject source) {
@@ -537,6 +563,19 @@ public class CSTImporter {
         } else {
             throw new IllegalArgumentException();
         }
+        return rc;
+    }
+
+    TryStatement parseTryStatement(JsonObject source) {
+        TryStatement rc = new TryStatement(extractSpan(source));
+
+        ASTElement body = parseElement(source.get("body"));
+        if (body instanceof CompoundStatement) {
+            rc.setBody((CompoundStatement) body);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
         return rc;
     }
 
