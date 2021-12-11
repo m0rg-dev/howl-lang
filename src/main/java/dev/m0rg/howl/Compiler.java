@@ -47,6 +47,7 @@ import dev.m0rg.howl.transform.ConvertThrow;
 import dev.m0rg.howl.transform.ConvertTryCatch;
 import dev.m0rg.howl.transform.IndirectMethodCalls;
 import dev.m0rg.howl.transform.MonomorphizeClasses;
+import dev.m0rg.howl.transform.RemoveGenericClasses;
 import dev.m0rg.howl.transform.ResolveNames;
 import dev.m0rg.howl.transform.ResolveOverloads;
 
@@ -168,7 +169,18 @@ public class Compiler {
         cc.root_module.transform(new ConvertBooleans());
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
-        cc.root_module.transform(new MonomorphizeClasses());
+
+        // TODO come up with better API here
+        MonomorphizeClasses mc = new MonomorphizeClasses();
+        cc.root_module.transform(mc.getFinder());
+        mc.generate();
+        cc.root_module.transform(mc);
+
+        // System.err.println(cc.root_module.getChild("lib").get().format());
+        // System.err.println(cc.root_module.getChild("main").get().format());
+        // System.exit(0);
+
+        cc.root_module.transform(new RemoveGenericClasses());
         cc.root_module.transform(new ConvertStrings());
         cc.root_module.transform(new ConvertIndexLvalue());
         cc.root_module.transform(new ConvertCustomOverloads());

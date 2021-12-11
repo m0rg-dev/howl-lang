@@ -1,0 +1,10 @@
+interface Iterator<T> {
+    fn bool hasNext();
+    fn T next() throws OverrunException;
+}
+
+class OverrunException extends Exception {
+    fn void constructor(String message) {
+        self.message = message;
+    }
+}

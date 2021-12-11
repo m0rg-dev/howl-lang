@@ -39,4 +39,34 @@ class Vec<T> {
         }
         self.value[idx] = value;
     }
+
+    fn VecIterator<T> iter() {
+        return new VecIterator<T>(self);
+    }
+}
+
+class VecIterator<T> implements Iterator<T> {
+    Vec<T> source;
+    i64 index;
+
+    fn void constructor(Vec<T> source) {
+        self.source = source;
+        self.index = 0;
+    }
+
+    fn bool hasNext() {
+        return self.index < self.source.length();
+    }
+
+    fn T next() throws OverrunException {
+        self.hasNext();
+        if self.hasNext() {
+            let T rc = self.source[self.index];
+            self.index = self.index + 1;
+            return rc;
+        } else {
+            throw new OverrunException("VecIterator index out of bounds");
+        }
+        !unreachable();
+    }
 }

@@ -128,6 +128,11 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         this.name = name;
     }
 
+    // ONLY to be used if you know you're who called setParent
+    public void setNameUnchecked(String name) {
+        this.name = name;
+    }
+
     public Optional<ASTElement> getChild(String name) {
         if (this.args.containsKey(name)) {
             return Optional.of(this.args.get(name));

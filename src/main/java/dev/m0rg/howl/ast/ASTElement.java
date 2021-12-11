@@ -93,11 +93,13 @@ public abstract class ASTElement {
         }
     }
 
-    public Module nearestModule() {
+    public Optional<Module> nearestModule() {
         if (this instanceof Module) {
-            return (Module) this;
-        } else {
+            return Optional.of((Module) this);
+        } else if (this.parent != null) {
             return this.getParent().nearestModule();
+        } else {
+            return Optional.empty();
         }
     }
 
@@ -105,7 +107,9 @@ public abstract class ASTElement {
         ArrayList<String> rc = new ArrayList<String>();
         rc.add("");
         rc.add("root.lib.");
-        rc.addAll(this.nearestModule().getImportedPaths());
+        if (this.nearestModule().isPresent()) {
+            rc.addAll(this.nearestModule().get().getImportedPaths());
+        }
         return rc;
     }
 }

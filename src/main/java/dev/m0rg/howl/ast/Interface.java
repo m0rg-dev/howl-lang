@@ -1,25 +1,37 @@
 package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.InterfaceStaticType;
 import dev.m0rg.howl.ast.type.InterfaceType;
+import dev.m0rg.howl.ast.type.NewType;
+import dev.m0rg.howl.ast.type.TypeElement;
 
 public class Interface extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     String name;
     List<String> generics;
     List<Function> methods;
+    Map<String, NewType> generic_types;
 
     public Interface(Span span, String name, List<String> generics) {
         super(span);
         this.name = name;
         this.generics = generics;
+        this.generic_types = new HashMap<String, NewType>();
         this.methods = new ArrayList<Function>();
+
+        for (String generic : generics) {
+            generic_types.put(generic, (NewType) new NewType(span, generic).setParent(this));
+        }
     }
 
     @Override
@@ -43,7 +55,10 @@ public class Interface extends ASTElement implements NamedElement, NameHolder, H
             rc.append(">");
         }
 
-        rc.append(" {");
+        rc.append(" {\n");
+        for (Entry<String, NewType> generic : generic_types.entrySet()) {
+            rc.append("  " + generic.getValue().format() + ";\n");
+        }
         for (Function method : methods) {
             rc.append("\n" + method.format().indent(2));
         }
@@ -75,6 +90,13 @@ public class Interface extends ASTElement implements NamedElement, NameHolder, H
         }
     }
 
+    public void setName(String name) {
+        if (this.parent != null) {
+            throw new RuntimeException("setting the name on an owned Interface is a terrible idea");
+        }
+        this.name = name;
+    }
+
     public String getName() {
         return this.name;
     }
@@ -82,6 +104,10 @@ public class Interface extends ASTElement implements NamedElement, NameHolder, H
     public Optional<ASTElement> getChild(String name) {
         if (name.equals("Self")) {
             return Optional.of(this);
+        }
+
+        if (this.generic_types.containsKey(name)) {
+            return Optional.of(this.generic_types.get(name));
         }
 
         for (Function e : this.methods) {
@@ -126,5 +152,17 @@ public class Interface extends ASTElement implements NamedElement, NameHolder, H
 
     public InterfaceStaticType getStaticType() {
         return (InterfaceStaticType) new InterfaceStaticType(span, this.getPath()).setParent(this);
+    }
+
+    public void setGeneric(String name, TypeElement res) {
+        this.generic_types.get(name).setResolution(res);
+    }
+
+    public List<String> getGenericNames() {
+        return Collections.unmodifiableList(generics);
+    }
+
+    public void clearGenerics() {
+        generics = new ArrayList<>();
     }
 }

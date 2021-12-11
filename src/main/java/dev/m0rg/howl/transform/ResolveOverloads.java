@@ -53,9 +53,9 @@ public class ResolveOverloads implements ASTTransformer {
                                 TypeElement argtype = argtypes.get(i).resolve();
                                 TypeElement sourcearg = as_call.getArguments().get(i).getResolvedType();
                                 if (argtype.accepts(sourcearg)) {
-                                    candidate_types.add(argtype.format() + " \u001b[32m✔︎\u001b[0m");
+                                    candidate_types.add(argtype.format() + " " + Logger.OK);
                                 } else {
-                                    candidate_types.add(argtype.format() + " \u001b[31m✘\u001b[0m");
+                                    candidate_types.add(argtype.format() + " " + Logger.Error);
                                     all_match = false;
                                 }
                             }

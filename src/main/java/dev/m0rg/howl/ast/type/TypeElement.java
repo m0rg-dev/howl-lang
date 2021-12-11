@@ -32,6 +32,10 @@ public abstract class TypeElement extends ASTElement {
     }
 
     public TypeElement resolve() {
+        return this.resolveIfConcrete().orElseGet(() -> new NamedType(span, "__any"));
+    }
+
+    public Optional<TypeElement> resolveIfConcrete() {
         TypeElement rc = this;
         while (true) {
             if (rc instanceof NamedType) {
@@ -39,9 +43,9 @@ public abstract class TypeElement extends ASTElement {
                 if (named.isBase()) {
                     Optional<NumericType> as_numeric = NumericType.try_from(named);
                     if (as_numeric.isPresent()) {
-                        return as_numeric.get();
+                        return Optional.of(as_numeric.get());
                     } else {
-                        return named;
+                        return Optional.of(named);
                     }
                 }
 
@@ -53,7 +57,7 @@ public abstract class TypeElement extends ASTElement {
                     rc = ((HasOwnType) target.get()).getOwnType();
                 } else {
                     // TODO
-                    return new NamedType(span, "__error");
+                    return Optional.of(new NamedType(span, "__error"));
                 }
             } else if (rc instanceof NewType) {
                 NewType nt = (NewType) rc;
@@ -61,15 +65,15 @@ public abstract class TypeElement extends ASTElement {
                     rc = nt.getResolution().get();
                     continue;
                 } else {
-                    return new NamedType(span, "__any");
+                    return Optional.empty();
                 }
             } else if (rc instanceof RawPointerType) {
                 RawPointerType new_rc = (RawPointerType) rc.detach();
                 new_rc.setParent(rc.getParent());
                 new_rc.setInner((TypeElement) new_rc.getInner().resolve().detach());
-                return new_rc;
+                return Optional.of(new_rc);
             } else {
-                return rc;
+                return Optional.of(rc);
             }
         }
     }

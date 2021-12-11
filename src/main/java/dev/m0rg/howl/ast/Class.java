@@ -1,5 +1,6 @@
 package dev.m0rg.howl.ast;
 
+import java.lang.ProcessBuilder.Redirect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,7 +36,7 @@ import dev.m0rg.howl.logger.Logger;
 public class Class extends ASTElement implements NamedElement, NameHolder, HasOwnType, GeneratesTopLevelItems {
     String name;
     Optional<NamedType> ext;
-    List<NamedType> impl;
+    List<TypeElement> impl;
     List<String> generics;
     LinkedHashMap<String, Field> fields;
     Map<String, NewType> generic_types;
@@ -79,8 +80,8 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
             rc.setExtends((NamedType) ext.get().detach());
         }
 
-        for (NamedType imp : this.impl) {
-            rc.insertImplementation((NamedType) imp.detach());
+        for (TypeElement imp : this.impl) {
+            rc.insertImplementation((TypeElement) imp.detach());
         }
 
         return rc;
@@ -105,7 +106,7 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         if (!this.impl.isEmpty()) {
             rc.append(" implements ");
             List<String> inames = new ArrayList<>(this.impl.size());
-            for (NamedType imp : impl) {
+            for (TypeElement imp : impl) {
                 inames.add(imp.format());
             }
             rc.append(String.join(", ", inames));
@@ -135,8 +136,8 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         this.ext = Optional.of((NamedType) ext.setParent(this));
     }
 
-    public void insertImplementation(NamedType impl) {
-        this.impl.add((NamedType) impl.setParent(this));
+    public void insertImplementation(TypeElement impl) {
+        this.impl.add((TypeElement) impl.setParent(this));
     }
 
     public void insertField(Field contents) {
@@ -177,7 +178,7 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
 
     public List<Function> getOverloadCandidates(String name) {
         List<Function> rc = new ArrayList<>();
-        for (Function m : methods) {
+        for (Function m : this.synthesizeMethods()) {
             if (m.getOriginalName().equals(name)) {
                 rc.add(m);
             }
@@ -189,10 +190,16 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         List<Function> c = getOverloadCandidates("constructor");
         if (c.isEmpty())
             return Optional.empty();
-        return Optional.of(c.get(0));
+        Function f = c.get(0);
+        if (isOwnMethod(f.getName())) {
+            return Optional.of(c.get(0));
+        } else {
+            return Optional.empty();
+        }
     }
 
     public void insertMethod(Function method) {
+        method.setParent(this);
         List<Argument> args = method.getArgumentList();
         StringBuilder mangled_name = new StringBuilder("_Z");
         mangled_name.append(method.getOriginalName().length());
@@ -202,8 +209,8 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         for (Argument f : args) {
             mangled_name.append(f.getOwnType().mangle());
         }
-        method.setName(mangled_name.toString());
-        this.methods.add((Function) method.setParent(this));
+        method.setNameUnchecked(mangled_name.toString());
+        this.methods.add(method);
     }
 
     public void setGeneric(String name, TypeElement res) {
@@ -234,6 +241,16 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         return new ArrayList<>(names);
     }
 
+    // TODO figure out where this can be used
+    public List<Function> synthesizeMethods() {
+        List<String> names = getMethodNames();
+        List<Function> rc = new ArrayList<>(names.size());
+        for (String name : names) {
+            rc.add(getMethod(name).get());
+        }
+        return rc;
+    }
+
     public void clearGenerics() {
         generics = new ArrayList<>();
     }
@@ -248,6 +265,13 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
         for (Function method : methods) {
             method.transform(t);
             methods.set(index, (Function) t.transform(method).setParent(this));
+            index++;
+        }
+
+        index = 0;
+        for (TypeElement imp : impl) {
+            imp.transform(t);
+            impl.set(index, (TypeElement) t.transform(imp).setParent(this));
             index++;
         }
     }
@@ -282,17 +306,22 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
     }
 
     public boolean doesImplement(InterfaceType t) {
-        for (NamedType imp : this.interfaces()) {
-            Optional<String> n = imp.resolveName(imp.getName()).map(x -> x.getPath());
-            if (n.isPresent() && n.get().equals(t.getSource().getPath())) {
-                return true;
+        for (TypeElement imp : this.interfaces()) {
+            TypeElement res = imp.resolve();
+            if (res instanceof InterfaceType) {
+                if (t.getPath().equals(((InterfaceType) res).getPath())) {
+                    return true;
+                }
             }
+        }
+        if (this.ext.isPresent()) {
+            return ((ClassType) this.ext.get().resolve()).getSource().doesImplement(t);
         }
         return false;
     }
 
-    public List<NamedType> interfaces() {
-        Set<NamedType> rc = new HashSet<>();
+    public List<TypeElement> interfaces() {
+        Set<TypeElement> rc = new HashSet<>();
         if (this.ext.isPresent()) {
             rc.addAll(((ClassType) this.ext.get().resolve()).getSource().interfaces());
         }
@@ -374,12 +403,28 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
             LLVMConstant stable = static_type.createConstant(module.getContext(), methods);
             g.setInitializer(stable);
 
-            for (NamedType itype : this.interfaces()) {
+            for (TypeElement itype : this.interfaces()) {
                 InterfaceType res = (InterfaceType) itype.resolve();
                 LLVMStructureType itable_type = res.getSource().getStaticType().generate(module);
                 LLVMGlobalVariable itable = module.getOrInsertGlobal(itable_type,
                         this.getPath() + "_interface_" + res.getSource().getPath());
                 List<LLVMConstant> imethods = new ArrayList<>();
+
+                imethods.add(name_var
+                        .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
+
+                if (this.ext.isPresent()) {
+                    Class ext = ((ClassType) this.ext.get().resolve()).getSource();
+                    LLVMStructureType parent_type = ext.getStaticType().generate(module);
+                    LLVMGlobalVariable parent_stable = module.getOrInsertGlobal(
+                            parent_type,
+                            ext.getPath() + "_static");
+                    imethods.add(parent_stable
+                            .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
+                } else {
+                    imethods.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)).getNull());
+                }
+
                 for (String name : res.getSource().getMethodNames()) {
                     Function m = this.getMethod(name).get();
                     LLVMType method_type = res.getSource().getMethod(name).get().getOwnType().generate(module);

@@ -1,0 +1,14 @@
+static fn i32 Main() {
+    let Vec<String> items = new Vec<String>();
+
+    items.push("foo");
+    items.push("bar");
+    items.push("baz");
+
+    let Iterator<String> it = items.iter();
+    while it.hasNext() {
+        lib.IO.println(it.next());
+    }
+
+    return 0;
+}

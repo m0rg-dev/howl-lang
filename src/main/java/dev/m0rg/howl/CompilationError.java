@@ -52,6 +52,8 @@ public class CompilationError {
             }
             offset++;
         }
+        // handle no-newline-at-end-of-file cases
+        lines_mapped.put(offset, new Position(lineno, colno));
 
         Position start = lines_mapped.get(span.start);
         Position end = lines_mapped.get(span.end);

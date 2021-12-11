@@ -3,6 +3,9 @@ package dev.m0rg.howl.logger;
 import dev.m0rg.howl.Compiler;
 
 public class Logger {
+    public static final String OK = "\u001b[32m✔︎\u001b[0m";
+    public static final String Error = "\u001b[31m✘\u001b[0m";
+
     public static void log(LogLevel level, String message) {
         switch (level) {
             case Trace:

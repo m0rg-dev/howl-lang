@@ -20,7 +20,7 @@ public class AddInterfaceConverters implements ASTTransformer {
             Class c = (Class) e;
             if (c.isMonomorphic()) {
                 Logger.trace("AddInterfaceConverters " + e.getPath());
-                for (NamedType t : c.interfaces()) {
+                for (TypeElement t : c.interfaces()) {
                     TypeElement resolved = t.resolve();
                     if (resolved instanceof InterfaceType) {
                         InterfaceType it = (InterfaceType) resolved;
@@ -44,7 +44,7 @@ public class AddInterfaceConverters implements ASTTransformer {
 
                         c.insertMethod(converter);
                     } else {
-                        e.getSpan().addError("can't find interface " + t.getName());
+                        e.getSpan().addError("can't find interface " + t.format());
                     }
                 }
             }

@@ -234,7 +234,7 @@ public class CSTImporter {
             rc.setExtends(ext_type);
         }
 
-        for (NamedType imp : header.impl) {
+        for (TypeElement imp : header.impl) {
             rc.insertImplementation(imp);
         }
 
@@ -279,9 +279,9 @@ public class CSTImporter {
         }
 
         JsonArray impl_raw = source.get("implements").getAsJsonArray();
-        List<NamedType> impl = new ArrayList<>();
+        List<TypeElement> impl = new ArrayList<>();
         for (JsonElement el : impl_raw) {
-            NamedType parsed = parseBaseType(el.getAsJsonObject().get("BaseType").getAsJsonObject());
+            TypeElement parsed = (TypeElement) parseElement(el);
             impl.add(parsed);
         }
 
@@ -697,10 +697,10 @@ public class CSTImporter {
         String name;
         List<String> generics;
         Optional<Identifier> ext;
-        List<NamedType> impl;
+        List<TypeElement> impl;
 
         public ClassHeader(Span span, String name, List<String> generics, Optional<Identifier> ext,
-                List<NamedType> impl) {
+                List<TypeElement> impl) {
             super(span);
             this.name = name;
             this.generics = generics;

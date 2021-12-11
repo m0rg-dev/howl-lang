@@ -71,10 +71,7 @@ pub fn print_error(lexer: &LRNonStreamingLexer<u32>, e: &LexParseError<u32>, pat
 
     let lines_str = lexer.span_lines_str(span);
     if start_line == end_line {
-        eprintln!(
-            "    \x1b[32m{:>5}\x1b[0m \x1b[97m{}\x1b[0m",
-            start_line, lines_str
-        );
+        eprintln!("    \x1b[32m{:>5}\x1b[0m {}", start_line, lines_str);
         eprintln!(
             "         {}\x1b[1;35m{}\x1b[0m",
             " ".repeat(start_col),
