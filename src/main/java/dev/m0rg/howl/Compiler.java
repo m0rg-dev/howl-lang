@@ -21,6 +21,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.ImportStatement;
+import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.cst.CSTImporter;
@@ -29,7 +31,6 @@ import dev.m0rg.howl.lint.ExternFunctionNoAliasing;
 import dev.m0rg.howl.llvm.LLVMContext;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
-import dev.m0rg.howl.logger.Logger.LogLevel;
 import dev.m0rg.howl.transform.AddClassCasts;
 import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddInterfaceConverters;
@@ -70,6 +71,7 @@ public class Compiler {
     }
 
     public void ingest(Path file, String prefix) throws IOException, InterruptedException {
+        Logger.trace("Compiling: " + prefix + " (" + file.toString() + ")");
         ArrayList<String> args = new ArrayList<String>(Arrays.asList(frontend_command));
         args.add(file.toString());
         ProcessBuilder frontend_builder = new ProcessBuilder(args);
@@ -79,12 +81,41 @@ public class Compiler {
             byte[] raw = frontend.getInputStream().readAllBytes();
             CSTImporter importer = new CSTImporter(this, file);
             ASTElement[] parsed = importer.importProgram(raw);
+
+            String[] prefix_parts = prefix.split("\\.");
+            Module this_module = new Module(prefix_parts[prefix_parts.length - 1]);
+            if (root_module.resolveName(prefix).isEmpty()) {
+                this.root_module.insertPath(prefix, this_module);
+            }
+
             for (ASTElement el : parsed) {
                 if (el instanceof NamedElement) {
                     NamedElement named = (NamedElement) el;
                     String path = prefix + "." + named.getName();
-                    Logger.log(LogLevel.Trace, "Parsed: " + path + " (" + named.getClass().getSimpleName() + ")");
                     this.root_module.insertPath(path, el);
+                } else if (el instanceof ImportStatement) {
+                    String imported_path = ((ImportStatement) el).getPath();
+                    Module m = (Module) root_module.resolveName(prefix).get();
+                    m.insertItem(el);
+                    if (!m.resolveName(imported_path).isPresent()) {
+                        Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
+                        if (source_path.toFile().isDirectory()) {
+                            ingestDirectory(source_path, prefix + "." + imported_path);
+                        } else {
+                            el.getSpan().addError("no such module (" + source_path.toString() + ")");
+                        }
+                    }
+                } else if (el instanceof ModStatement) {
+                    String imported_path = ((ModStatement) el).getPath();
+                    Module m = (Module) root_module.resolveName(prefix).get();
+                    if (!m.resolveName(imported_path).isPresent()) {
+                        Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
+                        if (source_path.toFile().isDirectory()) {
+                            ingestDirectory(source_path, prefix + "." + imported_path);
+                        } else {
+                            el.getSpan().addError("no such module (" + source_path.toString() + ")");
+                        }
+                    }
                 } else {
                     throw new IllegalArgumentException();
                 }
@@ -93,6 +124,16 @@ public class Compiler {
             System.err.println("Parse failed with code " + exit);
             System.err.write(frontend.getErrorStream().readAllBytes());
             System.exit(1);
+        }
+    }
+
+    public void ingestDirectory(Path dir, String prefix) throws IOException, InterruptedException {
+        for (File source_file : dir.toFile().listFiles()) {
+            if (source_file.isDirectory()) {
+                ingestDirectory(source_file.toPath(), prefix + "." + source_file.getName());
+            } else {
+                ingest(source_file.toPath(), prefix);
+            }
         }
     }
 
@@ -115,12 +156,10 @@ public class Compiler {
 
         Compiler cc = new Compiler();
 
-        File stdlib = new File("stdlib/");
-        for (File lib_file : stdlib.listFiles()) {
-            cc.ingest(lib_file.toPath(), "lib");
-        }
+        Path stdlib_path = FileSystems.getDefault().getPath("stdlib/").toAbsolutePath();
 
-        cc.ingest(FileSystems.getDefault().getPath(args[0]), "main");
+        cc.ingestDirectory(stdlib_path, "lib");
+        cc.ingest(FileSystems.getDefault().getPath(args[0]).toAbsolutePath(), "main");
 
         cc.root_module.transform(new CoalesceElse());
         cc.root_module.transform(new CoalesceCatch());

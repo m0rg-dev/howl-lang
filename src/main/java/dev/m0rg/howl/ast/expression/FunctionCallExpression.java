@@ -13,7 +13,6 @@ import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
-import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMValue;
 
 public class FunctionCallExpression extends CallExpressionBase {

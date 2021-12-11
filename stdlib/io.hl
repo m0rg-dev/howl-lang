@@ -1,35 +1,3 @@
-class IO {
-    static fn void print(String s) {
-        RawIO.write(1, s.contents.value, s.contents.length());
-    }
-
-    static fn void println(String s) {
-        IO.print(s);
-        IO.print("\n");
-    }
-
-    static fn void println(Display d) {
-        IO.println(d.toString());
-    }
-}
-
-class RawIO {
-    extern fn i64 read(i32 fildes, *i8 buf, i64 nbyte);
-    extern fn i64 write(i32 fildes, *i8 buf, i64 nbyte);
-    extern fn i32 close(i32 fildes);
-
-    extern fn *i8 strerror(i32 errnum);
-    extern fn i32 __get_errno();
-    
-    extern fn i64 strlen(*i8 str);
-
-    extern fn i32 socket(i32 domain, i32 type, i32 protocol);
-    extern fn i32 bind(i32 socket, *i8 address, i32 size);
-    extern fn i32 listen(i32 socket, i32 backlog);
-    extern fn i32 accept(i32 socket, *i8 address, *i32 address_len);
-    extern fn i16 htons(i16 hostshort);
-}
-
 class sockaddr_in {
     u16 sin_family;
     u16 sin_port;

@@ -15,6 +15,13 @@ ProgramElement -> Result<CSTElement<'input>, ()>:
     | Function {
         Ok($1?)
     }
+    | ExternFunctionHeader ';' { Ok($1?) }
+    | 'IMPORT' 'identifier' ';' {
+        Ok(CSTElement::ImportStatement{ span: $span.into(), path: $lexer.span_str($2.as_ref().unwrap().span()).to_string() })
+    }
+    | 'MOD' 'identifier' ';' {
+        Ok(CSTElement::ModStatement{ span: $span.into(), path: $lexer.span_str($2.as_ref().unwrap().span()).to_string() })
+    }
     ;
 
 ClassHeader -> Result<CSTElement<'input>, ()>:

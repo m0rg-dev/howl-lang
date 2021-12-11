@@ -1,5 +1,5 @@
 howl: howl-rs howl-deps howl-java
-	cd howl-rs && cargo build
+
 howl-rs:
 	cd howl-rs && cargo build
 howl-deps:

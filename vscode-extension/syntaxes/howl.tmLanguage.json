@@ -27,7 +27,7 @@
 				},
 				{
 					"name": "storage.type",
-					"match": "\\b(class|interface|fn)\\b"
+					"match": "\\b(class|interface|fn|import|mod)\\b"
 				},
 				{
 					"name": "storage.modifier",

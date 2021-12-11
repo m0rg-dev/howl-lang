@@ -102,7 +102,11 @@ public class NameExpression extends Expression implements Lvalue {
         } else if (target instanceof Function) {
             Function f = (Function) target;
             LLVMFunctionType type = (LLVMFunctionType) f.getOwnType().resolve().generate(builder.getModule());
-            return builder.getModule().getOrInsertFunction(type, f.getPath(), x -> x.setExternal(), true);
+            if (f.isExtern()) {
+                return builder.getModule().getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true);
+            } else {
+                return builder.getModule().getOrInsertFunction(type, f.getPath(), x -> x.setExternal(), true);
+            }
         } else {
             throw new RuntimeException(
                     "unimplemented NameExpression resolution of type " + target.getClass().getName());

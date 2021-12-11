@@ -55,6 +55,16 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
         this.name = name;
     }
 
+    public List<String> getImportedPaths() {
+        List<String> rc = new ArrayList<>();
+        for (ASTElement c : this.contents) {
+            if (c instanceof ImportStatement) {
+                rc.add(((ImportStatement) c).getPath() + ".");
+            }
+        }
+        return rc;
+    }
+
     public Optional<ASTElement> getChild(String name) {
         for (ASTElement e : this.contents) {
             if (e instanceof NamedElement) {

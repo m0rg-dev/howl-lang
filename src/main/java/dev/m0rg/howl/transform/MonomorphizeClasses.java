@@ -42,10 +42,10 @@ public class MonomorphizeClasses implements ASTTransformer {
                         } else {
                             throw new RuntimeException();
                         }
-
                     }
                 } else {
-                    throw new RuntimeException("COMPILATION-ERROR specification of non-class " + base.format());
+                    e.getSpan().addError("specification of non-class");
+                    return e;
                 }
             } else {
                 throw new RuntimeException("COMPILATION-ERROR specification of non-named");

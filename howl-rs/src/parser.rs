@@ -235,4 +235,12 @@ pub enum CSTElement<'a> {
         returntype: &'a CSTElement<'a>,
         args: &'a CSTElement<'a>,
     },
+    ImportStatement {
+        span: SerializableSpan,
+        path: String,
+    },
+    ModStatement {
+        span: SerializableSpan,
+        path: String,
+    },
 }

@@ -26,7 +26,9 @@ import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Identifier;
+import dev.m0rg.howl.ast.ImportStatement;
 import dev.m0rg.howl.ast.Interface;
+import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.ArithmeticExpression;
 import dev.m0rg.howl.ast.expression.ConstructorCallExpression;
@@ -117,12 +119,16 @@ public class CSTImporter {
                 return this.parseIfStatement(inner_obj);
             case "IndexExpression":
                 return this.parseIndexExpression(inner_obj);
+            case "ImportStatement":
+                return this.parseImportStatement(inner_obj);
             case "Interface":
                 return this.parseInterface(inner_obj);
             case "LocalDefinitionStatement":
                 return this.parseLocalDefinitionStatement(inner_obj);
             case "MacroCallExpression":
                 return this.parseMacroCallExpression(inner_obj);
+            case "ModStatement":
+                return this.parseModStatement(inner_obj);
             case "NameExpression":
                 return this.parseNameExpression(inner_obj);
             case "NumberExpression":
@@ -442,6 +448,10 @@ public class CSTImporter {
         return rc;
     }
 
+    ImportStatement parseImportStatement(JsonObject source) {
+        return new ImportStatement(extractSpan(source), source.get("path").getAsString());
+    }
+
     IndexExpression parseIndexExpression(JsonObject source) {
         IndexExpression rc = new IndexExpression(extractSpan(source));
 
@@ -525,6 +535,10 @@ public class CSTImporter {
             }
         }
         return rc;
+    }
+
+    ModStatement parseModStatement(JsonObject source) {
+        return new ModStatement(extractSpan(source), source.get("path").getAsString());
     }
 
     NameExpression parseNameExpression(JsonObject source) {

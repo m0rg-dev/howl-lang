@@ -1,0 +1,9 @@
+import lib.IO;
+
+mod test_dir;
+
+fn i32 Main() {
+    println("Hello, World!");
+    test_dir.test();
+    return 0;
+}

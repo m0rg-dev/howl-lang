@@ -9,10 +9,6 @@ class Pointer<T> {
         self.value[0] = value;
     }
 
-    fn void import(*i8 other) {
-        !pointer_assign(other, self.value);
-    }
-
     fn i32 size() {
         return !sizeof(self.value[0]);
     }

@@ -93,10 +93,19 @@ public abstract class ASTElement {
         }
     }
 
+    public Module nearestModule() {
+        if (this instanceof Module) {
+            return (Module) this;
+        } else {
+            return this.getParent().nearestModule();
+        }
+    }
+
     public List<String> getSearchPath() {
         ArrayList<String> rc = new ArrayList<String>();
         rc.add("");
-        rc.add("lib.");
+        rc.add("root.lib.");
+        rc.addAll(this.nearestModule().getImportedPaths());
         return rc;
     }
 }
