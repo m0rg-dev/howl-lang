@@ -21,26 +21,31 @@ public class AddInterfaceConverters implements ASTTransformer {
             if (c.isMonomorphic()) {
                 Logger.trace("AddInterfaceConverters " + e.getPath());
                 for (NamedType t : c.interfaces()) {
-                    InterfaceType it = (InterfaceType) t.resolve();
-                    Logger.trace("  => " + it.getSource().getPath());
+                    TypeElement resolved = t.resolve();
+                    if (resolved instanceof InterfaceType) {
+                        InterfaceType it = (InterfaceType) resolved;
+                        Logger.trace("  => " + it.getSource().getPath());
 
-                    Function converter = new Function(e.getSpan(), false, false,
-                            "__as_" + it.getSource().getPath().replace('.', '_'));
-                    converter.setReturn((TypeElement) t.detach());
-                    Argument self_field = new Argument(converter.getSpan(), "self");
-                    self_field.setType(NamedType.build(self_field.getSpan(), "Self"));
-                    converter.prependArgument(self_field);
+                        Function converter = new Function(e.getSpan(), false, false,
+                                "__as_" + it.getSource().getPath().replace('.', '_'));
+                        converter.setReturn((TypeElement) t.detach());
+                        Argument self_field = new Argument(converter.getSpan(), "self");
+                        self_field.setType(NamedType.build(self_field.getSpan(), "Self"));
+                        converter.prependArgument(self_field);
 
-                    CompoundStatement body = new CompoundStatement(converter.getSpan());
-                    ReturnStatement rc = new ReturnStatement(converter.getSpan());
-                    InterfaceCastExpression ice = new InterfaceCastExpression(converter.getSpan());
-                    ice.setSource(new NameExpression(converter.getSpan(), "self"));
-                    ice.setTarget((TypeElement) it.detach());
-                    rc.setSource(ice);
-                    body.insertStatement(rc);
-                    converter.setBody(body);
+                        CompoundStatement body = new CompoundStatement(converter.getSpan());
+                        ReturnStatement rc = new ReturnStatement(converter.getSpan());
+                        InterfaceCastExpression ice = new InterfaceCastExpression(converter.getSpan());
+                        ice.setSource(new NameExpression(converter.getSpan(), "self"));
+                        ice.setTarget((TypeElement) it.detach());
+                        rc.setSource(ice);
+                        body.insertStatement(rc);
+                        converter.setBody(body);
 
-                    c.insertMethod(converter);
+                        c.insertMethod(converter);
+                    } else {
+                        e.getSpan().addError("can't find interface " + t.getName());
+                    }
                 }
             }
             return e;
