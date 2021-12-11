@@ -18,16 +18,16 @@ class Exception implements Display {
     }
 
     static fn Exception exc_get() {
-        let ExternalPointer<Exception> tmp_buf
-            = new ExternalPointer<Exception>(Exception.__exc_get());
+        let unsafe.ExternalPointer<Exception> tmp_buf
+            = new unsafe.ExternalPointer<Exception>(Exception.__exc_get());
         return tmp_buf.dereference();
     }
 
     static fn bool exc_check(String catch_class) {
         let Exception real = Exception.exc_get();
 
-        let Option<StaticTable> attempt = Option::<StaticTable>.some(
-            StaticTable.load(!get_stable_pointer(real))
+        let Option<reflect.StaticTable> attempt = Option::<reflect.StaticTable>.some(
+            reflect.StaticTable.load(!get_stable_pointer(real))
         );
 
         while attempt.isSome() {
@@ -41,7 +41,7 @@ class Exception implements Display {
     }
 
     static fn void __exc_throw(Exception object) {
-        let Pointer<Exception> e = new Pointer<Exception>(object);
+        let unsafe.Pointer<Exception> e = new unsafe.Pointer<Exception>(object);
         Self.__exc_throw(!as_raw(e.value_pointer()));
     }
 }

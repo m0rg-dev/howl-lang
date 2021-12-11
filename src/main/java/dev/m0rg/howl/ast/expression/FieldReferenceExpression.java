@@ -79,8 +79,8 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
                 return NamedType.build(span, "__error");
             }
         } else {
-            throw new RuntimeException(
-                    "COMPILATION-ERROR attempt to take fields on non-structure " + source_type.format());
+            span.addError("attempt to take fields on non-structure " + source_type.format());
+            return NamedType.build(span, "__error");
         }
     }
 

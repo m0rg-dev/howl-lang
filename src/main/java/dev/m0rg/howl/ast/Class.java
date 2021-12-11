@@ -354,12 +354,13 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
             for (String name : this.getMethodNames()) {
                 if (this.isOwnMethod(name)) {
                     Function m = this.getMethod(name).get();
-                    Logger.trace("generating: " + name);
+                    Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
                     methods.add(m.generate(module));
                 } else {
                     Function f = (Function) this.getMethod(name).get();
                     LLVMFunctionType type = (LLVMFunctionType) f.getOwnType().resolve().generate(module);
 
+                    Logger.trace("declaring: " + f.getPath() + " (" + module.getName() + ")");
                     if (f.is_extern) {
                         methods.add(module.getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true));
                     } else {
@@ -382,7 +383,22 @@ public class Class extends ASTElement implements NamedElement, NameHolder, HasOw
                 for (String name : res.getSource().getMethodNames()) {
                     Function m = this.getMethod(name).get();
                     LLVMType method_type = res.getSource().getMethod(name).get().getOwnType().generate(module);
-                    imethods.add(m.generate(module).cast(new LLVMPointerType<LLVMType>(method_type)));
+                    LLVMFunction generated;
+                    if (this.isOwnMethod(name)) {
+                        Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
+                        generated = m.generate(module);
+                    } else {
+                        LLVMFunctionType type = (LLVMFunctionType) m.getOwnType().resolve().generate(module);
+
+                        Logger.trace("declaring: " + m.getPath() + " (" + module.getName() + ")");
+                        if (m.is_extern) {
+                            generated = module.getOrInsertFunction(type, m.getOriginalName(), x -> x.setExternal(),
+                                    true);
+                        } else {
+                            generated = module.getOrInsertFunction(type, m.getPath(), x -> x.setExternal(), true);
+                        }
+                    }
+                    imethods.add(generated.cast(new LLVMPointerType<LLVMType>(method_type)));
                 }
                 itable.setInitializer(itable_type.createConstant(module.getContext(), imethods));
             }

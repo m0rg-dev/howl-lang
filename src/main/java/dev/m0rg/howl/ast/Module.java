@@ -142,7 +142,7 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
                     f.appendBasicBlock("entry");
                     builder.positionAtEnd(f.lastBasicBlock());
                     builder.buildReturn(builder.buildCall(
-                            this_module.getOrInsertFunction(mainType, "root.lib.Entry._Z5setup0E",
+                            this_module.getOrInsertFunction(mainType, "root.lib.entry.setup",
                                     g -> g.setExternal(), true),
                             new ArrayList<>(), ""));
                 }

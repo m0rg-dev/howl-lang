@@ -32,7 +32,7 @@ public class MonomorphizeClasses implements ASTTransformer {
                         specified.setName(st.mangle());
                         for (int i = 0; i < st.getParameters().size(); i++) {
                             specified.setGeneric(specified.getGenericNames().get(i),
-                                    (TypeElement) st.getParameters().get(i).detach());
+                                    (TypeElement) st.getParameters().get(i).resolve().detach());
                         }
                         specified.clearGenerics();
                         if (target.get().getParent() instanceof Module) {

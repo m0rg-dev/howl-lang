@@ -69,7 +69,7 @@ public class SpecifiedType extends TypeElement {
     public String mangle() {
         List<String> contents = new ArrayList<String>(this.parameters.size());
         for (TypeElement t : this.parameters) {
-            contents.add(t.mangle());
+            contents.add(t.resolve().mangle());
         }
         return "S" + base.mangle() + parameters.size() + "E" + String.join("", contents);
     }

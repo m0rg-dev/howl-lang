@@ -15,6 +15,7 @@ import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.logger.Logger;
 
 public class Function extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     boolean is_static;
@@ -164,12 +165,14 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
     }
 
     public LLVMFunction generate(LLVMModule module) {
+        Logger.trace("  => Function generate " + this.getPath() + " (" + module.getName() + ")");
         LLVMFunctionType type = (LLVMFunctionType) this.getOwnType().resolve().generate(module);
         if (this.is_extern) {
             // TODO check for duplicate extern functions
             return module.getOrInsertFunction(type, this.getOriginalName(), f -> f.setExternal(), true);
         } else {
             return module.getOrInsertFunction(type, this.getPath(), (f) -> {
+                Logger.trace("    called back");
                 if (this.body.isPresent()) {
                     f.appendBasicBlock("entry");
                     this.body.get().generate(f);

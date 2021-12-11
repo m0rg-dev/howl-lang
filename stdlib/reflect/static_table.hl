@@ -7,7 +7,7 @@ class StaticTable {
 
     // stable_pointer: *{*name, *parent, ...}
     static fn StaticTable load(*i8 stable_pointer) {
-        let ExternalPointer<*i8> real_ptr = new ExternalPointer<*i8>(stable_pointer);
+        let unsafe.ExternalPointer<*i8> real_ptr = new unsafe.ExternalPointer<*i8>(stable_pointer);
         let StaticTable rc = new StaticTable();
         let *i8 raw_name = real_ptr.value[0];
         let *i8 raw_parent = real_ptr.value[1];

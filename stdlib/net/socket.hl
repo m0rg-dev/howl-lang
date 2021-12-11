@@ -12,20 +12,12 @@ class sockaddr_in {
     }
 }
 
-class ErrnoException extends Exception {
-    fn void constructor(String desc) {
-        // strerror is fine here because String.fromBytes() will copy it out
-        let *u8 raw_error = RawIO.strerror(RawIO.__get_errno());
-        self.message = desc + ": " + String.fromBytes(raw_error, RawIO.strlen(raw_error));
-    }
-}
-
 interface SocketServer {
     fn void handle(i32 clientfd) throws ErrnoException;
 }
 
 class InetSocket {
-    Pointer<sockaddr_in> addr;
+    unsafe.Pointer<sockaddr_in> addr;
     i32 fd;
 
     fn void constructor(u16 port, u32 address) {
@@ -33,29 +25,29 @@ class InetSocket {
         let i32 c_SOCK_STREAM = 1;
 
         self.fd = RawIO.socket(c_AF_INET, c_SOCK_STREAM, 0);
-        self.addr = new Pointer<sockaddr_in>(new sockaddr_in(
+        self.addr = new unsafe.Pointer<sockaddr_in>(new sockaddr_in(
             c_AF_INET,
             RawIO.htons(port),
             address
         ));
     }
 
-    fn void listen(i32 queue_size) throws ErrnoException {
+    fn void listen(i32 queue_size) throws IO.ErrnoException {
         if RawIO.bind(self.fd, self.addr.structure_pointer(), self.addr.size()) < 0 {
-            throw new ErrnoException("bind");
+            throw new IO.ErrnoException("bind");
         }
 
         if RawIO.listen(self.fd, queue_size) < 0 {
-            throw new ErrnoException("listen");
+            throw new IO.ErrnoException("listen");
         }
     }
 
-    fn i32 accept() throws ErrnoException {
-        let Pointer<sockaddr_in> clientaddr = new Pointer<sockaddr_in>(new sockaddr_in(0, 0, 0));
-        let Pointer<i32> clientlen = new Pointer<i32>(clientaddr.size());
+    fn i32 accept() throws IO.ErrnoException {
+        let unsafe.Pointer<sockaddr_in> clientaddr = new unsafe.Pointer<sockaddr_in>(new sockaddr_in(0, 0, 0));
+        let unsafe.Pointer<i32> clientlen = new unsafe.Pointer<i32>(clientaddr.size());
         let i32 childfd = RawIO.accept(self.fd, clientaddr.structure_pointer(), clientlen.value_pointer());
         if childfd < 0 {
-            throw new ErrnoException("accept");
+            throw new IO.ErrnoException("accept");
         }
         return childfd;
     }

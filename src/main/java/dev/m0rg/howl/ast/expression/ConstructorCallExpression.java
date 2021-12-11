@@ -62,10 +62,13 @@ public class ConstructorCallExpression extends CallExpressionBase {
 
     @Override
     protected TypeElement getTypeForArgument(int index) {
-        ClassType source_type = (ClassType) source.resolve();
-        Optional<Function> constructor = source_type.getSource().getConstructor();
-        if (constructor.isPresent()) {
-            return constructor.get().getArgumentList().get(index + 1).getOwnType();
+        TypeElement t = source.resolve();
+        if (t instanceof ClassType) {
+            ClassType source_type = (ClassType) t;
+            Optional<Function> constructor = source_type.getSource().getConstructor();
+            if (constructor.isPresent()) {
+                return constructor.get().getArgumentList().get(index + 1).getOwnType();
+            }
         }
         return NamedType.build(this.span, "__error");
     }
