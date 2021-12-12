@@ -10,7 +10,6 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
-import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.llvm.LLVMBasicBlock;
 import dev.m0rg.howl.llvm.LLVMBuilder;

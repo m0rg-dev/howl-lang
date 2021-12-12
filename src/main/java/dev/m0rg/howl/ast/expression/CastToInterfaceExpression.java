@@ -11,7 +11,6 @@ import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMGlobalVariable;
 import dev.m0rg.howl.llvm.LLVMPointerType;

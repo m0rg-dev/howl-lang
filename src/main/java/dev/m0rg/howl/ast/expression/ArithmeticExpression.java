@@ -14,7 +14,6 @@ import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NumericType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ABaseType;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntPredicate;
 import dev.m0rg.howl.llvm.LLVMValue;

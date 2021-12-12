@@ -7,7 +7,6 @@ import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.StructureType;
 import dev.m0rg.howl.ast.type.TypeElement;
-import dev.m0rg.howl.logger.Logger;
 
 public class AFieldReferenceType extends AlgebraicType {
     AlgebraicType source;

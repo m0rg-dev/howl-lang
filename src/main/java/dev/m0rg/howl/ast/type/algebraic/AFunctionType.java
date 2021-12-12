@@ -8,7 +8,6 @@ import dev.m0rg.howl.ast.Argument;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.type.LambdaType;
 import dev.m0rg.howl.ast.type.TypeElement;
-import dev.m0rg.howl.logger.Logger;
 
 public class AFunctionType extends AlgebraicType {
     AlgebraicType returntype;
