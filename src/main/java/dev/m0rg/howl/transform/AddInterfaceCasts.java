@@ -10,7 +10,6 @@ import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
 import dev.m0rg.howl.ast.expression.FunctionCallExpression;
 import dev.m0rg.howl.ast.expression.GetStaticTableExpression;
-import dev.m0rg.howl.ast.expression.InterfaceCastExpression;
 import dev.m0rg.howl.ast.expression.TemporaryExpression;
 import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.InterfaceType;

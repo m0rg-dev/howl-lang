@@ -118,7 +118,7 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
         List<ASTElement> alias = new ArrayList<>(this.contents);
         for (ASTElement item : alias) {
             if (item instanceof Class) {
-                if (((Class) item).getGenericNames().size() > 0) {
+                if (((Class) item).isGeneric()) {
                     this.contents.remove(item);
                 }
             } else if (item instanceof Interface) {

@@ -18,7 +18,7 @@ public class AddInterfaceConverters implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof Class) {
             Class c = (Class) e;
-            if (c.isMonomorphic()) {
+            if (!c.isGeneric()) {
                 Logger.trace("AddInterfaceConverters " + e.getPath());
                 for (TypeElement t : c.interfaces()) {
                     TypeElement resolved = t.resolve();

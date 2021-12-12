@@ -33,7 +33,7 @@ class C<T> implements I<T> {
 }
 
 static fn i32 Main() {
-    let B<i32> test = new B<i32>(42);
+    let B test = new B(42);
     let I<i32> test2 = new C<i32>();
     test2.frob(0);
 
