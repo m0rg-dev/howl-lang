@@ -12,6 +12,8 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AAnyType;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
@@ -74,15 +76,8 @@ public class FunctionCallExpression extends CallExpressionBase {
     }
 
     @Override
-    protected TypeElement getTypeForArgument(int index) {
-        TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof FunctionType) {
-            FunctionType ft = (FunctionType) source_type;
-            if (ft.isValid()) {
-                return ft.getArgumentTypes().get(index);
-            }
-        }
-        return NamedType.build(span, "__any");
+    protected AlgebraicType getTypeForArgument(int index) {
+        return AlgebraicType.todo();
     }
 
     @Override
@@ -90,7 +85,7 @@ public class FunctionCallExpression extends CallExpressionBase {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source",
                 new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                        () -> NamedType.build(span, "__any")));
+                        () -> new AAnyType()));
         addFields(rc);
         return rc;
     }

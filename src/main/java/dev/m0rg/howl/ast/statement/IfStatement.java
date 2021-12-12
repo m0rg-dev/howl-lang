@@ -11,6 +11,7 @@ import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.llvm.LLVMBasicBlock;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
@@ -79,7 +80,7 @@ public class IfStatement extends Statement implements HasUpstreamFields {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("condition", new FieldHandle(() -> this.getCondition(), (e) -> this.setCondition(e),
-                () -> NamedType.build(span, "bool")));
+                () -> new ABaseType("bool")));
         return rc;
     }
 

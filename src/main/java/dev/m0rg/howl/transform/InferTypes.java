@@ -1,16 +1,20 @@
 package dev.m0rg.howl.transform;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.HasUpstreamFields;
-import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
-import dev.m0rg.howl.ast.type.ObjectSnapshotType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ABaseType;
+import dev.m0rg.howl.ast.type.algebraic.ACallResult;
+import dev.m0rg.howl.ast.type.algebraic.AFreeType;
+import dev.m0rg.howl.ast.type.algebraic.ASpecify;
+import dev.m0rg.howl.ast.type.algebraic.AStructureType;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.logger.Logger;
 
 public class InferTypes implements ASTTransformer {
@@ -18,51 +22,48 @@ public class InferTypes implements ASTTransformer {
         if (e instanceof HasUpstreamFields) {
             Logger.trace("InferTypes: " + e.format());
             for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
-                TypeElement expected = ent.getValue().getExpectedType().resolve();
-                TypeElement provided = ent.getValue().getSubexpression().getResolvedType();
+                AlgebraicType expected = ent.getValue().getExpectedType();
+                AlgebraicType provided = AlgebraicType.derive(ent.getValue().getSubexpression());
                 Logger.trace(
-                        "  " + ent.getKey() + " " + expected.format() + " <- "
+                        " " + ent.getKey() + " " + expected.format() + " <- "
                                 + provided.format());
-                if (expected instanceof NewType) {
-                    NewType nt_expected = (NewType) expected;
-                    if (provided instanceof NewType) {
-                        NewType nt_provided = (NewType) expected;
-                        if (nt_expected.getPath().equals(nt_provided.getPath())) {
-                            return e;
-                        }
-                    } else if (provided instanceof NamedType && ((NamedType) provided).getName().equals("__error")) {
-                        return e;
-                    }
-                    Logger.trace("setting: " + provided.format());
-                    nt_expected.setResolution(provided);
-                } else if (expected instanceof ObjectSnapshotType) {
-                    ObjectSnapshotType ost_expected = (ObjectSnapshotType) expected;
-                    if (provided instanceof ObjectSnapshotType) {
-                        ObjectSnapshotType ost_provided = (ObjectSnapshotType) provided;
-                        Map<String, NewType> provided_parameters = ost_provided.getGenericTypes();
-                        for (Entry<String, NewType> expected_parameter : ost_expected.getGenericTypes().entrySet()) {
-                            TypeElement expected_resolved = expected_parameter.getValue().resolve();
-                            TypeElement provided_resolved = provided_parameters.get(expected_parameter.getKey())
-                                    .resolve();
-                            Logger.trace("  " + expected_parameter.getKey() + " "
-                                    + expected_resolved.format() + " <- "
-                                    + provided_resolved.format());
-                            if (expected_resolved instanceof NewType) {
-                                NewType nt_expected_resolved = (NewType) expected_resolved;
-                                if (!nt_expected_resolved.isResolved()
-                                        || nt_expected_resolved.getResolution().get().accepts(provided_resolved)) {
-                                    Logger.trace("asdf " + nt_expected_resolved.getRealSource().format());
-                                    Logger.trace("setting: " + provided_resolved.format());
-                                    nt_expected_resolved.setResolution((TypeElement) provided_resolved.detach());
-                                }
-                            }
-                        }
-                    }
-                }
+                findRelationships(expected, provided);
             }
             return e;
         } else {
             return e;
+        }
+    }
+
+    void findRelationships(AlgebraicType expected, AlgebraicType provided) {
+        if (expected instanceof AFreeType) {
+            NewType t = ((AFreeType) expected).toElement();
+            Logger.trace("set equal: " + expected.format() + " <- " + provided.format());
+            if (t.getResolution().isPresent()) {
+                Logger.warn("overwriting NewType definition " + t.getResolution().get().format());
+            }
+            t.setResolution((TypeElement) provided.toElement().detach());
+        } else if (provided instanceof AFreeType && expected instanceof ABaseType) {
+            NewType t = ((AFreeType) provided).toElement();
+            Logger.trace("backpropagate: " + expected.format() + " -> " + provided.format());
+            TypeElement as_element = (TypeElement) expected.toElement();
+            if (t.getResolution().isPresent() && !t.getResolution().get().accepts(as_element)) {
+                throw new RuntimeException("overwriting " + t.format() + " with incompatible type");
+            }
+            t.setResolution((TypeElement) expected.toElement().detach());
+        } else if (expected instanceof ASpecify && provided instanceof ASpecify) {
+            ASpecify e_specify = (ASpecify) expected;
+            ASpecify p_specify = (ASpecify) provided;
+
+            findRelationships(e_specify.getSource(), p_specify.getSource());
+
+            List<AlgebraicType> e_params = e_specify.getParameters();
+            for (int i = 0; i < e_params.size(); i++) {
+                findRelationships(e_params.get(i), p_specify.getParameters().get(i));
+            }
+        } else if (provided instanceof ACallResult) {
+            Logger.trace("12313 " + provided.half_evaluate().format());
+            findRelationships(expected, ((ACallResult) provided).half_evaluate());
         }
     }
 }

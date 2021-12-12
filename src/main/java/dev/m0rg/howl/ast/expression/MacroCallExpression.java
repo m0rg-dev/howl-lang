@@ -11,6 +11,8 @@ import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NumericType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AAnyType;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMPointerType;
@@ -65,8 +67,8 @@ public class MacroCallExpression extends CallExpressionBase {
     }
 
     @Override
-    protected TypeElement getTypeForArgument(int index) {
-        return (TypeElement) NamedType.build(this.span, "__any").setParent(this);
+    protected AlgebraicType getTypeForArgument(int index) {
+        return new AAnyType();
     }
 
     @Override

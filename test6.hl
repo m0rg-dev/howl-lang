@@ -20,5 +20,6 @@ class B<T> {
 
 static fn i32 Main() {
     let A foo = new A(0);
+    let B bar = foo.getB();
     return 1;
 }

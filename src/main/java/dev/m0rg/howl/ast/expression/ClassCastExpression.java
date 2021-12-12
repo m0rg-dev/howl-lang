@@ -9,6 +9,7 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMType;
@@ -60,7 +61,7 @@ public class ClassCastExpression extends Expression {
         // add a different way to do that upcast and leave this as target
         // type so it sanity-checks?
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> (TypeElement) this.getSource().getResolvedType()));
+                () -> AlgebraicType.todo()));
         return rc;
     }
 

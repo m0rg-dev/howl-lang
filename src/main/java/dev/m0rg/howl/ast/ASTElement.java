@@ -55,7 +55,7 @@ public abstract class ASTElement {
             NamedElement as_named = (NamedElement) this;
             return parent_path + as_named.getName();
         } else {
-            return parent_path + "_";
+            return parent_path + "_" + this.getClass().getSimpleName();
         }
     }
 

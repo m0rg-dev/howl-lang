@@ -12,6 +12,7 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMValue;
@@ -72,7 +73,7 @@ public class LocalDefinitionStatement extends Statement implements NamedElement,
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("initializer", new FieldHandle(() -> this.getInitializer(), (e) -> this.setInitializer(e),
-                () -> (TypeElement) this.localtype));
+                () -> AlgebraicType.derive(localtype)));
         return rc;
     }
 
