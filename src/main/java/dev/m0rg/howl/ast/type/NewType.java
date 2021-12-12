@@ -32,7 +32,7 @@ public class NewType extends TypeElement implements NamedElement {
     public String format() {
         StringBuilder rc = new StringBuilder();
         rc.append("type ");
-        rc.append(name);
+        rc.append(this.name + " (" + getPath() + ")");
         rc.append(" = ");
         if (this.resolution.isPresent()) {
             rc.append(this.resolution.get().format());
@@ -43,7 +43,16 @@ public class NewType extends TypeElement implements NamedElement {
     }
 
     public void setResolution(TypeElement res) {
-        this.resolution = Optional.of((TypeElement) res.setParent(this));
+        if (res instanceof NamedType && ((NamedType) res).getName().equals(this.getPath())) {
+            // avoid the cycle
+        } else if (res instanceof NamedType && ((NamedType) res).getName().equals("__error")) {
+            throw new RuntimeException("do not resolve to error please");
+        } else if (res instanceof NamedType && ((NamedType) res).getName().equals("__any")) {
+            // this should be equivalent to a no-op because setting to __any
+            // doesn't actually specify (but it will break stuff later)
+        } else {
+            this.resolution = Optional.of((TypeElement) res.setParent(this));
+        }
     }
 
     public Optional<TypeElement> getResolution() {
@@ -69,6 +78,8 @@ public class NewType extends TypeElement implements NamedElement {
     public boolean accepts(TypeElement other) {
         if (this.resolution.isPresent()) {
             return this.resolution.get().accepts(other);
+        } else if (other instanceof NewType) {
+            return this.getPath().equals(other.getPath());
         } else {
             return false;
         }
@@ -77,5 +88,21 @@ public class NewType extends TypeElement implements NamedElement {
     @Override
     public LLVMType generate(LLVMModule module) {
         throw new UnsupportedOperationException();
+    }
+
+    public boolean isResolved() {
+        return this.resolution.isPresent();
+    }
+
+    public NewType getRealSource() {
+        if (this.resolution.isPresent()) {
+            if (this.resolution.get() instanceof NewType) {
+                return ((NewType) this.resolution.get()).getRealSource();
+            } else {
+                return this;
+            }
+        } else {
+            return this;
+        }
     }
 }

@@ -11,6 +11,7 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMType;
@@ -75,9 +76,9 @@ public class IndexExpression extends Expression implements Lvalue {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> NamedType.build(this.span, "__any")));
+                () -> new AAnyType()));
         rc.put("index", new FieldHandle(() -> this.getIndex(), (e) -> this.setIndex(e),
-                () -> NamedType.build(this.span, "__numeric")));
+                () -> new AAnyType()));
         return rc;
     }
 

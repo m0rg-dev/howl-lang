@@ -4,16 +4,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
-import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.ClassType;
-import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AFunctionType;
+import dev.m0rg.howl.ast.type.algebraic.AStructureType;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMValue;
@@ -61,16 +61,16 @@ public class ConstructorCallExpression extends CallExpressionBase {
     }
 
     @Override
-    protected TypeElement getTypeForArgument(int index) {
-        TypeElement t = source.resolve();
-        if (t instanceof ClassType) {
-            ClassType source_type = (ClassType) t;
-            Optional<Function> constructor = source_type.getSource().getConstructor();
-            if (constructor.isPresent()) {
-                return constructor.get().getArgumentList().get(index + 1).getOwnType();
-            }
+    protected AlgebraicType getTypeForArgument(int index) {
+        AlgebraicType source_type = AlgebraicType.derive(source).evaluate();
+
+        if (source_type instanceof AStructureType) {
+            AStructureType st = (AStructureType) source_type;
+            AFunctionType constructor_type = (AFunctionType) st.getField("constructor");
+            return constructor_type.getArgument(index + 1);
+        } else {
+            throw new RuntimeException();
         }
-        return NamedType.build(this.span, "__error");
     }
 
     @Override

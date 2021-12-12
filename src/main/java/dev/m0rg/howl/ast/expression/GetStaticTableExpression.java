@@ -13,6 +13,7 @@ import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
@@ -67,14 +68,14 @@ public class GetStaticTableExpression extends Expression {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> NamedType.build(this.span, "__any")));
+                () -> new AAnyType()));
         return rc;
     }
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
         TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof ClassType || source_type instanceof InterfaceType) {
+        if (source_type instanceof ClassType) {
             Logger.trace("Loading static table. Source is " + this.source.format());
             LLVMValue src_value = builder.buildAlloca(source_type.generate(builder.getModule()), "");
             builder.buildStore(source.generate(builder), src_value);
@@ -82,6 +83,15 @@ public class GetStaticTableExpression extends Expression {
             LLVMValue rc = builder.buildLoad(builder.buildStructGEP(
                     this.source.getResolvedType().generate(builder.getModule()),
                     src_value, 1, ""), "");
+            return rc;
+        } else if (source_type instanceof InterfaceType) {
+            Logger.trace("Loading interface table. Source is " + this.source.format());
+            LLVMValue src_value = builder.buildAlloca(source_type.generate(builder.getModule()), "");
+            builder.buildStore(source.generate(builder), src_value);
+            // interface table is field 2
+            LLVMValue rc = builder.buildLoad(builder.buildStructGEP(
+                    this.source.getResolvedType().generate(builder.getModule()),
+                    src_value, 2, ""), "");
             return rc;
         } else {
             throw new IllegalArgumentException();

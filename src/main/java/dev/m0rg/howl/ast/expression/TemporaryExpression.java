@@ -7,8 +7,8 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
 
@@ -65,7 +65,7 @@ public class TemporaryExpression extends Expression {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> NamedType.build(this.span, "__any")));
+                () -> new AAnyType()));
         return rc;
     }
 

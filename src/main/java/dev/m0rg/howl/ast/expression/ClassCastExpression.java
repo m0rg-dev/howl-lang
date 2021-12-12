@@ -9,6 +9,7 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMType;
@@ -55,12 +56,12 @@ public class ClassCastExpression extends Expression {
     @Override
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
-        // TODO we use source resolved type here to let us get away with
-        // upcasting in ConvertTryCatch - is this reasonable, or should we
-        // add a different way to do that upcast and leave this as target
-        // type so it sanity-checks?
+        // TODO we use AAnyType here to let us get away with upcasting in
+        // ConvertTryCatch - is this reasonable, or should we add a different
+        // way to do that upcast and leave this as target type so it
+        // sanity-checks?
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> (TypeElement) this.getSource().getResolvedType()));
+                () -> new AAnyType()));
         return rc;
     }
 

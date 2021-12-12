@@ -20,10 +20,11 @@ public class AddInterfaceCasts implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof HasUpstreamFields) {
             for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
-                TypeElement expected = ent.getValue().getExpectedType().resolve();
+                TypeElement expected = ent.getValue().getExpectedType().evaluate().toElement().resolve();
                 TypeElement provided = ent.getValue().getSubexpression().getResolvedType();
                 if (expected instanceof InterfaceType && provided instanceof ClassType) {
-                    Logger.trace("AddInterfaceCasts " + ent.getValue().getSubexpression().format() + " -> "
+                    Logger.trace("AddInterfaceCasts " +
+                            ent.getValue().getSubexpression().format() + " -> "
                             + expected.format());
 
                     InterfaceType it = (InterfaceType) expected;

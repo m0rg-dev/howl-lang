@@ -12,8 +12,12 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AAnyType;
+import dev.m0rg.howl.ast.type.algebraic.AFunctionType;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
 public class FunctionCallExpression extends CallExpressionBase {
     Expression source;
@@ -60,7 +64,8 @@ public class FunctionCallExpression extends CallExpressionBase {
                 return ft.getReturnType();
             }
         }
-        return super.getType();
+        Logger.trace("creating error type (FunctionCallExpression " + source_type.format() + ")");
+        return NamedType.build(span, "__error");
     }
 
     public boolean isResolved() {
@@ -72,15 +77,18 @@ public class FunctionCallExpression extends CallExpressionBase {
     }
 
     @Override
-    protected TypeElement getTypeForArgument(int index) {
-        TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof FunctionType) {
-            FunctionType ft = (FunctionType) source_type;
-            if (ft.isValid()) {
-                return ft.getArgumentTypes().get(index);
-            }
+    protected AlgebraicType getTypeForArgument(int index) {
+        AlgebraicType source_type = AlgebraicType.derive(source).evaluate();
+
+        if (source_type instanceof AFunctionType) {
+            AFunctionType function_type = (AFunctionType) source_type;
+            return function_type.getArgument(index);
+        } else if (source_type instanceof AAnyType) {
+            // TODO only-for-overloads
+            return source_type;
+        } else {
+            throw new RuntimeException(source_type.getClass().getName());
         }
-        return NamedType.build(span, "__any");
     }
 
     @Override
@@ -88,7 +96,7 @@ public class FunctionCallExpression extends CallExpressionBase {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source",
                 new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                        () -> NamedType.build(span, "__any")));
+                        () -> new AAnyType()));
         addFields(rc);
         return rc;
     }

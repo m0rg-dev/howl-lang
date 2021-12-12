@@ -12,7 +12,7 @@ import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 
-public class InterfaceType extends ObjectType {
+public class InterfaceType extends ObjectReferenceType {
     public InterfaceType(Span span, String source_path) {
         super(span, source_path);
     }
@@ -59,9 +59,10 @@ public class InterfaceType extends ObjectType {
 
             LLVMType object_type = new LLVMPointerType<LLVMType>(new LLVMIntType(module.getContext(), 8));
             LLVMType static_type = this.getSource().getStaticType().generate(module);
-
+            LLVMType object_stable_pointer = new LLVMPointerType<LLVMType>(new LLVMIntType(module.getContext(), 8));
             List<LLVMType> ty = new ArrayList<>();
             ty.add(object_type);
+            ty.add(object_stable_pointer);
             ty.add(new LLVMPointerType<>(static_type));
             rc.setBody(ty, true);
             return rc;

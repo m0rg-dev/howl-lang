@@ -8,7 +8,7 @@ import java.util.Map;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 
 public abstract class CallExpressionBase extends Expression {
     protected List<Expression> args;
@@ -53,7 +53,7 @@ public abstract class CallExpressionBase extends Expression {
         }
     }
 
-    protected abstract TypeElement getTypeForArgument(int index);
+    protected abstract AlgebraicType getTypeForArgument(int index);
 
     protected void addFields(Map<String, FieldHandle> target) {
         int index = 0;

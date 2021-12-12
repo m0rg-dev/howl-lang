@@ -15,14 +15,15 @@ public class CheckTypes implements ASTTransformer {
         if (e instanceof HasUpstreamFields) {
             Logger.trace("CheckTypes: " + e.format());
             for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
-                TypeElement expected = ent.getValue().getExpectedType().resolve();
+                TypeElement expected = ent.getValue().getExpectedType().evaluate().toElement().resolve();
                 TypeElement provided = ent.getValue().getSubexpression().getResolvedType();
                 Logger.trace(
-                        "  " + ent.getKey() + " " + expected.format() + " <- "
+                        " " + ent.getKey() + " " + expected.format() + " <- "
                                 + provided.format());
                 if (!expected.accepts(provided)) {
                     e.getSpan().context.addError(new CompilationError(ent.getValue().getSubexpression().getSpan(),
-                            "Type mismatch: expected: " + expected.format() + ", got: " + provided.format()));
+                            "Type mismatch: expected: " + expected.format() + ", got: " +
+                                    provided.format()));
                 }
             }
             return e;

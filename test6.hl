@@ -1,0 +1,30 @@
+class A<T> {
+    T value;
+
+    fn void constructor(T value) {
+        self.value = value;
+    }
+
+    fn B<T> getB() {
+        return new B<T>(self);
+    }
+
+    fn T get() {
+        return self.value;
+    }
+}
+
+class B<T> {
+    A<T> value;
+
+    fn void constructor(A<T> value) {
+        self.value = value;
+    }
+}
+
+static fn i32 Main() {
+    let A foo = new A(0);
+    let B bar = foo.getB();
+    // let i32 baz = foo.get();
+    return 1;
+}

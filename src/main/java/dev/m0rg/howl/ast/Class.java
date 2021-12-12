@@ -310,11 +310,8 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
                 if (constructor.isPresent()) {
                     List<LLVMValue> cargs = new ArrayList<LLVMValue>();
                     cargs.add(builder.buildLoad(alloca, ""));
-                    int i = 0;
-                    for (Argument a : constructor.get().getArgumentList().subList(1,
-                            constructor.get().getArgumentList().size())) {
+                    for (int i = 0; i < constructor.get().getArgumentList().size() - 1; i++) {
                         cargs.add(allocator.getParam(i));
-                        i++;
                     }
                     builder.buildCall(constructor.get().generate(module), cargs, "");
                 }

@@ -16,6 +16,9 @@ public class Logger {
             case Info:
                 System.err.println(" INFO " + message);
                 break;
+            case Warn:
+                System.err.println("\u001b[33m WARN\u001b[0m " + message);
+                break;
             case Error:
                 System.err.println("\u001b[31mERROR\u001b[0m " + message);
                 break;
@@ -30,6 +33,10 @@ public class Logger {
         log(LogLevel.Info, message);
     }
 
+    public static void warn(String message) {
+        log(LogLevel.Warn, message);
+    }
+
     public static void error(String message) {
         log(LogLevel.Error, message);
     }
@@ -37,6 +44,7 @@ public class Logger {
     public enum LogLevel {
         Trace,
         Info,
+        Warn,
         Error
     }
 }

@@ -10,6 +10,7 @@ import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.Lvalue;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 
@@ -74,7 +75,7 @@ public class AssignmentStatement extends Statement implements HasUpstreamFields 
     public Map<String, FieldHandle> getUpstreamFields() {
         Map<String, FieldHandle> rc = new HashMap<>();
         rc.put("rhs",
-                new FieldHandle(() -> this.getRHS(), (e) -> this.setRHS(e), () -> this.getLHS().getType()));
+                new FieldHandle(() -> this.getRHS(), (e) -> this.setRHS(e), () -> AlgebraicType.derive(this.getLHS())));
         return rc;
     }
 }
