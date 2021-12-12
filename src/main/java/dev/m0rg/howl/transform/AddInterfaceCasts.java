@@ -19,34 +19,33 @@ import dev.m0rg.howl.logger.Logger;
 public class AddInterfaceCasts implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof HasUpstreamFields) {
-            // for (Entry<String, FieldHandle> ent : ((HasUpstreamFields)
-            // e).getUpstreamFields().entrySet()) {
-            // TypeElement expected = ent.getValue().getExpectedType().resolve();
-            // TypeElement provided = ent.getValue().getSubexpression().getResolvedType();
-            // if (expected instanceof InterfaceType && provided instanceof ClassType) {
-            // Logger.trace("AddInterfaceCasts " +
-            // ent.getValue().getSubexpression().format() + " -> "
-            // + expected.format());
+            for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
+                TypeElement expected = ent.getValue().getExpectedType().evaluate().toElement().resolve();
+                TypeElement provided = ent.getValue().getSubexpression().getResolvedType();
+                if (expected instanceof InterfaceType && provided instanceof ClassType) {
+                    Logger.trace("AddInterfaceCasts " +
+                            ent.getValue().getSubexpression().format() + " -> "
+                            + expected.format());
 
-            // InterfaceType it = (InterfaceType) expected;
+                    InterfaceType it = (InterfaceType) expected;
 
-            // TemporaryExpression t = new TemporaryExpression(e.getSpan());
-            // t.setSource((Expression) ent.getValue().getSubexpression().detach());
-            // // TODO this should be centralized
-            // String name = "__as_" + it.getSource().getPath().replace('.', '_');
-            // String mangled = "_Z" + name.length() + name + "1E4Self";
-            // FieldReferenceExpression source = new FieldReferenceExpression(e.getSpan(),
-            // mangled);
-            // GetStaticTableExpression gste = new GetStaticTableExpression(e.getSpan());
-            // source.setSource(gste);
-            // gste.setSource((Expression) t.detach());
-            // FunctionCallExpression fc = new FunctionCallExpression(e.getSpan());
-            // fc.setSource(source);
-            // fc.insertArgument(t);
+                    TemporaryExpression t = new TemporaryExpression(e.getSpan());
+                    t.setSource((Expression) ent.getValue().getSubexpression().detach());
+                    // TODO this should be centralized
+                    String name = "__as_" + it.getSource().getPath().replace('.', '_');
+                    String mangled = "_Z" + name.length() + name + "1E4Self";
+                    FieldReferenceExpression source = new FieldReferenceExpression(e.getSpan(),
+                            mangled);
+                    GetStaticTableExpression gste = new GetStaticTableExpression(e.getSpan());
+                    source.setSource(gste);
+                    gste.setSource((Expression) t.detach());
+                    FunctionCallExpression fc = new FunctionCallExpression(e.getSpan());
+                    fc.setSource(source);
+                    fc.insertArgument(t);
 
-            // ent.getValue().setSubexpression(fc);
-            // }
-            // }
+                    ent.getValue().setSubexpression(fc);
+                }
+            }
             return e;
         } else {
             return e;

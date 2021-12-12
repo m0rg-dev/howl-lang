@@ -5,6 +5,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+
+import dev.m0rg.howl.logger.Logger;
 
 public class ASpecify extends AlgebraicType {
     AlgebraicType source;
@@ -44,10 +47,25 @@ public class ASpecify extends AlgebraicType {
             }
         }
 
-        return source.evaluate(new_typemap);
+        for (Entry<String, AlgebraicType> e : new_typemap.entrySet()) {
+            Logger.trace("  " + e.getKey() + " => " + e.getValue().format());
+        }
+
+        AlgebraicType rc = source.evaluate(new_typemap);
+        Logger.trace("aspecify " + rc.format());
+        return rc;
     }
 
     public AlgebraicType half_evaluate() {
+        Logger.trace("aspecify " + this.format());
+        if (source instanceof AFunctionType) {
+            AFunctionType ft = (AFunctionType) source;
+            if (ft.returntype instanceof ASpecify) {
+                // TODO need to map it in the right order
+                return new AFunctionType(new ASpecify(((ASpecify) ft.returntype).source, this.parameters),
+                        ft.arguments);
+            }
+        }
         return this;
     }
 }

@@ -47,6 +47,9 @@ public class NewType extends TypeElement implements NamedElement {
             // avoid the cycle
         } else if (res instanceof NamedType && ((NamedType) res).getName().equals("__error")) {
             throw new RuntimeException("do not resolve to error please");
+        } else if (res instanceof NamedType && ((NamedType) res).getName().equals("__any")) {
+            // this should be equivalent to a no-op because setting to __any
+            // doesn't actually specify (but it will break stuff later)
         } else {
             this.resolution = Optional.of((TypeElement) res.setParent(this));
         }

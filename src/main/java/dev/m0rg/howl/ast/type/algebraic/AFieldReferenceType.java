@@ -1,7 +1,12 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.Map;
+import java.util.Optional;
 
+import dev.m0rg.howl.ast.Field;
+import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.StructureType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.logger.Logger;
 
 public class AFieldReferenceType extends AlgebraicType {
@@ -21,6 +26,8 @@ public class AFieldReferenceType extends AlgebraicType {
         AlgebraicType source_eval = source.evaluate(evalmap);
         if (source_eval instanceof AStructureType) {
             return ((AStructureType) source_eval).getField(name).evaluate(evalmap);
+        } else if (source_eval instanceof AAnyType) {
+            return source_eval;
         } else {
             return this;
         }
@@ -31,12 +38,36 @@ public class AFieldReferenceType extends AlgebraicType {
         Logger.trace(name);
         if (source instanceof ASpecify) {
             AStructureType t = (AStructureType) ((ASpecify) source).getSource();
-            Logger.trace(t.getFieldRaw(name).format());
-            // TODO need to map it in the right order
-            return new ASpecify(t.getFieldRaw(name), ((ASpecify) source).getParameters());
+            Logger.trace("FIELD " + name + " " + t.getFieldRaw(name).format());
+            return new ASpecify(t.getFieldRaw(name), ((ASpecify) source).getParameters()).half_evaluate();
+        } else if (source instanceof AStructureType) {
+            return ((AStructureType) source).getField(name).half_evaluate();
+        } else if (source instanceof ACallResult) {
+            AlgebraicType res = ((ACallResult) source).half_evaluate();
+            Logger.trace("call " + name + " " + res.format());
+            return new AFieldReferenceType(res, name).half_evaluate();
         }
 
         throw new UnsupportedOperationException();
     }
 
+    public TypeElement toElement() {
+        TypeElement source_type = source.toElement();
+        if (source_type instanceof StructureType) {
+            StructureType ct = (StructureType) source_type;
+            Optional<Field> f = ct.getField(name);
+            if (f.isPresent()) {
+                return f.get().getOwnType();
+            } else {
+                // TODO
+                // span.addError("Attempt to access nonexistent field `" + name + "' on " +
+                // ct.format(),
+                // "available fields are: " + String.join(", ", ct.getFieldNames()));
+                return NamedType.build(source_type.getSpan(), "__error");
+            }
+        } else {
+            source_type.getSpan().addError("attempt to take fields on non-structure " + source_type.format());
+            return NamedType.build(source_type.getSpan(), "__error");
+        }
+    }
 }

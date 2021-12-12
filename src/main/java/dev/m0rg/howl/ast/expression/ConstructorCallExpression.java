@@ -64,7 +64,6 @@ public class ConstructorCallExpression extends CallExpressionBase {
     @Override
     protected AlgebraicType getTypeForArgument(int index) {
         AlgebraicType source_type = AlgebraicType.derive(source).evaluate();
-        Logger.info(source_type.format());
 
         if (source_type instanceof AStructureType) {
             AStructureType st = (AStructureType) source_type;

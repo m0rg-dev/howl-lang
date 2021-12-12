@@ -22,12 +22,12 @@ public class InferTypes implements ASTTransformer {
         if (e instanceof HasUpstreamFields) {
             Logger.trace("InferTypes: " + e.format());
             for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
-                AlgebraicType expected = ent.getValue().getExpectedType();
+                AlgebraicType expected = ent.getValue().getExpectedType().evaluate();
                 AlgebraicType provided = AlgebraicType.derive(ent.getValue().getSubexpression());
                 Logger.trace(
                         " " + ent.getKey() + " " + expected.format() + " <- "
                                 + provided.format());
-                findRelationships(expected, provided);
+                findRelationships(expected, provided.evaluate());
             }
             return e;
         } else {
@@ -36,8 +36,15 @@ public class InferTypes implements ASTTransformer {
     }
 
     void findRelationships(AlgebraicType expected, AlgebraicType provided) {
+        Logger.trace(expected.getClass().getName() + " <- " + provided.getClass().getName());
         if (expected instanceof AFreeType) {
             NewType t = ((AFreeType) expected).toElement();
+
+            if (provided instanceof AFreeType
+                    && ((AFreeType) expected).getPath().equals(((AFreeType) provided).getPath())) {
+                return;
+            }
+
             Logger.trace("set equal: " + expected.format() + " <- " + provided.format());
             if (t.getResolution().isPresent()) {
                 Logger.warn("overwriting NewType definition " + t.getResolution().get().format());
@@ -51,6 +58,29 @@ public class InferTypes implements ASTTransformer {
                 throw new RuntimeException("overwriting " + t.format() + " with incompatible type");
             }
             t.setResolution((TypeElement) expected.toElement().detach());
+        } else if (expected instanceof AStructureType && provided instanceof AStructureType) {
+            AStructureType e_structure = (AStructureType) expected;
+            AStructureType p_structure = (AStructureType) provided;
+            List<AlgebraicType> e_params = e_structure.getParameters();
+            for (int i = 0; i < e_params.size() && i < p_structure.getParameters().size(); i++) {
+                AlgebraicType e_param = e_params.get(i);
+                AlgebraicType p_param = p_structure.getParameters().get(i);
+
+                if (e_param instanceof AFreeType && p_param instanceof AFreeType
+                        && ((AFreeType) e_param).getPath().equals(((AFreeType) p_param).getPath())) {
+                    continue;
+                }
+
+                Logger.trace("set equal (structure): " + e_param.format() + " <- "
+                        + p_param.format());
+                if (e_param instanceof AFreeType) {
+                    NewType t = ((AFreeType) e_param).toElement();
+                    if (t.getResolution().isPresent()) {
+                        Logger.warn("overwriting NewType definition " + t.getResolution().get().format());
+                    }
+                    t.setResolution((TypeElement) p_param.toElement().detach());
+                }
+            }
         } else if (expected instanceof ASpecify && provided instanceof ASpecify) {
             ASpecify e_specify = (ASpecify) expected;
             ASpecify p_specify = (ASpecify) provided;
@@ -62,8 +92,7 @@ public class InferTypes implements ASTTransformer {
                 findRelationships(e_params.get(i), p_specify.getParameters().get(i));
             }
         } else if (provided instanceof ACallResult) {
-            Logger.trace("12313 " + provided.half_evaluate().format());
-            findRelationships(expected, ((ACallResult) provided).half_evaluate());
+            findRelationships(expected, ((ACallResult) provided).evaluate());
         }
     }
 }

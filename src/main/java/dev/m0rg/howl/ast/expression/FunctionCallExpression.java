@@ -13,6 +13,7 @@ import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
+import dev.m0rg.howl.ast.type.algebraic.AFunctionType;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
@@ -63,7 +64,7 @@ public class FunctionCallExpression extends CallExpressionBase {
                 return ft.getReturnType();
             }
         }
-        Logger.info("creating error type (FunctionCallExpression " + source_type.format() + ")");
+        Logger.trace("creating error type (FunctionCallExpression " + source_type.format() + ")");
         return NamedType.build(span, "__error");
     }
 
@@ -77,7 +78,17 @@ public class FunctionCallExpression extends CallExpressionBase {
 
     @Override
     protected AlgebraicType getTypeForArgument(int index) {
-        return AlgebraicType.todo();
+        AlgebraicType source_type = AlgebraicType.derive(source).evaluate();
+
+        if (source_type instanceof AFunctionType) {
+            AFunctionType function_type = (AFunctionType) source_type;
+            return function_type.getArgument(index);
+        } else if (source_type instanceof AAnyType) {
+            // TODO only-for-overloads
+            return source_type;
+        } else {
+            throw new RuntimeException(source_type.getClass().getName());
+        }
     }
 
     @Override

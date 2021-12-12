@@ -7,16 +7,27 @@ import java.util.Map;
 import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.expression.ArithmeticExpression;
+import dev.m0rg.howl.ast.expression.BooleanConstantExpression;
+import dev.m0rg.howl.ast.expression.ClassCastExpression;
 import dev.m0rg.howl.ast.expression.ConstructorCallExpression;
+import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
 import dev.m0rg.howl.ast.expression.FunctionCallExpression;
+import dev.m0rg.howl.ast.expression.GetStaticTableExpression;
+import dev.m0rg.howl.ast.expression.IndexExpression;
+import dev.m0rg.howl.ast.expression.MacroCallExpression;
 import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.NumberExpression;
+import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
+import dev.m0rg.howl.ast.expression.StringLiteral;
 import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.HasOwnType;
+import dev.m0rg.howl.ast.type.LambdaType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
+import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 
@@ -64,9 +75,11 @@ public abstract class AlgebraicType {
                 throw new IllegalArgumentException("derive unresolvable " + source.format());
             }
         } else if (source instanceof ObjectReferenceType) {
-            return new AStructureType((ObjectReferenceType) source, typemap);
+            return new AObjectType((ObjectReferenceType) source, typemap);
         } else if (source instanceof NewType) {
             return new AFreeType((NewType) source);
+        } else if (source instanceof LambdaType) {
+            return new AFunctionType((LambdaType) source, typemap);
         } else if (source instanceof FunctionType) {
             return new AFunctionType(((FunctionType) source).getSource(), typemap);
         } else if (source instanceof NumberExpression) {
@@ -81,6 +94,9 @@ public abstract class AlgebraicType {
         } else if (source instanceof FunctionCallExpression) {
             AlgebraicType source_type = AlgebraicType.derive(((FunctionCallExpression) source).getSource(), typemap);
             return new ACallResult(source_type);
+        } else if (source instanceof IndexExpression) {
+            AlgebraicType source_type = AlgebraicType.derive(((IndexExpression) source).getSource(), typemap);
+            return new AIndexResult(source_type);
         } else if (source instanceof SpecifiedType) {
             SpecifiedType st = (SpecifiedType) source;
 
@@ -91,6 +107,20 @@ public abstract class AlgebraicType {
             }
 
             return new ASpecify(base, parameters);
+        } else if (source instanceof GetStaticTableExpression || source instanceof ArithmeticExpression
+                || source instanceof ClassCastExpression) {
+            return new AStableType(((Expression) source).getType());
+        } else if (source instanceof BooleanConstantExpression) {
+            return new ABaseType("bool");
+        } else if (source instanceof RawPointerType) {
+            AlgebraicType source_type = AlgebraicType.derive(((RawPointerType) source).getInner());
+            return new ARawPointer(source_type);
+        } else if (source instanceof StringLiteral) {
+            return new ARawPointer(new ABaseType("u8"));
+        } else if (source instanceof SpecifiedTypeExpression) {
+            return AlgebraicType.derive(((SpecifiedTypeExpression) source).getType());
+        } else if (source instanceof MacroCallExpression) {
+            return new AAnyType();
         }
         throw new RuntimeException(source.format() + " " + source.getClass().getSimpleName());
     }

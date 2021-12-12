@@ -55,7 +55,7 @@ public class NumericCastExpression extends Expression {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> AlgebraicType.todo()));
+                () -> AlgebraicType.derive(target)));
         return rc;
     }
 
