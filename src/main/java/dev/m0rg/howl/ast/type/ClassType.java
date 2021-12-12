@@ -7,12 +7,13 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.Span;
+import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 
-public class ClassType extends ObjectType {
+public class ClassType extends ObjectReferenceType {
     public ClassType(Span span, String source_path) {
         super(span, source_path);
     }
@@ -81,6 +82,11 @@ public class ClassType extends ObjectType {
             List<LLVMType> ty = new ArrayList<>();
             ty.add(new LLVMPointerType<>(object_type));
             ty.add(new LLVMPointerType<>(static_type));
+            // Space for an interface table, if we end up needing one. Since the
+            // interface version of this object will have {*obj, *stable,
+            // *itable} we need to make sure the class structure also contains
+            // three pointers to avoid smashing the stack.
+            ty.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
             rc.setBody(ty, true);
             return rc;
         });

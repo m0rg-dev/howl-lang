@@ -12,7 +12,8 @@ import java.util.Set;
 
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
-import dev.m0rg.howl.ast.type.ObjectType;
+import dev.m0rg.howl.ast.type.ObjectReferenceType;
+import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 
 public abstract class ObjectCommon extends ASTElement implements NamedElement, NameHolder {
@@ -54,12 +55,20 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         return Collections.unmodifiableList(generics);
     }
 
+    public Map<String, NewType> getGenericTypes() {
+        return Collections.unmodifiableMap(generic_types);
+    }
+
     public boolean isGeneric() {
         return generics.size() > 0;
     }
 
     public void clearGenerics() {
         generics = new ArrayList<>();
+    }
+
+    public void insertNewtype(String name) {
+        generic_types.put(name, (NewType) new NewType(span, name).setParent(this));
     }
 
     public void insertField(Field contents) {
@@ -70,7 +79,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         if (fields.containsKey(name)) {
             return Optional.of(fields.get(name));
         } else if (this.ext.isPresent()) {
-            ObjectType t = (ObjectType) this.ext.get().resolve();
+            ObjectReferenceType t = (ObjectReferenceType) this.ext.get().resolve();
             return t.getField(name);
         } else {
             return Optional.empty();
@@ -80,9 +89,17 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
     public List<String> getFieldNames() {
         List<String> names = new ArrayList<>(fields.keySet());
         if (this.ext.isPresent()) {
-            names.addAll(((ObjectType) this.ext.get().resolve()).getFieldNames());
+            names.addAll(((ObjectReferenceType) this.ext.get().resolve()).getFieldNames());
         }
         return Collections.unmodifiableList(names);
+    }
+
+    public List<Field> getFields() {
+        List<Field> fields = new ArrayList<>(this.fields.values());
+        if (this.ext.isPresent()) {
+            fields.addAll(((ObjectReferenceType) this.ext.get().resolve()).getSource().getFields());
+        }
+        return Collections.unmodifiableList(fields);
     }
 
     public Optional<Function> getMethod(String name) {
@@ -92,7 +109,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
             }
         }
         if (this.ext.isPresent()) {
-            return ((ObjectType) this.ext.get().resolve()).getSource().getMethod(name);
+            return ((ObjectReferenceType) this.ext.get().resolve()).getSource().getMethod(name);
         }
         return Optional.empty();
     }
@@ -109,13 +126,21 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
     public List<String> getMethodNames() {
         Set<String> names = new HashSet<>();
         if (this.ext.isPresent()) {
-            names.addAll(((ObjectType) this.ext.get().resolve()).getSource().getMethodNames());
+            names.addAll(((ObjectReferenceType) this.ext.get().resolve()).getSource().getMethodNames());
         }
 
         for (Function m : methods) {
             names.add(m.getName());
         }
         return new ArrayList<>(names);
+    }
+
+    public List<Function> getMethods() {
+        List<Function> methods = new ArrayList<>();
+        for (String name : this.getMethodNames()) {
+            methods.add(this.getMethod(name).get());
+        }
+        return Collections.unmodifiableList(methods);
     }
 
     // TODO figure out where this can be used
@@ -180,5 +205,19 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
 
     public String getName() {
         return this.name;
+    }
+
+    // TODO merge with MonomorphizeClasses
+    public ObjectCommon monomorphize(SpecifiedType spec) {
+        ObjectCommon specified = (ObjectCommon) this.detach();
+        specified.setName(spec.mangle());
+        for (int i = 0; i < spec.getParameters().size(); i++) {
+            TypeElement p = spec.getParameters().get(i);
+            p = (TypeElement) p.detach();
+            specified.setGeneric(specified.getGenericNames().get(i),
+                    p);
+        }
+        specified.clearGenerics();
+        return specified;
     }
 }

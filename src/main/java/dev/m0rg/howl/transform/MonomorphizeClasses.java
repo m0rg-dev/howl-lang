@@ -48,7 +48,7 @@ public class MonomorphizeClasses implements ASTTransformer {
                     Module m = (Module) target.getParent();
                     m.insertItem(specified);
                     NamedType rc = (NamedType) NamedType.build(st.getSpan(), specified.getPath())
-                            .setParent(st.getParent());
+                            .setParent(m);
                     gen_callback.accept(rc);
                     return rc;
                 } else {

@@ -14,9 +14,7 @@ public abstract class Expression extends ASTElement implements HasUpstreamFields
         super(span);
     }
 
-    public TypeElement getType() {
-        return NamedType.build(this.getSpan(), "__error");
-    }
+    public abstract TypeElement getType();
 
     public TypeElement getResolvedType() {
         return this.getType().resolve();

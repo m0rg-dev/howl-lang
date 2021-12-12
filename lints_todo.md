@@ -11,3 +11,5 @@ List of constructs that should be disallowed by the compiler:
     }
     ```
   - The `Vec.malloc(0)` call here results in us attempting to synthesize `Vec`, which is going to break horribly. We need to detect this and say "you need to use `Vec<T>` or `Self` here".
+
+Unrelated todo: Function overloading sucks right now.

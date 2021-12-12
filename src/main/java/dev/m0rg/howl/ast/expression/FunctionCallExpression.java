@@ -14,6 +14,7 @@ import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
 public class FunctionCallExpression extends CallExpressionBase {
     Expression source;
@@ -60,7 +61,8 @@ public class FunctionCallExpression extends CallExpressionBase {
                 return ft.getReturnType();
             }
         }
-        return super.getType();
+        Logger.info("creating error type (FunctionCallExpression " + source_type.format() + ")");
+        return NamedType.build(span, "__error");
     }
 
     public boolean isResolved() {

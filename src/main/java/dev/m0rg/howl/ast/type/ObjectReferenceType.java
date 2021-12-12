@@ -9,10 +9,10 @@ import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Span;
 
-public abstract class ObjectType extends TypeElement implements StructureType {
+public abstract class ObjectReferenceType extends TypeElement implements StructureType {
     String source_path;
 
-    public ObjectType(Span span, String source_path) {
+    public ObjectReferenceType(Span span, String source_path) {
         super(span);
         this.source_path = source_path;
     }

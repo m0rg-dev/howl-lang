@@ -5,7 +5,7 @@ import dev.m0rg.howl.ast.Argument;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Function;
-import dev.m0rg.howl.ast.expression.InterfaceCastExpression;
+import dev.m0rg.howl.ast.expression.CastToInterfaceExpression;
 import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
 import dev.m0rg.howl.ast.statement.ReturnStatement;
@@ -35,7 +35,7 @@ public class AddInterfaceConverters implements ASTTransformer {
 
                         CompoundStatement body = new CompoundStatement(converter.getSpan());
                         ReturnStatement rc = new ReturnStatement(converter.getSpan());
-                        InterfaceCastExpression ice = new InterfaceCastExpression(converter.getSpan());
+                        CastToInterfaceExpression ice = new CastToInterfaceExpression(converter.getSpan());
                         ice.setSource(new NameExpression(converter.getSpan(), "self"));
                         ice.setTarget((TypeElement) it.detach());
                         rc.setSource(ice);

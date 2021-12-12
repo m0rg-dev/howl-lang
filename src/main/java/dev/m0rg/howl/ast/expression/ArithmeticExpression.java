@@ -16,6 +16,7 @@ import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntPredicate;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
 public class ArithmeticExpression extends Expression {
     static final Set<String> comparison_operators;
@@ -112,6 +113,7 @@ public class ArithmeticExpression extends Expression {
                 return NumericType.build(span, max_width, lhs_numeric.isSigned());
             }
         } else {
+            Logger.trace("creating error type (ArithmeticExpression non-numeric)");
             return NamedType.build(span, "__error");
         }
     }

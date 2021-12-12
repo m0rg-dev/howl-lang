@@ -8,15 +8,19 @@ import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
+import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.ClassType;
+import dev.m0rg.howl.ast.type.LambdaType;
 import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.ObjectSnapshotType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
 public class ConstructorCallExpression extends CallExpressionBase {
     TypeElement source;
@@ -69,7 +73,15 @@ public class ConstructorCallExpression extends CallExpressionBase {
             if (constructor.isPresent()) {
                 return constructor.get().getArgumentList().get(index + 1).getOwnType();
             }
+        } else if (t instanceof ObjectSnapshotType) {
+            ObjectSnapshotType source_type = (ObjectSnapshotType) t;
+            Optional<Field> constructor = source_type.getField("constructor");
+            if (constructor.isPresent() && constructor.get().getOwnType() instanceof LambdaType) {
+                LambdaType constructor_type = (LambdaType) constructor.get().getOwnType();
+                return constructor_type.getArgumentTypes().get(index + 1);
+            }
         }
+        Logger.trace("creating error type (ConstructorCallExpression " + t.format() + ")");
         return NamedType.build(this.span, "__error");
     }
 

@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import dev.m0rg.howl.logger.Logger;
-
 public abstract class ASTElement {
     ASTElement parent;
     protected Span span;
@@ -57,7 +55,7 @@ public abstract class ASTElement {
             NamedElement as_named = (NamedElement) this;
             return parent_path + as_named.getName();
         } else {
-            return parent_path + "__anon";
+            return parent_path + "_";
         }
     }
 
@@ -98,6 +96,16 @@ public abstract class ASTElement {
             return Optional.of((Module) this);
         } else if (this.parent != null) {
             return this.getParent().nearestModule();
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<ObjectCommon> nearestObject() {
+        if (this instanceof ObjectCommon) {
+            return Optional.of((ObjectCommon) this);
+        } else if (this.parent != null) {
+            return this.getParent().nearestObject();
         } else {
             return Optional.empty();
         }

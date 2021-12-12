@@ -32,6 +32,7 @@ import dev.m0rg.howl.llvm.LLVMContext;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.transform.AddClassCasts;
+import dev.m0rg.howl.transform.AddGenerics;
 import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddInterfaceConverters;
 import dev.m0rg.howl.transform.AddNumericCasts;
@@ -46,7 +47,7 @@ import dev.m0rg.howl.transform.ConvertStrings;
 import dev.m0rg.howl.transform.ConvertThrow;
 import dev.m0rg.howl.transform.ConvertTryCatch;
 import dev.m0rg.howl.transform.IndirectMethodCalls;
-import dev.m0rg.howl.transform.InferGenerics;
+import dev.m0rg.howl.transform.InferTypes;
 import dev.m0rg.howl.transform.MonomorphizeClasses;
 import dev.m0rg.howl.transform.RemoveGenericClasses;
 import dev.m0rg.howl.transform.ResolveNames;
@@ -170,10 +171,11 @@ public class Compiler {
         cc.root_module.transform(new ConvertBooleans());
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
-        cc.root_module.transform(new InferGenerics());
-
-        // System.err.println(cc.root_module.getChild("main").get().format());
-        // System.exit(0);
+        cc.root_module.transform(new ConvertStrings());
+        cc.root_module.transform(new ConvertIndexLvalue());
+        cc.root_module.transform(new ConvertCustomOverloads());
+        cc.root_module.transform(new AddGenerics());
+        cc.root_module.transform(new InferTypes());
 
         // TODO come up with better API here
         MonomorphizeClasses mc = new MonomorphizeClasses();
@@ -182,9 +184,10 @@ public class Compiler {
         cc.root_module.transform(mc);
 
         cc.root_module.transform(new RemoveGenericClasses());
-        cc.root_module.transform(new ConvertStrings());
-        cc.root_module.transform(new ConvertIndexLvalue());
-        cc.root_module.transform(new ConvertCustomOverloads());
+
+        // System.err.println(cc.root_module.getChild("main").get().format());
+        // System.exit(0);
+
         cc.root_module.transform(new AddInterfaceConverters());
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
