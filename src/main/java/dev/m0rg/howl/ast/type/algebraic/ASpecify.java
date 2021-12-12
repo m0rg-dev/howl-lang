@@ -55,17 +55,4 @@ public class ASpecify extends AlgebraicType {
         Logger.trace("aspecify " + rc.format());
         return rc;
     }
-
-    public AlgebraicType half_evaluate() {
-        Logger.trace("aspecify " + this.format());
-        if (source instanceof AFunctionType) {
-            AFunctionType ft = (AFunctionType) source;
-            if (ft.returntype instanceof ASpecify) {
-                // TODO need to map it in the right order
-                return new AFunctionType(new ASpecify(((ASpecify) ft.returntype).source, this.parameters),
-                        ft.arguments);
-            }
-        }
-        return this;
-    }
 }

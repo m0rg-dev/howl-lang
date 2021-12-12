@@ -129,12 +129,5 @@ public abstract class AlgebraicType {
         throw new UnsupportedOperationException(this.getClass().getName());
     }
 
-    /**
-     * Evaluate without resolving any new fields.
-     */
-    public AlgebraicType half_evaluate() {
-        throw new UnsupportedOperationException(this.getClass().getName());
-    }
-
     public abstract String format();
 }

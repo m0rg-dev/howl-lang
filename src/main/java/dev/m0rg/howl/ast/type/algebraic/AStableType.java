@@ -15,10 +15,6 @@ public class AStableType extends AStructureType {
         super(other, evalmap);
     }
 
-    public AStableType(AStableType other) {
-        super(other);
-    }
-
     public AlgebraicType getField(String name) {
         // no generics by this point! static tables only exist after
         // monomorphization.
@@ -35,9 +31,5 @@ public class AStableType extends AStructureType {
 
     public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
         return new AStableType(this, evalmap);
-    }
-
-    public AlgebraicType half_evaluate() {
-        return new AStableType(this);
     }
 }

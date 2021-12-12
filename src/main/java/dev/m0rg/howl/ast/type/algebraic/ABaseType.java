@@ -20,10 +20,6 @@ public class ABaseType extends AlgebraicType {
         return this;
     }
 
-    public AlgebraicType half_evaluate() {
-        return this;
-    }
-
     public TypeElement toElement() {
         return NamedType.build(null, name);
     }

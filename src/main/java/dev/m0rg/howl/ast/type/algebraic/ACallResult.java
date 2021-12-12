@@ -27,13 +27,4 @@ public class ACallResult extends AlgebraicType {
         }
         throw new RuntimeException(source_type.format());
     }
-
-    @Override
-    public AlgebraicType half_evaluate() {
-        AlgebraicType source_type = source.half_evaluate();
-        if (source_type instanceof AFunctionType) {
-            return ((AFunctionType) source_type).returntype.half_evaluate();
-        }
-        throw new RuntimeException(source_type.format());
-    }
 }

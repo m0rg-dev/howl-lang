@@ -33,24 +33,6 @@ public class AFieldReferenceType extends AlgebraicType {
         }
     }
 
-    public AlgebraicType half_evaluate() {
-        Logger.trace("half_evaluate " + source.format());
-        Logger.trace(name);
-        if (source instanceof ASpecify) {
-            AStructureType t = (AStructureType) ((ASpecify) source).getSource();
-            Logger.trace("FIELD " + name + " " + t.getFieldRaw(name).format());
-            return new ASpecify(t.getFieldRaw(name), ((ASpecify) source).getParameters()).half_evaluate();
-        } else if (source instanceof AStructureType) {
-            return ((AStructureType) source).getField(name).half_evaluate();
-        } else if (source instanceof ACallResult) {
-            AlgebraicType res = ((ACallResult) source).half_evaluate();
-            Logger.trace("call " + name + " " + res.format());
-            return new AFieldReferenceType(res, name).half_evaluate();
-        }
-
-        throw new UnsupportedOperationException();
-    }
-
     public TypeElement toElement() {
         TypeElement source_type = source.toElement();
         if (source_type instanceof StructureType) {

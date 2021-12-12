@@ -43,14 +43,6 @@ public class AFunctionType extends AlgebraicType {
         }
     }
 
-    AFunctionType(AFunctionType other) {
-        returntype = other.returntype.half_evaluate();
-        arguments = new ArrayList<>();
-        for (AlgebraicType a : other.arguments) {
-            arguments.add(a.half_evaluate());
-        }
-    }
-
     public String format() {
         List<String> afmt = new ArrayList<>();
         for (AlgebraicType a : arguments) {
@@ -66,10 +58,6 @@ public class AFunctionType extends AlgebraicType {
 
     public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
         return new AFunctionType(this, evalmap);
-    }
-
-    public AlgebraicType half_evaluate() {
-        return new AFunctionType(this);
     }
 
     public TypeElement toElement() {

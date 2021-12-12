@@ -49,8 +49,4 @@ public class AFreeType extends AlgebraicType {
         }
         return this;
     }
-
-    public AlgebraicType half_evaluate() {
-        return this;
-    }
 }

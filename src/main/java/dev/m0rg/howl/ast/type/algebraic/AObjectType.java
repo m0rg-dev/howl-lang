@@ -31,10 +31,6 @@ public class AObjectType extends AStructureType {
         super(other, evalmap);
     }
 
-    public AObjectType(AObjectType other) {
-        super(other);
-    }
-
     ObjectCommon getSource() {
         return ((ObjectReferenceType) source).getSource();
     }
@@ -78,9 +74,4 @@ public class AObjectType extends AStructureType {
     public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
         return new AObjectType(this, evalmap);
     }
-
-    public AlgebraicType half_evaluate() {
-        return new AObjectType(this);
-    }
-
 }

@@ -20,10 +20,6 @@ public class ARawPointer extends AlgebraicType {
         return new ARawPointer(source.evaluate(evalmap));
     }
 
-    public AlgebraicType half_evaluate() {
-        return new ARawPointer(source.half_evaluate());
-    }
-
     public TypeElement toElement() {
         RawPointerType rc = new RawPointerType(null);
         rc.setInner((TypeElement) source.toElement().detach());

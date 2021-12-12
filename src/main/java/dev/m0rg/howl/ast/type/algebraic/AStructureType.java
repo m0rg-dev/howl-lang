@@ -30,17 +30,6 @@ public abstract class AStructureType extends AlgebraicType {
         non_overloaded = new HashMap<>(other.non_overloaded);
     }
 
-    AStructureType(AStructureType other) {
-        source = other.source;
-        parameters = new ArrayList<>();
-
-        for (AlgebraicType p : other.parameters) {
-            parameters.add(p.half_evaluate());
-        }
-
-        non_overloaded = new HashMap<>(other.non_overloaded);
-    }
-
     public List<AlgebraicType> getParameters() {
         return Collections.unmodifiableList(parameters);
     }
