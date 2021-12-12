@@ -135,15 +135,22 @@ public class Compiler {
             if (source_file.isDirectory()) {
                 ingestDirectory(source_file.toPath(), prefix + "." + source_file.getName());
             } else {
-                ingest(source_file.toPath(), prefix);
+                if (source_file.getName().endsWith(".hl")) {
+                    ingest(source_file.toPath(), prefix);
+                }
             }
         }
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Options options = new Options();
-        Option logTrace = new Option("trace", "Enable TRACE level logging (extremely verbose)");
+        Option logTrace = Option.builder(null).longOpt("trace")
+                .desc("Enable TRACE level logging (extremely verbose)").build();
+        Option output = Option.builder("o").longOpt("output").desc("Write output to FILE").hasArg().argName("FILE")
+                .required().build();
+
         options.addOption(logTrace);
+        options.addOption(output);
 
         CommandLineParser opt_parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -208,10 +215,33 @@ public class Compiler {
             modules = cc.root_module.generate(context, true);
         }
         if (cc.successful) {
+            Path tmpdir = Files.createTempDirectory("howl." + ProcessHandle.current().pid());
+            List<String> ld_args = new ArrayList<>();
+            ld_args.add("cc");
+            ld_args.add("-o");
+            ld_args.add(cmd.getOptionValue("output"));
+            ld_args.add(stdlib_path.resolve("hrt0.c").toAbsolutePath().toString());
             for (LLVMModule module : modules) {
-                Files.createDirectories(FileSystems.getDefault().getPath("howl_target"));
-                Files.writeString(FileSystems.getDefault().getPath("howl_target", module.getName() + ".ll"),
+                Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
                         module.toString());
+
+                ProcessBuilder cc_builder = new ProcessBuilder(
+                        Arrays.asList(
+                                new String[] { "clang", "-c", "-o", tmpdir.resolve(module.getName() + ".o").toString(),
+                                        tmpdir.resolve(module.getName() + ".ll").toString(), "-Wno-override-module",
+                                        "-O2" })).inheritIO();
+                Process cc_process = cc_builder.start();
+                if (cc_process.waitFor() != 0) {
+                    Logger.error("(compilation aborted)");
+                    System.exit(1);
+                }
+                ld_args.add(tmpdir.resolve(module.getName() + ".o").toString());
+            }
+            ProcessBuilder ld_builder = new ProcessBuilder(ld_args).inheritIO();
+            Process ld_process = ld_builder.start();
+            if (ld_process.waitFor() != 0) {
+                Logger.error("(compilation aborted)");
+                System.exit(1);
             }
         } else {
             for (CompilationError e : cc.errors) {

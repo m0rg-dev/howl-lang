@@ -2,8 +2,7 @@ A prototype programming language. Shades of Java, but compiles to LLVM IR.
 
 ```
 $ make
-$ java -jar target/howlc-1.0-SNAPSHOT.jar test.hl
-$ cc -o test howl_target/*.ll hrt0.c -Wno-override-module
+$ java -jar target/howlc-1.0-SNAPSHOT.jar test.hl -o test
 $ ./test
 Hello, World!
 ```
