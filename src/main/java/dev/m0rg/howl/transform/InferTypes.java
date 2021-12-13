@@ -47,7 +47,8 @@ public class InferTypes implements ASTTransformer {
 
             Logger.trace("set equal: " + expected.formatForLog() + " <- " + provided.formatForLog());
             if (t.getResolution().isPresent()) {
-                Logger.warn("overwriting NewType definition " + t.getResolution().get().formatForLog());
+                Logger.trace("overwriting NewType definition " + t.getResolution().get().format() + " with "
+                        + provided.toElement().format());
             }
 
             t.setResolution((TypeElement) provided.toElement().detach());
