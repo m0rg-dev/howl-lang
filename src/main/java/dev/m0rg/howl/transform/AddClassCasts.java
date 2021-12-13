@@ -22,9 +22,9 @@ public class AddClassCasts implements ASTTransformer {
                     ClassType ct_expected = (ClassType) expected;
                     ClassType ct_provided = (ClassType) provided;
                     if (!ct_expected.getSource().getPath().equals(ct_provided.getSource().getPath())) {
-                        Logger.trace("AddClassCasts " + ent.getValue().getSubexpression().format() +
+                        Logger.trace("AddClassCasts " + ent.getValue().getSubexpression().formatForLog() +
                                 " -> "
-                                + expected.format());
+                                + expected.formatForLog());
                         ClassCastExpression ice = new ClassCastExpression(
                                 ent.getValue().getSubexpression().getSpan());
                         ice.setSource((Expression) ent.getValue().getSubexpression().detach());

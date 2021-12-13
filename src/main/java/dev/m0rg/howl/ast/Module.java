@@ -114,7 +114,9 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
             index++;
         }
         long end = System.currentTimeMillis();
-        Logger.trace("module " + this.name + " pass " + t.getClass().getName() + " time " + (end - start) + " ms");
+        if (this.name.equals("root")) {
+            Logger.info("module " + this.name + " pass " + t.getClass().getName() + " time " + (end - start) + " ms");
+        }
     }
 
     // this is a class method because we're gonna mutate this.contents

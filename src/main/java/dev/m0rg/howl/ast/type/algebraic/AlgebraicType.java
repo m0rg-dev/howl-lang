@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import dev.m0rg.howl.Compiler;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.expression.ArithmeticExpression;
@@ -47,11 +48,26 @@ public abstract class AlgebraicType {
         throw new UnsupportedOperationException(this.getClass().getName());
     }
 
+    static Map<ASTElement, AlgebraicType> cache = new HashMap<>();
+
+    public static void invalidateCache() {
+        cache = new HashMap<ASTElement, AlgebraicType>();
+    }
+
     public static AlgebraicType derive(ASTElement source) {
         return derive(source, new HashMap<>());
     }
 
-    public static AlgebraicType derive(ASTElement source, Map<String, AlgebraicType> typemap) {
+    static AlgebraicType derive(ASTElement source, Map<String, AlgebraicType> typemap) {
+        if (cache.containsKey(source)) {
+            return cache.get(source);
+        }
+        AlgebraicType rc = _derive(source, typemap);
+        cache.put(source, rc);
+        return rc;
+    }
+
+    static AlgebraicType _derive(ASTElement source, Map<String, AlgebraicType> typemap) {
         if (source instanceof NameExpression) {
             Optional<ASTElement> res = source.resolveName(((NameExpression) source).getName());
             if (res.isPresent()) {
@@ -137,4 +153,15 @@ public abstract class AlgebraicType {
     }
 
     public abstract String format();
+
+    /**
+     * Formats only if --trace was passed; otherwise, returns empty string.
+     */
+    public String formatForLog() {
+        if (Compiler.cmd.hasOption("trace")) {
+            return format();
+        } else {
+            return "";
+        }
+    }
 }

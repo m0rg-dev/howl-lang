@@ -32,7 +32,7 @@ public class ConvertTryCatch implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof TryStatement) {
             TryStatement as_try = (TryStatement) e;
-            Logger.trace("ConvertTryCatch: " + as_try.format());
+            Logger.trace("ConvertTryCatch: " + as_try.formatForLog());
 
             RawPointerType pi8 = new RawPointerType(e.getSpan());
             pi8.setInner(NumericType.build(e.getSpan(), 8, true));

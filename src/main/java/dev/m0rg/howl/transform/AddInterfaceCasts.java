@@ -24,8 +24,8 @@ public class AddInterfaceCasts implements ASTTransformer {
                 TypeElement provided = ent.getValue().getSubexpression().getResolvedType();
                 if (expected instanceof InterfaceType && provided instanceof ClassType) {
                     Logger.trace("AddInterfaceCasts " +
-                            ent.getValue().getSubexpression().format() + " -> "
-                            + expected.format());
+                            ent.getValue().getSubexpression().formatForLog() + " -> "
+                            + expected.formatForLog());
 
                     InterfaceType it = (InterfaceType) expected;
 

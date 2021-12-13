@@ -30,7 +30,7 @@ public class IndirectMethodCalls implements ASTTransformer {
                     new_tree.setSource(new_fsource);
                     new_tree.prependArgument((Expression) temp.detach());
                     new_tree.setParent(e.getParent());
-                    Logger.trace("IndirectMethodCalls " + new_tree.format());
+                    Logger.trace("IndirectMethodCalls " + new_tree.formatForLog());
                     return resolveOverloads(new_tree);
                 }
             }
@@ -42,7 +42,6 @@ public class IndirectMethodCalls implements ASTTransformer {
 
     static ASTElement resolveOverloads(ASTElement e) {
         ASTElement rc = (new ResolveOverloads()).transform(e);
-        Logger.trace(" --- ");
         return rc;
     }
 }

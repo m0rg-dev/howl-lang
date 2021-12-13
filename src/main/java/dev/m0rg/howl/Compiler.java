@@ -25,6 +25,7 @@ import dev.m0rg.howl.ast.ImportStatement;
 import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckConstructorArguments;
 import dev.m0rg.howl.lint.CheckExceptions;
@@ -186,6 +187,7 @@ public class Compiler {
 
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
+        AlgebraicType.invalidateCache();
 
         // System.err.println(cc.root_module.getChild("lib").get().format());
         // System.exit(0);
@@ -201,6 +203,7 @@ public class Compiler {
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());
+
         cc.root_module.transform(new AddNumericCasts());
 
         // needs to come before AddClassCasts - easier to find what type the

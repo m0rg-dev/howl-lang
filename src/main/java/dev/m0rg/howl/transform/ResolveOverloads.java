@@ -3,6 +3,7 @@ package dev.m0rg.howl.transform;
 import java.util.ArrayList;
 import java.util.List;
 
+import dev.m0rg.howl.Compiler;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Function;
@@ -25,13 +26,15 @@ public class ResolveOverloads implements ASTTransformer {
                 FieldReferenceExpression frex = (FieldReferenceExpression) source;
                 TypeElement source_type = frex.getSource().getResolvedType();
                 if (source_type instanceof StructureType) {
-                    Logger.trace("ResolveOverloads " + frex.getSource().format() + " -> " + frex.getName());
-                    Logger.trace("  source type " + source_type.format());
-                    List<String> argument_types = new ArrayList<>();
-                    for (Expression arg : as_call.getArguments()) {
-                        argument_types.add(arg.getResolvedType().format());
+                    if (Compiler.cmd.hasOption("trace")) {
+                        Logger.trace("ResolveOverloads " + frex.getSource().format() + " -> " + frex.getName());
+                        Logger.trace("  source type " + source_type.format());
+                        List<String> argument_types = new ArrayList<>();
+                        for (Expression arg : as_call.getArguments()) {
+                            argument_types.add(arg.getResolvedType().format());
+                        }
+                        Logger.trace("  argument types " + String.join(", ", argument_types));
                     }
-                    Logger.trace("  argument types " + String.join(", ", argument_types));
                     List<Function> candidates;
                     if (source_type instanceof ClassStaticType) {
                         candidates = ((ClassStaticType) source_type).getSource()
@@ -53,17 +56,21 @@ public class ResolveOverloads implements ASTTransformer {
                                 TypeElement argtype = argtypes.get(i).resolve();
                                 TypeElement sourcearg = as_call.getArguments().get(i).getResolvedType();
                                 if (argtype.accepts(sourcearg)) {
-                                    candidate_types.add(argtype.format() + " " + Logger.OK);
+                                    if (Compiler.cmd.hasOption("trace"))
+                                        candidate_types.add(argtype.format() + " " + Logger.OK);
                                 } else {
-                                    candidate_types.add(argtype.format() + " " + Logger.Error);
+                                    if (Compiler.cmd.hasOption("trace"))
+                                        candidate_types.add(argtype.format() + " " + Logger.Error);
                                     all_match = false;
                                 }
                             }
                         } else {
                             all_match = false;
                         }
-                        Logger.trace("  candidate " + candidate.getOwnType().format() + " : "
-                                + String.join(", ", candidate_types));
+                        if (Compiler.cmd.hasOption("trace")) {
+                            Logger.trace("  candidate " + candidate.getOwnType().format() + " : "
+                                    + String.join(", ", candidate_types));
+                        }
                         if (all_match) {
                             matches.add(candidate);
                         }
@@ -73,6 +80,10 @@ public class ResolveOverloads implements ASTTransformer {
                     } else if (matches.size() == 0) {
                         Logger.trace("  invalid.");
                         List<String> description = new ArrayList<>(candidates.size() + 1);
+                        List<String> argument_types = new ArrayList<>();
+                        for (Expression arg : as_call.getArguments()) {
+                            argument_types.add(arg.getResolvedType().format());
+                        }
                         description.add("Argument types: " + String.join(", ", argument_types));
                         for (Function candidate : candidates) {
                             FunctionType t = candidate.getOwnType();
@@ -123,7 +134,9 @@ public class ResolveOverloads implements ASTTransformer {
                 }
             }
             return e;
-        } else {
+        } else
+
+        {
             return e;
         }
     }

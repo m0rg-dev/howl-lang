@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import dev.m0rg.howl.Compiler;
+
 public abstract class ASTElement {
     ASTElement parent;
     protected Span span;
@@ -35,7 +37,33 @@ public abstract class ASTElement {
      */
     public abstract ASTElement detach();
 
+    /**
+     * Sets this ASTElement's parent to null and returns it.
+     *
+     * <p>
+     * 
+     * <b>Potentially unsafe</b>: if you're using this function, you need to
+     * make sure that the original element is removed from the tree, for
+     * instance by attaching the returned element to a new element and replacing
+     * the original element's parent with that new element.
+     */
+    public ASTElement detachUnsafe() {
+        this.parent = null;
+        return this;
+    }
+
     public abstract String format();
+
+    /**
+     * Formats only if --trace was passed; otherwise, returns empty string.
+     */
+    public String formatForLog() {
+        if (Compiler.cmd.hasOption("trace")) {
+            return format();
+        } else {
+            return "";
+        }
+    }
 
     public abstract void transform(ASTTransformer t);
 

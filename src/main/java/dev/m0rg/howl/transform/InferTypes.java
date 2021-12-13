@@ -20,13 +20,13 @@ import dev.m0rg.howl.logger.Logger;
 public class InferTypes implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof HasUpstreamFields) {
-            Logger.trace("InferTypes: " + e.format());
+            Logger.trace("InferTypes: " + e.formatForLog());
             for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
                 AlgebraicType expected = ent.getValue().getExpectedType().evaluate();
                 AlgebraicType provided = AlgebraicType.derive(ent.getValue().getSubexpression());
                 Logger.trace(
-                        " " + ent.getKey() + " " + expected.format() + " <- "
-                                + provided.format());
+                        " " + ent.getKey() + " " + expected.formatForLog() + " <- "
+                                + provided.formatForLog());
                 findRelationships(expected, provided.evaluate());
             }
             return e;
@@ -45,17 +45,17 @@ public class InferTypes implements ASTTransformer {
                 return;
             }
 
-            Logger.trace("set equal: " + expected.format() + " <- " + provided.format());
+            Logger.trace("set equal: " + expected.formatForLog() + " <- " + provided.formatForLog());
             if (t.getResolution().isPresent()) {
-                Logger.warn("overwriting NewType definition " + t.getResolution().get().format());
+                Logger.warn("overwriting NewType definition " + t.getResolution().get().formatForLog());
             }
             t.setResolution((TypeElement) provided.toElement().detach());
         } else if (provided instanceof AFreeType && expected instanceof ABaseType) {
             NewType t = ((AFreeType) provided).toElement();
-            Logger.trace("backpropagate: " + expected.format() + " -> " + provided.format());
+            Logger.trace("backpropagate: " + expected.formatForLog() + " -> " + provided.formatForLog());
             TypeElement as_element = (TypeElement) expected.toElement();
             if (t.getResolution().isPresent() && !t.getResolution().get().accepts(as_element)) {
-                throw new RuntimeException("overwriting " + t.format() + " with incompatible type");
+                throw new RuntimeException("overwriting " + t.formatForLog() + " with incompatible type");
             }
             t.setResolution((TypeElement) expected.toElement().detach());
         } else if (expected instanceof AStructureType && provided instanceof AStructureType) {
@@ -71,12 +71,12 @@ public class InferTypes implements ASTTransformer {
                     continue;
                 }
 
-                Logger.trace("set equal (structure): " + e_param.format() + " <- "
-                        + p_param.format());
+                Logger.trace("set equal (structure): " + e_param.formatForLog() + " <- "
+                        + p_param.formatForLog());
                 if (e_param instanceof AFreeType) {
                     NewType t = ((AFreeType) e_param).toElement();
                     if (t.getResolution().isPresent()) {
-                        Logger.warn("overwriting NewType definition " + t.getResolution().get().format());
+                        Logger.warn("overwriting NewType definition " + t.getResolution().get().formatForLog());
                     }
                     t.setResolution((TypeElement) p_param.toElement().detach());
                 }
