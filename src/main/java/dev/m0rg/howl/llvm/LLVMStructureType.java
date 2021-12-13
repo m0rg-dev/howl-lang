@@ -2,8 +2,10 @@ package dev.m0rg.howl.llvm;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.PointerPointer;
 import org.bytedeco.llvm.LLVM.LLVMTypeRef;
@@ -49,7 +51,21 @@ public class LLVMStructureType extends LLVMType {
         for (int i = 0; i < contents.size(); i++) {
             contents_raw.put(i, contents.get(i).getInternal());
         }
-        return new LLVMConstant(LLVMConstStructInContext(context.getInternal(), contents_raw, contents.size(),
-                this.isPacked() ? 1 : 0));
+        BytePointer n = LLVMGetStructName(obj);
+        if (n.isNull()) {
+            return new LLVMConstant(LLVMConstStructInContext(context.getInternal(), contents_raw, contents.size(),
+                    this.isPacked() ? 1 : 0));
+        } else {
+            return new LLVMConstant(LLVMConstNamedStruct(obj, contents_raw, contents.size()));
+        }
+    }
+
+    public LLVMConstant getNull(LLVMModule module) {
+        List<LLVMConstant> contents = new ArrayList<>();
+        int count = LLVMCountStructElementTypes(obj);
+        for (int i = 0; i < count; i++) {
+            contents.add(LLVMType.build(LLVMStructGetTypeAtIndex(obj, i)).getNull(module));
+        }
+        return this.createConstant(module.getContext(), contents);
     }
 }

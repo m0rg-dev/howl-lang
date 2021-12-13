@@ -13,6 +13,7 @@ import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
+import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.ast.type.algebraic.AFunctionType;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
@@ -90,8 +91,12 @@ public class FunctionCallExpression extends CallExpressionBase {
         } else if (source_type instanceof AAnyType) {
             // TODO only-for-overloads
             return source_type;
+        } else if (source_type instanceof ABaseType && ((ABaseType) source_type).getName().equals("__error")) {
+            return source_type;
         } else {
-            throw new RuntimeException(source_type.getClass().getName());
+            // throw new RuntimeException(source_type.getClass().getName());
+            Logger.trace("creating error type: getTypeForArgument of non-function");
+            return new ABaseType("__error");
         }
     }
 

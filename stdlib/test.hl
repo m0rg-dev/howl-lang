@@ -1,0 +1,139 @@
+class Test {
+    // TODO: Come up with a unified plan for static field initialization so we
+    // don't have to manually implement guards everywhere.
+    static bool was_initialized;
+
+    static bool all_ok;
+    static u64 test_count;
+    static u64 plan_count;
+    static Vec<u64> failures;
+
+    static fn void init() {
+        Test.init(0);
+    }
+
+    static fn void init(u64 plan_count) {
+        Test.was_initialized = true;
+        Test.all_ok = true;
+        Test.test_count = 0;
+        Test.plan_count = plan_count;
+        Test.failures = new Vec<u64>();
+    }
+
+    static fn void assertInitialized() {
+        if(!Test.was_initialized) {
+            throw new UncheckedException("call Test.init() first!");
+        }
+    }
+
+    static fn void plan(u64 plan_count) {
+        Test.assertInitialized();
+        Test.plan_count = plan_count;
+    }
+
+    static fn void fail() {
+        Test.fail("");
+    }
+
+    static fn void fail(Display message) {
+        Test.fail(message.toString());
+    }
+
+    static fn void fail(String message) {
+        Test.assertInitialized();
+        Test.all_ok = false;
+        IO.eprint("fail " + (Test.test_count + 1));
+        if message.byteLength() > 0 {
+            IO.eprint(": " + message);
+        }
+        IO.eprintln();
+
+        Test.failures.push(Test.test_count);
+
+        Test.test_count = Test.test_count + 1;
+    }
+
+    static fn void ok() {
+        Test.ok("");
+    }
+
+    static fn void ok(Display message) {
+        Test.ok(message.toString());
+    }
+
+    static fn void ok(String message) {
+        Test.assertInitialized();
+        IO.eprint("ok " + (Test.test_count + 1));
+        if message.byteLength() > 0 {
+            IO.eprint(": " + message);
+        }
+        IO.eprintln();
+
+        Test.test_count = Test.test_count + 1;
+    }
+
+    static fn void assert(bool condition, String message) {
+        if condition {
+            Test.ok(message);
+        } else {
+            Test.fail(message);
+        }
+    }
+
+    static fn void diag(String message) {
+        IO.eprintln("# " + message);
+    }
+
+    static fn String n_tests(i64 n) {
+        if n == 1 {
+            return "" + n + " test";
+        } else {
+            return "" + n + " tests";
+        }
+        $unreachable();
+    }
+
+    static fn i32 report() {
+        IO.eprintln("# " + "=".repeat(78));
+        IO.eprintln("# TEST RESULTS:");
+        IO.eprintln("# " + "=".repeat(78));
+
+        if Test.plan_count > 0 {
+            IO.eprintln("# You planned " + Test.n_tests(Test.plan_count) + " and ran " + (Test.test_count) + ".");
+        } else {
+            IO.eprintln("# You ran " + Test.n_tests(Test.test_count) + ".");
+        }
+
+        if Test.failures.length() > 0 {
+            IO.eprint("# Failed tests: ");
+            let i64 i = 0;
+            while i < Test.failures.length() - 1 {
+                IO.eprint("" + Test.failures[i] + ", ");
+            }
+            IO.eprintln("" + Test.failures[Test.failures.length() - 1]);
+        } else {
+            IO.eprintln("# All tests passed.");
+        }
+
+        if Test.plan_count != Test.test_count {
+            if Test.all_ok {
+                IO.eprint("# However, ");
+            } else {
+                IO.eprint("# Additionally, ");
+            }
+            if Test.test_count > Test.plan_count {
+                IO.eprintln("you ran too many tests.");
+            } else {
+                IO.eprintln("you did not run enough tests.");
+            }
+            Test.all_ok = false;
+        }
+
+        if Test.all_ok {
+            return 0;
+        } else {
+            return 1;
+        }
+        $unreachable();
+    }
+}

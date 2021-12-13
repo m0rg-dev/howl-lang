@@ -31,4 +31,6 @@ public abstract class LLVMType {
         LLVMDumpType(obj);
         System.out.println();
     }
+
+    public abstract LLVMConstant getNull(LLVMModule module);
 }

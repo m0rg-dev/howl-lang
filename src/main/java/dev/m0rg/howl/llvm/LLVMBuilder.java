@@ -107,6 +107,10 @@ public class LLVMBuilder implements AutoCloseable {
                 LLVMBuildMul(this.getInternal(), lhs.getInternal(), rhs.getInternal(), name));
     }
 
+    public LLVMInstruction buildNot(LLVMValue source, String name) {
+        return new LLVMInstruction(LLVMBuildNot(this.getInternal(), source.getInternal(), name));
+    }
+
     public LLVMInstruction buildReturn() {
         return new LLVMInstruction(LLVMBuildRetVoid(this.getInternal()));
     }

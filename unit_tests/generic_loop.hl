@@ -28,16 +28,17 @@ interface I<T> {
 
 class C<T> implements I<T> {
     fn void frob(T param) {
-        lib.IO.println("what the frob?");
+        Test.ok("interface successfully frobbed");
     }
 }
 
 static fn i32 Main() {
+    Test.init(2);
     let B test = new B(42);
     let I test2 = new C<i32>();
     test2.frob(0);
 
-    lib.IO.println("retrieved: " + test.get());
+    Test.assert(test.get() == 42, "inner retrieval returned OK");
 
-    return 0;
+    return Test.report();
 }

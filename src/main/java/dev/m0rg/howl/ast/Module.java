@@ -11,6 +11,7 @@ import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.logger.Logger;
 
 public class Module extends ASTElement implements NamedElement, NameHolder {
     String name;
@@ -104,6 +105,7 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
     }
 
     public void transform(ASTTransformer t) {
+        long start = System.currentTimeMillis();
         int index = 0;
         ASTElement[] contents = this.contents.toArray(new ASTElement[0]);
         for (ASTElement item : contents) {
@@ -111,6 +113,8 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
             this.contents.set(index, t.transform(item).setParent(this));
             index++;
         }
+        long end = System.currentTimeMillis();
+        Logger.trace("module " + this.name + " pass " + t.getClass().getName() + " time " + (end - start) + " ms");
     }
 
     // this is a class method because we're gonna mutate this.contents

@@ -260,6 +260,7 @@ public class Compiler {
                 cc.errors_displayed.add(e);
             }
             Logger.error("(compilation aborted due to errors)");
+            System.exit(1);
         }
     }
 }

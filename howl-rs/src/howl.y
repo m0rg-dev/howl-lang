@@ -56,8 +56,11 @@ ImplementsList -> Result<Vec<CSTElement<'input>>, ()>:
     ;
 
 ClassField -> Result<CSTElement<'input>, ()>:
-    Type Identifier ';' {
-        Ok(CSTElement::ClassField{ span: $span.into(), fieldtype: alloc($1?), fieldname: alloc($2?) })
+    'STATIC' Type Identifier ';' {
+        Ok(CSTElement::ClassField{ span: $span.into(), fieldtype: alloc($2?), fieldname: alloc($3?), is_static: true })
+    }
+    | Type Identifier ';' {
+        Ok(CSTElement::ClassField{ span: $span.into(), fieldtype: alloc($1?), fieldname: alloc($2?), is_static: false })
     }
     ;
 
@@ -292,6 +295,9 @@ Expression2 -> Result<CSTElement<'input>, ()>:
     | Expression2 '%' Expression3 {
         Ok(CSTElement::ArithmeticExpression{span: $span.into(), operator: "%".to_string(), lhs: alloc($1?), rhs: alloc($3?)})
     }
+    | '!' Expression3 {
+        Ok(CSTElement::BooleanInversionExpression{span: $span.into(), source: alloc($2?)})
+    }
     | Expression3 { $1 }
     ;
 
@@ -330,7 +336,7 @@ Expression3 -> Result<CSTElement<'input>, ()>:
     | "NEW" Type ArgumentList {
         Ok(CSTElement::ConstructorCallExpression{span: $span.into(), source: alloc($2?), args: alloc($3?)})
     }
-    | "!" 'identifier' ArgumentList {
+    | "$" 'identifier' ArgumentList {
         match $2 {
             Ok(_) => Ok(CSTElement::MacroCallExpression{span: $span.into(), name: $lexer.span_str($2.as_ref().unwrap().span()).to_string(), args: alloc($3?)}),
             Err(_) => Err(())

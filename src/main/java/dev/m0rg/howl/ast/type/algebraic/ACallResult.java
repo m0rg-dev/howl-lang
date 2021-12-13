@@ -2,6 +2,8 @@ package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.Map;
 
+import dev.m0rg.howl.logger.Logger;
+
 public class ACallResult extends AlgebraicType {
     AlgebraicType source;
 
@@ -25,6 +27,7 @@ public class ACallResult extends AlgebraicType {
         } else if (source_type instanceof AAnyType) {
             return source_type;
         }
-        throw new RuntimeException(source_type.format());
+        Logger.trace("creating error type: attempt to call non-function " + source_type.format());
+        return new ABaseType("__error");
     }
 }

@@ -1,3 +1,0 @@
-static fn void test() {
-    lib.IO.println("I am talking to you from within a module");
-}

@@ -14,6 +14,22 @@ class IO {
     static fn void println(Display d) {
         IO.println(d.toString());
     }
+
+    static fn void println() {
+        IO.print("\n");
+    }
+
+    static fn void eprint(String s) {
+        RawIO.write(2, s.contents.value, s.contents.length());
+    }
+
+    static fn void eprintln(String s) {
+        IO.eprint(s + "\n");
+    }
+
+    static fn void eprintln() {
+        IO.eprint("\n");
+    }
 }
 
 class ErrnoException extends Exception {

@@ -7,8 +7,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.expression.ArithmeticExpression;
 import dev.m0rg.howl.ast.expression.BooleanConstantExpression;
+import dev.m0rg.howl.ast.expression.BooleanInversionExpression;
 import dev.m0rg.howl.ast.expression.ClassCastExpression;
 import dev.m0rg.howl.ast.expression.ConstructorCallExpression;
 import dev.m0rg.howl.ast.expression.Expression;
@@ -30,6 +32,7 @@ import dev.m0rg.howl.ast.type.ObjectReferenceType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.logger.Logger;
 
 public abstract class AlgebraicType {
     public static AlgebraicType todo() {
@@ -108,7 +111,7 @@ public abstract class AlgebraicType {
 
             return new ASpecify(base, parameters);
         } else if (source instanceof GetStaticTableExpression || source instanceof ArithmeticExpression
-                || source instanceof ClassCastExpression) {
+                || source instanceof ClassCastExpression || source instanceof BooleanInversionExpression) {
             return new AStableType(((Expression) source).getType());
         } else if (source instanceof BooleanConstantExpression) {
             return new ABaseType("bool");
@@ -121,6 +124,10 @@ public abstract class AlgebraicType {
             return AlgebraicType.derive(((SpecifiedTypeExpression) source).getType());
         } else if (source instanceof MacroCallExpression) {
             return new AAnyType();
+        } else if (source instanceof Module) {
+            // this can happen in certain cases with unresolved names
+            Logger.trace("creating error type: AlgebraicType of Module");
+            return new ABaseType("__error");
         }
         throw new RuntimeException(source.format() + " " + source.getClass().getSimpleName());
     }

@@ -31,6 +31,7 @@ import dev.m0rg.howl.ast.Interface;
 import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.ArithmeticExpression;
+import dev.m0rg.howl.ast.expression.BooleanInversionExpression;
 import dev.m0rg.howl.ast.expression.ConstructorCallExpression;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
@@ -93,6 +94,8 @@ public class CSTImporter {
                 return this.parseAssignmentStatement(inner_obj);
             case "BaseType":
                 return this.parseBaseType(inner_obj);
+            case "BooleanInversionExpression":
+                return this.parseBooleanInversionExpression(inner_obj);
             case "CatchStatement":
                 return this.parseCatchStatement(inner_obj);
             case "Class":
@@ -203,6 +206,17 @@ public class CSTImporter {
         return NamedType.build(extractSpan(source), source.get("name").getAsString());
     }
 
+    BooleanInversionExpression parseBooleanInversionExpression(JsonObject source) {
+        BooleanInversionExpression rc = new BooleanInversionExpression(extractSpan(source));
+        ASTElement b_source = parseElement(source.get("source"));
+        if (b_source instanceof Expression) {
+            rc.setSource((Expression) b_source);
+        } else {
+            throw new IllegalArgumentException();
+        }
+        return rc;
+    }
+
     CatchStatement parseCatchStatement(JsonObject source) {
         CatchStatement rc = new CatchStatement(extractSpan(source), source.get("excname").getAsString());
 
@@ -253,7 +267,7 @@ public class CSTImporter {
         Identifier name = parseIdentifier(chain(source, "fieldname", "Identifier"));
         ASTElement type = parseElement(source.get("fieldtype"));
         if (type instanceof TypeElement) {
-            Field rc = new Field(extractSpan(source), name.getName());
+            Field rc = new Field(extractSpan(source), name.getName(), source.get("is_static").getAsBoolean());
             rc.setType((TypeElement) type);
             return rc;
         } else {

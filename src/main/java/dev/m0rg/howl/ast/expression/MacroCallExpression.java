@@ -91,13 +91,13 @@ public class MacroCallExpression extends CallExpressionBase {
                             source_alloca, 1,
                             ""), ""), new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)), "");
         } else if (this.name.equals("pointer_assign")) {
-            // !pointer_assign(*i8 untyped_source, *T typed_target)
+            // $pointer_assign(*i8 untyped_source, *T typed_target)
             return builder.buildStore(this.args.get(0).generate(builder),
                     builder.buildBitcast(((Lvalue) this.args.get(1)).getPointer(builder),
                             new LLVMPointerType<>(new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8))),
                             ""));
         } else if (this.name.equals("as_raw")) {
-            // !as_raw(*T typed_source) -> *i8 untyped_value
+            // $as_raw(*T typed_source) -> *i8 untyped_value
             return builder.buildBitcast(this.args.get(0).generate(builder),
                     new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)),
                     "");

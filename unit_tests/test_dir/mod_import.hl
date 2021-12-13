@@ -1,0 +1,3 @@
+static fn void test() {
+    Test.ok("function called inside a module");
+}

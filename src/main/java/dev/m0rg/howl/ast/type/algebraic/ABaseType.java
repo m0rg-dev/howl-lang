@@ -23,4 +23,8 @@ public class ABaseType extends AlgebraicType {
     public TypeElement toElement() {
         return NamedType.build(null, name);
     }
+
+    public String getName() {
+        return name;
+    }
 }

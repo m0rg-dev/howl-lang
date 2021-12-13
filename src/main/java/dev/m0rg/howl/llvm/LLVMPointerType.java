@@ -17,7 +17,7 @@ public class LLVMPointerType<T extends LLVMType> extends LLVMType {
         return LLVMType.build(LLVMGetElementType(obj));
     }
 
-    public LLVMConstant getNull() {
+    public LLVMConstant getNull(LLVMModule module) {
         return new LLVMConstant(LLVMConstNull(obj));
     }
 }

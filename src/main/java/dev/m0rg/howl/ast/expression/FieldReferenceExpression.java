@@ -77,6 +77,7 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
                 // span.addError("Attempt to access nonexistent field `" + name + "' on " +
                 // ct.format(),
                 // "available fields are: " + String.join(", ", ct.getFieldNames()));
+                Logger.trace("creating error type: bad field " + name + " " + source_type.format());
                 return NamedType.build(span, "__error");
             }
         } else {

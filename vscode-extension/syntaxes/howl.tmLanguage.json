@@ -79,7 +79,7 @@
 			"patterns": [
 				{
 					"name": "constant.language",
-					"match": "(!\\w+)\\b"
+					"match": "(\\$\\w+)\\b"
 				}
 			]
 		}

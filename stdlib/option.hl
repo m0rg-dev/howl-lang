@@ -25,7 +25,7 @@ class Option<T> {
         }
         // TODO: Compiler should be able to run reachability analysis and
         // generate this automatically
-        !unreachable();
+        $unreachable();
     }
 
     fn bool isSome() {

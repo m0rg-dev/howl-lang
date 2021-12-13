@@ -20,4 +20,8 @@ public class LLVMFunctionType extends LLVMType {
     public LLVMFunctionType(LLVMTypeRef obj) {
         this.obj = obj;
     }
+
+    public LLVMConstant getNull(LLVMModule module) {
+        throw new UnsupportedOperationException();
+    }
 }

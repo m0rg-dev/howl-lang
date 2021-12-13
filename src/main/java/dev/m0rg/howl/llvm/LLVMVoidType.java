@@ -6,4 +6,8 @@ public class LLVMVoidType extends LLVMType {
     public LLVMVoidType(LLVMContext context) {
         obj = LLVMVoidTypeInContext(context.getInternal());
     }
+
+    public LLVMConstant getNull(LLVMModule module) {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -3,10 +3,11 @@ static fn void apply(fn void() source) {
 }
 
 static fn void test() {
-    lib.IO.println("boing!");
+    Test.ok("Function invoked through function pointer");
 }
 
 static fn i32 Main() {
+    Test.init(1);
     apply(test);
-    return 0;
+    return Test.report();
 }

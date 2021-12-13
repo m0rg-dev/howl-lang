@@ -14,15 +14,15 @@ import dev.m0rg.howl.llvm.LLVMValue;
 
 public class TemporaryExpression extends Expression {
     static int counter = 0;
+    static Map<Integer, LLVMValue> storage;
 
     Expression source;
     int index;
-    boolean generated = false;
-    LLVMValue storage;
 
     public TemporaryExpression(Span span) {
         super(span);
         index = counter++;
+        storage = new HashMap<>();
     }
 
     TemporaryExpression(TemporaryExpression other) {
@@ -71,11 +71,11 @@ public class TemporaryExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        if (this.generated)
-            return builder.buildLoad(this.storage, "");
-        this.storage = builder.buildAlloca(this.getType().resolve().generate(builder.getModule()), "temp_" + index);
-        builder.buildStore(source.generate(builder), storage);
-        this.generated = true;
-        return builder.buildLoad(this.storage, "");
+        if (storage.containsKey(index))
+            return builder.buildLoad(storage.get(index), "");
+        storage.put(index,
+                builder.buildAlloca(this.getType().resolve().generate(builder.getModule()), "temp_" + index));
+        builder.buildStore(source.generate(builder), storage.get(index));
+        return builder.buildLoad(storage.get(index), "");
     }
 }

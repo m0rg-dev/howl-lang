@@ -103,6 +103,7 @@ pub enum CSTElement<'a> {
         span: SerializableSpan,
         fieldtype: &'a CSTElement<'a>,
         fieldname: &'a CSTElement<'a>,
+        is_static: bool,
     },
     Function {
         span: SerializableSpan,
@@ -242,5 +243,9 @@ pub enum CSTElement<'a> {
     ModStatement {
         span: SerializableSpan,
         path: String,
+    },
+    BooleanInversionExpression {
+        span: SerializableSpan,
+        source: &'a CSTElement<'a>,
     },
 }

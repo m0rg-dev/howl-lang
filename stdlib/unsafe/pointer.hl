@@ -5,12 +5,12 @@ class Pointer<T> {
     extern fn *i8 malloc(i64 size);
 
     fn void constructor(T value) {
-        !pointer_assign(Self.malloc(!sizeof(self.value[0])), self.value);
+        $pointer_assign(Self.malloc($sizeof(self.value[0])), self.value);
         self.value[0] = value;
     }
 
     fn i32 size() {
-        return !sizeof(self.value[0]);
+        return $sizeof(self.value[0]);
     }
 
     fn T dereference() {
@@ -18,7 +18,7 @@ class Pointer<T> {
     }
 
     fn *i8 structure_pointer() {
-        return !get_object_pointer(self.value);
+        return $get_object_pointer(self.value);
     }
 
     fn *T value_pointer() {
@@ -30,7 +30,7 @@ class ExternalPointer<T> {
     *T value;
 
     fn void constructor(*i8 value) {
-        !pointer_assign(value, self.value);
+        $pointer_assign(value, self.value);
     }
 
     fn T dereference() {

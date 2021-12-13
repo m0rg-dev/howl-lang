@@ -7,8 +7,8 @@ class Vec<T> {
     extern fn *i8 realloc(*i8 ptr, i64 size);
 
     fn void constructor() {
-        !pointer_assign(Self.malloc(0), self.value);
-        self.element_size = !sizeof(self.value[0]);
+        $pointer_assign(Self.malloc(0), self.value);
+        self.element_size = $sizeof(self.value[0]);
         self._length = 0;
     }
 
@@ -31,8 +31,8 @@ class Vec<T> {
 
     fn void __index__(i64 idx, T value) {
         if idx >= self._length {
-            !pointer_assign(
-                Self.realloc(!as_raw(self.value), self.element_size * (idx + 1)),
+            $pointer_assign(
+                Self.realloc($as_raw(self.value), self.element_size * (idx + 1)),
                 self.value
             );
             self._length = idx + 1;
@@ -59,15 +59,14 @@ class VecIterator<T> implements Iterator<T> {
     }
 
     fn T next() throws OverrunException {
-        self.hasNext();
         if self.hasNext() {
             let T rc = self.source[self.index];
             self.index = self.index + 1;
             return rc;
         } else {
-            throw new OverrunException("VecIterator index out of bounds");
+            throw new OverrunException("VecIterator index out of bounds (index was " + self.index + ", length was " + self.source.length() + ")");
         }
-        !unreachable();
+        $unreachable();
     }
 }
 

@@ -1,0 +1,7 @@
+mod test_dir;
+
+fn i32 Main() {
+    Test.init(1);
+    test_dir.test();
+    return Test.report();
+}

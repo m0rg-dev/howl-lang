@@ -13,7 +13,11 @@ public class LLVMIntType extends LLVMType {
         this.obj = obj;
     }
 
-    public LLVMValue getConstant(LLVMModule module, int value) {
-        return LLVMValue.build(module, LLVMConstInt(this.obj, value, 0));
+    public LLVMConstant getConstant(LLVMModule module, int value) {
+        return (LLVMConstant) LLVMValue.build(module, LLVMConstInt(this.obj, value, 0));
+    }
+
+    public LLVMConstant getNull(LLVMModule module) {
+        return this.getConstant(module, 0);
     }
 }

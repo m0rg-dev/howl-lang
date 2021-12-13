@@ -7,6 +7,7 @@ import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.StructureType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.logger.Logger;
 
 public class AFieldReferenceType extends AlgebraicType {
     AlgebraicType source;
@@ -44,6 +45,9 @@ public class AFieldReferenceType extends AlgebraicType {
                 // span.addError("Attempt to access nonexistent field `" + name + "' on " +
                 // ct.format(),
                 // "available fields are: " + String.join(", ", ct.getFieldNames()));
+                Logger.trace(
+                        "creating error type (AFieldReferenceType): bad field " + name + " " + source_type.format());
+
                 return NamedType.build(source_type.getSpan(), "__error");
             }
         } else {

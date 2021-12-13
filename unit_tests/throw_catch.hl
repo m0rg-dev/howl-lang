@@ -1,0 +1,79 @@
+class AException extends Exception {
+    fn void constructor() {
+        self.message = "A";
+    }
+}
+
+class BException extends Exception {
+    fn void constructor() {
+        self.message = "B";
+    }
+}
+
+class CException extends BException {
+    fn void constructor() {
+        self.message = "C";
+    }
+}
+
+static fn void test_throw() throws BException {
+    throw new BException();
+}
+
+static fn i32 Main() {
+    Test.init(6);
+    
+    try {
+        throw new Exception("");
+    } catch Exception _ {
+        Test.ok("simple");
+    }
+
+    try {
+        try {
+            throw new AException();
+        } catch AException _ {
+            Test.ok("nested inner");
+        }
+    } catch BException _ {
+        Test.fail("nested inner");
+    }
+
+    try {
+        try {
+            throw new BException();
+        } catch AException _ {
+            Test.fail("nested outer");
+        }
+    } catch BException _ {
+        Test.ok("nested outer");
+    }
+
+    try {
+        test_throw();
+    } catch BException _ {
+        Test.ok("cross function");
+    }
+
+    try {
+        try {
+            throw new CException();
+        } catch BException _ {
+            Test.ok("nested inheritance inner");
+        }
+    } catch CException _ {
+        Test.fail("nested inheritance inner");
+    }
+
+    try {
+        try {
+            throw new BException();
+        } catch CException _ {
+            Test.fail("nested inheritance outer");
+        }
+    } catch BException _ {
+        Test.ok("nested inheritance outer");
+    }
+
+    return Test.report();
+}

@@ -1,0 +1,25 @@
+static fn i32 Main() {
+    Test.init(8);
+
+    let Vec items = new Vec<String>();
+    items.push("foo");
+    items.push("bar");
+    items.push("baz");
+
+    let Iterator it = items.iter();
+    Test.assert(it.hasNext(), "hasNext 0");
+    Test.assert(it.next().equals("foo"), "result 0");
+    Test.assert(it.hasNext(), "hasNext 1");
+    Test.assert(it.next().equals("bar"), "result 1");
+    Test.assert(it.hasNext(), "hasNext 2");
+    Test.assert(it.next().equals("baz"), "result 2");
+    Test.assert(!it.hasNext(), "hasNext 3 fails");
+
+    try {
+        it.next();
+    } catch OverrunException e {
+        Test.ok("next 3 throws");
+    }
+
+    return Test.report();
+}

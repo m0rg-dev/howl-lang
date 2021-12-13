@@ -3,7 +3,7 @@ static fn i32 setup() {
     try {
         rc = main.Main();
     } catch Exception e {
-        let reflect.StaticTable what = reflect.StaticTable.load(!get_stable_pointer(e));
+        let reflect.StaticTable what = reflect.StaticTable.load($get_stable_pointer(e));
 
         lib.IO.println("Uncaught exception: " + e);
         lib.IO.println("  Exception type: " + what.getName());

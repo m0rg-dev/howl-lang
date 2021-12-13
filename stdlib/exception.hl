@@ -27,7 +27,7 @@ class Exception implements Display {
         let Exception real = Exception.exc_get();
 
         let Option<reflect.StaticTable> attempt = Option::<reflect.StaticTable>.some(
-            reflect.StaticTable.load(!get_stable_pointer(real))
+            reflect.StaticTable.load($get_stable_pointer(real))
         );
 
         while attempt.isSome() {
@@ -42,7 +42,7 @@ class Exception implements Display {
 
     static fn void __exc_throw(Exception object) {
         let unsafe.Pointer<Exception> e = new unsafe.Pointer<Exception>(object);
-        Self.__exc_throw(!as_raw(e.value_pointer()));
+        Self.__exc_throw($as_raw(e.value_pointer()));
     }
 }
 

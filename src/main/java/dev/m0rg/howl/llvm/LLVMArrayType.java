@@ -6,4 +6,8 @@ public class LLVMArrayType extends LLVMType {
     public LLVMArrayType(LLVMTypeRef obj) {
         this.obj = obj;
     }
+
+    public LLVMConstant getNull(LLVMModule module) {
+        throw new UnsupportedOperationException();
+    }
 }

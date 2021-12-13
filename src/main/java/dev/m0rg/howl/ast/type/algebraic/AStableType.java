@@ -1,10 +1,13 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.Map;
+import java.util.Optional;
 
+import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.type.ClassStaticType;
 import dev.m0rg.howl.ast.type.InterfaceStaticType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.logger.Logger;
 
 public class AStableType extends AStructureType {
     public AStableType(TypeElement source) {
@@ -19,9 +22,23 @@ public class AStableType extends AStructureType {
         // no generics by this point! static tables only exist after
         // monomorphization.
         if (source instanceof ClassStaticType) {
-            return AlgebraicType.derive(((ClassStaticType) source).getField(name).get());
+            Optional<Field> rc = ((ClassStaticType) source).getField(name);
+            if (rc.isPresent()) {
+                return AlgebraicType.derive(rc.get());
+            } else {
+                Logger.trace("creating error type: bad static field " + name + " " + source.format());
+                return new ABaseType("__error");
+            }
+        } else if (source instanceof InterfaceStaticType) {
+            Optional<Field> rc = ((InterfaceStaticType) source).getField(name);
+            if (rc.isPresent()) {
+                return AlgebraicType.derive(rc.get());
+            } else {
+                Logger.trace("creating error type: bad static field " + name + " " + source.format());
+                return new ABaseType("__error");
+            }
         } else {
-            return AlgebraicType.derive(((InterfaceStaticType) source).getField(name).get());
+            throw new RuntimeException(source.format());
         }
     }
 

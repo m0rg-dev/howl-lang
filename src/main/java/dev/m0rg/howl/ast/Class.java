@@ -217,7 +217,7 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
                 methods.add(parent_stable
                         .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
             } else {
-                methods.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)).getNull());
+                methods.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)).getNull(module));
             }
 
             for (String name : this.getMethodNames()) {
@@ -235,6 +235,12 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
                     } else {
                         methods.add(module.getOrInsertFunction(type, f.getPath(), x -> x.setExternal(), true));
                     }
+                }
+            }
+
+            for (Field f : this.getFields()) {
+                if (f.isStatic()) {
+                    methods.add(f.getOwnType().resolve().generate(module).getNull(module));
                 }
             }
 
@@ -262,7 +268,7 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
                     imethods.add(parent_stable
                             .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
                 } else {
-                    imethods.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)).getNull());
+                    imethods.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)).getNull(module));
                 }
 
                 for (String name : res.getSource().getMethodNames()) {

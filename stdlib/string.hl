@@ -2,6 +2,8 @@ interface Display {
     fn String toString();
 }
 
+// TODO: String should implement Display but I have to get overload selection
+// working a little better first
 class String {
     Vec<u8> contents;
 
@@ -41,6 +43,20 @@ class String {
             i = i + 1;
          }
         return true;
+    }
+
+    fn i64 byteLength() {
+        return self.contents.length();
+    }
+
+    fn String repeat(i64 count) {
+        let String rc = String.from(self);
+        let i64 i = 0;
+        while i < count {
+            rc = rc + self;
+            i = i + 1;
+        }
+        return rc;
     }
 
     static fn String fromBytes(*u8 bytes, i64 length) {

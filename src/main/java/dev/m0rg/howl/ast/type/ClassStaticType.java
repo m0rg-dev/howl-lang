@@ -65,6 +65,10 @@ public class ClassStaticType extends TypeElement implements StructureType {
             rc.setParent(getSource());
             return Optional.of(rc);
         }
+        Optional<Field> field_source = getSource().getField(name);
+        if (field_source.isPresent() && field_source.get().isStatic()) {
+            return field_source;
+        }
         return Optional.empty();
     }
 
@@ -74,6 +78,11 @@ public class ClassStaticType extends TypeElement implements StructureType {
         rc.add("__name");
         rc.add("__parent");
         rc.addAll(methods);
+        for (Field f : this.getSource().getFields()) {
+            if (f.isStatic()) {
+                rc.add(f.getName());
+            }
+        }
         return rc;
     }
 
@@ -98,6 +107,11 @@ public class ClassStaticType extends TypeElement implements StructureType {
             for (String name : this.getSource().getMethodNames()) {
                 Function m = this.getSource().getMethod(name).get();
                 contents.add(new LLVMPointerType<LLVMType>(m.getOwnType().resolve().generate(module)));
+            }
+            for (Field f : this.getSource().getFields()) {
+                if (f.isStatic()) {
+                    contents.add(f.getOwnType().resolve().generate(module));
+                }
             }
 
             LLVMStructureType static_type = new LLVMStructureType(module.getContext(),
