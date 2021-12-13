@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+trap "exit" INT
+
 for f in unit_tests/*.hl; do
     rm -f /tmp/howl_unit /tmp/howl_run /tmp/howl_compile
     echo -n "$f... "

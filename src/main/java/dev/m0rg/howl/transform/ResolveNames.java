@@ -1,6 +1,6 @@
 package dev.m0rg.howl.transform;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import dev.m0rg.howl.ast.ASTElement;
@@ -13,11 +13,7 @@ public class ResolveNames implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof NameExpression) {
             NameExpression name_expression = (NameExpression) e;
-            List<String> parts = new ArrayList<String>();
-
-            for (String part : name_expression.getName().split("\\.")) {
-                parts.add(part);
-            }
+            List<String> parts = Arrays.asList(name_expression.getSplit());
 
             int split_point = parts.size();
             for (; split_point > 0; split_point--) {

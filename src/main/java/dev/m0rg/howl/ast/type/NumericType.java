@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast.type;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Span;
@@ -12,6 +13,7 @@ public class NumericType extends NamedType {
     int width;
     boolean signed;
     boolean is_literal;
+    static Pattern numeric_regex = Pattern.compile("^[iu][0-9]+");
 
     NumericType(Span span, String name, int width, boolean signed, boolean is_literal) {
         super(span, name);
@@ -32,7 +34,7 @@ public class NumericType extends NamedType {
     }
 
     static Optional<NumericType> try_from(NamedType t) {
-        if (t.name.matches("^[iu][0-9]+")) {
+        if (numeric_regex.matcher(t.name).matches()) {
             boolean signed;
             if (t.name.startsWith("u")) {
                 signed = false;

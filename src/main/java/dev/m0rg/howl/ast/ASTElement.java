@@ -1,8 +1,11 @@
 package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+
+import dev.m0rg.howl.Compiler;
 
 public abstract class ASTElement {
     ASTElement parent;
@@ -35,7 +38,33 @@ public abstract class ASTElement {
      */
     public abstract ASTElement detach();
 
+    /**
+     * Sets this ASTElement's parent to null and returns it.
+     *
+     * <p>
+     * 
+     * <b>Potentially unsafe</b>: if you're using this function, you need to
+     * make sure that the original element is removed from the tree, for
+     * instance by attaching the returned element to a new element and replacing
+     * the original element's parent with that new element.
+     */
+    public ASTElement detachUnsafe() {
+        this.parent = null;
+        return this;
+    }
+
     public abstract String format();
+
+    /**
+     * Formats only if --trace was passed; otherwise, returns empty string.
+     */
+    public String formatForLog() {
+        if (Compiler.cmd.hasOption("trace")) {
+            return format();
+        } else {
+            return "";
+        }
+    }
 
     public abstract void transform(ASTTransformer t);
 
@@ -62,7 +91,7 @@ public abstract class ASTElement {
 
     public Optional<ASTElement> resolveName(String name) {
         for (String prefix : this.getSearchPath()) {
-            Optional<ASTElement> rc = this.resolveNameInt(prefix + name);
+            Optional<ASTElement> rc = this.resolveNameInt((prefix + name).split("\\."));
             if (rc.isPresent()) {
                 return rc;
             }
@@ -70,9 +99,9 @@ public abstract class ASTElement {
         return Optional.empty();
     }
 
-    Optional<ASTElement> resolveNameInt(String name) {
-        if (name.startsWith("root.") && this.parent == null) {
-            return this.resolveNameInt(name.replaceFirst("root\\.", ""));
+    Optional<ASTElement> resolveNameInt(String[] name) {
+        if (name[0].equals("root") && this.parent == null) {
+            return this.resolveNameInt(Arrays.copyOfRange(name, 1, name.length));
         }
 
         if (this instanceof NameHolder) {

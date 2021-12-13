@@ -2,3 +2,5 @@
 howl_target
 target
 howl-rs/target
+*.jfr
+*.jfc

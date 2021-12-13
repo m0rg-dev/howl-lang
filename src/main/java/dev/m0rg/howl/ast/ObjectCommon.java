@@ -1,6 +1,5 @@
 package dev.m0rg.howl.ast;
 
-import java.lang.StackWalker.Option;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

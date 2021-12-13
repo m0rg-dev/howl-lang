@@ -7,9 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.cli.CommandLine;
@@ -25,6 +27,7 @@ import dev.m0rg.howl.ast.ImportStatement;
 import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckConstructorArguments;
 import dev.m0rg.howl.lint.CheckExceptions;
@@ -75,8 +78,9 @@ public class Compiler {
         successful = false;
     }
 
-    public void ingest(Path file, String prefix) throws IOException, InterruptedException {
+    public ASTElement[] parse(Path file, String prefix) throws IOException, InterruptedException {
         Logger.trace("Compiling: " + prefix + " (" + file.toString() + ")");
+
         ArrayList<String> args = new ArrayList<String>(Arrays.asList(frontend_command));
         args.add(file.toString());
         ProcessBuilder frontend_builder = new ProcessBuilder(args);
@@ -84,64 +88,88 @@ public class Compiler {
         int exit = frontend.waitFor();
         if (exit == 0) {
             byte[] raw = frontend.getInputStream().readAllBytes();
+            frontend.getInputStream().close();
             CSTImporter importer = new CSTImporter(this, file);
-            ASTElement[] parsed = importer.importProgram(raw);
-
-            String[] prefix_parts = prefix.split("\\.");
-            Module this_module = new Module(prefix_parts[prefix_parts.length - 1]);
-            if (root_module.resolveName(prefix).isEmpty()) {
-                this.root_module.insertPath(prefix, this_module);
-            }
-
-            for (ASTElement el : parsed) {
-                if (el instanceof NamedElement) {
-                    NamedElement named = (NamedElement) el;
-                    String path = prefix + "." + named.getName();
-                    this.root_module.insertPath(path, el);
-                } else if (el instanceof ImportStatement) {
-                    String imported_path = ((ImportStatement) el).getPath();
-                    Module m = (Module) root_module.resolveName(prefix).get();
-                    m.insertItem(el);
-                    if (!m.resolveName(imported_path).isPresent()) {
-                        Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
-                        if (source_path.toFile().isDirectory()) {
-                            ingestDirectory(source_path, prefix + "." + imported_path);
-                        } else {
-                            el.getSpan().addError("no such module (" + source_path.toString() + ")");
-                        }
-                    }
-                } else if (el instanceof ModStatement) {
-                    String imported_path = ((ModStatement) el).getPath();
-                    Module m = (Module) root_module.resolveName(prefix).get();
-                    if (!m.resolveName(imported_path).isPresent()) {
-                        Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
-                        if (source_path.toFile().isDirectory()) {
-                            ingestDirectory(source_path, prefix + "." + imported_path);
-                        } else {
-                            el.getSpan().addError("no such module (" + source_path.toString() + ")");
-                        }
-                    }
-                } else {
-                    throw new IllegalArgumentException();
-                }
-            }
+            return importer.importProgram(raw);
         } else {
             System.err.println("Parse failed with code " + exit);
             System.err.write(frontend.getErrorStream().readAllBytes());
             System.exit(1);
+            return new ASTElement[0];
         }
     }
 
+    public synchronized void load(Path file, ASTElement[] parsed, String prefix)
+            throws IOException, InterruptedException {
+        String[] prefix_parts = prefix.split("\\.");
+        Module this_module = new Module(prefix_parts[prefix_parts.length - 1]);
+        if (root_module.resolveName(prefix).isEmpty()) {
+            this.root_module.insertPath(prefix, this_module);
+        }
+
+        for (ASTElement el : parsed) {
+            if (el instanceof NamedElement) {
+                NamedElement named = (NamedElement) el;
+                String path = prefix + "." + named.getName();
+                this.root_module.insertPath(path, el);
+            } else if (el instanceof ImportStatement) {
+                String imported_path = ((ImportStatement) el).getPath();
+                Module m = (Module) root_module.resolveName(prefix).get();
+                m.insertItem(el);
+                if (!m.resolveName(imported_path).isPresent()) {
+                    Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
+                    if (source_path.toFile().isDirectory()) {
+                        ingestDirectory(source_path, prefix + "." + imported_path);
+                    } else {
+                        el.getSpan().addError("no such module (" + source_path.toString() + ")");
+                    }
+                }
+            } else if (el instanceof ModStatement) {
+                String imported_path = ((ModStatement) el).getPath();
+                Module m = (Module) root_module.resolveName(prefix).get();
+                if (!m.resolveName(imported_path).isPresent()) {
+                    Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
+                    if (source_path.toFile().isDirectory()) {
+                        ingestDirectory(source_path, prefix + "." + imported_path);
+                    } else {
+                        el.getSpan().addError("no such module (" + source_path.toString() + ")");
+                    }
+                }
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
+    }
+
+    public void ingest(Path file, String prefix) throws IOException, InterruptedException {
+        ASTElement[] parsed = parse(file, prefix);
+        load(file, parsed, prefix);
+    }
+
     public void ingestDirectory(Path dir, String prefix) throws IOException, InterruptedException {
+        List<File> subfiles = new ArrayList<>();
+
         for (File source_file : dir.toFile().listFiles()) {
             if (source_file.isDirectory()) {
-                ingestDirectory(source_file.toPath(), prefix + "." + source_file.getName());
+                subfiles.add(source_file);
             } else {
                 if (source_file.getName().endsWith(".hl")) {
-                    ingest(source_file.toPath(), prefix);
+                    subfiles.add(source_file);
                 }
             }
         }
+
+        subfiles.parallelStream().forEach(f -> {
+            try {
+                if (f.isDirectory()) {
+                    ingestDirectory(f.toPath(), prefix + "." + f.getName());
+                } else {
+                    ingest(f.toPath(), prefix);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -186,6 +214,7 @@ public class Compiler {
 
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
+        AlgebraicType.invalidateCache();
 
         // System.err.println(cc.root_module.getChild("lib").get().format());
         // System.exit(0);
@@ -201,6 +230,7 @@ public class Compiler {
         cc.root_module.transform(new IndirectMethodCalls());
         cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());
+
         cc.root_module.transform(new AddNumericCasts());
 
         // needs to come before AddClassCasts - easier to find what type the
@@ -230,22 +260,27 @@ public class Compiler {
             ld_args.add("-o");
             ld_args.add(cmd.getOptionValue("output"));
             ld_args.add(stdlib_path.resolve("hrt0.c").toAbsolutePath().toString());
-            for (LLVMModule module : modules) {
-                Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
-                        module.toString());
+            modules.parallelStream().forEach((module) -> {
+                try {
+                    Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
+                            module.toString());
 
-                ProcessBuilder cc_builder = new ProcessBuilder(
-                        Arrays.asList(
-                                new String[] { "clang", "-c", "-o", tmpdir.resolve(module.getName() + ".o").toString(),
-                                        tmpdir.resolve(module.getName() + ".ll").toString(), "-Wno-override-module",
-                                        "-O2" })).inheritIO();
-                Process cc_process = cc_builder.start();
-                if (cc_process.waitFor() != 0) {
-                    Logger.error("(compilation aborted)");
-                    System.exit(1);
+                    ProcessBuilder cc_builder = new ProcessBuilder(
+                            Arrays.asList(
+                                    new String[] { "clang", "-c", "-o",
+                                            tmpdir.resolve(module.getName() + ".o").toString(),
+                                            tmpdir.resolve(module.getName() + ".ll").toString(), "-Wno-override-module",
+                                            "-O2" })).inheritIO();
+                    Process cc_process = cc_builder.start();
+                    if (cc_process.waitFor() != 0) {
+                        Logger.error("(compilation aborted)");
+                        System.exit(1);
+                    }
+                    ld_args.add(tmpdir.resolve(module.getName() + ".o").toString());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-                ld_args.add(tmpdir.resolve(module.getName() + ".o").toString());
-            }
+            });
             ProcessBuilder ld_builder = new ProcessBuilder(ld_args).inheritIO();
             Process ld_process = ld_builder.start();
             if (ld_process.waitFor() != 0) {

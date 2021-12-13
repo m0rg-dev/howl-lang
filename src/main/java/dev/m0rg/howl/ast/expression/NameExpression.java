@@ -25,10 +25,12 @@ import dev.m0rg.howl.llvm.LLVMValue;
 
 public class NameExpression extends Expression implements Lvalue {
     String name;
+    String[] split;
 
     public NameExpression(Span span, String name) {
         super(span);
         this.name = name;
+        this.split = name.split("\\.");
     }
 
     @Override
@@ -52,6 +54,10 @@ public class NameExpression extends Expression implements Lvalue {
 
     public String getName() {
         return this.name;
+    }
+
+    public String[] getSplit() {
+        return split;
     }
 
     @Override
