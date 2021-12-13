@@ -26,6 +26,9 @@ public class TryStatement extends Statement {
     public ASTElement detach() {
         TryStatement rc = new TryStatement(span);
         rc.setBody((CompoundStatement) this.getBody().detach());
+        for (CatchStatement a : this.alternatives) {
+            rc.insertAlternative((CatchStatement) a.detach());
+        }
         return rc;
     }
 

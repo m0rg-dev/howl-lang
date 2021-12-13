@@ -52,7 +52,11 @@ public class AFunctionType extends AlgebraicType {
     }
 
     public AlgebraicType getArgument(int index) {
-        return arguments.get(index);
+        if (index < this.arguments.size()) {
+            return arguments.get(index);
+        } else {
+            return new ABaseType("__error");
+        }
     }
 
     public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {

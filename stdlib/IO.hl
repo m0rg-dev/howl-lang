@@ -1,0 +1,25 @@
+// Currently you can't overload static methods, so we've gotta get a little cute
+// here.
+
+class IO {
+    static fn void print(String s) {
+        RawIO.write(1, s.contents.value, s.contents.length());
+    }
+
+    static fn void println(String s) {
+        IO.print(s);
+        IO.print("\n");
+    }
+
+    static fn void println(Display d) {
+        IO.println(d.toString());
+    }
+}
+
+class ErrnoException extends Exception {
+    fn void constructor(String desc) {
+        // strerror is fine here because String.fromBytes() will copy it out
+        let *u8 raw_error = RawIO.strerror(RawIO.__get_errno());
+        self.message = desc + ": " + String.fromBytes(raw_error, RawIO.strlen(raw_error));
+    }
+}

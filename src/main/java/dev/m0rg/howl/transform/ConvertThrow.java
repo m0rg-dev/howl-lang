@@ -17,6 +17,7 @@ public class ConvertThrow implements ASTTransformer {
             FunctionCallExpression throw_call = new FunctionCallExpression(e.getSpan());
             throw_call.setSource(intern_throw);
             throw_call.insertArgument((Expression) as_throw.getSource().detach());
+            throw_call.isGeneratedFromThrow = !as_throw.isInternalRethrow;
             rc.setExpression(throw_call);
             return rc;
         } else {

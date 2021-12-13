@@ -1,5 +1,6 @@
 package dev.m0rg.howl.ast;
 
+import java.lang.StackWalker.Option;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -161,6 +162,19 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
             }
         }
         return rc;
+    }
+
+    // TODO: constructor overloads
+    public Optional<Function> getConstructor() {
+        for (Function m : this.methods) {
+            if (m.getOriginalName().equals("constructor")) {
+                return Optional.of(m);
+            }
+        }
+        if (this.ext.isPresent()) {
+            return ((ObjectReferenceType) this.ext.get().resolve()).getSource().getConstructor();
+        }
+        return Optional.empty();
     }
 
     public void insertMethod(Function method) {

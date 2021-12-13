@@ -48,7 +48,7 @@ public class ClassType extends ObjectReferenceType {
             }
 
             if (ct.getSource().getExtends().isPresent()) {
-                return ct.getSource().getExtends().get().resolve().accepts(this);
+                return this.accepts(ct.getSource().getExtends().get().resolve());
             }
 
             return false;

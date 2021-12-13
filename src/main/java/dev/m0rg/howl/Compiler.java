@@ -26,6 +26,8 @@ import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.cst.CSTImporter;
+import dev.m0rg.howl.lint.CheckConstructorArguments;
+import dev.m0rg.howl.lint.CheckExceptions;
 import dev.m0rg.howl.lint.ExternFunctionBaseTypesOnly;
 import dev.m0rg.howl.lint.ExternFunctionNoAliasing;
 import dev.m0rg.howl.llvm.LLVMContext;
@@ -181,6 +183,7 @@ public class Compiler {
         cc.root_module.transform(new ConvertStrings());
         cc.root_module.transform(new ConvertIndexLvalue());
         cc.root_module.transform(new ConvertCustomOverloads());
+
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
 
@@ -199,11 +202,17 @@ public class Compiler {
         cc.root_module.transform(new ResolveOverloads());
         cc.root_module.transform(new CheckTypes());
         cc.root_module.transform(new AddNumericCasts());
+
+        // needs to come before AddClassCasts - easier to find what type the
+        // to-be-thrown exception is
+        cc.root_module.transform(new CheckExceptions());
+
         cc.root_module.transform(new AddInterfaceCasts());
         cc.root_module.transform(new AddClassCasts());
 
         cc.root_module.transform(new ExternFunctionBaseTypesOnly());
         cc.root_module.transform(new ExternFunctionNoAliasing());
+        cc.root_module.transform(new CheckConstructorArguments());
 
         if (cmd.hasOption("trace")) {
             System.err.println(cc.root_module.format());

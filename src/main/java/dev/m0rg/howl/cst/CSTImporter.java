@@ -404,6 +404,15 @@ public class CSTImporter {
         } else {
             throw new IllegalArgumentException();
         }
+        JsonArray throws_raw = source.get("throws").getAsJsonArray();
+        for (JsonElement el : throws_raw) {
+            ASTElement parsed = parseElement(el);
+            if (parsed instanceof TypeElement) {
+                rc.insertThrow((TypeElement) parsed);
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
         return rc;
     }
 

@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -25,6 +26,7 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
     TypeElement rc;
     LinkedHashMap<String, Argument> args;
     Optional<CompoundStatement> body;
+    List<TypeElement> throws_list;
 
     public Function(Span span, boolean is_static, boolean is_extern, String name) {
         super(span);
@@ -38,6 +40,7 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         this.name = this.original_name = name;
         this.args = new LinkedHashMap<String, Argument>();
         this.body = Optional.empty();
+        this.throws_list = new ArrayList<TypeElement>();
     }
 
     @Override
@@ -49,6 +52,9 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         }
         if (this.body.isPresent()) {
             rc.setBody((CompoundStatement) this.body.get().detach());
+        }
+        for (TypeElement th : this.throws_list) {
+            rc.insertThrow((TypeElement) th.detach());
         }
         rc.original_name = original_name;
         return rc;
@@ -114,6 +120,14 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
     public void setReturn(TypeElement rc) {
         ASTElement associated = rc.setParent(this);
         this.rc = (TypeElement) associated;
+    }
+
+    public void insertThrow(TypeElement exc) {
+        this.throws_list.add((TypeElement) exc.setParent(this));
+    }
+
+    public List<TypeElement> getThrows() {
+        return Collections.unmodifiableList(throws_list);
     }
 
     public void setBody(CompoundStatement body) {

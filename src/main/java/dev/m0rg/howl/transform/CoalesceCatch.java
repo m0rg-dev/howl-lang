@@ -9,6 +9,7 @@ import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
 import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.statement.TryStatement;
+import dev.m0rg.howl.logger.Logger;
 
 public class CoalesceCatch implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
@@ -21,10 +22,13 @@ public class CoalesceCatch implements ASTTransformer {
             new_contents.add((Statement) contents.get(0).detach());
 
             for (int i = 1, j = 1; i < contents.size(); i++) {
+                Logger.trace("i " + contents.get(i).format());
+                Logger.trace("j - 1 " + new_contents.get(j - 1).format());
                 if (contents.get(i) instanceof CatchStatement) {
                     if (new_contents.get(j - 1) instanceof TryStatement) {
                         ((TryStatement) new_contents.get(j - 1))
                                 .insertAlternative((CatchStatement) contents.get(i).detach());
+                        Logger.trace("new " + new_contents.get(j - 1).format());
                     } else {
                         e.getSpan().addError("unattached catch statement");
                     }

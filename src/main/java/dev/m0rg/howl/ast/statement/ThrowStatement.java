@@ -9,6 +9,7 @@ import dev.m0rg.howl.logger.Logger;
 
 public class ThrowStatement extends Statement {
     Expression source;
+    public boolean isInternalRethrow = false;
 
     public ThrowStatement(Span span) {
         super(span);
@@ -18,6 +19,7 @@ public class ThrowStatement extends Statement {
     public ASTElement detach() {
         ThrowStatement rc = new ThrowStatement(span);
         rc.setSource((Expression) source.detach());
+        rc.isInternalRethrow = isInternalRethrow;
         return rc;
     }
 

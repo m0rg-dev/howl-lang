@@ -1,0 +1,12 @@
+static fn i32 Main() {
+    try {
+        try {
+            throw new Exception("foo");
+        } catch ErrnoException e {
+            lib.IO.println("caught (inner): " + e);
+        }
+    } catch Exception e {
+        lib.IO.println("caught (outer): " + e);
+    }
+    return 0;
+}

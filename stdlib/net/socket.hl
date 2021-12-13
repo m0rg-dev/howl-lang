@@ -32,22 +32,22 @@ class InetSocket {
         ));
     }
 
-    fn void listen(i32 queue_size) throws IO.ErrnoException {
+    fn void listen(i32 queue_size) throws ErrnoException {
         if RawIO.bind(self.fd, self.addr.structure_pointer(), self.addr.size()) < 0 {
-            throw new IO.ErrnoException("bind");
+            throw new ErrnoException("bind");
         }
 
         if RawIO.listen(self.fd, queue_size) < 0 {
-            throw new IO.ErrnoException("listen");
+            throw new ErrnoException("listen");
         }
     }
 
-    fn i32 accept() throws IO.ErrnoException {
+    fn i32 accept() throws ErrnoException {
         let unsafe.Pointer<sockaddr_in> clientaddr = new unsafe.Pointer<sockaddr_in>(new sockaddr_in(0, 0, 0));
         let unsafe.Pointer<i32> clientlen = new unsafe.Pointer<i32>(clientaddr.size());
         let i32 childfd = RawIO.accept(self.fd, clientaddr.structure_pointer(), clientlen.value_pointer());
         if childfd < 0 {
-            throw new IO.ErrnoException("accept");
+            throw new ErrnoException("accept");
         }
         return childfd;
     }

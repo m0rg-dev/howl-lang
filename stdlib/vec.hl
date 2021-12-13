@@ -70,3 +70,9 @@ class VecIterator<T> implements Iterator<T> {
         !unreachable();
     }
 }
+
+class VectorIndexOutOfBoundsException extends UncheckedException {
+    fn void constructor(String message, i64 index, i64 length) {
+        self.message = "Vector index " + index + " out of bounds (length was " + length + ")";
+    }
+}

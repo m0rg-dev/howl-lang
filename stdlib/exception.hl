@@ -45,3 +45,9 @@ class Exception implements Display {
         Self.__exc_throw(!as_raw(e.value_pointer()));
     }
 }
+
+class UncheckedException extends Exception {
+    fn void constructor(String message) {
+        self.message = message;
+    }
+}

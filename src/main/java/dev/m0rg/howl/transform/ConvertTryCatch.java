@@ -3,6 +3,7 @@ package dev.m0rg.howl.transform;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
@@ -25,11 +26,13 @@ import dev.m0rg.howl.ast.statement.TryStatement;
 import dev.m0rg.howl.ast.type.NumericType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.logger.Logger;
 
 public class ConvertTryCatch implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof TryStatement) {
             TryStatement as_try = (TryStatement) e;
+            Logger.trace("ConvertTryCatch: " + as_try.format());
 
             RawPointerType pi8 = new RawPointerType(e.getSpan());
             pi8.setInner(NumericType.build(e.getSpan(), 8, true));
@@ -84,6 +87,7 @@ public class ConvertTryCatch implements ASTTransformer {
             exc_get_call.setSource(exc_get);
 
             ThrowStatement a = new ThrowStatement(e.getSpan());
+            a.isInternalRethrow = true;
             a.setSource(exc_get_call);
             Statement alternative = a;
 
@@ -110,6 +114,7 @@ public class ConvertTryCatch implements ASTTransformer {
             CompoundStatement block = new CompoundStatement(e.getSpan());
             block.insertStatement(handler_buf);
             block.insertStatement(if_statement);
+            if_statement.originalTry = Optional.of(as_try);
 
             return block;
         } else {

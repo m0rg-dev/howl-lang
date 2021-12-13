@@ -22,10 +22,12 @@ public class IfStatement extends Statement implements HasUpstreamFields {
 
     // TODO, probably
     Optional<CompoundStatement> alternative;
+    public Optional<TryStatement> originalTry;
 
     public IfStatement(Span span) {
         super(span);
         alternative = Optional.empty();
+        originalTry = Optional.empty();
     }
 
     @Override
@@ -36,6 +38,7 @@ public class IfStatement extends Statement implements HasUpstreamFields {
         if (this.alternative.isPresent()) {
             rc.setAlternative((CompoundStatement) this.alternative.get().detach());
         }
+        rc.originalTry = originalTry;
         return rc;
     }
 

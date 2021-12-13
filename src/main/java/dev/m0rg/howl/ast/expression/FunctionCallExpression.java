@@ -23,6 +23,9 @@ public class FunctionCallExpression extends CallExpressionBase {
     Expression source;
     boolean resolved;
 
+    // TODO
+    public boolean isGeneratedFromThrow = false;
+
     public FunctionCallExpression(Span span) {
         super(span);
     }
@@ -33,6 +36,7 @@ public class FunctionCallExpression extends CallExpressionBase {
         rc.setSource((Expression) source.detach());
         this.copyArguments(rc);
         rc.resolved = resolved;
+        rc.isGeneratedFromThrow = isGeneratedFromThrow;
         return rc;
     }
 

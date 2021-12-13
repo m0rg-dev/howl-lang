@@ -3,7 +3,7 @@ interface Iterator<T> {
     fn T next() throws OverrunException;
 }
 
-class OverrunException extends Exception {
+class OverrunException extends UncheckedException {
     fn void constructor(String message) {
         self.message = message;
     }
