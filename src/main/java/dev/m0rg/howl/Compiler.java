@@ -77,9 +77,7 @@ public class Compiler {
     }
 
     public ASTElement[] parse(Path file, String prefix) throws IOException, InterruptedException {
-        Logger.info("Compiling: " + prefix + " (" + file.toString() + ")");
-
-        long start = System.currentTimeMillis();
+        Logger.trace("Compiling: " + prefix + " (" + file.toString() + ")");
 
         ArrayList<String> args = new ArrayList<String>(Arrays.asList(frontend_command));
         args.add(file.toString());
@@ -89,8 +87,6 @@ public class Compiler {
         if (exit == 0) {
             byte[] raw = frontend.getInputStream().readAllBytes();
             frontend.getInputStream().close();
-            long end = System.currentTimeMillis();
-            Logger.info("parse " + (end - start) + " ms");
             CSTImporter importer = new CSTImporter(this, file);
             return importer.importProgram(raw);
         } else {
@@ -262,22 +258,27 @@ public class Compiler {
             ld_args.add("-o");
             ld_args.add(cmd.getOptionValue("output"));
             ld_args.add(stdlib_path.resolve("hrt0.c").toAbsolutePath().toString());
-            for (LLVMModule module : modules) {
-                Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
-                        module.toString());
+            modules.parallelStream().forEach((module) -> {
+                try {
+                    Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
+                            module.toString());
 
-                ProcessBuilder cc_builder = new ProcessBuilder(
-                        Arrays.asList(
-                                new String[] { "clang", "-c", "-o", tmpdir.resolve(module.getName() + ".o").toString(),
-                                        tmpdir.resolve(module.getName() + ".ll").toString(), "-Wno-override-module",
-                                        "-O2" })).inheritIO();
-                Process cc_process = cc_builder.start();
-                if (cc_process.waitFor() != 0) {
-                    Logger.error("(compilation aborted)");
-                    System.exit(1);
+                    ProcessBuilder cc_builder = new ProcessBuilder(
+                            Arrays.asList(
+                                    new String[] { "clang", "-c", "-o",
+                                            tmpdir.resolve(module.getName() + ".o").toString(),
+                                            tmpdir.resolve(module.getName() + ".ll").toString(), "-Wno-override-module",
+                                            "-O2" })).inheritIO();
+                    Process cc_process = cc_builder.start();
+                    if (cc_process.waitFor() != 0) {
+                        Logger.error("(compilation aborted)");
+                        System.exit(1);
+                    }
+                    ld_args.add(tmpdir.resolve(module.getName() + ".o").toString());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-                ld_args.add(tmpdir.resolve(module.getName() + ".o").toString());
-            }
+            });
             ProcessBuilder ld_builder = new ProcessBuilder(ld_args).inheritIO();
             Process ld_process = ld_builder.start();
             if (ld_process.waitFor() != 0) {
