@@ -256,31 +256,33 @@ public class Compiler {
         if (cc.successful) {
             Path tmpdir = Files.createTempDirectory("howl." + ProcessHandle.current().pid());
             List<String> ld_args = new ArrayList<>();
+            List<Process> cc_procs = new ArrayList<>();
             ld_args.add("cc");
             ld_args.add("-o");
             ld_args.add(cmd.getOptionValue("output"));
             ld_args.add(stdlib_path.resolve("hrt0.c").toAbsolutePath().toString());
-            modules.parallelStream().forEach((module) -> {
-                try {
-                    Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
-                            module.toString());
+            for (LLVMModule module : modules) {
+                Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
+                        module.toString());
 
-                    ProcessBuilder cc_builder = new ProcessBuilder(
-                            Arrays.asList(
-                                    new String[] { "clang", "-c", "-o",
-                                            tmpdir.resolve(module.getName() + ".o").toString(),
-                                            tmpdir.resolve(module.getName() + ".ll").toString(), "-Wno-override-module",
-                                            "-O2" })).inheritIO();
-                    Process cc_process = cc_builder.start();
-                    if (cc_process.waitFor() != 0) {
-                        Logger.error("(compilation aborted)");
-                        System.exit(1);
-                    }
-                    ld_args.add(tmpdir.resolve(module.getName() + ".o").toString());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                ProcessBuilder cc_builder = new ProcessBuilder(
+                        Arrays.asList(
+                                new String[] { "clang", "-c", "-o",
+                                        tmpdir.resolve(module.getName() + ".o").toString(),
+                                        tmpdir.resolve(module.getName() + ".ll").toString(), "-Wno-override-module",
+                                        "-O2" })).inheritIO();
+                Process cc_process = cc_builder.start();
+                cc_procs.add(cc_process);
+                ld_args.add(tmpdir.resolve(module.getName() + ".o").toString());
+            }
+
+            for (Process cc_process : cc_procs) {
+                if (cc_process.waitFor() != 0) {
+                    Logger.error("(compilation aborted)");
+                    System.exit(1);
                 }
-            });
+            }
+
             ProcessBuilder ld_builder = new ProcessBuilder(ld_args).inheritIO();
             Process ld_process = ld_builder.start();
             if (ld_process.waitFor() != 0) {
