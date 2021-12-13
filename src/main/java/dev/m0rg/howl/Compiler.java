@@ -76,8 +76,11 @@ public class Compiler {
         successful = false;
     }
 
-    public void ingest(Path file, String prefix) throws IOException, InterruptedException {
-        Logger.trace("Compiling: " + prefix + " (" + file.toString() + ")");
+    public ASTElement[] parse(Path file, String prefix) throws IOException, InterruptedException {
+        Logger.info("Compiling: " + prefix + " (" + file.toString() + ")");
+
+        long start = System.currentTimeMillis();
+
         ArrayList<String> args = new ArrayList<String>(Arrays.asList(frontend_command));
         args.add(file.toString());
         ProcessBuilder frontend_builder = new ProcessBuilder(args);
@@ -85,64 +88,90 @@ public class Compiler {
         int exit = frontend.waitFor();
         if (exit == 0) {
             byte[] raw = frontend.getInputStream().readAllBytes();
+            frontend.getInputStream().close();
+            long end = System.currentTimeMillis();
+            Logger.info("parse " + (end - start) + " ms");
             CSTImporter importer = new CSTImporter(this, file);
-            ASTElement[] parsed = importer.importProgram(raw);
-
-            String[] prefix_parts = prefix.split("\\.");
-            Module this_module = new Module(prefix_parts[prefix_parts.length - 1]);
-            if (root_module.resolveName(prefix).isEmpty()) {
-                this.root_module.insertPath(prefix, this_module);
-            }
-
-            for (ASTElement el : parsed) {
-                if (el instanceof NamedElement) {
-                    NamedElement named = (NamedElement) el;
-                    String path = prefix + "." + named.getName();
-                    this.root_module.insertPath(path, el);
-                } else if (el instanceof ImportStatement) {
-                    String imported_path = ((ImportStatement) el).getPath();
-                    Module m = (Module) root_module.resolveName(prefix).get();
-                    m.insertItem(el);
-                    if (!m.resolveName(imported_path).isPresent()) {
-                        Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
-                        if (source_path.toFile().isDirectory()) {
-                            ingestDirectory(source_path, prefix + "." + imported_path);
-                        } else {
-                            el.getSpan().addError("no such module (" + source_path.toString() + ")");
-                        }
-                    }
-                } else if (el instanceof ModStatement) {
-                    String imported_path = ((ModStatement) el).getPath();
-                    Module m = (Module) root_module.resolveName(prefix).get();
-                    if (!m.resolveName(imported_path).isPresent()) {
-                        Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
-                        if (source_path.toFile().isDirectory()) {
-                            ingestDirectory(source_path, prefix + "." + imported_path);
-                        } else {
-                            el.getSpan().addError("no such module (" + source_path.toString() + ")");
-                        }
-                    }
-                } else {
-                    throw new IllegalArgumentException();
-                }
-            }
+            return importer.importProgram(raw);
         } else {
             System.err.println("Parse failed with code " + exit);
             System.err.write(frontend.getErrorStream().readAllBytes());
             System.exit(1);
+            return new ASTElement[0];
         }
     }
 
+    public synchronized void load(Path file, ASTElement[] parsed, String prefix)
+            throws IOException, InterruptedException {
+        String[] prefix_parts = prefix.split("\\.");
+        Module this_module = new Module(prefix_parts[prefix_parts.length - 1]);
+        if (root_module.resolveName(prefix).isEmpty()) {
+            this.root_module.insertPath(prefix, this_module);
+        }
+
+        for (ASTElement el : parsed) {
+            if (el instanceof NamedElement) {
+                NamedElement named = (NamedElement) el;
+                String path = prefix + "." + named.getName();
+                this.root_module.insertPath(path, el);
+            } else if (el instanceof ImportStatement) {
+                String imported_path = ((ImportStatement) el).getPath();
+                Module m = (Module) root_module.resolveName(prefix).get();
+                m.insertItem(el);
+                if (!m.resolveName(imported_path).isPresent()) {
+                    Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
+                    if (source_path.toFile().isDirectory()) {
+                        ingestDirectory(source_path, prefix + "." + imported_path);
+                    } else {
+                        el.getSpan().addError("no such module (" + source_path.toString() + ")");
+                    }
+                }
+            } else if (el instanceof ModStatement) {
+                String imported_path = ((ModStatement) el).getPath();
+                Module m = (Module) root_module.resolveName(prefix).get();
+                if (!m.resolveName(imported_path).isPresent()) {
+                    Path source_path = file.getParent().resolve(imported_path.replace(".", "/"));
+                    if (source_path.toFile().isDirectory()) {
+                        ingestDirectory(source_path, prefix + "." + imported_path);
+                    } else {
+                        el.getSpan().addError("no such module (" + source_path.toString() + ")");
+                    }
+                }
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
+    }
+
+    public void ingest(Path file, String prefix) throws IOException, InterruptedException {
+        ASTElement[] parsed = parse(file, prefix);
+        load(file, parsed, prefix);
+    }
+
     public void ingestDirectory(Path dir, String prefix) throws IOException, InterruptedException {
+        List<File> subfiles = new ArrayList<>();
+
         for (File source_file : dir.toFile().listFiles()) {
             if (source_file.isDirectory()) {
-                ingestDirectory(source_file.toPath(), prefix + "." + source_file.getName());
+                subfiles.add(source_file);
             } else {
                 if (source_file.getName().endsWith(".hl")) {
-                    ingest(source_file.toPath(), prefix);
+                    subfiles.add(source_file);
                 }
             }
         }
+
+        subfiles.parallelStream().forEach(f -> {
+            try {
+                if (f.isDirectory()) {
+                    ingestDirectory(f.toPath(), prefix + "." + f.getName());
+                } else {
+                    ingest(f.toPath(), prefix);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {

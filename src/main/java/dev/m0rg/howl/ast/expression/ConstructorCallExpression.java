@@ -77,7 +77,7 @@ public class ConstructorCallExpression extends CallExpressionBase {
     public LLVMValue generate(LLVMBuilder builder) {
         ClassType source_type = (ClassType) source.resolve();
         source_type.getSource().generate(builder.getModule());
-        LLVMFunction callee = source_type.getSource().getAllocator();
+        LLVMFunction callee = source_type.getSource().getAllocator(builder.getModule());
         List<LLVMValue> args = new ArrayList<>(this.args.size());
         for (Expression e : this.args) {
             args.add(e.generate(builder));

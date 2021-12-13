@@ -99,6 +99,9 @@ public class ClassStaticType extends TypeElement implements StructureType {
     @Override
     public LLVMStructureType generate(LLVMModule module) {
         return module.getContext().getOrCreateStructureType(this.getSource().getPath() + "_stable", () -> {
+            LLVMStructureType static_type = new LLVMStructureType(module.getContext(),
+                    this.getSource().getPath() + "_stable");
+
             List<LLVMType> contents = new ArrayList<>();
             // name
             contents.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
@@ -114,8 +117,6 @@ public class ClassStaticType extends TypeElement implements StructureType {
                 }
             }
 
-            LLVMStructureType static_type = new LLVMStructureType(module.getContext(),
-                    this.getSource().getPath() + "_stable");
             static_type.setBody(contents, true);
 
             return static_type;

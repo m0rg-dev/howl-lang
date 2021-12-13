@@ -32,8 +32,6 @@ import dev.m0rg.howl.logger.Logger;
 public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevelItems {
     List<TypeElement> impl;
 
-    LLVMFunction allocator;
-
     public Class(Span span, String name, List<String> generics) {
         super(span, name, generics);
         this.impl = new ArrayList<>();
@@ -180,22 +178,7 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
 
     @Override
     public void generate(LLVMModule module) {
-        if (this.generics.isEmpty()) {
-            this.getOwnType().generate(module);
-
-            List<LLVMType> argtypes = new ArrayList<>();
-            Optional<Function> constructor = this.getConstructor();
-            if (constructor.isPresent()) {
-                for (Argument a : constructor.get().getArgumentList().subList(1,
-                        constructor.get().getArgumentList().size())) {
-                    argtypes.add(a.getOwnType().resolve().generate(module));
-                }
-            }
-            LLVMType this_structure_type = this.getOwnType().generate(module);
-            LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, argtypes);
-            allocator = module.getOrInsertFunction(allocator_type, this.getPath() + "_alloc", f -> f.setExternal(),
-                    true);
-        }
+        ;
     }
 
     public void generateMethods(LLVMModule module) {
@@ -294,6 +277,7 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
                 itable.setInitializer(itable_type.createConstant(module.getContext(), imethods));
             }
 
+            LLVMFunction allocator = getAllocator(module);
             try (LLVMBuilder builder = new LLVMBuilder(allocator.getModule())) {
                 allocator.appendBasicBlock("entry");
                 builder.positionAtEnd(allocator.lastBasicBlock());
@@ -327,7 +311,20 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
         }
     }
 
-    public LLVMFunction getAllocator() {
-        return allocator;
+    public LLVMFunction getAllocator(LLVMModule module) {
+        this.getOwnType().generate(module);
+
+        List<LLVMType> argtypes = new ArrayList<>();
+        Optional<Function> constructor = this.getConstructor();
+        if (constructor.isPresent()) {
+            for (Argument a : constructor.get().getArgumentList().subList(1,
+                    constructor.get().getArgumentList().size())) {
+                argtypes.add(a.getOwnType().resolve().generate(module));
+            }
+        }
+        LLVMType this_structure_type = this.getOwnType().generate(module);
+        LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, argtypes);
+        return module.getOrInsertFunction(allocator_type, this.getPath() + "_alloc", f -> f.setExternal(),
+                true);
     }
 }
