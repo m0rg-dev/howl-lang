@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,7 +91,7 @@ public abstract class ASTElement {
 
     public Optional<ASTElement> resolveName(String name) {
         for (String prefix : this.getSearchPath()) {
-            Optional<ASTElement> rc = this.resolveNameInt(prefix + name);
+            Optional<ASTElement> rc = this.resolveNameInt((prefix + name).split("\\."));
             if (rc.isPresent()) {
                 return rc;
             }
@@ -98,9 +99,9 @@ public abstract class ASTElement {
         return Optional.empty();
     }
 
-    Optional<ASTElement> resolveNameInt(String name) {
-        if (name.startsWith("root.") && this.parent == null) {
-            return this.resolveNameInt(name.replaceFirst("root\\.", ""));
+    Optional<ASTElement> resolveNameInt(String[] name) {
+        if (name[0].equals("root") && this.parent == null) {
+            return this.resolveNameInt(Arrays.copyOfRange(name, 1, name.length));
         }
 
         if (this instanceof NameHolder) {

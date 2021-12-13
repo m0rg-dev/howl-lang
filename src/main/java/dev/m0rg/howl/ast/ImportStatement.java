@@ -25,7 +25,7 @@ public class ImportStatement extends ASTElement {
         ;
     }
 
-    public String getPath() {
+    public String getImportPath() {
         return path;
     }
 }

@@ -2,7 +2,10 @@ package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import dev.m0rg.howl.llvm.LLVMBuilder;
@@ -16,11 +19,15 @@ import dev.m0rg.howl.logger.Logger;
 public class Module extends ASTElement implements NamedElement, NameHolder {
     String name;
     List<ASTElement> contents;
+    Map<String, ASTElement> named_contents;
+    List<String> imported_paths;
 
     public Module(String name) {
         super(null);
         this.name = name;
         this.contents = new ArrayList<ASTElement>();
+        this.named_contents = new HashMap<>();
+        this.imported_paths = new ArrayList<>();
     }
 
     @Override
@@ -42,7 +49,14 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
     }
 
     public void insertItem(ASTElement item) {
-        this.contents.add(item.setParent(this));
+        ASTElement associated = item.setParent(this);
+        if (item instanceof NamedElement) {
+            this.named_contents.put(((NamedElement) item).getName(), associated);
+        }
+        if (item instanceof ImportStatement) {
+            imported_paths.add(((ImportStatement) item).getImportPath());
+        }
+        this.contents.add(associated);
     }
 
     public String getName() {
@@ -57,25 +71,11 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
     }
 
     public List<String> getImportedPaths() {
-        List<String> rc = new ArrayList<>();
-        for (ASTElement c : this.contents) {
-            if (c instanceof ImportStatement) {
-                rc.add(((ImportStatement) c).getPath() + ".");
-            }
-        }
-        return rc;
+        return Collections.unmodifiableList(imported_paths);
     }
 
     public Optional<ASTElement> getChild(String name) {
-        for (ASTElement e : this.contents) {
-            if (e instanceof NamedElement) {
-                NamedElement as_named = (NamedElement) e;
-                if (as_named.getName().equals(name)) {
-                    return Optional.of(e);
-                }
-            }
-        }
-        return Optional.empty();
+        return Optional.ofNullable(this.named_contents.get(name));
     }
 
     public void insertPath(String path, ASTElement item) {
@@ -105,17 +105,19 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
     }
 
     public void transform(ASTTransformer t) {
-        long start = System.currentTimeMillis();
         int index = 0;
         ASTElement[] contents = this.contents.toArray(new ASTElement[0]);
         for (ASTElement item : contents) {
             item.transform(t);
-            this.contents.set(index, t.transform(item).setParent(this));
+            ASTElement rc = t.transform(item).setParent(this);
+            this.contents.set(index, rc);
+            if (rc instanceof NamedElement) {
+                this.named_contents.put(((NamedElement) rc).getName(), rc);
+            }
+            if (rc instanceof ImportStatement) {
+                throw new UnsupportedOperationException("dude what are you doing");
+            }
             index++;
-        }
-        long end = System.currentTimeMillis();
-        if (this.name.equals("root")) {
-            Logger.info("module " + this.name + " pass " + t.getClass().getName() + " time " + (end - start) + " ms");
         }
     }
 
