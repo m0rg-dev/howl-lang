@@ -45,6 +45,7 @@ import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CheckTypes;
 import dev.m0rg.howl.transform.CoalesceCatch;
 import dev.m0rg.howl.transform.CoalesceElse;
+import dev.m0rg.howl.transform.CombTypes;
 import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertIndexLvalue;
@@ -215,6 +216,7 @@ public class Compiler {
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
         AlgebraicType.invalidateCache();
+        cc.root_module.transform(new CombTypes());
 
         // System.err.println(cc.root_module.getChild("lib").get().format());
         // System.exit(0);

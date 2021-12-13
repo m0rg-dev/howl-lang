@@ -2,7 +2,7 @@
 
 trap "exit" INT
 
-for f in unit_tests/*.hl; do
+for f in $(find unit_tests -path unit_tests/test_dir -prune -o -name '*.hl' -print ); do
     rm -f /tmp/howl_unit /tmp/howl_run /tmp/howl_compile
     echo -n "$f... "
     

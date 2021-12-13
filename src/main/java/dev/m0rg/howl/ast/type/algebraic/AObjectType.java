@@ -9,6 +9,7 @@ import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
+import dev.m0rg.howl.logger.Logger;
 
 public class AObjectType extends AStructureType {
 
@@ -25,6 +26,7 @@ public class AObjectType extends AStructureType {
         for (Entry<String, NewType> g : source.getSource().getGenericTypes().entrySet()) {
             parameters.add(new AFreeType(g.getValue()));
         }
+
     }
 
     public AObjectType(AObjectType other, Map<String, AlgebraicType> evalmap) {
@@ -36,6 +38,14 @@ public class AObjectType extends AStructureType {
     }
 
     public AlgebraicType getField(String name) {
+        if (name.equals("constructor")) {
+            if (getSource().getConstructor().isPresent()) {
+                return AlgebraicType.derive(getSource().getConstructor().get());
+            } else {
+                return new AFunctionType(new ABaseType("void"), new ArrayList<>());
+            }
+        }
+
         if (non_overloaded.containsKey(name)) {
             return getField(non_overloaded.get(name));
         }

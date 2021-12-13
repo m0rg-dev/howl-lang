@@ -121,6 +121,12 @@ public abstract class ASTElement {
         }
     }
 
+    public NameHolder nearestNameHolder() {
+        if (this instanceof NameHolder)
+            return (NameHolder) this;
+        return this.parent.nearestNameHolder();
+    }
+
     public Optional<Module> nearestModule() {
         if (this instanceof Module) {
             return Optional.of((Module) this);

@@ -9,7 +9,8 @@ import dev.m0rg.howl.logger.Logger;
 
 public class CheckConstructorArguments extends LintPass {
     public void check(ASTElement e) {
-        if (e instanceof ConstructorCallExpression) {
+        if (e instanceof ConstructorCallExpression
+                && ((ConstructorCallExpression) e).getResolvedType() instanceof ObjectReferenceType) {
             ObjectReferenceType source = (ObjectReferenceType) ((ConstructorCallExpression) e).getResolvedType();
             Logger.trace("CheckConstructorArguments " + e.format());
             if (source.getSource().getConstructor().isPresent()) {
