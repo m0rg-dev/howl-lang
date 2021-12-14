@@ -14,7 +14,6 @@ import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMModule;
-import dev.m0rg.howl.logger.Logger;
 
 public class Module extends ASTElement implements NamedElement, NameHolder {
     String name;

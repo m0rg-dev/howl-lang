@@ -5,6 +5,7 @@ import static org.bytedeco.llvm.global.LLVM.LLVMGetTypeByName2;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.bytedeco.llvm.LLVM.LLVMContextRef;
@@ -23,6 +24,15 @@ public class LLVMContext {
         return obj;
     }
 
+    public Optional<LLVMStructureType> getStructureType(String name) {
+        LLVMTypeRef t = LLVMGetTypeByName2(this.getInternal(), name);
+        if (t != null) {
+            return Optional.of(new LLVMStructureType(t));
+        }
+        return Optional.empty();
+    }
+
+    @Deprecated
     public LLVMStructureType getOrCreateStructureType(String name, Supplier<LLVMStructureType> source) {
         LLVMTypeRef t = LLVMGetTypeByName2(this.getInternal(), name);
         if (t != null) {

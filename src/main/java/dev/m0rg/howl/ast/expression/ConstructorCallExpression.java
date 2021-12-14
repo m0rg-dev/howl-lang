@@ -9,7 +9,6 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AExtractArgument;
 import dev.m0rg.howl.ast.type.algebraic.AFieldReferenceType;
@@ -18,6 +17,9 @@ import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
+import dev.m0rg.howl.llvm.LLVMFunctionType;
+import dev.m0rg.howl.llvm.LLVMInstruction;
+import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
 
@@ -75,15 +77,18 @@ public class ConstructorCallExpression extends CallExpressionBase {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        Logger.trace("generate " + this.format());
-        ALambdaTerm t = ALambdaTerm.evaluateFrom(source);
-        ClassType source_type = (ClassType) ((AStructureReference) t).getSource();
-        source_type.getSource().generate(builder.getModule());
-        LLVMFunction callee = source_type.getSource().getAllocator(builder.getModule());
-        List<LLVMValue> args = new ArrayList<>(this.args.size());
-        for (Expression e : this.args) {
-            args.add(e.generate(builder));
+        ALambdaTerm source_type = ALambdaTerm.evaluateFrom(source);
+        Logger.trace("Generating constructor call: " + source_type.format());
+        String allocator_name = ((AStructureReference) source_type).getSourcePath() + "_alloc";
+        LLVMFunctionType allocator_type = new LLVMFunctionType(
+                source_type.toLLVM(builder.getModule()),
+                new ArrayList<>());
+        LLVMFunction allocator;
+        if (builder.getModule().getFunction(allocator_name).isPresent()) {
+            allocator = builder.getModule().getFunction(allocator_name).get();
+        } else {
+            allocator = new LLVMFunction(builder.getModule(), allocator_name, allocator_type);
         }
-        return builder.buildCall(callee, args, "");
+        return builder.buildCall(allocator, new ArrayList<>(), "");
     }
 }

@@ -8,7 +8,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import dev.m0rg.howl.ast.Argument;
 import dev.m0rg.howl.ast.Function;
+import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.llvm.LLVMFunctionType;
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMType;
 
 public class AFunctionReference extends AFunctionType {
     Function source;
@@ -65,5 +70,19 @@ public class AFunctionReference extends AFunctionType {
 
     public Function getSource() {
         return source;
+    }
+
+    @Override
+    public LLVMType toLLVM(LLVMModule module) {
+        LLVMType returntype = ALambdaTerm.evaluateFrom(source.getReturn()).toLLVM(module);
+        List<LLVMType> args = new ArrayList<>(source.getArgumentList().size());
+        for (Argument a : source.getArgumentList()) {
+            ALambdaTerm t = AlgebraicType.deriveNew(a.getOwnType());
+            for (Entry<String, ALambdaTerm> e : substitutions.entrySet()) {
+                t = t.substitute(e.getKey(), e.getValue());
+            }
+            args.add(ALambdaTerm.evaluate(t).toLLVM(module));
+        }
+        return new LLVMFunctionType(returntype, args);
     }
 }

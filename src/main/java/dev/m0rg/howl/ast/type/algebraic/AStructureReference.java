@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,8 +15,12 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Overload;
+import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
+import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.logger.Logger;
 
@@ -158,6 +163,27 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         return String.join("", parts);
     }
 
+    public String getSourcePath() {
+        Logger.trace("AStructureReference generate " + this.format());
+        if (substitutions.size() > 0) {
+            // i wanna die
+            Optional<ASTElement> mmc = ((Module) getSource().getSource().getParent()).getChild(mangle());
+            if (mmc.isPresent()) {
+                AStructureReference rc = new AStructureReference(((ObjectCommon) mmc.get()).getOwnType());
+                return rc.getSourcePath();
+            } else {
+                Logger.trace("generate: " + this.format() + " " + this.mangle());
+                ((Module) this.getSource().getSource().getParent()).insertItem(
+                        this.getSource().getSource().monomorphize(this));
+                return this.getSourcePath();
+            }
+        }
+
+        return this.getSource().getSource().getPath();
+    }
+
+    static Set<String> structures_generated = new HashSet<>();
+
     @Override
     public LLVMType toLLVM(LLVMModule module) {
         Logger.trace("AStructureReference generate " + this.format());
@@ -165,8 +191,8 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             // i wanna die
             Optional<ASTElement> mmc = ((Module) getSource().getSource().getParent()).getChild(mangle());
             if (mmc.isPresent()) {
-                return ((ObjectCommon) mmc.get()).getOwnType()
-                        .generate(module);
+                AStructureReference rc = new AStructureReference(((ObjectCommon) mmc.get()).getOwnType());
+                return rc.toLLVM(module);
             } else {
                 Logger.trace("generate: " + this.format() + " " + this.mangle());
                 ((Module) this.getSource().getSource().getParent()).insertItem(
@@ -174,6 +200,82 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                 return this.toLLVM(module);
             }
         }
-        return source.generate(module);
+
+        String name = getSourcePath();
+        LLVMStructureType t;
+        if (module.getContext().getStructureType(name).isPresent()) {
+            t = module.getContext().getStructureType(name).get();
+        } else {
+            t = new LLVMStructureType(module.getContext(), name);
+        }
+
+        if (t.isOpaqueStruct() && !structures_generated.contains(name)) {
+            Logger.trace("Creating structure type: " + name);
+            structures_generated.add(name);
+
+            LLVMType object_type, static_type, itable_type;
+
+            if (source instanceof ClassType) {
+                object_type = new LLVMPointerType<>(this.generateObjectType(module));
+                static_type = new LLVMPointerType<>(this.generateStaticType(module));
+                itable_type = new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8));
+            } else {
+                throw new RuntimeException();
+            }
+            t.setBody(Arrays.asList(new LLVMType[] { object_type, static_type, itable_type }), true);
+        }
+        return t;
+
+    }
+
+    LLVMType generateObjectType(LLVMModule module) {
+        String name = getSourcePath() + "_object";
+        LLVMStructureType t;
+        if (module.getContext().getStructureType(name).isPresent()) {
+            t = module.getContext().getStructureType(name).get();
+        } else {
+            t = new LLVMStructureType(module.getContext(), name);
+        }
+
+        if (t.isOpaqueStruct() && !structures_generated.contains(name)) {
+            Logger.trace("Creating object type: " + name);
+            structures_generated.add(name);
+
+            List<LLVMType> contents = new ArrayList<>();
+            for (String fieldname : this.getSource().getFieldNames()) {
+                ALambdaTerm fieldtype = ALambdaTerm.evaluate(this.getField(fieldname));
+                contents.add(fieldtype.toLLVM(module));
+            }
+            t.setBody(contents, true);
+        }
+        return t;
+    }
+
+    LLVMType generateStaticType(LLVMModule module) {
+        String name = getSourcePath() + "_static";
+        LLVMStructureType t;
+        if (module.getContext().getStructureType(name).isPresent()) {
+            t = module.getContext().getStructureType(name).get();
+        } else {
+            t = new LLVMStructureType(module.getContext(), name);
+        }
+
+        if (t.isOpaqueStruct() && !structures_generated.contains(name)) {
+            Logger.trace("Creating static type: " + name);
+            structures_generated.add(name);
+
+            List<LLVMType> contents = new ArrayList<>();
+            // name
+            contents.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
+            // parent
+            contents.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
+            for (String fieldname : this.getSource().getSource().getMethodNames()) {
+                ALambdaTerm fieldtype = ALambdaTerm.evaluate(this.getField(fieldname));
+                contents.add(new LLVMPointerType<>(fieldtype.toLLVM(module)));
+            }
+            t.setBody(contents, true);
+        }
+
+        return t;
     }
 }

@@ -17,6 +17,7 @@ import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMInstruction;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
 
@@ -108,7 +109,10 @@ public class FunctionCallExpression extends CallExpressionBase {
                     args.add(e.generate(builder));
                 }
 
-                return builder.buildCall(callee, args, "");
+                LLVMInstruction rc = builder.buildCall(callee, args, "");
+                callee.dump();
+                rc.dump();
+                return rc;
             }
         }
         throw new RuntimeException();

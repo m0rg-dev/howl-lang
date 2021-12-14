@@ -244,4 +244,6 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         specified.clearGenerics();
         return specified;
     }
+
+    public abstract ObjectReferenceType getOwnType();
 }

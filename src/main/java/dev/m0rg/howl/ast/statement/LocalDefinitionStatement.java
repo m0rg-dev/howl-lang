@@ -84,8 +84,6 @@ public class LocalDefinitionStatement extends Statement implements NamedElement,
     public void generate(LLVMFunction f) {
         try (LLVMBuilder builder = new LLVMBuilder(f.getModule())) {
             builder.positionAtEnd(f.lastBasicBlock());
-            Logger.trace("t = " + ALambdaTerm.evaluateFrom(this.getOwnType()).format());
-            Logger.trace("i = " + initializer.format());
             storage = builder.buildAlloca(ALambdaTerm.evaluateFrom(this.getOwnType()).toLLVM(f.getModule()), name);
             builder.buildStore(initializer.generate(builder), storage);
         }
