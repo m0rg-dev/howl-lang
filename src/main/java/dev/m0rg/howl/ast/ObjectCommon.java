@@ -18,6 +18,7 @@ import dev.m0rg.howl.ast.type.ObjectReferenceType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 
 public abstract class ObjectCommon extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     String name;
@@ -233,14 +234,12 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         return this.name;
     }
 
-    // TODO merge with MonomorphizeClasses
-    public ObjectCommon monomorphize(SpecifiedType spec) {
+    public ObjectCommon monomorphize(AStructureReference spec) {
         ObjectCommon specified = (ObjectCommon) this.detach();
         specified.setName(spec.mangle());
-        for (int i = 0; i < spec.getParameters().size(); i++) {
-            TypeElement p = spec.getParameters().get(i);
-            p = (TypeElement) p.detach();
-            throw new RuntimeException();
+        for (int i = 0; i < this.generics.size(); i++) {
+            ALambdaTerm p = spec.getSubstitutions().get("T" + i);
+            specified.setGeneric(this.generics.get(i), p);
         }
         specified.clearGenerics();
         return specified;

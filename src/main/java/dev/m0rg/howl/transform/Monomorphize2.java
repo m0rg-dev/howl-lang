@@ -1,6 +1,10 @@
 package dev.m0rg.howl.transform;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import dev.m0rg.howl.CompilationError;
@@ -15,6 +19,8 @@ import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.logger.Logger;
 
 public class Monomorphize2 implements ASTTransformer {
+    Map<String, AStructureReference> to_generate = new HashMap<>();
+
     public ASTElement transform(ASTElement e) {
         // little bit of jank here to avoid blowing up on Option::<T> etc
         if (e instanceof Expression && !(e.getParent() instanceof SpecifiedTypeExpression)) {
@@ -29,7 +35,8 @@ public class Monomorphize2 implements ASTTransformer {
                 }
                 if (as_ref.getSource().getSource().getGenericNames().size() != as_ref.getSubstitutions().size()) {
                     try {
-                        System.out.println(new CompilationError(e.getSpan(), "type mismatch").format());
+                        System.out.println(
+                                new CompilationError(e.getSpan(), "generic mismatch " + as_ref.format()).format());
                     } catch (IOException ex) {
                         ;
                     }
@@ -38,9 +45,14 @@ public class Monomorphize2 implements ASTTransformer {
 
                 if (as_ref.getSubstitutions().size() > 0) {
                     Logger.trace("Monomorphize2: " + t.format());
+                    to_generate.put(as_ref.mangle(), as_ref);
                 }
             }
         }
         return e;
+    }
+
+    public Collection<AStructureReference> getToGenerate() {
+        return Collections.unmodifiableCollection(to_generate.values());
     }
 }

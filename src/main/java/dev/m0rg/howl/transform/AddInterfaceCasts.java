@@ -9,41 +9,42 @@ import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
 import dev.m0rg.howl.ast.expression.FunctionCallExpression;
-import dev.m0rg.howl.ast.expression.GetStaticTableExpression;
-import dev.m0rg.howl.ast.expression.TemporaryExpression;
 import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.InterfaceType;
-import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.ObjectReferenceType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.algebraic.AVariable;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.logger.Logger;
 
 public class AddInterfaceCasts implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof HasUpstreamFields) {
             for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
-                TypeElement expected = ent.getValue().getExpectedType().evaluate().toElement().resolve();
-                TypeElement provided = ent.getValue().getSubexpression().getResolvedType();
-                if (expected instanceof InterfaceType && provided instanceof ClassType) {
-                    Logger.trace("AddInterfaceCasts " +
-                            ent.getValue().getSubexpression().formatForLog() + " -> "
-                            + expected.formatForLog());
+                AVariable.reset();
+                ALambdaTerm t_expected = ALambdaTerm.evaluate(ent.getValue().getExpectedType());
+                ALambdaTerm t_provided = ALambdaTerm
+                        .evaluate(AlgebraicType.deriveNew(ent.getValue().getSubexpression()));
 
-                    InterfaceType it = (InterfaceType) expected;
+                if (t_expected instanceof AStructureReference && t_provided instanceof AStructureReference) {
+                    ObjectReferenceType expected = ((AStructureReference) t_expected).getSource();
+                    ObjectReferenceType provided = ((AStructureReference) t_provided).getSource();
+                    if (expected instanceof InterfaceType && provided instanceof ClassType) {
+                        Logger.trace("AddInterfaceCasts " +
+                                ent.getValue().getSubexpression().formatForLog() + " -> "
+                                + expected.formatForLog());
 
-                    TemporaryExpression t = new TemporaryExpression(e.getSpan());
-                    t.setSource((Expression) ent.getValue().getSubexpression().detach());
-                    // TODO this should be centralized
-                    String name = "__as_" + it.getSource().getPath().replace('.', '_');
-                    String mangled = "_Z" + name.length() + name + "1E4Self";
-                    FieldReferenceExpression source = new FieldReferenceExpression(e.getSpan(),
-                            mangled);
-                    GetStaticTableExpression gste = new GetStaticTableExpression(e.getSpan());
-                    source.setSource(gste);
-                    gste.setSource((Expression) t.detach());
-                    FunctionCallExpression fc = new FunctionCallExpression(e.getSpan());
-                    fc.setSource(source);
-                    fc.insertArgument(t);
+                        InterfaceType it = (InterfaceType) expected;
 
-                    ent.getValue().setSubexpression(fc);
+                        FieldReferenceExpression get_converter = new FieldReferenceExpression(e.getSpan(),
+                                "__as_" + it.getSource().getPath().replace('.', '_'));
+                        get_converter.setSource((Expression) ent.getValue().getSubexpression().detach());
+                        FunctionCallExpression call_converter = new FunctionCallExpression(e.getSpan());
+                        call_converter.setSource(get_converter);
+
+                        ent.getValue().setSubexpression(call_converter);
+                    }
                 }
             }
             return e;

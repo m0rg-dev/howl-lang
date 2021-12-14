@@ -142,9 +142,9 @@ public abstract class AlgebraicType {
             ALambda spec_operation = v.lambda(spec_source);
             return new AApplication(spec_operation, deriveNew(as_specified.getParameters().get(0)));
         } else if (source instanceof ClassCastExpression) {
-            return deriveNew(((ClassCastExpression) source).getTarget());
+            return ((ClassCastExpression) source).getTarget();
         } else if (source instanceof CastToInterfaceExpression) {
-            return deriveNew(((CastToInterfaceExpression) source).getTarget());
+            return ((CastToInterfaceExpression) source).getTarget();
         } else if (source instanceof NumericCastExpression) {
             return ((NumericCastExpression) source).getTarget();
         }

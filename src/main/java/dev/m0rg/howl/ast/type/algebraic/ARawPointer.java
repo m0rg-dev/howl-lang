@@ -2,7 +2,7 @@ package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.Set;
 
-public class ARawPointer extends ALambdaTerm {
+public class ARawPointer extends ALambdaTerm implements Mangle {
     ALambdaTerm source;
 
     public ARawPointer(ALambdaTerm source) {
@@ -31,6 +31,15 @@ public class ARawPointer extends ALambdaTerm {
             return true;
         } else {
             return false;
+        }
+    }
+
+    @Override
+    public String mangle() {
+        if (source instanceof Mangle) {
+            return "R" + ((Mangle) source).mangle();
+        } else {
+            throw new RuntimeException(this.format());
         }
     }
 }

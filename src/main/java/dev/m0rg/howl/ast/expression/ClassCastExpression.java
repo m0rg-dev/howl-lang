@@ -7,17 +7,14 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.ClassType;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.llvm.LLVMBuilder;
-import dev.m0rg.howl.llvm.LLVMPointerType;
-import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 
 public class ClassCastExpression extends Expression {
     Expression source;
-    TypeElement target;
+    ALambdaTerm target;
 
     public ClassCastExpression(Span span) {
         super(span);
@@ -27,7 +24,7 @@ public class ClassCastExpression extends Expression {
     public ASTElement detach() {
         ClassCastExpression rc = new ClassCastExpression(span);
         rc.setSource((Expression) source.detach());
-        rc.setTarget((TypeElement) target.detach());
+        rc.setTarget(target);
         return rc;
     }
 
@@ -44,11 +41,11 @@ public class ClassCastExpression extends Expression {
         this.source = (Expression) source.setParent(this);
     }
 
-    public void setTarget(TypeElement target) {
-        this.target = (TypeElement) target.setParent(this);
+    public void setTarget(ALambdaTerm target) {
+        this.target = target;
     }
 
-    public TypeElement getTarget() {
+    public ALambdaTerm getTarget() {
         return target;
     }
 
@@ -71,31 +68,40 @@ public class ClassCastExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        ClassType source_type = null; // (ClassType) source.getResolvedType();
-        LLVMValue source_alloca = builder.buildAlloca(source_type.generate(builder.getModule()), "");
-        builder.buildStore(source.generate(builder), source_alloca);
-        LLVMValue source_object_pointer = builder.buildStructGEP(source_type.generate(builder.getModule()),
-                source_alloca, 0,
-                "");
-        LLVMValue source_stable_pointer = builder.buildStructGEP(source_type.generate(builder.getModule()),
-                source_alloca, 1,
-                "");
-        LLVMValue target_alloca = builder.buildAlloca(this.target.resolve().generate(builder.getModule()), "");
-        LLVMValue target_object_pointer = builder.buildStructGEP(this.target.resolve().generate(builder.getModule()),
-                target_alloca, 0, "");
-        LLVMValue target_stable_pointer = builder.buildStructGEP(this.target.resolve().generate(builder.getModule()),
-                target_alloca, 1, "");
+        throw new RuntimeException();
+        // ClassType source_type = null; // (ClassType) source.getResolvedType();
+        // LLVMValue source_alloca =
+        // builder.buildAlloca(source_type.generate(builder.getModule()), "");
+        // builder.buildStore(source.generate(builder), source_alloca);
+        // LLVMValue source_object_pointer =
+        // builder.buildStructGEP(source_type.generate(builder.getModule()),
+        // source_alloca, 0,
+        // "");
+        // LLVMValue source_stable_pointer =
+        // builder.buildStructGEP(source_type.generate(builder.getModule()),
+        // source_alloca, 1,
+        // "");
+        // LLVMValue target_alloca =
+        // builder.buildAlloca(this.target.resolve().generate(builder.getModule()), "");
+        // LLVMValue target_object_pointer =
+        // builder.buildStructGEP(this.target.resolve().generate(builder.getModule()),
+        // target_alloca, 0, "");
+        // LLVMValue target_stable_pointer =
+        // builder.buildStructGEP(this.target.resolve().generate(builder.getModule()),
+        // target_alloca, 1, "");
 
-        LLVMType source_object_type = source_type.generateObjectType(builder.getModule());
-        LLVMType source_stable_type = source_type.getSource().getStaticType().generate(builder.getModule());
+        // LLVMType source_object_type =
+        // source_type.generateObjectType(builder.getModule());
+        // LLVMType source_stable_type =
+        // source_type.getSource().getStaticType().generate(builder.getModule());
 
-        builder.buildStore(builder.buildLoad(source_object_pointer, ""),
-                builder.buildBitcast(target_object_pointer,
-                        new LLVMPointerType<>(new LLVMPointerType<>(source_object_type)), ""));
-        builder.buildStore(builder.buildLoad(source_stable_pointer, ""),
-                builder.buildBitcast(target_stable_pointer,
-                        new LLVMPointerType<>(new LLVMPointerType<>(source_stable_type)), ""));
+        // builder.buildStore(builder.buildLoad(source_object_pointer, ""),
+        // builder.buildBitcast(target_object_pointer,
+        // new LLVMPointerType<>(new LLVMPointerType<>(source_object_type)), ""));
+        // builder.buildStore(builder.buildLoad(source_stable_pointer, ""),
+        // builder.buildBitcast(target_stable_pointer,
+        // new LLVMPointerType<>(new LLVMPointerType<>(source_stable_type)), ""));
 
-        return builder.buildLoad(target_alloca, "");
+        // return builder.buildLoad(target_alloca, "");
     }
 }

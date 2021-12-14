@@ -10,9 +10,9 @@ import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.NumericCastExpression;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NumericType;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.logger.Logger;
 
@@ -20,6 +20,7 @@ public class AddNumericCasts implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof HasUpstreamFields) {
             for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
+                AVariable.reset();
                 ALambdaTerm t_expected = ALambdaTerm.evaluate(ent.getValue().getExpectedType());
                 ALambdaTerm t_provided = ALambdaTerm
                         .evaluate(AlgebraicType.deriveNew(ent.getValue().getSubexpression()));

@@ -25,10 +25,10 @@ import dev.m0rg.howl.ast.ImportStatement;
 import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckExceptions;
 import dev.m0rg.howl.lint.ExternFunctionBaseTypesOnly;
-import dev.m0rg.howl.lint.ExternFunctionNoAliasing;
 import dev.m0rg.howl.llvm.LLVMContext;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
@@ -48,8 +48,6 @@ import dev.m0rg.howl.transform.ConvertThrow;
 import dev.m0rg.howl.transform.ConvertTryCatch;
 import dev.m0rg.howl.transform.InferTypes;
 import dev.m0rg.howl.transform.Monomorphize2;
-import dev.m0rg.howl.transform.MonomorphizeClasses;
-import dev.m0rg.howl.transform.RemoveGenericClasses;
 import dev.m0rg.howl.transform.ResolveNames;
 
 public class Compiler {
@@ -216,25 +214,23 @@ public class Compiler {
         // to-be-thrown exception is
         cc.root_module.transform(new CheckExceptions());
 
-        // cc.root_module.transform(new Monomorphize2());
+        cc.root_module.transform(new AddInterfaceCasts());
+        cc.root_module.transform(new AddClassCasts());
+
+        Monomorphize2 mc2 = new Monomorphize2();
+        cc.root_module.transform(mc2);
+        for (AStructureReference r : mc2.getToGenerate()) {
+            Logger.trace("generate: " + r.format() + " " + r.mangle());
+            ((Module) r.getSource().getSource().getParent()).insertItem(
+                    r.getSource().getSource().monomorphize(r));
+        }
+
+        cc.root_module.transform(new ExternFunctionBaseTypesOnly());
+
         // cc.root_module.transform(new IndirectMethodCalls());
 
         System.err.println(cc.root_module.getChild("main").get().format());
         System.exit(0);
-
-        // TODO come up with better API here
-        MonomorphizeClasses mc = new MonomorphizeClasses();
-        cc.root_module.transform(mc.getFinder());
-        mc.generate();
-        cc.root_module.transform(mc);
-
-        cc.root_module.transform(new RemoveGenericClasses());
-
-        cc.root_module.transform(new AddInterfaceCasts());
-        cc.root_module.transform(new AddClassCasts());
-
-        cc.root_module.transform(new ExternFunctionBaseTypesOnly());
-        cc.root_module.transform(new ExternFunctionNoAliasing());
 
         if (cmd.hasOption("trace")) {
             System.err.println(cc.root_module.format());

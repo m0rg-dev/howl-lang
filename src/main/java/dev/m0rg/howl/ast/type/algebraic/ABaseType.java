@@ -6,7 +6,7 @@ import java.util.Set;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NumericType;
 
-public class ABaseType extends ALambdaTerm {
+public class ABaseType extends ALambdaTerm implements Mangle {
     String name;
 
     public ABaseType(String name) {
@@ -54,5 +54,10 @@ public class ABaseType extends ALambdaTerm {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public String mangle() {
+        return Integer.toString(name.length()) + name;
     }
 }

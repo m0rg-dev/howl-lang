@@ -14,7 +14,7 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Overload;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
 
-public class AStructureReference extends ALambdaTerm implements AStructureType, Applicable {
+public class AStructureReference extends ALambdaTerm implements AStructureType, Applicable, Mangle {
     ObjectReferenceType source;
     Map<String, ALambdaTerm> substitutions;
 
@@ -127,5 +127,29 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             return false;
         }
         return true;
+    }
+
+    @Override
+    public String mangle() {
+        List<String> parts = new ArrayList<>();
+
+        if (this.substitutions.size() > 0) {
+            parts.add("T");
+            parts.add(Integer.toString(substitutions.size()));
+        }
+
+        parts.add("N");
+        parts.add(Integer.toString(source.getSource().getPath().length()));
+        parts.add(source.getSource().getPath());
+
+        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+            if (s.getValue() instanceof Mangle) {
+                parts.add(((Mangle) s.getValue()).mangle());
+            } else {
+                throw new RuntimeException(this.format());
+            }
+        }
+
+        return String.join("", parts);
     }
 }
