@@ -9,8 +9,6 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
@@ -57,20 +55,6 @@ public class SpecifiedTypeExpression extends Expression {
 
     public void insertParameter(TypeElement parameter) {
         parameters.add((TypeElement) parameter.setParent(this));
-    }
-
-    @Override
-    public TypeElement getType() {
-        if (this.source instanceof NameExpression) {
-            SpecifiedType rc = new SpecifiedType(span);
-            rc.setBase(NamedType.build(span, ((NameExpression) source).getName()));
-            for (TypeElement p : parameters) {
-                rc.insertParameter((TypeElement) p.detach());
-            }
-            return (TypeElement) rc.setParent(this);
-        } else {
-            return NamedType.build(span, "__error");
-        }
     }
 
     public void transform(ASTTransformer t) {

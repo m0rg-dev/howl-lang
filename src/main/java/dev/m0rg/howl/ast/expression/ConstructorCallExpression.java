@@ -49,7 +49,6 @@ public class ConstructorCallExpression extends CallExpressionBase {
         this.transformArguments(t);
     }
 
-    @Override
     public TypeElement getType() {
         return source;
     }

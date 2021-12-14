@@ -9,17 +9,10 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.FunctionType;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
-import dev.m0rg.howl.ast.type.algebraic.ABaseType;
-import dev.m0rg.howl.ast.type.algebraic.AFunctionType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
-import dev.m0rg.howl.logger.Logger;
 
 public class FunctionCallExpression extends CallExpressionBase {
     Expression source;
@@ -59,19 +52,6 @@ public class FunctionCallExpression extends CallExpressionBase {
         source.transform(t);
         this.setSource(t.transform(source));
         this.transformArguments(t);
-    }
-
-    @Override
-    public TypeElement getType() {
-        TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof FunctionType) {
-            FunctionType ft = (FunctionType) source_type;
-            if (ft.isValid()) {
-                return ft.getReturnType();
-            }
-        }
-        Logger.trace("creating error type (FunctionCallExpression " + source_type.format() + ")");
-        return NamedType.build(span, "__error");
     }
 
     public boolean isResolved() {

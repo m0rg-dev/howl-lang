@@ -2,15 +2,12 @@ package dev.m0rg.howl.ast.expression;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.ClassType;
-import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.StructureType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
@@ -63,30 +60,6 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
     }
 
     @Override
-    public TypeElement getType() {
-        TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof NamedType && ((NamedType) source_type).getName().equals("__error")) {
-            return source_type;
-        } else if (source_type instanceof StructureType) {
-            StructureType ct = (StructureType) source_type;
-            Optional<Field> f = ct.getField(name);
-            if (f.isPresent()) {
-                return f.get().getOwnType();
-            } else {
-                // TODO
-                // span.addError("Attempt to access nonexistent field `" + name + "' on " +
-                // ct.format(),
-                // "available fields are: " + String.join(", ", ct.getFieldNames()));
-                Logger.trace("creating error type: bad field " + name + " " + source_type.format());
-                return NamedType.build(span, "__error");
-            }
-        } else {
-            span.addError("attempt to take fields on non-structure " + source_type.format());
-            return NamedType.build(span, "__error");
-        }
-    }
-
-    @Override
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
@@ -101,12 +74,10 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
 
     @Override
     public LLVMValue getPointer(LLVMBuilder builder) {
-        TypeElement source_type = source.getResolvedType();
+        TypeElement source_type = null; // source.getResolvedType();
         if (source_type instanceof StructureType) {
             StructureType ct = (StructureType) source_type;
             int index = ct.getFieldNames().indexOf(name);
-            Logger.trace("FieldReference " + this.format() + " " +
-                    source.getResolvedType().format());
             LLVMValue src;
 
             if (source_type instanceof ClassType) {

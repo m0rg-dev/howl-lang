@@ -44,11 +44,6 @@ public class ClassCastExpression extends Expression {
         this.source = (Expression) source.setParent(this);
     }
 
-    @Override
-    public TypeElement getType() {
-        return target;
-    }
-
     public void setTarget(TypeElement target) {
         this.target = (TypeElement) target.setParent(this);
     }
@@ -72,7 +67,7 @@ public class ClassCastExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        ClassType source_type = (ClassType) source.getResolvedType();
+        ClassType source_type = null; //(ClassType) source.getResolvedType();
         LLVMValue source_alloca = builder.buildAlloca(source_type.generate(builder.getModule()), "");
         builder.buildStore(source.generate(builder), source_alloca);
         LLVMValue source_object_pointer = builder.buildStructGEP(source_type.generate(builder.getModule()),

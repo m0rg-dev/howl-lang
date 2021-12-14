@@ -7,8 +7,6 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMValue;
@@ -33,11 +31,6 @@ public class BooleanConstantExpression extends Expression {
 
     public void transform(ASTTransformer t) {
         ;
-    }
-
-    @Override
-    public TypeElement getType() {
-        return NamedType.build(span, "bool");
     }
 
     @Override

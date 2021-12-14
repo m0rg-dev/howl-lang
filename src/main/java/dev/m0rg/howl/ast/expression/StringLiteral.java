@@ -38,13 +38,6 @@ public class StringLiteral extends Expression {
     }
 
     @Override
-    public TypeElement getType() {
-        RawPointerType rc = new RawPointerType(span);
-        rc.setInner(NamedType.build(span, "u8"));
-        return rc;
-    }
-
-    @Override
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         return rc;

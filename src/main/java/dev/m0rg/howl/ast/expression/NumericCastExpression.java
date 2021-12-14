@@ -42,11 +42,6 @@ public class NumericCastExpression extends Expression {
         this.source = (Expression) source.setParent(this);
     }
 
-    @Override
-    public TypeElement getType() {
-        return target;
-    }
-
     public void setTarget(TypeElement target) {
         this.target = (TypeElement) target.setParent(this);
     }
@@ -68,7 +63,7 @@ public class NumericCastExpression extends Expression {
     public LLVMValue generate(LLVMBuilder builder) {
         int source_width = 64;
         int dest_width = 64;
-        TypeElement source_type = source.getResolvedType();
+        TypeElement source_type = null; // source.getResolvedType();
         if (source_type instanceof NumericType) {
             source_width = ((NumericType) source_type).getWidth();
         }

@@ -13,10 +13,6 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
-import dev.m0rg.howl.ast.type.ClassStaticType;
-import dev.m0rg.howl.ast.type.HasOwnType;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMGlobalVariable;
@@ -58,25 +54,6 @@ public class NameExpression extends Expression implements Lvalue {
 
     public String[] getSplit() {
         return split;
-    }
-
-    @Override
-    public TypeElement getType() {
-        Optional<ASTElement> target = this.resolveName(this.name);
-        if (target.isPresent()) {
-            if (target.get() instanceof TypeElement) {
-                return (TypeElement) target.get();
-            } else if (target.get() instanceof Class) {
-                Class c = (Class) target.get();
-                return (TypeElement) new ClassStaticType(c.getSpan(), c.getPath()).setParent(c);
-            } else if (target.get() instanceof HasOwnType) {
-                return ((HasOwnType) target.get()).getOwnType();
-            } else {
-                return NamedType.build(span, "__error");
-            }
-        } else {
-            return NamedType.build(span, "__error");
-        }
     }
 
     @Override

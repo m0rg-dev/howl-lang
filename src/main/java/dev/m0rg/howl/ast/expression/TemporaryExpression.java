@@ -57,11 +57,6 @@ public class TemporaryExpression extends Expression {
     }
 
     @Override
-    public TypeElement getType() {
-        return source.getType();
-    }
-
-    @Override
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
@@ -71,11 +66,13 @@ public class TemporaryExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        if (storage.containsKey(index))
-            return builder.buildLoad(storage.get(index), "");
-        storage.put(index,
-                builder.buildAlloca(this.getType().resolve().generate(builder.getModule()), "temp_" + index));
-        builder.buildStore(source.generate(builder), storage.get(index));
-        return builder.buildLoad(storage.get(index), "");
+        // if (storage.containsKey(index))
+        // return builder.buildLoad(storage.get(index), "");
+        // storage.put(index,
+        // builder.buildAlloca(this.getType().resolve().generate(builder.getModule()),
+        // "temp_" + index));
+        // builder.buildStore(source.generate(builder), storage.get(index));
+        // return builder.buildLoad(storage.get(index), "");
+        throw new UnsupportedOperationException();
     }
 }
