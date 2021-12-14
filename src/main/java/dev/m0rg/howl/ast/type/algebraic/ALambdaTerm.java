@@ -5,16 +5,35 @@ import java.util.Set;
 import dev.m0rg.howl.logger.Logger;
 
 public abstract class ALambdaTerm extends AlgebraicType {
+    /**
+     * Returns the set of free variables under this term.
+     */
     public abstract Set<String> freeVariables();
 
+    /**
+     * Applies the substitution {@code this[from := to]}.
+     */
     public abstract ALambdaTerm substitute(String from, ALambdaTerm to);
 
+    /**
+     * Attempts to β-normalize the given {@code ALambdaTerm} by repeated
+     * application.
+     */
     public static ALambdaTerm evaluate(ALambdaTerm t) {
-        // Logger.trace("evaluate: " + t.format());
-        while (t instanceof Applicable) {
+        Logger.trace("evaluate: " + t.format());
+        while (t instanceof Applicable && ((Applicable) t).isApplicable()) {
             t = ((Applicable) t).apply();
-            // Logger.trace(" => " + t.format());
+            Logger.trace(" => " + t.format());
         }
         return t;
+    }
+
+    /**
+     * Predicate for whether this ALambdaTerm identifies a type that's
+     * compatible with {@code other}. For simplicity, both {@code this} and
+     * {@code other} are assumed to already be in β-normal form.
+     */
+    public boolean accepts(ALambdaTerm other) {
+        throw new UnsupportedOperationException(this.getClass().getName());
     }
 }

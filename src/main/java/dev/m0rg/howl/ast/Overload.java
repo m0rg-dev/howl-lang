@@ -27,7 +27,7 @@ public class Overload extends ASTElement {
 
     @Override
     public String format() {
-        return "overload " + name;
+        return "overload " + getSource().getPath() + "." + name;
     }
 
     @Override

@@ -49,4 +49,10 @@ public class AVariable extends ALambdaTerm {
             return this;
         }
     }
+
+    @Override
+    public boolean accepts(ALambdaTerm other) {
+        // you can always put something in a free variable
+        return true;
+    }
 }

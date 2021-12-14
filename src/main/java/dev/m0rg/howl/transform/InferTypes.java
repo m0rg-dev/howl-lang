@@ -46,8 +46,8 @@ public class InferTypes implements ASTTransformer {
             }
         } else if (expected instanceof AStructureReference && provided instanceof AStructureReference) {
             for (Entry<String, ALambdaTerm> s : ((AStructureReference) expected).getSubstitutions().entrySet()) {
-                setEqual(ALambdaTerm.evaluate(s.getValue()),
-                        ALambdaTerm.evaluate(((AStructureReference) provided).getSubstitutions().get(s.getKey())), e);
+                setEqual(s.getValue(),
+                        ((AStructureReference) provided).getSubstitutions().get(s.getKey()), e);
             }
         }
     }

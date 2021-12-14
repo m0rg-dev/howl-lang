@@ -210,8 +210,8 @@ public class Compiler {
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new ConvertStrings());
-        cc.root_module.transform(new ConvertIndexLvalue());
-        cc.root_module.transform(new ConvertCustomOverloads());
+        // cc.root_module.transform(new ConvertIndexLvalue());
+        // cc.root_module.transform(new ConvertCustomOverloads());
 
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());

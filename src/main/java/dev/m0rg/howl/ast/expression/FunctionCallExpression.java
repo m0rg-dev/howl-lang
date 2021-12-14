@@ -10,7 +10,9 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
+import dev.m0rg.howl.ast.type.algebraic.AExtractArgument;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
 
@@ -64,7 +66,11 @@ public class FunctionCallExpression extends CallExpressionBase {
 
     @Override
     protected ALambdaTerm getTypeForArgument(int index) {
-        throw new RuntimeException();
+        List<ALambdaTerm> arg_types = new ArrayList<>(this.args.size());
+        for (Expression e : this.args) {
+            arg_types.add(AlgebraicType.deriveNew(e));
+        }
+        return new AExtractArgument(AlgebraicType.deriveNew(source), arg_types, index);
     }
 
     @Override

@@ -25,4 +25,13 @@ public class ABaseType extends ALambdaTerm {
     public ALambdaTerm substitute(String from, ALambdaTerm to) {
         return this;
     }
+
+    @Override
+    public boolean accepts(ALambdaTerm other) {
+        if (other instanceof ABaseType) {
+            return ((ABaseType) other).name.equals(name);
+        } else {
+            return false;
+        }
+    }
 }

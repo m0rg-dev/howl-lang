@@ -62,8 +62,13 @@ public class ConstructorCallExpression extends CallExpressionBase {
 
     @Override
     protected ALambdaTerm getTypeForArgument(int index) {
+        List<ALambdaTerm> arg_types = new ArrayList<>(this.args.size());
+
+        for (Expression e : this.args) {
+            arg_types.add(AlgebraicType.deriveNew(e));
+        }
         return new AExtractArgument(new AFieldReferenceType(AlgebraicType.deriveNew(source), "constructor"),
-                index + 1);
+                arg_types, index + 1);
     }
 
     @Override

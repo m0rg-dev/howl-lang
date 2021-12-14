@@ -14,12 +14,12 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Overload;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
 
-public class AStructureReference extends ALambdaTerm implements AStructureType {
+public class AStructureReference extends ALambdaTerm implements AStructureType, Applicable {
     ObjectReferenceType source;
     Map<String, ALambdaTerm> substitutions;
 
-    public AStructureReference(ObjectReferenceType source_path) {
-        this.source = source_path;
+    public AStructureReference(ObjectReferenceType source) {
+        this.source = source;
         this.substitutions = new HashMap<>();
     }
 
@@ -37,7 +37,11 @@ public class AStructureReference extends ALambdaTerm implements AStructureType {
     }
 
     public Set<String> freeVariables() {
-        return new HashSet<>(substitutions.keySet());
+        HashSet<String> rc = new HashSet<>();
+        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+            rc.addAll(s.getValue().freeVariables());
+        }
+        return rc;
     }
 
     public ALambdaTerm substitute(String from, ALambdaTerm to) {
@@ -67,5 +71,52 @@ public class AStructureReference extends ALambdaTerm implements AStructureType {
 
     public Map<String, ALambdaTerm> getSubstitutions() {
         return Collections.unmodifiableMap(substitutions);
+    }
+
+    @Override
+    public boolean isApplicable() {
+        boolean rc = false;
+        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+            if (s.getValue() instanceof Applicable && ((Applicable) s.getValue()).isApplicable()) {
+                rc = true;
+            }
+        }
+        return rc;
+    }
+
+    @Override
+    public ALambdaTerm apply() {
+        AStructureReference rc = new AStructureReference(source);
+        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+            if (s.getValue() instanceof Applicable && ((Applicable) s.getValue()).isApplicable()) {
+                rc.substitutions.put(s.getKey(), ((Applicable) s.getValue()).apply());
+            } else {
+                rc.substitutions.put(s.getKey(), s.getValue());
+            }
+        }
+        return rc;
+    }
+
+    @Override
+    public boolean accepts(ALambdaTerm other) {
+        if (other instanceof AStructureReference) {
+            AStructureReference other_ref = (AStructureReference) other;
+            if (other_ref.source.getSource().getPath().equals(source.getSource().getPath())) {
+                if (other_ref.substitutions.size() == substitutions.size()) {
+                    for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+                        if (!s.getValue().accepts(other_ref.substitutions.get(s.getKey()))) {
+                            return false;
+                        }
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+        return true;
     }
 }

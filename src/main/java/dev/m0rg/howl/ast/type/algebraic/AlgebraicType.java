@@ -106,7 +106,8 @@ public abstract class AlgebraicType {
             return new AOverloadType(as_overload);
         } else if (source instanceof FunctionCallExpression) {
             FunctionCallExpression as_call = (FunctionCallExpression) source;
-            return new ACallResult(AlgebraicType.deriveNew(as_call.getSource()));
+            return new ACallResult(AlgebraicType.deriveNew(as_call.getSource()),
+                    as_call.getArguments().stream().map(x -> AlgebraicType.deriveNew(x)).toList());
         }
         throw new RuntimeException(source.getClass().getName());
     }

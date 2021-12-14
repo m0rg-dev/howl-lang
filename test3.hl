@@ -8,10 +8,14 @@ class B<T> {
     fn T get() {
         return self.value;
     }
+
+    fn T get(T other) {
+        return other;
+    }
 }
 
 static fn i32 Main() {
     let B test = new B(42);
-    // test.get();
+    test.get(1);
     return 0;
 }
