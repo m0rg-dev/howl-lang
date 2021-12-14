@@ -53,7 +53,7 @@ public abstract class CallExpressionBase extends Expression {
         }
     }
 
-    protected abstract ALambdaTerm getTypeForArgument(int index);
+    public abstract ALambdaTerm getTypeForArgument(int index);
 
     protected void addFields(Map<String, FieldHandle> target) {
         int index = 0;

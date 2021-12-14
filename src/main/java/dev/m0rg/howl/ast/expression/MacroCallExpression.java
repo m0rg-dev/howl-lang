@@ -44,7 +44,7 @@ public class MacroCallExpression extends CallExpressionBase {
     }
 
     @Override
-    protected ALambdaTerm getTypeForArgument(int index) {
+    public ALambdaTerm getTypeForArgument(int index) {
         return new AAnyType();
     }
 

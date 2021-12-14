@@ -7,11 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.cli.CommandLine;
@@ -27,9 +25,7 @@ import dev.m0rg.howl.ast.ImportStatement;
 import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.cst.CSTImporter;
-import dev.m0rg.howl.lint.CheckConstructorArguments;
 import dev.m0rg.howl.lint.CheckExceptions;
 import dev.m0rg.howl.lint.ExternFunctionBaseTypesOnly;
 import dev.m0rg.howl.lint.ExternFunctionNoAliasing;
@@ -42,22 +38,19 @@ import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddInterfaceConverters;
 import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
-import dev.m0rg.howl.transform.CheckTypes;
 import dev.m0rg.howl.transform.CoalesceCatch;
 import dev.m0rg.howl.transform.CoalesceElse;
-import dev.m0rg.howl.transform.CombTypes;
 import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertIndexLvalue;
 import dev.m0rg.howl.transform.ConvertStrings;
 import dev.m0rg.howl.transform.ConvertThrow;
 import dev.m0rg.howl.transform.ConvertTryCatch;
-import dev.m0rg.howl.transform.IndirectMethodCalls;
 import dev.m0rg.howl.transform.InferTypes;
+import dev.m0rg.howl.transform.Monomorphize2;
 import dev.m0rg.howl.transform.MonomorphizeClasses;
 import dev.m0rg.howl.transform.RemoveGenericClasses;
 import dev.m0rg.howl.transform.ResolveNames;
-import dev.m0rg.howl.transform.ResolveOverloads;
 
 public class Compiler {
     final String[] frontend_command = { "./howl-rs/target/debug/howl-rs" };
@@ -210,17 +203,24 @@ public class Compiler {
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new ConvertStrings());
-        // cc.root_module.transform(new ConvertIndexLvalue());
+        cc.root_module.transform(new ConvertIndexLvalue());
         cc.root_module.transform(new ConvertCustomOverloads());
 
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
 
+        cc.root_module.transform(new AddInterfaceConverters());
+        cc.root_module.transform(new AddNumericCasts());
+
+        // needs to come before AddClassCasts - easier to find what type the
+        // to-be-thrown exception is
+        cc.root_module.transform(new CheckExceptions());
+
+        // cc.root_module.transform(new Monomorphize2());
+        // cc.root_module.transform(new IndirectMethodCalls());
+
         System.err.println(cc.root_module.getChild("main").get().format());
         System.exit(0);
-
-        AlgebraicType.invalidateCache();
-        cc.root_module.transform(new CombTypes());
 
         // TODO come up with better API here
         MonomorphizeClasses mc = new MonomorphizeClasses();
@@ -229,23 +229,12 @@ public class Compiler {
         cc.root_module.transform(mc);
 
         cc.root_module.transform(new RemoveGenericClasses());
-        cc.root_module.transform(new AddInterfaceConverters());
-        cc.root_module.transform(new IndirectMethodCalls());
-        cc.root_module.transform(new ResolveOverloads());
-        cc.root_module.transform(new CheckTypes());
-
-        cc.root_module.transform(new AddNumericCasts());
-
-        // needs to come before AddClassCasts - easier to find what type the
-        // to-be-thrown exception is
-        cc.root_module.transform(new CheckExceptions());
 
         cc.root_module.transform(new AddInterfaceCasts());
         cc.root_module.transform(new AddClassCasts());
 
         cc.root_module.transform(new ExternFunctionBaseTypesOnly());
         cc.root_module.transform(new ExternFunctionNoAliasing());
-        cc.root_module.transform(new CheckConstructorArguments());
 
         if (cmd.hasOption("trace")) {
             System.err.println(cc.root_module.format());

@@ -47,6 +47,10 @@ public class CastToInterfaceExpression extends Expression {
         this.source = (Expression) source.setParent(this);
     }
 
+    public TypeElement getTarget() {
+        return target;
+    }
+
     public void setTarget(TypeElement target) {
         this.target = (TypeElement) target.setParent(this);
     }

@@ -9,13 +9,13 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.NumericType;
 import dev.m0rg.howl.ast.type.TypeElement;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
+import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
 
 public class NumericCastExpression extends Expression {
     Expression source;
-    TypeElement target;
+    ABaseType target;
 
     public NumericCastExpression(Span span) {
         super(span);
@@ -25,7 +25,7 @@ public class NumericCastExpression extends Expression {
     public ASTElement detach() {
         NumericCastExpression rc = new NumericCastExpression(span);
         rc.setSource((Expression) source.detach());
-        rc.setTarget((TypeElement) target.detach());
+        rc.setTarget(target);
         return rc;
     }
 
@@ -42,15 +42,19 @@ public class NumericCastExpression extends Expression {
         this.source = (Expression) source.setParent(this);
     }
 
-    public void setTarget(TypeElement target) {
-        this.target = (TypeElement) target.setParent(this);
+    public ABaseType getTarget() {
+        return target;
+    }
+
+    public void setTarget(ABaseType target) {
+        this.target = target;
     }
 
     @Override
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> AlgebraicType.deriveNew(target)));
+                () -> target));
         return rc;
     }
 
@@ -67,7 +71,7 @@ public class NumericCastExpression extends Expression {
         if (source_type instanceof NumericType) {
             source_width = ((NumericType) source_type).getWidth();
         }
-        TypeElement dest_type = target.resolve();
+        TypeElement dest_type = null; // target.resolve();
         if (dest_type instanceof NumericType) {
             dest_width = ((NumericType) dest_type).getWidth();
         }

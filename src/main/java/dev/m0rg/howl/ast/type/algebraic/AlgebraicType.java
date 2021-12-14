@@ -13,6 +13,7 @@ import dev.m0rg.howl.ast.Overload;
 import dev.m0rg.howl.ast.expression.ArithmeticExpression;
 import dev.m0rg.howl.ast.expression.BooleanConstantExpression;
 import dev.m0rg.howl.ast.expression.BooleanInversionExpression;
+import dev.m0rg.howl.ast.expression.CastToInterfaceExpression;
 import dev.m0rg.howl.ast.expression.ClassCastExpression;
 import dev.m0rg.howl.ast.expression.ConstructorCallExpression;
 import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
@@ -21,6 +22,7 @@ import dev.m0rg.howl.ast.expression.IndexExpression;
 import dev.m0rg.howl.ast.expression.MacroCallExpression;
 import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.NumberExpression;
+import dev.m0rg.howl.ast.expression.NumericCastExpression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.expression.StringLiteral;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
@@ -141,6 +143,10 @@ public abstract class AlgebraicType {
             return new AApplication(spec_operation, deriveNew(as_specified.getParameters().get(0)));
         } else if (source instanceof ClassCastExpression) {
             return deriveNew(((ClassCastExpression) source).getTarget());
+        } else if (source instanceof CastToInterfaceExpression) {
+            return deriveNew(((CastToInterfaceExpression) source).getTarget());
+        } else if (source instanceof NumericCastExpression) {
+            return ((NumericCastExpression) source).getTarget();
         }
         throw new RuntimeException(source.getClass().getName());
     }

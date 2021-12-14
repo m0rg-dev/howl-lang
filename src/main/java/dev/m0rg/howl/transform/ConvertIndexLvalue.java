@@ -8,8 +8,9 @@ import dev.m0rg.howl.ast.expression.FunctionCallExpression;
 import dev.m0rg.howl.ast.expression.IndexExpression;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.SimpleStatement;
-import dev.m0rg.howl.ast.type.RawPointerType;
-import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.ARawPointer;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 
 public class ConvertIndexLvalue implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
@@ -17,8 +18,8 @@ public class ConvertIndexLvalue implements ASTTransformer {
             AssignmentStatement as_assignment = (AssignmentStatement) e;
             if (as_assignment.getLHS() instanceof IndexExpression) {
                 IndexExpression as_index = (IndexExpression) as_assignment.getLHS();
-                TypeElement source_type = as_index.getSource().getResolvedType();
-                if (source_type instanceof RawPointerType) {
+                ALambdaTerm source_type = ALambdaTerm.evaluate(AlgebraicType.deriveNew(as_index.getSource()));
+                if (source_type instanceof ARawPointer) {
                     // don't have to overload those!
                     return e;
                 } else {
