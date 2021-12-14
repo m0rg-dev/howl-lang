@@ -23,7 +23,7 @@ public class InferTypes implements ASTTransformer {
             Logger.trace("InferTypes: " + e.formatForLog());
             HasUpstreamFields holder = (HasUpstreamFields) e;
             for (Entry<String, FieldHandle> f : holder.getUpstreamFields().entrySet()) {
-                Logger.trace(f.getKey());
+                // Logger.trace(f.getKey());
                 AVariable.reset();
                 ALambdaTerm t_expected = ALambdaTerm.evaluate(f.getValue().getExpectedType());
                 ALambdaTerm t_provided = ALambdaTerm.evaluate(AlgebraicType.deriveNew(f.getValue().getSubexpression()));

@@ -10,10 +10,10 @@ public abstract class ALambdaTerm extends AlgebraicType {
     public abstract ALambdaTerm substitute(String from, ALambdaTerm to);
 
     public static ALambdaTerm evaluate(ALambdaTerm t) {
-        Logger.trace("evaluate: " + t.format());
+        // Logger.trace("evaluate: " + t.format());
         while (t instanceof Applicable) {
             t = ((Applicable) t).apply();
-            Logger.trace(" => " + t.format());
+            // Logger.trace(" => " + t.format());
         }
         return t;
     }
