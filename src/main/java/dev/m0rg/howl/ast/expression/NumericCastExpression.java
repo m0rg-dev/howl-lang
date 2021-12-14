@@ -7,9 +7,8 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.NumericType;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ABaseType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
 
@@ -67,18 +66,17 @@ public class NumericCastExpression extends Expression {
     public LLVMValue generate(LLVMBuilder builder) {
         int source_width = 64;
         int dest_width = 64;
-        TypeElement source_type = null; // source.getResolvedType();
-        if (source_type instanceof NumericType) {
-            source_width = ((NumericType) source_type).getWidth();
+        ALambdaTerm source_type = ALambdaTerm.evaluateFrom(source);
+        if (source_type instanceof ABaseType) {
+            source_width = ((ABaseType) source_type).numericWidth().orElse(64);
         }
-        TypeElement dest_type = null; // target.resolve();
-        if (dest_type instanceof NumericType) {
-            dest_width = ((NumericType) dest_type).getWidth();
+        if (target instanceof ABaseType) {
+            dest_width = ((ABaseType) target).numericWidth().orElse(64);
         }
         if (source_width > dest_width) {
-            return builder.buildTrunc(source.generate(builder), dest_type.generate(builder.getModule()), "");
+            return builder.buildTrunc(source.generate(builder), target.toLLVM(builder.getModule()), "");
         } else {
-            return builder.buildSExt(source.generate(builder), dest_type.generate(builder.getModule()), "");
+            return builder.buildSExt(source.generate(builder), target.toLLVM(builder.getModule()), "");
         }
     }
 }

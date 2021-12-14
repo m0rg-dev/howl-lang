@@ -24,7 +24,7 @@ public class CheckExceptions extends LintPass {
             FunctionCallExpression call = (FunctionCallExpression) e;
             if (call.isGeneratedFromThrow) {
                 AVariable.reset();
-                ALambdaTerm exctype = ALambdaTerm.evaluate(call.getTypeForArgument(0));
+                ALambdaTerm exctype = ALambdaTerm.evaluate(AlgebraicType.deriveNew(call.getArguments().get(0)));
                 if (new AStructureReference(
                         new ClassType(e.getSpan(), "root.lib.UncheckedException")).accepts(exctype)) {
                     // we don't have to check it!
@@ -51,8 +51,9 @@ public class CheckExceptions extends LintPass {
                 if (allowed_types.isEmpty()) {
                     allowed_types.add("<no types>");
                 }
-                e.getSpan().addError("Uncaught exception type " + exctype,
+                e.getSpan().addError("Uncaught exception type " + exctype.format(),
                         "declared types:\n" + String.join("\n", allowed_types).indent(2));
+                throw new RuntimeException();
             }
         }
     }

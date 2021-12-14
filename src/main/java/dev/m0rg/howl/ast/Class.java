@@ -213,7 +213,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
                     methods.add(m.generate(module));
                 } else {
                     Function f = (Function) this.getMethod(name).get();
-                    LLVMFunctionType type = (LLVMFunctionType) f.getOwnType().resolve().generate(module);
+                    LLVMFunctionType type = f.generateType(module);
 
                     Logger.trace("declaring: " + f.getPath() + " (" + module.getName() + ")");
                     if (f.is_extern) {
@@ -299,15 +299,15 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
                         "");
                 builder.buildStore(g, stable_pointer);
 
-                Optional<Function> constructor = this.getConstructor();
-                if (constructor.isPresent()) {
-                    List<LLVMValue> cargs = new ArrayList<LLVMValue>();
-                    cargs.add(builder.buildLoad(alloca, ""));
-                    for (int i = 0; i < constructor.get().getArgumentList().size() - 1; i++) {
-                        cargs.add(allocator.getParam(i));
-                    }
-                    builder.buildCall(constructor.get().generate(module), cargs, "");
-                }
+                // Optional<Function> constructor = this.getConstructor();
+                // if (constructor.isPresent()) {
+                // List<LLVMValue> cargs = new ArrayList<LLVMValue>();
+                // cargs.add(builder.buildLoad(alloca, ""));
+                // for (int i = 0; i < constructor.get().getArgumentList().size() - 1; i++) {
+                // cargs.add(allocator.getParam(i));
+                // }
+                // builder.buildCall(constructor.get().generate(module), cargs, "");
+                // }
 
                 builder.buildReturn(builder.buildLoad(alloca, ""));
             }
@@ -318,13 +318,13 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
         this.getOwnType().generate(module);
 
         List<LLVMType> argtypes = new ArrayList<>();
-        Optional<Function> constructor = this.getConstructor();
-        if (constructor.isPresent()) {
-            for (Argument a : constructor.get().getArgumentList().subList(1,
-                    constructor.get().getArgumentList().size())) {
-                argtypes.add(a.getOwnType().resolve().generate(module));
-            }
-        }
+        // Optional<Function> constructor = this.getConstructor();
+        // if (constructor.isPresent()) {
+        // for (Argument a : constructor.get().getArgumentList().subList(1,
+        // constructor.get().getArgumentList().size())) {
+        // argtypes.add(ALambdaTerm.evaluateFrom(a.getOwnType()).toLLVM(module));
+        // }
+        // }
         LLVMType this_structure_type = this.getOwnType().generate(module);
         LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, argtypes);
         return module.getOrInsertFunction(allocator_type, this.getPath() + "_alloc", f -> f.setExternal(),

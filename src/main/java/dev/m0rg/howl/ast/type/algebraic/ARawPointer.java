@@ -2,7 +2,11 @@ package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.Set;
 
-public class ARawPointer extends ALambdaTerm implements Mangle {
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMType;
+
+public class ARawPointer extends ALambdaTerm implements Mangle, Applicable {
     ALambdaTerm source;
 
     public ARawPointer(ALambdaTerm source) {
@@ -41,5 +45,24 @@ public class ARawPointer extends ALambdaTerm implements Mangle {
         } else {
             throw new RuntimeException(this.format());
         }
+    }
+
+    @Override
+    public boolean isApplicable() {
+        return source instanceof Applicable && ((Applicable) source).isApplicable();
+    }
+
+    @Override
+    public ALambdaTerm apply() {
+        if (source instanceof Applicable && ((Applicable) source).isApplicable()) {
+            return new ARawPointer(((Applicable) source).apply());
+        } else {
+            throw new RuntimeException();
+        }
+    }
+
+    @Override
+    public LLVMType toLLVM(LLVMModule module) {
+        return new LLVMPointerType<>(source.toLLVM(module));
     }
 }

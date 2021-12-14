@@ -6,13 +6,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.Module;
+import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Overload;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
+import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMType;
+import dev.m0rg.howl.logger.Logger;
 
 public class AStructureReference extends ALambdaTerm implements AStructureType, Applicable, Mangle {
     ObjectReferenceType source;
@@ -140,7 +145,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
 
         parts.add("N");
         parts.add(Integer.toString(source.getSource().getPath().length()));
-        parts.add(source.getSource().getPath());
+        parts.add(source.getSource().getPath().replace('.', '_'));
 
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
             if (s.getValue() instanceof Mangle) {
@@ -151,5 +156,24 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         }
 
         return String.join("", parts);
+    }
+
+    @Override
+    public LLVMType toLLVM(LLVMModule module) {
+        Logger.trace("AStructureReference generate " + this.format());
+        if (substitutions.size() > 0) {
+            // i wanna die
+            Optional<ASTElement> mmc = ((Module) getSource().getSource().getParent()).getChild(mangle());
+            if (mmc.isPresent()) {
+                return ((ObjectCommon) mmc.get()).getOwnType()
+                        .generate(module);
+            } else {
+                Logger.trace("generate: " + this.format() + " " + this.mangle());
+                ((Module) this.getSource().getSource().getParent()).insertItem(
+                        this.getSource().getSource().monomorphize(this));
+                return this.toLLVM(module);
+            }
+        }
+        return source.generate(module);
     }
 }

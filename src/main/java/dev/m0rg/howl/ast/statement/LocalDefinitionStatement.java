@@ -12,10 +12,13 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
+import dev.m0rg.howl.llvm.LLVMInstruction;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
 public class LocalDefinitionStatement extends Statement implements NamedElement, HasOwnType, HasUpstreamFields {
     TypeElement localtype;
@@ -81,7 +84,9 @@ public class LocalDefinitionStatement extends Statement implements NamedElement,
     public void generate(LLVMFunction f) {
         try (LLVMBuilder builder = new LLVMBuilder(f.getModule())) {
             builder.positionAtEnd(f.lastBasicBlock());
-            storage = builder.buildAlloca(this.getOwnType().resolve().generate(f.getModule()), name);
+            Logger.trace("t = " + ALambdaTerm.evaluateFrom(this.getOwnType()).format());
+            Logger.trace("i = " + initializer.format());
+            storage = builder.buildAlloca(ALambdaTerm.evaluateFrom(this.getOwnType()).toLLVM(f.getModule()), name);
             builder.buildStore(initializer.generate(builder), storage);
         }
     }

@@ -37,6 +37,10 @@ public class LLVMFunction extends LLVMConstant {
     }
 
     public LLVMValue getParam(int index) {
+        int count = LLVMCountParams(obj);
+        if (index < 0 || index >= count) {
+            throw new ArrayIndexOutOfBoundsException(index);
+        }
         return LLVMValue.build(this.module.get(), LLVMGetParam(this.getInternal(), index));
     }
 

@@ -62,4 +62,8 @@ public class AFunctionReference extends AFunctionType {
             return "fn " + source.getPath() + "[" + String.join(", ", s) + "]";
         }
     }
+
+    public Function getSource() {
+        return source;
+    }
 }

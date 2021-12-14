@@ -12,6 +12,9 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
+import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
+import dev.m0rg.howl.ast.type.SpecifiedType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
@@ -23,9 +26,10 @@ public class Monomorphize2 implements ASTTransformer {
 
     public ASTElement transform(ASTElement e) {
         // little bit of jank here to avoid blowing up on Option::<T> etc
-        if (e instanceof Expression && !(e.getParent() instanceof SpecifiedTypeExpression)) {
+        if ((e instanceof Expression && !(e.getParent() instanceof SpecifiedTypeExpression))
+                || (e instanceof TypeElement && !(e.getParent() instanceof SpecifiedType))) {
             AVariable.reset();
-            ALambdaTerm t = ALambdaTerm.evaluate(AlgebraicType.deriveNew(e));
+            ALambdaTerm t = ALambdaTerm.evaluateFrom(e);
             if (t instanceof AStructureReference) {
                 AStructureReference as_ref = (AStructureReference) t;
                 for (Entry<String, ALambdaTerm> s : as_ref.getSubstitutions().entrySet()) {

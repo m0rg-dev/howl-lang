@@ -14,10 +14,12 @@ import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AExtractArgument;
 import dev.m0rg.howl.ast.type.algebraic.AFieldReferenceType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
 public class ConstructorCallExpression extends CallExpressionBase {
     TypeElement source;
@@ -73,7 +75,9 @@ public class ConstructorCallExpression extends CallExpressionBase {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        ClassType source_type = (ClassType) source.resolve();
+        Logger.trace("generate " + this.format());
+        ALambdaTerm t = ALambdaTerm.evaluateFrom(source);
+        ClassType source_type = (ClassType) ((AStructureReference) t).getSource();
         source_type.getSource().generate(builder.getModule());
         LLVMFunction callee = source_type.getSource().getAllocator(builder.getModule());
         List<LLVMValue> args = new ArrayList<>(this.args.size());

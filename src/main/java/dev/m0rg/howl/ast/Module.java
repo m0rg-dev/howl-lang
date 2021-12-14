@@ -142,12 +142,18 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
         LLVMModule this_module = new LLVMModule(this.getPath(), context);
         rc.add(this_module);
 
-        for (ASTElement item : contents) {
-            if (item instanceof Module) {
-                List<LLVMModule> submodules = ((Module) item).generate(context, false);
-                rc.addAll(submodules);
-            } else if (item instanceof GeneratesTopLevelItems) {
-                ((GeneratesTopLevelItems) item).generate(this_module);
+        int last_len = 0;
+        while (last_len != contents.size()) {
+            // shenanigans to not blow up when new (monomorphized) classes are inserted
+            List<ASTElement> c = new ArrayList<>(contents);
+            last_len = c.size();
+            for (ASTElement item : c) {
+                if (item instanceof Module) {
+                    List<LLVMModule> submodules = ((Module) item).generate(context, false);
+                    rc.addAll(submodules);
+                } else if (item instanceof GeneratesTopLevelItems) {
+                    ((GeneratesTopLevelItems) item).generate(this_module);
+                }
             }
         }
 

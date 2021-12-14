@@ -229,8 +229,8 @@ public class Compiler {
 
         // cc.root_module.transform(new IndirectMethodCalls());
 
-        System.err.println(cc.root_module.getChild("main").get().format());
-        System.exit(0);
+        // System.err.println(cc.root_module.getChild("main").get().format());
+        // System.exit(0);
 
         if (cmd.hasOption("trace")) {
             System.err.println(cc.root_module.format());

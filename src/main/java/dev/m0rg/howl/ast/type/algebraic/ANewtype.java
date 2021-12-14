@@ -22,7 +22,7 @@ public class ANewtype extends ALambdaTerm implements Applicable {
 
     @Override
     public String format() {
-        return "@" + name;
+        return "@" + source.getPath();
     }
 
     @Override
