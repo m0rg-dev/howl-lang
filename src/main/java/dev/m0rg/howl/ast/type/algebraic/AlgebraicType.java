@@ -14,6 +14,8 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Argument;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Module;
+import dev.m0rg.howl.ast.ObjectCommon;
+import dev.m0rg.howl.ast.Overload;
 import dev.m0rg.howl.ast.expression.ArithmeticExpression;
 import dev.m0rg.howl.ast.expression.BooleanConstantExpression;
 import dev.m0rg.howl.ast.expression.BooleanInversionExpression;
@@ -29,6 +31,7 @@ import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.NumberExpression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.expression.StringLiteral;
+import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
 import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.LambdaType;
@@ -72,10 +75,7 @@ public abstract class AlgebraicType {
             // this name could be a base type!
             NamedType as_named = (NamedType) source;
             if (as_named.isBase()) {
-                // and this is one of our base cases, because base types can't
-                // be parameterized - i.e. (\x.1).
-                AVariable v = new AVariable();
-                return v.lambda(new ABaseType(as_named.getName()));
+                return new ABaseType(as_named.getName());
             } else {
                 Optional<ASTElement> res = as_named.resolveName(as_named.getName());
                 if (res.isPresent()) {
@@ -86,7 +86,6 @@ public abstract class AlgebraicType {
             }
         } else if (source instanceof NewType) {
             NewType as_newtype = (NewType) source;
-            // this is our other base case, a variable by itself - i.e. (x)
             if (as_newtype.getIndex() >= 0) {
                 return new AVariable("T" + as_newtype.getIndex());
             } else {
@@ -95,8 +94,7 @@ public abstract class AlgebraicType {
         } else if (source instanceof ObjectReferenceType) {
             // we'll need to evaluate these lazily to avoid loops
             ObjectReferenceType as_ref = (ObjectReferenceType) source;
-            AVariable v = new AVariable();
-            return v.lambda(new AStructureReference(as_ref.getSource().getPath()));
+            return new AStructureReference(as_ref);
         } else if (source instanceof FieldReferenceExpression) {
             FieldReferenceExpression as_field_reference = (FieldReferenceExpression) source;
             ALambdaTerm field_source = deriveNew(as_field_reference.getSource());
@@ -118,11 +116,20 @@ public abstract class AlgebraicType {
             return new AApplication(spec_operation, deriveNew(as_specified.getParameters().get(0)));
         } else if (source instanceof Argument) {
             return AlgebraicType.deriveNew(((Argument) source).getOwnType());
+        } else if (source instanceof ObjectCommon) {
+            return AlgebraicType.deriveNew(((ObjectCommon) source).getOwnType());
         } else if (source instanceof NumberExpression) {
-            AVariable v = new AVariable();
-            return v.lambda(new ABaseType("__numeric"));
+            return new ABaseType("__numeric");
+        } else if (source instanceof LocalDefinitionStatement) {
+            LocalDefinitionStatement as_def = (LocalDefinitionStatement) source;
+            return AlgebraicType.deriveNew(as_def.getOwnType());
+        } else if (source instanceof Overload) {
+            Overload as_overload = (Overload) source;
+            return new AOverloadType(as_overload);
+        } else if (source instanceof FunctionCallExpression) {
+            FunctionCallExpression as_call = (FunctionCallExpression) source;
+            return new ACallResult(AlgebraicType.deriveNew(as_call.getSource()));
         }
-
         throw new RuntimeException(source.getClass().getName());
     }
 
@@ -143,83 +150,6 @@ public abstract class AlgebraicType {
 
     @Deprecated
     static AlgebraicType _derive(ASTElement source, Map<String, AlgebraicType> typemap) {
-        if (source instanceof NameExpression) {
-            Optional<ASTElement> res = source.resolveName(((NameExpression) source).getName());
-            if (res.isPresent()) {
-                return AlgebraicType.derive(res.get(), typemap);
-            } else {
-                throw new IllegalArgumentException("derive unresolvable " + source.format());
-            }
-        } else if (source instanceof HasOwnType) {
-            return AlgebraicType.derive(((HasOwnType) source).getOwnType(), typemap);
-        } else if (source instanceof NamedType) {
-            String name = ((NamedType) source).getName();
-            Optional<ASTElement> res = source.resolveName(name);
-
-            if (res.isPresent()) {
-                String path = res.get().getPath();
-                if (typemap.containsKey(path)) {
-                    return typemap.get(path);
-                }
-                AlgebraicType rc = AlgebraicType.derive(res.get(), typemap);
-                return rc;
-            } else if (((NamedType) source).isBase()) {
-                return new ABaseType(name);
-            } else {
-                throw new IllegalArgumentException("derive unresolvable " + source.format());
-            }
-        } else if (source instanceof ObjectReferenceType) {
-            return new AObjectTypeOld((ObjectReferenceType) source, typemap);
-        } else if (source instanceof NewType) {
-            return new AFreeType((NewType) source);
-        } else if (source instanceof LambdaType) {
-            return new AFunctionType((LambdaType) source, typemap);
-        } else if (source instanceof FunctionType) {
-            return new AFunctionType(((FunctionType) source).getSource(), typemap);
-        } else if (source instanceof NumberExpression) {
-            return AlgebraicType.derive(((NumberExpression) source).getType(), typemap);
-        } else if (source instanceof FieldReferenceExpression) {
-            FieldReferenceExpression fre = (FieldReferenceExpression) source;
-            AlgebraicType source_type = AlgebraicType.derive(fre.getSource(), typemap);
-            return new AFieldReferenceType(source_type, fre.getName());
-        } else if (source instanceof ConstructorCallExpression) {
-            ConstructorCallExpression cce = (ConstructorCallExpression) source;
-            return AlgebraicType.derive(cce.getType(), typemap);
-        } else if (source instanceof FunctionCallExpression) {
-            AlgebraicType source_type = AlgebraicType.derive(((FunctionCallExpression) source).getSource(), typemap);
-            return new ACallResult(source_type);
-        } else if (source instanceof IndexExpression) {
-            AlgebraicType source_type = AlgebraicType.derive(((IndexExpression) source).getSource(), typemap);
-            return new AIndexResult(source_type);
-        } else if (source instanceof SpecifiedType) {
-            SpecifiedType st = (SpecifiedType) source;
-
-            AStructureType base = (AStructureType) AlgebraicType.derive(st.getBase(), typemap);
-            List<AlgebraicType> parameters = new ArrayList<>();
-            for (TypeElement e : st.getParameters()) {
-                parameters.add(AlgebraicType.derive(e, typemap));
-            }
-
-            return new ASpecify(base, new HashMap<>());
-        } else if (source instanceof GetStaticTableExpression || source instanceof ArithmeticExpression
-                || source instanceof ClassCastExpression || source instanceof BooleanInversionExpression) {
-            return new AStableTypeOld(((Expression) source).getType());
-        } else if (source instanceof BooleanConstantExpression) {
-            return new ABaseType("bool");
-        } else if (source instanceof RawPointerType) {
-            AlgebraicType source_type = AlgebraicType.derive(((RawPointerType) source).getInner());
-            return new ARawPointer(source_type);
-        } else if (source instanceof StringLiteral) {
-            return new ARawPointer(new ABaseType("u8"));
-        } else if (source instanceof SpecifiedTypeExpression) {
-            return AlgebraicType.derive(((SpecifiedTypeExpression) source).getType());
-        } else if (source instanceof MacroCallExpression) {
-            return new AAnyType();
-        } else if (source instanceof Module) {
-            // this can happen in certain cases with unresolved names
-            Logger.trace("creating error type: AlgebraicType of Module");
-            return new ABaseType("__error");
-        }
         throw new RuntimeException(source.format() + " " + source.getClass().getSimpleName());
     }
 

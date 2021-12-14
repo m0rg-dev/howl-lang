@@ -2,15 +2,14 @@ package dev.m0rg.howl.ast;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
 
-import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.InterfaceStaticType;
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NewType;
 
-public class Interface extends ObjectCommon implements HasOwnType {
+public class Interface extends ObjectCommon {
     public Interface(Span span, String name, List<String> generics) {
         super(span, name, generics);
     }

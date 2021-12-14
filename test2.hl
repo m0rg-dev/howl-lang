@@ -5,16 +5,16 @@ class A<T> {
         self.value = value;
     }
 
-    fn T get() {
-        return self.value;
+    fn B<T> get() {
+        return new B<T>(self);
     }
 }
 
 class B<T> {
     A<T> value;
 
-    fn void constructor(T value) {
-        self.value = new A<T>(value);
+    fn void constructor(A<T> value) {
+        self.value = value;
     }
 
     fn T get() {
@@ -23,6 +23,7 @@ class B<T> {
 }
 
 static fn i32 Main() {
-    let B test = new B(42);
+    let A test = new A(42);
+    test.get().get();
     return 0;
 }

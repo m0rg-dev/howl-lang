@@ -1,11 +1,9 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.TypeElement;
-
-public class ABaseType extends AlgebraicType {
+public class ABaseType extends ALambdaTerm {
     String name;
 
     public ABaseType(String name) {
@@ -16,15 +14,15 @@ public class ABaseType extends AlgebraicType {
         return "#" + name;
     }
 
-    public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
-        return this;
-    }
-
-    public TypeElement toElement() {
-        return NamedType.build(null, name);
-    }
-
     public String getName() {
         return name;
+    }
+
+    public Set<String> freeVariables() {
+        return new HashSet<>();
+    }
+
+    public ALambdaTerm substitute(String from, ALambdaTerm to) {
+        return this;
     }
 }

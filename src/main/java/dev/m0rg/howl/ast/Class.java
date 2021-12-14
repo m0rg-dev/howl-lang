@@ -11,7 +11,6 @@ import java.util.Set;
 
 import dev.m0rg.howl.ast.type.ClassStaticType;
 import dev.m0rg.howl.ast.type.ClassType;
-import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
@@ -29,7 +28,7 @@ import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
 
-public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevelItems {
+public class Class extends ObjectCommon implements GeneratesTopLevelItems {
     List<TypeElement> impl;
 
     public Class(Span span, String name, List<String> generics) {

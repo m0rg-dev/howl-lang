@@ -7,13 +7,16 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AApplication;
 import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.ast.type.algebraic.ACallResult;
 import dev.m0rg.howl.ast.type.algebraic.AFreeType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.ASpecify;
 import dev.m0rg.howl.ast.type.algebraic.AStructureType;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
+import dev.m0rg.howl.ast.type.algebraic.Applicable;
 import dev.m0rg.howl.logger.Logger;
 
 public class InferTypes implements ASTTransformer {
@@ -21,7 +24,12 @@ public class InferTypes implements ASTTransformer {
         if (e instanceof Expression) {
             AVariable.reset();
             Logger.trace("InferTypes: " + e.formatForLog());
-            Logger.trace(" => " + AlgebraicType.deriveNew(e).formatForLog());
+            ALambdaTerm t = AlgebraicType.deriveNew(e);
+            Logger.trace(" => " + t.formatForLog());
+            while (t instanceof Applicable) {
+                t = ((Applicable) t).apply();
+                Logger.trace(" => " + t.formatForLog());
+            }
             return e;
         } else {
             return e;
