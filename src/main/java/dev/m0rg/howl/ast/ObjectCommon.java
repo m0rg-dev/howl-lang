@@ -35,8 +35,10 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         this.ext = Optional.empty();
 
         for (String generic : generics) {
-            generic_types.put(generic, (NewType) new NewType(span, generic).setParent(this));
+            generic_types.put(generic, (NewType) new NewType(span, generic, generic_types.size()).setParent(this));
         }
+
+        insertNewtype("Self");
     }
 
     public Optional<NamedType> getExtends() {
@@ -68,7 +70,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
     }
 
     public void insertNewtype(String name) {
-        generic_types.put(name, (NewType) new NewType(span, name).setParent(this));
+        generic_types.put(name, (NewType) new NewType(span, name, generic_types.size()).setParent(this));
     }
 
     public void insertField(Field contents) {
@@ -192,10 +194,6 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
     }
 
     public Optional<ASTElement> getChild(String name) {
-        if (name.equals("Self")) {
-            return Optional.of(this);
-        }
-
         if (this.generic_types.containsKey(name)) {
             return Optional.of(this.generic_types.get(name));
         }

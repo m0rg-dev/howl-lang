@@ -199,7 +199,7 @@ public class Compiler {
 
         Path stdlib_path = FileSystems.getDefault().getPath("stdlib/").toAbsolutePath();
 
-        cc.ingestDirectory(stdlib_path, "lib");
+        // cc.ingestDirectory(stdlib_path, "lib");
         cc.ingest(FileSystems.getDefault().getPath(args[0]).toAbsolutePath(), "main");
 
         cc.root_module.transform(new CoalesceElse());
@@ -215,11 +215,12 @@ public class Compiler {
 
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
+
+        System.err.println(cc.root_module.getChild("main").get().format());
+        System.exit(0);
+
         AlgebraicType.invalidateCache();
         cc.root_module.transform(new CombTypes());
-
-        // System.err.println(cc.root_module.getChild("lib").get().format());
-        // System.exit(0);
 
         // TODO come up with better API here
         MonomorphizeClasses mc = new MonomorphizeClasses();

@@ -12,16 +12,18 @@ import dev.m0rg.howl.llvm.LLVMType;
 public class NewType extends TypeElement implements NamedElement {
     Optional<TypeElement> resolution;
     String name;
+    int index;
 
-    public NewType(Span span, String name) {
+    public NewType(Span span, String name, int index) {
         super(span);
         this.resolution = Optional.empty();
         this.name = name;
+        this.index = index;
     }
 
     @Override
     public ASTElement detach() {
-        NewType rc = new NewType(span, name);
+        NewType rc = new NewType(span, name, index);
         if (this.resolution.isPresent()) {
             rc.setResolution((TypeElement) this.resolution.get().detach());
         }
@@ -61,6 +63,10 @@ public class NewType extends TypeElement implements NamedElement {
 
     public String getName() {
         return this.name;
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     public String mangle() {

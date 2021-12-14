@@ -11,9 +11,10 @@ import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
 import dev.m0rg.howl.logger.Logger;
 
-public class AObjectType extends AStructureType {
+@Deprecated
+public class AObjectTypeOld extends AStructureType {
 
-    public AObjectType(ObjectReferenceType source, Map<String, AlgebraicType> typemap) {
+    public AObjectTypeOld(ObjectReferenceType source, Map<String, AlgebraicType> typemap) {
         this.source = source;
 
         for (Function f : source.getSource().getMethods()) {
@@ -29,7 +30,7 @@ public class AObjectType extends AStructureType {
 
     }
 
-    public AObjectType(AObjectType other, Map<String, AlgebraicType> evalmap) {
+    public AObjectTypeOld(AObjectTypeOld other, Map<String, AlgebraicType> evalmap) {
         super(other, evalmap);
     }
 
@@ -82,6 +83,6 @@ public class AObjectType extends AStructureType {
     }
 
     public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
-        return new AObjectType(this, evalmap);
+        return new AObjectTypeOld(this, evalmap);
     }
 }

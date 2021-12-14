@@ -1,0 +1,12 @@
+class B<T> {
+    T value;
+
+    fn T get() {
+        return self.value;
+    }
+}
+
+static fn i32 Main() {
+    let B test = new B(42);
+    return 0;
+}

@@ -1,13 +1,18 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.bytedeco.javacpp.annotation.Const;
+
 import dev.m0rg.howl.Compiler;
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.Argument;
+import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.expression.ArithmeticExpression;
 import dev.m0rg.howl.ast.expression.BooleanConstantExpression;
@@ -54,10 +59,79 @@ public abstract class AlgebraicType {
         cache = new HashMap<ASTElement, AlgebraicType>();
     }
 
+    public static ALambdaTerm deriveNew(ASTElement source) {
+        if (source instanceof NameExpression) {
+            // well, a name could be anything...
+            Optional<ASTElement> res = source.resolveName(((NameExpression) source).getName());
+            if (res.isPresent()) {
+                return AlgebraicType.deriveNew(res.get());
+            } else {
+                throw new IllegalArgumentException("derive unresolvable " + source.format());
+            }
+        } else if (source instanceof NamedType) {
+            // this name could be a base type!
+            NamedType as_named = (NamedType) source;
+            if (as_named.isBase()) {
+                // and this is one of our base cases, because base types can't
+                // be parameterized - i.e. (\x.1).
+                AVariable v = new AVariable();
+                return v.lambda(new ABaseType(as_named.getName()));
+            } else {
+                Optional<ASTElement> res = as_named.resolveName(as_named.getName());
+                if (res.isPresent()) {
+                    return AlgebraicType.deriveNew(res.get());
+                } else {
+                    throw new IllegalArgumentException("derive unresolvable " + source.format());
+                }
+            }
+        } else if (source instanceof NewType) {
+            NewType as_newtype = (NewType) source;
+            // this is our other base case, a variable by itself - i.e. (x)
+            if (as_newtype.getIndex() >= 0) {
+                return new AVariable("T" + as_newtype.getIndex());
+            } else {
+                return new AVariable(as_newtype.getPath());
+            }
+        } else if (source instanceof ObjectReferenceType) {
+            // we'll need to evaluate these lazily to avoid loops
+            ObjectReferenceType as_ref = (ObjectReferenceType) source;
+            AVariable v = new AVariable();
+            return v.lambda(new AStructureReference(as_ref.getSource().getPath()));
+        } else if (source instanceof FieldReferenceExpression) {
+            FieldReferenceExpression as_field_reference = (FieldReferenceExpression) source;
+            ALambdaTerm field_source = deriveNew(as_field_reference.getSource());
+            AVariable v = new AVariable();
+            ALambda field_operation = v.lambda(new AFieldReferenceType(v, as_field_reference.getName()));
+            return new AApplication(field_operation, field_source);
+        } else if (source instanceof ConstructorCallExpression) {
+            // Constructor calls return their own type - i.e. (\x.x).
+            ConstructorCallExpression as_constructor_call = (ConstructorCallExpression) source;
+            ALambdaTerm new_source = deriveNew(as_constructor_call.getType());
+            AVariable v = new AVariable();
+            ALambda new_operation = v.lambda(v);
+            return new AApplication(new_operation, new_source);
+        } else if (source instanceof SpecifiedType) {
+            SpecifiedType as_specified = (SpecifiedType) source;
+            ALambdaTerm spec_source = deriveNew(as_specified.getBase());
+            AVariable v = new AVariable("T0");
+            ALambda spec_operation = v.lambda(spec_source);
+            return new AApplication(spec_operation, deriveNew(as_specified.getParameters().get(0)));
+        } else if (source instanceof Argument) {
+            return AlgebraicType.deriveNew(((Argument) source).getOwnType());
+        } else if (source instanceof NumberExpression) {
+            AVariable v = new AVariable();
+            return v.lambda(new ABaseType("__numeric"));
+        }
+
+        throw new RuntimeException(source.getClass().getName());
+    }
+
+    @Deprecated
     public static AlgebraicType derive(ASTElement source) {
         return derive(source, new HashMap<>());
     }
 
+    @Deprecated
     static AlgebraicType derive(ASTElement source, Map<String, AlgebraicType> typemap) {
         if (cache.containsKey(source)) {
             return cache.get(source);
@@ -67,6 +141,7 @@ public abstract class AlgebraicType {
         return rc;
     }
 
+    @Deprecated
     static AlgebraicType _derive(ASTElement source, Map<String, AlgebraicType> typemap) {
         if (source instanceof NameExpression) {
             Optional<ASTElement> res = source.resolveName(((NameExpression) source).getName());
@@ -94,7 +169,7 @@ public abstract class AlgebraicType {
                 throw new IllegalArgumentException("derive unresolvable " + source.format());
             }
         } else if (source instanceof ObjectReferenceType) {
-            return new AObjectType((ObjectReferenceType) source, typemap);
+            return new AObjectTypeOld((ObjectReferenceType) source, typemap);
         } else if (source instanceof NewType) {
             return new AFreeType((NewType) source);
         } else if (source instanceof LambdaType) {
@@ -125,10 +200,10 @@ public abstract class AlgebraicType {
                 parameters.add(AlgebraicType.derive(e, typemap));
             }
 
-            return new ASpecify(base, parameters);
+            return new ASpecify(base, new HashMap<>());
         } else if (source instanceof GetStaticTableExpression || source instanceof ArithmeticExpression
                 || source instanceof ClassCastExpression || source instanceof BooleanInversionExpression) {
-            return new AStableType(((Expression) source).getType());
+            return new AStableTypeOld(((Expression) source).getType());
         } else if (source instanceof BooleanConstantExpression) {
             return new ABaseType("bool");
         } else if (source instanceof RawPointerType) {

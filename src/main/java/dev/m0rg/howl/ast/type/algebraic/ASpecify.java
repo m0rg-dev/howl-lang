@@ -11,28 +11,28 @@ import dev.m0rg.howl.logger.Logger;
 
 public class ASpecify extends AlgebraicType {
     AlgebraicType source;
-    List<AlgebraicType> parameters;
+    Map<String, AlgebraicType> parameters;
 
-    public ASpecify(AlgebraicType source, List<AlgebraicType> parameters) {
+    public ASpecify(AlgebraicType source, Map<String, AlgebraicType> parameters) {
         this.source = source;
         this.parameters = parameters;
     }
 
     public String format() {
         List<String> pstr = new ArrayList<>(parameters.size());
-        for (AlgebraicType e : parameters) {
-            pstr.add(e.format());
+        for (Entry<String, AlgebraicType> e : parameters.entrySet()) {
+            pstr.add(e.getKey() + " => " + e.getValue());
         }
 
-        return this.source.format() + " . (" + String.join(", ", pstr) + ")";
+        return this.source.format() + " . (" + String.join("\n", pstr) + ")";
     }
 
     public AlgebraicType getSource() {
         return source;
     }
 
-    public List<AlgebraicType> getParameters() {
-        return Collections.unmodifiableList(parameters);
+    public Map<String, AlgebraicType> getParameters() {
+        return Collections.unmodifiableMap(parameters);
     }
 
     public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {

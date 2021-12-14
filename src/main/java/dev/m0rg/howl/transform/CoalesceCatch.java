@@ -22,13 +22,10 @@ public class CoalesceCatch implements ASTTransformer {
             new_contents.add((Statement) contents.get(0).detach());
 
             for (int i = 1, j = 1; i < contents.size(); i++) {
-                Logger.trace("i " + contents.get(i).formatForLog());
-                Logger.trace("j - 1 " + new_contents.get(j - 1).formatForLog());
                 if (contents.get(i) instanceof CatchStatement) {
                     if (new_contents.get(j - 1) instanceof TryStatement) {
                         ((TryStatement) new_contents.get(j - 1))
                                 .insertAlternative((CatchStatement) contents.get(i).detach());
-                        Logger.trace("new " + new_contents.get(j - 1).formatForLog());
                     } else {
                         e.getSpan().addError("unattached catch statement");
                     }

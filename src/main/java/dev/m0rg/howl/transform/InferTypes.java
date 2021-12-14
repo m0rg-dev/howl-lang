@@ -1,13 +1,10 @@
 package dev.m0rg.howl.transform;
 
 import java.util.List;
-import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.FieldHandle;
-import dev.m0rg.howl.ast.HasUpstreamFields;
-import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ABaseType;
@@ -15,21 +12,16 @@ import dev.m0rg.howl.ast.type.algebraic.ACallResult;
 import dev.m0rg.howl.ast.type.algebraic.AFreeType;
 import dev.m0rg.howl.ast.type.algebraic.ASpecify;
 import dev.m0rg.howl.ast.type.algebraic.AStructureType;
+import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.logger.Logger;
 
 public class InferTypes implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
-        if (e instanceof HasUpstreamFields) {
+        if (e instanceof Expression) {
+            AVariable.reset();
             Logger.trace("InferTypes: " + e.formatForLog());
-            for (Entry<String, FieldHandle> ent : ((HasUpstreamFields) e).getUpstreamFields().entrySet()) {
-                AlgebraicType expected = ent.getValue().getExpectedType().evaluate();
-                AlgebraicType provided = AlgebraicType.derive(ent.getValue().getSubexpression());
-                Logger.trace(
-                        " " + ent.getKey() + " " + expected.formatForLog() + " <- "
-                                + provided.formatForLog());
-                findRelationships(expected, provided.evaluate());
-            }
+            Logger.trace(" => " + AlgebraicType.deriveNew(e).formatForLog());
             return e;
         } else {
             return e;
@@ -93,10 +85,10 @@ public class InferTypes implements ASTTransformer {
 
             findRelationships(e_specify.getSource(), p_specify.getSource());
 
-            List<AlgebraicType> e_params = e_specify.getParameters();
-            for (int i = 0; i < e_params.size(); i++) {
-                findRelationships(e_params.get(i), p_specify.getParameters().get(i));
-            }
+            // List<AlgebraicType> e_params = e_specify.getParameters();
+            // for (int i = 0; i < e_params.size(); i++) {
+            // findRelationships(e_params.get(i), p_specify.getParameters().get(i));
+            // }
         } else if (provided instanceof ACallResult) {
             findRelationships(expected, ((ACallResult) provided).evaluate());
         }

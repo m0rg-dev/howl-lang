@@ -9,12 +9,13 @@ import dev.m0rg.howl.ast.type.InterfaceStaticType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.logger.Logger;
 
-public class AStableType extends AStructureType {
-    public AStableType(TypeElement source) {
+@Deprecated
+public class AStableTypeOld extends AStructureType {
+    public AStableTypeOld(TypeElement source) {
         this.source = source;
     }
 
-    public AStableType(AStableType other, Map<String, AlgebraicType> evalmap) {
+    public AStableTypeOld(AStableTypeOld other, Map<String, AlgebraicType> evalmap) {
         super(other, evalmap);
     }
 
@@ -47,6 +48,6 @@ public class AStableType extends AStructureType {
     }
 
     public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
-        return new AStableType(this, evalmap);
+        return new AStableTypeOld(this, evalmap);
     }
 }
