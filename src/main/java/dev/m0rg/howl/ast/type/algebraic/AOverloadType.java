@@ -58,4 +58,17 @@ public class AOverloadType extends ALambdaTerm {
             throw new RuntimeException();
         }
     }
+
+    public ALambdaTerm getArgument(int index) {
+        List<Function> candidates = source.getSource().getOverloadCandidates(source.getName());
+        if (candidates.size() == 1) {
+            ALambdaTerm rc = AlgebraicType.deriveNew(candidates.get(0).getArgumentList().get(index).getOwnType());
+            for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+                rc = rc.substitute(s.getKey(), s.getValue());
+            }
+            return rc;
+        } else {
+            throw new RuntimeException();
+        }
+    }
 }

@@ -14,14 +14,6 @@ import dev.m0rg.howl.ast.type.TypeElement;
 // reorg...
 public class CombTypes implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
-        if (e instanceof NewType) {
-            if (e.getParent() instanceof NewType) {
-                if (e.nearestNameHolder().getChild(((NewType) e).getName()).isPresent()) {
-                    NewType target = (NewType) e.nearestNameHolder().getChild(((NewType) e).getName()).get();
-                    target.setResolution((TypeElement) ((NewType) e).getResolution().get().detach());
-                }
-            }
-        }
         return e;
     }
 }

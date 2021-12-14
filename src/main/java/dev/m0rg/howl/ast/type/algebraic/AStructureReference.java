@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -62,5 +63,9 @@ public class AStructureReference extends ALambdaTerm implements AStructureType {
             rc = rc.substitute(s.getKey(), s.getValue());
         }
         return rc;
+    }
+
+    public Map<String, ALambdaTerm> getSubstitutions() {
+        return Collections.unmodifiableMap(substitutions);
     }
 }

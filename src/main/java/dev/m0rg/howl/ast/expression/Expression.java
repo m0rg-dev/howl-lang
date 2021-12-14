@@ -5,7 +5,6 @@ import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.TypeElement;
-import dev.m0rg.howl.ast.type.algebraic.ASpecify;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
 

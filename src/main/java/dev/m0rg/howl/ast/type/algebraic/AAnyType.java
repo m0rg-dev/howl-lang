@@ -1,20 +1,18 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.TypeElement;
-
-public class AAnyType extends AlgebraicType {
+public class AAnyType extends ALambdaTerm {
     public String format() {
         return "Any";
     }
 
-    public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
-        return this;
+    public Set<String> freeVariables() {
+        return new HashSet<>();
     }
 
-    public TypeElement toElement() {
-        return NamedType.build(null, "__any");
+    public ALambdaTerm substitute(String from, ALambdaTerm to) {
+        return this;
     }
 }

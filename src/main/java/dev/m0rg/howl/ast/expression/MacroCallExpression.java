@@ -12,6 +12,7 @@ import dev.m0rg.howl.ast.type.NumericType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntType;
@@ -67,7 +68,7 @@ public class MacroCallExpression extends CallExpressionBase {
     }
 
     @Override
-    protected AlgebraicType getTypeForArgument(int index) {
+    protected ALambdaTerm getTypeForArgument(int index) {
         return new AAnyType();
     }
 

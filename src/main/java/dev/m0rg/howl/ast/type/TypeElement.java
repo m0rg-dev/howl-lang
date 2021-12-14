@@ -58,8 +58,7 @@ public abstract class TypeElement extends ASTElement {
             } else if (rc instanceof NewType) {
                 NewType nt = (NewType) rc;
                 if (nt.getResolution().isPresent()) {
-                    rc = nt.getResolution().get();
-                    continue;
+                    throw new RuntimeException();
                 } else {
                     return nt;
                 }
@@ -110,8 +109,7 @@ public abstract class TypeElement extends ASTElement {
             } else if (rc instanceof NewType) {
                 NewType nt = (NewType) rc;
                 if (nt.getResolution().isPresent()) {
-                    rc = nt.getResolution().get();
-                    continue;
+                    throw new RuntimeException();
                 } else {
                     return Optional.empty();
                 }

@@ -41,7 +41,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
         Class rc = new Class(span, name, new ArrayList<>(generics));
         for (Entry<String, NewType> generic : generic_types.entrySet()) {
             if (generic.getValue().getResolution().isPresent()) {
-                rc.setGeneric(generic.getKey(), (TypeElement) generic.getValue().getResolution().get().detach());
+                rc.setGeneric(generic.getKey(), generic.getValue().getResolution().get());
             }
         }
 

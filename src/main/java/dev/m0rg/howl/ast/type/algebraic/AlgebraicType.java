@@ -1,47 +1,25 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import org.bytedeco.javacpp.annotation.Const;
 
 import dev.m0rg.howl.Compiler;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Argument;
-import dev.m0rg.howl.ast.Function;
-import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Overload;
-import dev.m0rg.howl.ast.expression.ArithmeticExpression;
-import dev.m0rg.howl.ast.expression.BooleanConstantExpression;
-import dev.m0rg.howl.ast.expression.BooleanInversionExpression;
-import dev.m0rg.howl.ast.expression.ClassCastExpression;
 import dev.m0rg.howl.ast.expression.ConstructorCallExpression;
-import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
 import dev.m0rg.howl.ast.expression.FunctionCallExpression;
-import dev.m0rg.howl.ast.expression.GetStaticTableExpression;
-import dev.m0rg.howl.ast.expression.IndexExpression;
-import dev.m0rg.howl.ast.expression.MacroCallExpression;
 import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.NumberExpression;
-import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
-import dev.m0rg.howl.ast.expression.StringLiteral;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
-import dev.m0rg.howl.ast.type.FunctionType;
-import dev.m0rg.howl.ast.type.HasOwnType;
-import dev.m0rg.howl.ast.type.LambdaType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
-import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
-import dev.m0rg.howl.logger.Logger;
 
 public abstract class AlgebraicType {
     public static AlgebraicType todo() {
@@ -87,9 +65,9 @@ public abstract class AlgebraicType {
         } else if (source instanceof NewType) {
             NewType as_newtype = (NewType) source;
             if (as_newtype.getIndex() >= 0) {
-                return new AVariable("T" + as_newtype.getIndex());
+                return new ANewtype(as_newtype, "T" + as_newtype.getIndex());
             } else {
-                return new AVariable(as_newtype.getPath());
+                return new ANewtype(as_newtype);
             }
         } else if (source instanceof ObjectReferenceType) {
             // we'll need to evaluate these lazily to avoid loops

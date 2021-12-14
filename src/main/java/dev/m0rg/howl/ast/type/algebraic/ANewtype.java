@@ -4,39 +4,30 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-public class AVariable extends ALambdaTerm {
-    static long counter = 0;
+import dev.m0rg.howl.ast.type.NewType;
+
+public class ANewtype extends ALambdaTerm implements Applicable {
     String name;
+    NewType source;
 
-    public static void reset() {
-        counter = 0;
+    public ANewtype(NewType source) {
+        name = source.getPath();
+        this.source = source;
     }
 
-    public AVariable() {
-        name = Long.toString(counter);
-        counter++;
-    }
-
-    public AVariable(String name) {
+    public ANewtype(NewType source, String name) {
         this.name = name;
+        this.source = source;
     }
 
     @Override
     public String format() {
-        return "'" + name;
+        return "@" + name;
     }
 
     @Override
     public Set<String> freeVariables() {
         return new HashSet<>(Arrays.asList(new String[] { name }));
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public ALambda lambda(ALambdaTerm definition) {
-        return new ALambda(name, definition);
     }
 
     @Override
@@ -47,6 +38,15 @@ public class AVariable extends ALambdaTerm {
         } else {
             // y[x := r] -> y
             return this;
+        }
+    }
+
+    @Override
+    public ALambdaTerm apply() {
+        if (source.isResolved()) {
+            return source.getResolution().get();
+        } else {
+            return new AVariable(name);
         }
     }
 }

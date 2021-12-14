@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.NamedType;
@@ -16,6 +17,7 @@ import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 
 public abstract class ObjectCommon extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     String name;
@@ -48,7 +50,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         this.ext = Optional.of((NamedType) ext.setParent(this));
     }
 
-    public void setGeneric(String name, TypeElement res) {
+    public void setGeneric(String name, ALambdaTerm res) {
         this.generic_types.get(name).setResolution(res);
     }
 
@@ -194,7 +196,17 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
 
     public Optional<ASTElement> getChild(String name) {
         if (name.equals("Self")) {
-            return Optional.of(this);
+            if (this.isGeneric()) {
+                SpecifiedType rc = new SpecifiedType(span);
+                rc.setBase((TypeElement) this.getOwnType().detach());
+                for (Entry<String, NewType> t : this.generic_types.entrySet()) {
+                    rc.insertParameter((TypeElement) t.getValue().detach());
+                }
+                rc.setParent(this.getParent());
+                return Optional.of(rc);
+            } else {
+                return Optional.of(this);
+            }
         }
 
         if (this.generic_types.containsKey(name)) {
@@ -228,8 +240,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         for (int i = 0; i < spec.getParameters().size(); i++) {
             TypeElement p = spec.getParameters().get(i);
             p = (TypeElement) p.detach();
-            specified.setGeneric(specified.getGenericNames().get(i),
-                    p);
+            throw new RuntimeException();
         }
         specified.clearGenerics();
         return specified;

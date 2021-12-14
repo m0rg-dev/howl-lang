@@ -11,8 +11,9 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.TypeElement;
-import dev.m0rg.howl.ast.type.algebraic.AFunctionType;
-import dev.m0rg.howl.ast.type.algebraic.AStructureType;
+import dev.m0rg.howl.ast.type.algebraic.AExtractArgument;
+import dev.m0rg.howl.ast.type.algebraic.AFieldReferenceType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
@@ -61,16 +62,9 @@ public class ConstructorCallExpression extends CallExpressionBase {
     }
 
     @Override
-    protected AlgebraicType getTypeForArgument(int index) {
-        AlgebraicType source_type = AlgebraicType.derive(source).evaluate();
-
-        if (source_type instanceof AStructureType) {
-            AStructureType st = (AStructureType) source_type;
-            AFunctionType constructor_type = (AFunctionType) st.getField("constructor");
-            return constructor_type.getArgument(index + 1);
-        } else {
-            throw new RuntimeException();
-        }
+    protected ALambdaTerm getTypeForArgument(int index) {
+        return new AExtractArgument(new AFieldReferenceType(AlgebraicType.deriveNew(source), "constructor"),
+                index + 1);
     }
 
     @Override

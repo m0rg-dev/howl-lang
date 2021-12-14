@@ -73,7 +73,7 @@ public class LocalDefinitionStatement extends Statement implements NamedElement,
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("initializer", new FieldHandle(() -> this.getInitializer(), (e) -> this.setInitializer(e),
-                () -> AlgebraicType.derive(localtype)));
+                () -> AlgebraicType.deriveNew(localtype)));
         return rc;
     }
 
