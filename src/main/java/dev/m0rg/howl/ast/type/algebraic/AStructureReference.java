@@ -23,6 +23,10 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         this.substitutions = new HashMap<>();
     }
 
+    public ObjectReferenceType getSource() {
+        return source;
+    }
+
     @Override
     public String format() {
         if (substitutions.isEmpty()) {
@@ -101,10 +105,13 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
     public boolean accepts(ALambdaTerm other) {
         if (other instanceof AStructureReference) {
             AStructureReference other_ref = (AStructureReference) other;
-            if (other_ref.source.getSource().getPath().equals(source.getSource().getPath())) {
+
+            if (source.accepts(other_ref.source)) {
                 if (other_ref.substitutions.size() == substitutions.size()) {
                     for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
-                        if (!s.getValue().accepts(other_ref.substitutions.get(s.getKey()))) {
+                        // structure types have to be equal, not just accepting
+                        // to avoid generic havoc later.
+                        if (!s.getValue().equals(other_ref.substitutions.get(s.getKey()))) {
                             return false;
                         }
                     }
@@ -114,6 +121,8 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             } else {
                 return false;
             }
+        } else if (other instanceof AVariable || other instanceof AAnyType) {
+            return true;
         } else {
             return false;
         }

@@ -49,4 +49,15 @@ public class ANewtype extends ALambdaTerm implements Applicable {
             return new AVariable(name);
         }
     }
+
+    @Override
+    public boolean accepts(ALambdaTerm other) {
+        if (other instanceof ANewtype) {
+            return ((ANewtype) other).name.equals(name);
+        } else if (other instanceof AAnyType || other instanceof AVariable) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

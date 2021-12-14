@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast.expression;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,10 @@ public class SpecifiedTypeExpression extends Expression {
 
     public void setSource(Expression source) {
         this.source = (Expression) source.setParent(this);
+    }
+
+    public List<TypeElement> getParameters() {
+        return Collections.unmodifiableList(parameters);
     }
 
     public TypeElement getParameter(int index) {

@@ -15,4 +15,9 @@ public class AAnyType extends ALambdaTerm {
     public ALambdaTerm substitute(String from, ALambdaTerm to) {
         return this;
     }
+
+    @Override
+    public boolean accepts(ALambdaTerm other) {
+        return true;
+    }
 }

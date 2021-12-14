@@ -36,4 +36,14 @@ public abstract class ALambdaTerm extends AlgebraicType {
     public boolean accepts(ALambdaTerm other) {
         throw new UnsupportedOperationException(this.getClass().getName());
     }
+
+    /**
+     * Predicate for whether this ALambdaTerm identifies a type that's
+     * equivalent to {@code other} by checking both {@code this <- other} and
+     * {@code other <- this}.For simplicity, both {@code this} and {@code other}
+     * are assumed to already be in β-normal form.
+     */
+    public boolean equals(ALambdaTerm other) {
+        return this.accepts(other) && other.accepts(this);
+    }
 }

@@ -199,7 +199,7 @@ public class Compiler {
 
         Path stdlib_path = FileSystems.getDefault().getPath("stdlib/").toAbsolutePath();
 
-        // cc.ingestDirectory(stdlib_path, "lib");
+        cc.ingestDirectory(stdlib_path, "lib");
         cc.ingest(FileSystems.getDefault().getPath(args[0]).toAbsolutePath(), "main");
 
         cc.root_module.transform(new CoalesceElse());
@@ -211,7 +211,7 @@ public class Compiler {
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new ConvertStrings());
         // cc.root_module.transform(new ConvertIndexLvalue());
-        // cc.root_module.transform(new ConvertCustomOverloads());
+        cc.root_module.transform(new ConvertCustomOverloads());
 
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());

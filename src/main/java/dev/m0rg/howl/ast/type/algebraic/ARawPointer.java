@@ -1,14 +1,11 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
-import java.util.Map;
+import java.util.Set;
 
-import dev.m0rg.howl.ast.type.RawPointerType;
-import dev.m0rg.howl.ast.type.TypeElement;
+public class ARawPointer extends ALambdaTerm {
+    ALambdaTerm source;
 
-public class ARawPointer extends AlgebraicType {
-    AlgebraicType source;
-
-    public ARawPointer(AlgebraicType source) {
+    public ARawPointer(ALambdaTerm source) {
         this.source = source;
     }
 
@@ -16,13 +13,24 @@ public class ARawPointer extends AlgebraicType {
         return "*" + source.format();
     }
 
-    public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
-        return new ARawPointer(source.evaluate(evalmap));
+    @Override
+    public Set<String> freeVariables() {
+        return source.freeVariables();
     }
 
-    public TypeElement toElement() {
-        RawPointerType rc = new RawPointerType(null);
-        rc.setInner((TypeElement) source.toElement().detach());
-        return rc;
+    @Override
+    public ALambdaTerm substitute(String from, ALambdaTerm to) {
+        return new ARawPointer(source.substitute(from, to));
+    }
+
+    @Override
+    public boolean accepts(ALambdaTerm other) {
+        if (other instanceof ARawPointer) {
+            return source.equals(((ARawPointer) other).source);
+        } else if (other instanceof AAnyType || other instanceof AVariable) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

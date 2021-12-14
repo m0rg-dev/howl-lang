@@ -1,24 +1,42 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.Map;
+import java.util.Set;
 
-public class AIndexResult extends AlgebraicType {
-    AlgebraicType source;
+public class AIndexResult extends ALambdaTerm implements Applicable {
+    ALambdaTerm source;
 
-    public AIndexResult(AlgebraicType source) {
+    public AIndexResult(ALambdaTerm source) {
         this.source = source;
     }
 
     public String format() {
-        return this.source.format() + ".[]";
+        return "index " + this.source.format();
     }
 
     @Override
-    public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
-        AlgebraicType source_type = source.evaluate(evalmap);
-        if (source_type instanceof ARawPointer) {
-            return ((ARawPointer) source_type).source.evaluate(evalmap);
+    public Set<String> freeVariables() {
+        return source.freeVariables();
+    }
+
+    @Override
+    public ALambdaTerm substitute(String from, ALambdaTerm to) {
+        return new AIndexResult(source.substitute(from, to));
+    }
+
+    @Override
+    public boolean isApplicable() {
+        return (source instanceof Applicable && ((Applicable) source).isApplicable()) || source instanceof ARawPointer;
+    }
+
+    @Override
+    public ALambdaTerm apply() {
+        if (source instanceof Applicable && ((Applicable) source).isApplicable()) {
+            return new AIndexResult(((Applicable) source).apply());
+        } else if (source instanceof ARawPointer) {
+            return ((ARawPointer) source).source;
+        } else {
+            throw new RuntimeException();
         }
-        throw new RuntimeException(source_type.format());
     }
 }

@@ -74,4 +74,11 @@ public class NumericType extends NamedType {
     public LLVMType generate(LLVMModule module) {
         return new LLVMIntType(module.getContext(), width);
     }
+
+    public NumericType intersect(NumericType other) {
+        int width = Math.min(this.width, other.width);
+        // TODO
+        boolean signed = this.signed;
+        return NumericType.build(span, width, signed);
+    }
 }

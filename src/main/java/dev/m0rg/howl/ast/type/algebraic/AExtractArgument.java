@@ -50,8 +50,8 @@ public class AExtractArgument extends ALambdaTerm implements Applicable {
 
         if (source instanceof Applicable && ((Applicable) source).isApplicable()) {
             return new AExtractArgument(((Applicable) source).apply(), args, index);
-        } else if (source instanceof AOverloadType) {
-            return ((AOverloadType) source).getArgument(index, args);
+        } else if (source instanceof AFunctionType) {
+            return ((AFunctionType) source).getArgument(index, args);
         }
         throw new RuntimeException();
     }

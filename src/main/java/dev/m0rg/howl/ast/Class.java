@@ -15,6 +15,10 @@ import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambda;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMFunction;
@@ -144,9 +148,9 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
 
     public boolean doesImplement(InterfaceType t) {
         for (TypeElement imp : this.interfaces()) {
-            TypeElement res = imp.resolve();
-            if (res instanceof InterfaceType) {
-                if (t.getPath().equals(((InterfaceType) res).getPath())) {
+            ALambdaTerm res = ALambdaTerm.evaluate(AlgebraicType.deriveNew(imp));
+            if (res instanceof AStructureReference) {
+                if (t.getSource().getPath().equals(((AStructureReference) res).getSource().getSource().getPath())) {
                     return true;
                 }
             }

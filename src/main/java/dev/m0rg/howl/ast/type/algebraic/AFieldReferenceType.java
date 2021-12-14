@@ -13,7 +13,7 @@ public class AFieldReferenceType extends ALambdaTerm implements Applicable {
 
     @Override
     public String format() {
-        return this.source.format() + "." + this.name;
+        return this.source.format() + "->" + this.name;
     }
 
     @Override

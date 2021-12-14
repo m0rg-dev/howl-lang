@@ -3,6 +3,9 @@ package dev.m0rg.howl.ast.type.algebraic;
 import java.util.HashSet;
 import java.util.Set;
 
+import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.NumericType;
+
 public class ABaseType extends ALambdaTerm {
     String name;
 
@@ -29,7 +32,25 @@ public class ABaseType extends ALambdaTerm {
     @Override
     public boolean accepts(ALambdaTerm other) {
         if (other instanceof ABaseType) {
-            return ((ABaseType) other).name.equals(name);
+            if (((ABaseType) other).name.equals(name)) {
+                return true;
+            } else {
+                NamedType t_this = NamedType.build(null, name);
+                NamedType t_other = NamedType.build(null, ((ABaseType) other).name);
+                if (t_this instanceof NumericType && t_other instanceof NumericType) {
+                    if (((NumericType) t_other).isLiteral()) {
+                        return true;
+                    } else if (((NumericType) t_other).getWidth() >= ((NumericType) t_this).getWidth()) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        } else if (other instanceof AVariable || other instanceof AAnyType) {
+            return true;
         } else {
             return false;
         }

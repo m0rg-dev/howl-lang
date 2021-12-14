@@ -74,7 +74,7 @@ public class CompilationError {
             rc.append("^".repeat(end.column - start.column));
             rc.append("\u001b[0m\n");
         } else {
-            for (int l = start.line; l < end.line; l++) {
+            for (int l = start.line; l <= end.line; l++) {
                 rc.append(String.format("   \u001b[32m%5d\u001b[0m %s\n", l, lines_in_play.get(l - start.line)));
             }
         }

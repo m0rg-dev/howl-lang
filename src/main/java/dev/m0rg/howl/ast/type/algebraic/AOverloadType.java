@@ -12,7 +12,7 @@ import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Overload;
 import dev.m0rg.howl.logger.Logger;
 
-public class AOverloadType extends ALambdaTerm implements Applicable {
+public class AOverloadType extends AFunctionType implements Applicable {
     Overload source;
     Map<String, ALambdaTerm> substitutions;
 
@@ -67,14 +67,17 @@ public class AOverloadType extends ALambdaTerm implements Applicable {
                     })
                     .toList();
 
+            int index_offset = 0;
             // slight hack to deal with methods having self as the first argument
-            candidate_types = candidate_types.subList(1, candidate_types.size());
+            if (!candidate.isStatic()) {
+                index_offset = 1;
+            }
 
             Logger.trace("  candidate: " + candidate.getName() + "{"
                     + String.join(", ", candidate_types.stream().map(x -> x.format()).toList()) + "}");
-            if (candidate_types.size() == argtypes.size()) {
-                for (int i = 0; i < candidate_types.size(); i++) {
-                    if (!candidate_types.get(i).accepts(argtypes.get(i))) {
+            if (candidate_types.size() == argtypes.size() + index_offset) {
+                for (int i = index_offset; i < candidate_types.size(); i++) {
+                    if (!candidate_types.get(i).accepts(argtypes.get(i - index_offset))) {
                         Logger.trace("  => mismatch at position " + i);
                         continue outer;
                     }
@@ -102,7 +105,13 @@ public class AOverloadType extends ALambdaTerm implements Applicable {
     public ALambdaTerm getArgument(int index, List<ALambdaTerm> argtypes) {
         Function candidate = select(argtypes);
 
-        ALambdaTerm rc = AlgebraicType.deriveNew(candidate.getArgumentList().get(index).getOwnType());
+        int index_offset = 0;
+        // slight hack to deal with methods having self as the first argument
+        if (!candidate.isStatic()) {
+            index_offset = 1;
+        }
+
+        ALambdaTerm rc = AlgebraicType.deriveNew(candidate.getArgumentList().get(index + index_offset).getOwnType());
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
             rc = rc.substitute(s.getKey(), s.getValue());
         }

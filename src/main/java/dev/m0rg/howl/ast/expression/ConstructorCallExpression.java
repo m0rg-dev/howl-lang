@@ -68,7 +68,7 @@ public class ConstructorCallExpression extends CallExpressionBase {
             arg_types.add(AlgebraicType.deriveNew(e));
         }
         return new AExtractArgument(new AFieldReferenceType(AlgebraicType.deriveNew(source), "constructor"),
-                arg_types, index + 1);
+                arg_types, index);
     }
 
     @Override
