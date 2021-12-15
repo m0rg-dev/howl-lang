@@ -387,7 +387,9 @@ GenericList -> Result<CSTElement<'input>, ()>:
 
 GenericListInner -> Result<Vec<CSTElement<'input>>, ()>:
     Identifier { Ok(vec![$1?]) }
+    | Identifier ':' TypeParameterList { Ok(vec![CSTElement::TypeConstraint{span: $span.into(), source: alloc($1?), ctype: alloc($3?) }]) }
     | GenericListInner ',' Identifier { flatten($1, $3) }
+    | GenericListInner ',' Identifier ':' TypeParameterList { flatten($1, Ok(CSTElement::TypeConstraint{span: $span.into(), source: alloc($3?), ctype: alloc($5?)})) }
     ;
 
 Identifier -> Result<CSTElement<'input>, ()>:

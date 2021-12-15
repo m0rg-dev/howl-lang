@@ -1,3 +1,17 @@
+interface Hash {
+    fn i32 hashCode();
+}
+
+interface Eq {
+    fn bool equals(Self other);
+}
+
+class HashMap<K: <Hash, Eq>, V> {
+    fn void put(K key, V value) {
+        return;
+    }
+}
+
 class Entry<K, V> {
     K entry;
     V value;

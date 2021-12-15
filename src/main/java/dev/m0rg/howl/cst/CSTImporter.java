@@ -60,6 +60,7 @@ import dev.m0rg.howl.ast.type.LambdaType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
+import dev.m0rg.howl.ast.type.TypeConstraint;
 import dev.m0rg.howl.ast.type.TypeElement;
 
 public class CSTImporter {
@@ -121,6 +122,8 @@ public class CSTImporter {
                 return this.parseFunction(inner_obj);
             case "FunctionType":
                 return this.parseFunctionType(inner_obj);
+            case "Identifier":
+                return this.parseIdentifier(inner_obj);
             case "IfStatement":
                 return this.parseIfStatement(inner_obj);
             case "IndexExpression":
@@ -155,6 +158,8 @@ public class CSTImporter {
                 return this.parseThrowStatement(inner_obj);
             case "TryStatement":
                 return this.parseTryStatement(inner_obj);
+            case "TypeConstraint":
+                return this.parseTypeConstraint(inner_obj);
             case "TypedArgument":
                 return this.parseTypedArgument(inner_obj);
             case "WhileStatement":
@@ -285,8 +290,12 @@ public class CSTImporter {
         if (!source.get("generics").isJsonNull()) {
             JsonArray generics_raw = chain(source, "generics", "GenericList").get("names").getAsJsonArray();
             for (JsonElement el : generics_raw) {
-                Identifier parsed = parseIdentifier(el.getAsJsonObject().get("Identifier").getAsJsonObject());
-                generics.add(parsed.getName());
+                ASTElement parsed = parseElement(el);
+                if (parsed instanceof Identifier) {
+                    generics.add(((Identifier) parsed).getName());
+                } else if (parsed instanceof TypeConstraint) {
+                    generics.add(((TypeConstraint) parsed).getName());
+                }
             }
         }
 
@@ -697,6 +706,23 @@ public class CSTImporter {
             rc.setBody((CompoundStatement) body);
         } else {
             throw new IllegalArgumentException();
+        }
+
+        return rc;
+    }
+
+    TypeConstraint parseTypeConstraint(JsonObject source) {
+        ASTElement base = parseElement(source.get("source"));
+        TypeConstraint rc = new TypeConstraint(extractSpan(source), ((Identifier) base).getName());
+
+        JsonArray parameters_raw = chain(source, "ctype", "TypeParameterList").get("parameters").getAsJsonArray();
+        for (JsonElement el : parameters_raw) {
+            ASTElement parameter = parseElement(el);
+            if (parameter instanceof TypeElement) {
+                rc.insertConstraint((TypeElement) parameter);
+            } else {
+                throw new IllegalArgumentException();
+            }
         }
 
         return rc;

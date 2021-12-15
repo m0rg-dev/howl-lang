@@ -248,4 +248,9 @@ pub enum CSTElement<'a> {
         span: SerializableSpan,
         source: &'a CSTElement<'a>,
     },
+    TypeConstraint {
+        span: SerializableSpan,
+        source: &'a CSTElement<'a>,
+        ctype: &'a CSTElement<'a>,
+    },
 }

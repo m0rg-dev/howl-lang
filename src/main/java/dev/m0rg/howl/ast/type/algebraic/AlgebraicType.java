@@ -1,5 +1,8 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import dev.m0rg.howl.Compiler;
@@ -84,7 +87,9 @@ public abstract class AlgebraicType {
 
             int i = 0;
             ALambdaTerm rc = derive(as_specified.getBase());
-            for (TypeElement t : as_specified.getParameters()) {
+            List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
+            Collections.reverse(parameters);
+            for (TypeElement t : parameters) {
                 AVariable v = new AVariable("T" + i);
                 ALambda spec_operation = v.lambda(rc);
                 rc = new AApplication(spec_operation, derive(t));
