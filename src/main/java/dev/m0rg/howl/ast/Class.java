@@ -9,13 +9,15 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
-import dev.m0rg.howl.ast.type.ClassStaticType;
 import dev.m0rg.howl.ast.type.ClassType;
-import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMFunction;
@@ -29,7 +31,7 @@ import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
 
-public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevelItems {
+public class Class extends ObjectCommon implements GeneratesTopLevelItems {
     List<TypeElement> impl;
 
     public Class(Span span, String name, List<String> generics) {
@@ -42,7 +44,7 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
         Class rc = new Class(span, name, new ArrayList<>(generics));
         for (Entry<String, NewType> generic : generic_types.entrySet()) {
             if (generic.getValue().getResolution().isPresent()) {
-                rc.setGeneric(generic.getKey(), (TypeElement) generic.getValue().getResolution().get().detach());
+                rc.setGeneric(generic.getKey(), generic.getValue().getResolution().get());
             }
         }
 
@@ -51,7 +53,7 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
         }
 
         for (Function method : methods) {
-            rc.insertMethod((Function) method.detach());
+            rc.insertMethodUnchecked((Function) method.detach());
         }
 
         if (ext.isPresent()) {
@@ -61,6 +63,8 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
         for (TypeElement imp : this.impl) {
             rc.insertImplementation((TypeElement) imp.detach());
         }
+
+        rc.original = original;
 
         return rc;
     }
@@ -145,9 +149,9 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
 
     public boolean doesImplement(InterfaceType t) {
         for (TypeElement imp : this.interfaces()) {
-            TypeElement res = imp.resolve();
-            if (res instanceof InterfaceType) {
-                if (t.getPath().equals(((InterfaceType) res).getPath())) {
+            ALambdaTerm res = ALambdaTerm.evaluate(AlgebraicType.derive(imp));
+            if (res instanceof AStructureReference) {
+                if (t.getSource().getPath().equals(((AStructureReference) res).getSource().getSource().getPath())) {
                     return true;
                 }
             }
@@ -172,17 +176,13 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
         return (ClassType) new ClassType(span, this.getPath()).setParent(this);
     }
 
-    public ClassStaticType getStaticType() {
-        return (ClassStaticType) new ClassStaticType(span, this.getPath()).setParent(this);
-    }
-
     @Override
     public void generate(LLVMModule module) {
         ;
     }
 
     public void generateMethods(LLVMModule module) {
-        if (this.generics.isEmpty()) {
+        if (!this.isGeneric()) {
             List<LLVMConstant> methods = new ArrayList<>();
             LLVMConstant str = module.stringConstant(this.getPath());
             LLVMGlobalVariable name_var = module.getOrInsertGlobal(str.getType(), this.getPath() + "_name");
@@ -190,141 +190,147 @@ public class Class extends ObjectCommon implements HasOwnType, GeneratesTopLevel
 
             methods.add(name_var
                     .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
+            methods.add(this.getParentTable(module));
 
-            if (this.ext.isPresent()) {
-                Class ext = ((ClassType) this.ext.get().resolve()).getSource();
-                LLVMStructureType parent_type = ext.getStaticType().generate(module);
-                LLVMGlobalVariable parent_stable = module.getOrInsertGlobal(
-                        parent_type,
-                        ext.getPath() + "_static");
-                methods.add(parent_stable
-                        .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
-            } else {
-                methods.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)).getNull(module));
-            }
-
-            for (String name : this.getMethodNames()) {
-                if (this.isOwnMethod(name)) {
-                    Function m = this.getMethod(name).get();
-                    Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
-                    methods.add(m.generate(module));
-                } else {
-                    Function f = (Function) this.getMethod(name).get();
-                    LLVMFunctionType type = (LLVMFunctionType) f.getOwnType().resolve().generate(module);
-
-                    Logger.trace("declaring: " + f.getPath() + " (" + module.getName() + ")");
-                    if (f.is_extern) {
-                        methods.add(module.getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true));
-                    } else {
-                        methods.add(module.getOrInsertFunction(type, f.getPath(), x -> x.setExternal(), true));
-                    }
-                }
-            }
-
-            for (Field f : this.getFields()) {
+            methods.addAll(this.generateMethodList(module));
+            for (Field f : getFields()) {
                 if (f.isStatic()) {
-                    methods.add(f.getOwnType().resolve().generate(module).getNull(module));
+                    methods.add(ALambdaTerm.evaluateFrom(f.getOwnType()).toLLVM(module).getNull(module));
                 }
             }
 
-            LLVMStructureType static_type = this.getStaticType().generate(module);
-            LLVMGlobalVariable g = module.getOrInsertGlobal(static_type, this.getPath() + "_static");
+            AStructureReference this_type = (AStructureReference) ALambdaTerm.evaluateFrom(this.getOwnType());
+            LLVMStructureType static_type = this_type.generateStaticType(module);
+            LLVMGlobalVariable static_global = module.getOrInsertGlobal(static_type, this.getPath() + "_static");
             LLVMConstant stable = static_type.createConstant(module.getContext(), methods);
-            g.setInitializer(stable);
+            static_global.setInitializer(stable);
 
-            for (TypeElement itype : this.interfaces()) {
-                InterfaceType res = (InterfaceType) itype.resolve();
-                LLVMStructureType itable_type = res.getSource().getStaticType().generate(module);
-                LLVMGlobalVariable itable = module.getOrInsertGlobal(itable_type,
-                        this.getPath() + "_interface_" + res.getSource().getPath());
-                List<LLVMConstant> imethods = new ArrayList<>();
-
-                imethods.add(name_var
-                        .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
-
-                if (this.ext.isPresent()) {
-                    Class ext = ((ClassType) this.ext.get().resolve()).getSource();
-                    LLVMStructureType parent_type = ext.getStaticType().generate(module);
-                    LLVMGlobalVariable parent_stable = module.getOrInsertGlobal(
-                            parent_type,
-                            ext.getPath() + "_static");
-                    imethods.add(parent_stable
-                            .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
-                } else {
-                    imethods.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)).getNull(module));
-                }
-
-                for (String name : res.getSource().getMethodNames()) {
-                    Function m = this.getMethod(name).get();
-                    LLVMType method_type = res.getSource().getMethod(name).get().getOwnType().generate(module);
-                    LLVMFunction generated;
-                    if (this.isOwnMethod(name)) {
-                        Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
-                        generated = m.generate(module);
-                    } else {
-                        LLVMFunctionType type = (LLVMFunctionType) m.getOwnType().resolve().generate(module);
-
-                        Logger.trace("declaring: " + m.getPath() + " (" + module.getName() + ")");
-                        if (m.is_extern) {
-                            generated = module.getOrInsertFunction(type, m.getOriginalName(), x -> x.setExternal(),
-                                    true);
-                        } else {
-                            generated = module.getOrInsertFunction(type, m.getPath(), x -> x.setExternal(), true);
-                        }
-                    }
-                    imethods.add(generated.cast(new LLVMPointerType<LLVMType>(method_type)));
-                }
-                itable.setInitializer(itable_type.createConstant(module.getContext(), imethods));
-            }
-
-            LLVMFunction allocator = getAllocator(module);
-            try (LLVMBuilder builder = new LLVMBuilder(allocator.getModule())) {
-                allocator.appendBasicBlock("entry");
-                builder.positionAtEnd(allocator.lastBasicBlock());
-                LLVMStructureType object_type = this.getOwnType().generateObjectType(module);
-                LLVMValue object_allocation = builder.buildCall(module.getFunction("calloc").get(),
-                        Arrays.asList(new LLVMValue[] {
-                                (new LLVMIntType(module.getContext(), 64)).getConstant(module, 1),
-                                builder.buildSizeofHack(object_type)
-                        }), "");
-                LLVMValue alloca = builder.buildAlloca(this.getOwnType().generate(module), "");
-                LLVMValue object_pointer = builder.buildStructGEP(this.getOwnType().generate(module), alloca, 0,
-                        "");
-                builder.buildStore(builder.buildBitcast(object_allocation, new LLVMPointerType<>(object_type), ""),
-                        object_pointer);
-                LLVMValue stable_pointer = builder.buildStructGEP(this.getOwnType().generate(module), alloca, 1,
-                        "");
-                builder.buildStore(g, stable_pointer);
-
-                Optional<Function> constructor = this.getConstructor();
-                if (constructor.isPresent()) {
-                    List<LLVMValue> cargs = new ArrayList<LLVMValue>();
-                    cargs.add(builder.buildLoad(alloca, ""));
-                    for (int i = 0; i < constructor.get().getArgumentList().size() - 1; i++) {
-                        cargs.add(allocator.getParam(i));
-                    }
-                    builder.buildCall(constructor.get().generate(module), cargs, "");
-                }
-
-                builder.buildReturn(builder.buildLoad(alloca, ""));
-            }
+            this.generateAllocator(module);
+            this.generateInterfaceTables(module);
         }
     }
 
-    public LLVMFunction getAllocator(LLVMModule module) {
-        this.getOwnType().generate(module);
+    LLVMConstant getParentTable(LLVMModule module) {
+        if (this.ext.isPresent()) {
+            AStructureReference ext_type = (AStructureReference) ALambdaTerm.evaluateFrom(this.ext.get());
+            ext_type.toLLVM(module);
+            LLVMType parent_type = ext_type.generateStaticType(module);
+            LLVMGlobalVariable parent_stable = module.getOrInsertGlobal(
+                    parent_type,
+                    ext_type.getSourcePath() + "_static");
+            return parent_stable
+                    .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
+        } else {
+            return new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)).getNull(module);
+        }
+    }
 
-        List<LLVMType> argtypes = new ArrayList<>();
-        Optional<Function> constructor = this.getConstructor();
-        if (constructor.isPresent()) {
-            for (Argument a : constructor.get().getArgumentList().subList(1,
-                    constructor.get().getArgumentList().size())) {
-                argtypes.add(a.getOwnType().resolve().generate(module));
+    List<LLVMConstant> generateMethodList(LLVMModule module) {
+        List<LLVMConstant> methods = new ArrayList<>();
+
+        for (String name : this.getMethodNames()) {
+            if (this.isOwnMethod(name)) {
+                Function m = this.getMethod(name).get();
+                Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
+                methods.add(m.generate(module));
+            } else {
+                Function f = (Function) this.getMethod(name).get();
+                LLVMFunctionType type = (new AFunctionReference(f)).toLLVM(module);
+
+                Logger.trace("declaring: " + f.getPath() + " (" + module.getName() + ")");
+                if (f.is_extern) {
+                    methods.add(module.getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true));
+                } else {
+                    methods.add(module.getOrInsertFunction(type, f.getPath(), x -> x.setExternal(), true));
+                }
             }
         }
-        LLVMType this_structure_type = this.getOwnType().generate(module);
-        LLVMFunctionType allocator_type = new LLVMFunctionType(this_structure_type, argtypes);
-        return module.getOrInsertFunction(allocator_type, this.getPath() + "_alloc", f -> f.setExternal(),
-                true);
+
+        return methods;
+    }
+
+    void generateInterfaceTables(LLVMModule module) {
+        LLVMConstant str = module.stringConstant(this.getPath());
+        LLVMGlobalVariable name_var = module.getOrInsertGlobal(str.getType(), this.getPath() + "_name");
+
+        for (TypeElement itype : this.interfaces()) {
+            AStructureReference res_type = (AStructureReference) ALambdaTerm.evaluateFrom(itype);
+            InterfaceType res = (InterfaceType) res_type.getSourceResolved();
+            LLVMStructureType itable_type = res_type.generateStaticType(module);
+            LLVMGlobalVariable itable = module.getOrInsertGlobal(itable_type,
+                    this.getPath() + "_interface_" + res.getSource().getPath());
+            List<LLVMConstant> imethods = new ArrayList<>();
+
+            imethods.add(name_var
+                    .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
+            imethods.add(this.getParentTable(module));
+
+            for (String name : res.getSource().getMethodNames()) {
+                Logger.trace("method: " + name);
+                LLVMType method_type = (new AFunctionReference(res.getSource().getMethod(name).get())).toLLVM(module);
+                LLVMFunction generated;
+                if (this.isOwnMethod(name)) {
+                    Function m = this.getMethod(name).get();
+                    Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
+                    generated = m.generate(module);
+                } else {
+                    Function f = (Function) this.getMethod(name).get();
+                    LLVMFunctionType type = (new AFunctionReference(f)).toLLVM(module);
+
+                    Logger.trace("declaring: " + f.getPath() + " (" + module.getName() + ")");
+                    if (f.is_extern) {
+                        generated = module.getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true);
+                    } else {
+                        generated = module.getOrInsertFunction(type, f.getPath(), x -> x.setExternal(), true);
+                    }
+                }
+                imethods.add(generated.cast(new LLVMPointerType<LLVMType>(method_type)));
+            }
+            itable.setInitializer(itable_type.createConstant(module.getContext(), imethods));
+        }
+    }
+
+    void generateAllocator(LLVMModule module) {
+        AStructureReference this_type = (AStructureReference) ALambdaTerm.evaluateFrom(this.getOwnType());
+        String allocator_name = this_type.getSourcePath() + "_alloc";
+
+        LLVMFunctionType allocator_type = new LLVMFunctionType(
+                this_type.toLLVM(module),
+                new ArrayList<>());
+        LLVMFunction allocator;
+        if (module.getFunction(allocator_name).isPresent()) {
+            allocator = module.getFunction(allocator_name).get();
+        } else {
+            allocator = new LLVMFunction(module, allocator_name, allocator_type);
+        }
+
+        // avoid generating the allocator body multiple times
+        if (allocator.countBasicBlocks() > 0)
+            return;
+
+        LLVMStructureType this_llvm_type = this_type.toLLVM(module);
+        LLVMStructureType object_type = this_type.generateObjectType(module);
+        LLVMStructureType static_type = this_type.generateStaticType(module);
+        LLVMGlobalVariable static_global = module.getOrInsertGlobal(static_type, this.getPath() + "_static");
+
+        try (LLVMBuilder builder = new LLVMBuilder(allocator.getModule())) {
+            allocator.appendBasicBlock("entry");
+            builder.positionAtEnd(allocator.lastBasicBlock());
+            LLVMValue object_allocation = builder.buildCall(module.getFunction("calloc").get(),
+                    Arrays.asList(new LLVMValue[] {
+                            (new LLVMIntType(module.getContext(), 64)).getConstant(module, 1),
+                            builder.buildSizeofHack(object_type)
+                    }), "");
+            LLVMValue alloca = builder.buildAlloca(this_llvm_type, "");
+            LLVMValue object_pointer = builder.buildStructGEP(this_llvm_type, alloca, 0,
+                    "");
+            builder.buildStore(builder.buildBitcast(object_allocation, new LLVMPointerType<>(object_type), ""),
+                    object_pointer);
+            LLVMValue stable_pointer = builder.buildStructGEP(this_llvm_type, alloca, 1,
+                    "");
+            builder.buildStore(static_global, stable_pointer);
+
+            builder.buildReturn(builder.buildLoad(alloca, ""));
+        }
     }
 }

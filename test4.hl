@@ -1,0 +1,41 @@
+class A<T> {
+    T value;
+
+    fn void constructor(T value) {
+        self.value = value;
+    }
+
+    fn T get() {
+        return self.value;
+    }
+}
+
+class B<T> {
+    A<T> value;
+
+    fn void constructor(T value) {
+        self.value = new A<T>(value);
+    }
+
+    fn T get() {
+        return self.value.get();
+    }
+}
+
+interface I<T> {
+    fn void frob(T param);
+}
+
+class C<T> implements I<T> {
+    fn void frob(T param) {
+        return;
+    }
+}
+
+static fn i32 Main() {
+    let B test = new B(42069);
+    let I test2 = new C<i32>();
+    test2.frob(0);
+
+    return 0;
+}

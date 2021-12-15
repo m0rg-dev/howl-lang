@@ -35,10 +35,6 @@ class Test {
         Test.fail("");
     }
 
-    static fn void fail(Display message) {
-        Test.fail(message.toString());
-    }
-
     static fn void fail(String message) {
         Test.assertInitialized();
         Test.all_ok = false;
@@ -53,12 +49,12 @@ class Test {
         Test.test_count = Test.test_count + 1;
     }
 
-    static fn void ok() {
-        Test.ok("");
+    static fn void fail(Display message) {
+        Test.fail(message.toString());
     }
 
-    static fn void ok(Display message) {
-        Test.ok(message.toString());
+    static fn void ok() {
+        Test.ok("");
     }
 
     static fn void ok(String message) {
@@ -70,6 +66,10 @@ class Test {
         IO.eprintln();
 
         Test.test_count = Test.test_count + 1;
+    }
+
+    static fn void ok(Display message) {
+        Test.ok(message.toString());
     }
 
     static fn void assert(bool condition, String message) {

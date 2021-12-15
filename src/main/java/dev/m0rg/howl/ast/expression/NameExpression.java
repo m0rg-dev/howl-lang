@@ -1,5 +1,6 @@
 package dev.m0rg.howl.ast.expression;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,13 +14,15 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
-import dev.m0rg.howl.ast.type.ClassStaticType;
-import dev.m0rg.howl.ast.type.HasOwnType;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMGlobalVariable;
+import dev.m0rg.howl.llvm.LLVMIntType;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 
@@ -61,25 +64,6 @@ public class NameExpression extends Expression implements Lvalue {
     }
 
     @Override
-    public TypeElement getType() {
-        Optional<ASTElement> target = this.resolveName(this.name);
-        if (target.isPresent()) {
-            if (target.get() instanceof TypeElement) {
-                return (TypeElement) target.get();
-            } else if (target.get() instanceof Class) {
-                Class c = (Class) target.get();
-                return (TypeElement) new ClassStaticType(c.getSpan(), c.getPath()).setParent(c);
-            } else if (target.get() instanceof HasOwnType) {
-                return ((HasOwnType) target.get()).getOwnType();
-            } else {
-                return NamedType.build(span, "__error");
-            }
-        } else {
-            return NamedType.build(span, "__error");
-        }
-    }
-
-    @Override
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         return rc;
@@ -101,13 +85,22 @@ public class NameExpression extends Expression implements Lvalue {
             }
             throw new IllegalStateException();
         } else if (target instanceof Class) {
+            // TODO dedupe with SpecifiedTypeExpression
             Class c = (Class) target;
-            LLVMType static_type = c.getStaticType().generate(builder.getModule());
+            AStructureReference t = (new AStructureReference(c.getOwnType()));
+            LLVMType static_type = t.generateStaticType(builder.getModule());
+            LLVMType object_type = t.generateObjectType(builder.getModule());
             LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, c.getPath() + "_static");
-            return g;
+            LLVMStructureType rctype = t.toLLVM(builder.getModule());
+            LLVMConstant anon_struct = rctype.createConstant(builder.getContext(), Arrays.asList(new LLVMConstant[] {
+                    new LLVMPointerType<>(object_type).getNull(builder.getModule()),
+                    g,
+                    new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)).getNull(builder.getModule()),
+            }));
+            return anon_struct;
         } else if (target instanceof Function) {
             Function f = (Function) target;
-            LLVMFunctionType type = (LLVMFunctionType) f.getOwnType().resolve().generate(builder.getModule());
+            LLVMFunctionType type = new AFunctionReference(f).toLLVM(builder.getModule());
             if (f.isExtern()) {
                 return builder.getModule().getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true);
             } else {

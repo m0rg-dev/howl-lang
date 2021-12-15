@@ -7,12 +7,8 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.NumericType;
-import dev.m0rg.howl.ast.type.RawPointerType;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMPointerType;
@@ -34,29 +30,17 @@ public class MacroCallExpression extends CallExpressionBase {
         return rc;
     }
 
+    public String getName() {
+        return name;
+    }
+
     @Override
     public String format() {
-        return "!" + this.name + this.getArgString();
+        return "$" + this.name + this.getArgString();
     }
 
     public void transform(ASTTransformer t) {
         this.transformArguments(t);
-    }
-
-    @Override
-    public TypeElement getType() {
-        if (this.name.equals("sizeof")) {
-            return (TypeElement) NumericType.build(span, 64, true).setParent(this);
-        } else if (this.name.equals("as_raw") || this.name.equals("get_object_pointer")
-                || this.name.equals("get_stable_pointer")) {
-            RawPointerType rc = new RawPointerType(span);
-            rc.setInner(NumericType.build(span, 8, true));
-            return (TypeElement) rc.setParent(this);
-        } else if (this.name.equals("pointer_assign")) {
-            return (TypeElement) NamedType.build(span, "void").setParent(this);
-        } else {
-            throw new IllegalArgumentException("unknown macro " + name);
-        }
     }
 
     @Override
@@ -67,7 +51,7 @@ public class MacroCallExpression extends CallExpressionBase {
     }
 
     @Override
-    protected AlgebraicType getTypeForArgument(int index) {
+    public ALambdaTerm getTypeForArgument(int index) {
         return new AAnyType();
     }
 
@@ -75,21 +59,24 @@ public class MacroCallExpression extends CallExpressionBase {
     public LLVMValue generate(LLVMBuilder builder) {
         // TODO all of these things should work differently
         if (this.name.equals("sizeof")) {
-            return builder.buildSizeofHack(this.args.get(0).getResolvedType().generate(builder.getModule()));
+            return builder.buildSizeofHack(ALambdaTerm.evaluateFrom(this.args.get(0)).toLLVM(builder.getModule()));
         } else if (this.name.equals("get_object_pointer")) {
             // idea is to turn a *someclass into a *i8 pointing to its object
             // we'll just cast it to a **i8 and deref accordingly
             LLVMType ppi8 = new LLVMPointerType<>(new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)));
-            LLVMValue cast = builder.buildBitcast(this.args.get(0).generate(builder), ppi8, "");
+            LLVMValue cast = builder.buildBitcast(this.args.get(0).generate(builder),
+                    ppi8, "");
             return builder.buildLoad(cast, "");
         } else if (this.name.equals("get_stable_pointer")) {
-            TypeElement source_type = this.args.get(0).getResolvedType();
-            LLVMValue source_alloca = builder.buildAlloca(source_type.generate(builder.getModule()), "");
+            ALambdaTerm source_type = ALambdaTerm.evaluateFrom(this.args.get(0));
+            LLVMValue source_alloca = builder.buildAlloca(source_type.toLLVM(builder.getModule()), "");
             builder.buildStore(this.args.get(0).generate(builder), source_alloca);
             return builder
-                    .buildBitcast(builder.buildLoad(builder.buildStructGEP(source_type.generate(builder.getModule()),
+                    .buildBitcast(builder.buildLoad(builder.buildStructGEP(source_type.toLLVM(
+                            builder.getModule()),
                             source_alloca, 1,
-                            ""), ""), new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)), "");
+                            ""), ""), new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)),
+                            "");
         } else if (this.name.equals("pointer_assign")) {
             // $pointer_assign(*i8 untyped_source, *T typed_target)
             return builder.buildStore(this.args.get(0).generate(builder),

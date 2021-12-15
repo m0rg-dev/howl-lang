@@ -1,33 +1,52 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
-import dev.m0rg.howl.logger.Logger;
+public class ACallResult extends ALambdaTerm implements Applicable {
+    ALambdaTerm source;
+    List<ALambdaTerm> args;
 
-public class ACallResult extends AlgebraicType {
-    AlgebraicType source;
-
-    public ACallResult(AlgebraicType source) {
+    public ACallResult(ALambdaTerm source, List<ALambdaTerm> args) {
         this.source = source;
-    }
-
-    public String format() {
-        return this.source.format() + ".()";
-    }
-
-    public AlgebraicType getSource() {
-        return source;
+        this.args = args;
     }
 
     @Override
-    public AlgebraicType evaluate(Map<String, AlgebraicType> evalmap) {
-        AlgebraicType source_type = source.evaluate(evalmap);
-        if (source_type instanceof AFunctionType) {
-            return ((AFunctionType) source_type).returntype.evaluate(evalmap);
-        } else if (source_type instanceof AAnyType) {
-            return source_type;
+    public Set<String> freeVariables() {
+        return source.freeVariables();
+    }
+
+    @Override
+    public ALambdaTerm substitute(String from, ALambdaTerm to) {
+        return new ACallResult(source.substitute(from, to), args);
+    }
+
+    @Override
+    public String format() {
+        return "call " + source.format();
+    }
+
+    @Override
+    public ALambdaTerm apply() {
+        if (args.stream().anyMatch((a) -> a instanceof Applicable && ((Applicable) a).isApplicable())) {
+            List<ALambdaTerm> new_args = new ArrayList<>(args.size());
+            for (ALambdaTerm a : args) {
+                if (a instanceof Applicable && ((Applicable) a).isApplicable()) {
+                    new_args.add(((Applicable) a).apply());
+                } else {
+                    new_args.add(a);
+                }
+            }
+            return new ACallResult(source, new_args);
         }
-        Logger.trace("creating error type: attempt to call non-function " + source_type.format());
-        return new ABaseType("__error");
+
+        if (source instanceof Applicable && ((Applicable) source).isApplicable()) {
+            return new ACallResult(((Applicable) source).apply(), args);
+        } else if (source instanceof AFunctionType) {
+            return ((AFunctionType) source).getReturn(args);
+        }
+        throw new RuntimeException();
     }
 }

@@ -8,9 +8,6 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.RawPointerType;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMPointerType;
@@ -59,17 +56,6 @@ public class IndexExpression extends Expression implements Lvalue {
         this.setSource(t.transform(source));
         index.transform(t);
         this.setIndex(t.transform(index));
-    }
-
-    @Override
-    public TypeElement getType() {
-        TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof RawPointerType) {
-            RawPointerType as_ptr = (RawPointerType) source_type;
-            return as_ptr.getInner();
-        } else {
-            return NamedType.build(span, "__error");
-        }
     }
 
     @Override

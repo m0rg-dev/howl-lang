@@ -12,10 +12,12 @@ import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMModule;
+import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.logger.Logger;
 
 public class Function extends ASTElement implements NamedElement, NameHolder, HasOwnType {
@@ -183,9 +185,17 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         return is_extern;
     }
 
+    public String getLLVMPath() {
+        if (this.is_extern) {
+            return original_name;
+        } else {
+            return getPath();
+        }
+    }
+
     public LLVMFunction generate(LLVMModule module) {
         Logger.trace("  => Function generate " + this.getPath() + " (" + module.getName() + ")");
-        LLVMFunctionType type = (LLVMFunctionType) this.getOwnType().resolve().generate(module);
+        LLVMFunctionType type = this.generateType(module);
         if (this.is_extern) {
             // TODO check for duplicate extern functions
             return module.getOrInsertFunction(type, this.getOriginalName(), f -> f.setExternal(), true);
@@ -205,5 +215,14 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
                 }
             }, false);
         }
+    }
+
+    public LLVMFunctionType generateType(LLVMModule module) {
+        LLVMType returntype = ALambdaTerm.evaluateFrom(this.getReturn()).toLLVM(module);
+        List<LLVMType> args = new ArrayList<>(this.getArgumentList().size());
+        for (TypeElement argtype : this.getArgumentList().stream().map(x -> x.getOwnType()).toList()) {
+            args.add(ALambdaTerm.evaluateFrom(argtype).toLLVM(module));
+        }
+        return new LLVMFunctionType(returntype, args);
     }
 }

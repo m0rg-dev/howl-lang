@@ -14,7 +14,6 @@ import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMModule;
-import dev.m0rg.howl.logger.Logger;
 
 public class Module extends ASTElement implements NamedElement, NameHolder {
     String name;
@@ -108,6 +107,8 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
         int index = 0;
         ASTElement[] contents = this.contents.toArray(new ASTElement[0]);
         for (ASTElement item : contents) {
+            if (item instanceof ImportStatement)
+                continue;
             item.transform(t);
             ASTElement rc = t.transform(item).setParent(this);
             this.contents.set(index, rc);
@@ -121,41 +122,36 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
         }
     }
 
-    // this is a class method because we're gonna mutate this.contents
-    public void dropGenerics() {
-        List<ASTElement> alias = new ArrayList<>(this.contents);
-        for (ASTElement item : alias) {
-            if (item instanceof Class) {
-                if (((Class) item).isGeneric()) {
-                    this.contents.remove(item);
-                }
-            } else if (item instanceof Interface) {
-                if (((Interface) item).getGenericNames().size() > 0) {
-                    this.contents.remove(item);
-                }
-            }
-        }
-    }
-
     public List<LLVMModule> generate(LLVMContext context, boolean isMain) {
         List<LLVMModule> rc = new ArrayList<>();
         LLVMModule this_module = new LLVMModule(this.getPath(), context);
         rc.add(this_module);
 
-        for (ASTElement item : contents) {
-            if (item instanceof Module) {
-                List<LLVMModule> submodules = ((Module) item).generate(context, false);
-                rc.addAll(submodules);
-            } else if (item instanceof GeneratesTopLevelItems) {
-                ((GeneratesTopLevelItems) item).generate(this_module);
+        int last_len = 0;
+        while (last_len != contents.size()) {
+            // shenanigans to not blow up when new (monomorphized) classes are inserted
+            List<ASTElement> c = new ArrayList<>(contents);
+            last_len = c.size();
+            for (ASTElement item : c) {
+                if (item instanceof Module) {
+                    List<LLVMModule> submodules = ((Module) item).generate(context, false);
+                    rc.addAll(submodules);
+                } else if (item instanceof GeneratesTopLevelItems) {
+                    ((GeneratesTopLevelItems) item).generate(this_module);
+                }
             }
         }
 
-        for (ASTElement item : contents) {
-            if (item instanceof Class) {
-                ((Class) item).generateMethods(this_module);
-            } else if (item instanceof Function) {
-                ((Function) item).generate(this_module);
+        last_len = 0;
+        while (last_len != contents.size()) {
+            List<ASTElement> c = new ArrayList<>(contents);
+            last_len = c.size();
+            for (ASTElement item : c) {
+                if (item instanceof Class) {
+                    ((Class) item).generateMethods(this_module);
+                } else if (item instanceof Function) {
+                    ((Function) item).generate(this_module);
+                }
             }
         }
 

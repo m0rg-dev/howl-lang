@@ -1,6 +1,8 @@
 package dev.m0rg.howl.ast.expression;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,10 +11,16 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMConstant;
+import dev.m0rg.howl.llvm.LLVMGlobalVariable;
+import dev.m0rg.howl.llvm.LLVMIntType;
+import dev.m0rg.howl.llvm.LLVMPointerType;
+import dev.m0rg.howl.llvm.LLVMStructureType;
+import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 
 public class SpecifiedTypeExpression extends Expression {
@@ -51,26 +59,16 @@ public class SpecifiedTypeExpression extends Expression {
         this.source = (Expression) source.setParent(this);
     }
 
+    public List<TypeElement> getParameters() {
+        return Collections.unmodifiableList(parameters);
+    }
+
     public TypeElement getParameter(int index) {
         return parameters.get(index);
     }
 
     public void insertParameter(TypeElement parameter) {
         parameters.add((TypeElement) parameter.setParent(this));
-    }
-
-    @Override
-    public TypeElement getType() {
-        if (this.source instanceof NameExpression) {
-            SpecifiedType rc = new SpecifiedType(span);
-            rc.setBase(NamedType.build(span, ((NameExpression) source).getName()));
-            for (TypeElement p : parameters) {
-                rc.insertParameter((TypeElement) p.detach());
-            }
-            return (TypeElement) rc.setParent(this);
-        } else {
-            return NamedType.build(span, "__error");
-        }
     }
 
     public void transform(ASTTransformer t) {
@@ -82,8 +80,19 @@ public class SpecifiedTypeExpression extends Expression {
         }
     }
 
-    public LLVMValue generate(LLVMBuilder b) {
-        throw new UnsupportedOperationException();
+    public LLVMValue generate(LLVMBuilder builder) {
+        // TODO dedupe with NameExpression
+        AStructureReference t = (AStructureReference) ALambdaTerm.evaluateFrom(this);
+        LLVMType static_type = t.generateStaticType(builder.getModule());
+        LLVMType object_type = t.generateObjectType(builder.getModule());
+        LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, t.getSourcePath() + "_static");
+        LLVMStructureType rctype = t.toLLVM(builder.getModule());
+        LLVMConstant anon_struct = rctype.createConstant(builder.getContext(), Arrays.asList(new LLVMConstant[] {
+                new LLVMPointerType<>(object_type).getNull(builder.getModule()),
+                g,
+                new LLVMPointerType<>(new LLVMIntType(builder.getContext(), 8)).getNull(builder.getModule()),
+        }));
+        return anon_struct;
     }
 
     public Map<String, FieldHandle> getUpstreamFields() {

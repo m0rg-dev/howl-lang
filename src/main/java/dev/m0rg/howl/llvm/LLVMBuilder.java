@@ -135,6 +135,8 @@ public class LLVMBuilder implements AutoCloseable {
     }
 
     public LLVMInstruction buildStructGEP(LLVMType element_type, LLVMValue source, int idx, String name) {
+        if (idx < 0)
+            throw new RuntimeException("attempt to GEP with negative index will blow up LLVM");
         return new LLVMInstruction(
                 LLVMBuildStructGEP2(this.getInternal(), element_type.getInternal(), source.getInternal(), idx, name));
     }

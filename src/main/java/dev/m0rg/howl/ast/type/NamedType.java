@@ -8,10 +8,6 @@ import java.util.Set;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.llvm.LLVMIntType;
-import dev.m0rg.howl.llvm.LLVMModule;
-import dev.m0rg.howl.llvm.LLVMType;
-import dev.m0rg.howl.llvm.LLVMVoidType;
 
 public class NamedType extends TypeElement {
     static final Set<String> base_types;
@@ -70,6 +66,7 @@ public class NamedType extends TypeElement {
             return this.name;
         }
 
+        // TODO if you remove this it breaks exceptions
         Optional<ASTElement> target = this.resolveName(this.name);
         if (target.isPresent()) {
             return target.get().getPath();
@@ -107,19 +104,6 @@ public class NamedType extends TypeElement {
             return nt.name.equals(this.name) || nt.name.equals("__any");
         } else {
             return false;
-        }
-    }
-
-    @Override
-    public LLVMType generate(LLVMModule module) {
-        if (this.name.equals("void")) {
-            return new LLVMVoidType(module.getContext());
-        } else if (this.name.equals("bool")) {
-            return new LLVMIntType(module.getContext(), 1);
-        } else if (this.name.equals("__numeric")) {
-            return new LLVMIntType(module.getContext(), 64);
-        } else {
-            throw new UnsupportedOperationException("NamedType " + this.name + " @ " + this.getPath());
         }
     }
 }

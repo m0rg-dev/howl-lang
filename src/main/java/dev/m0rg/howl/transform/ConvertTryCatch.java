@@ -26,6 +26,7 @@ import dev.m0rg.howl.ast.statement.TryStatement;
 import dev.m0rg.howl.ast.type.NumericType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.logger.Logger;
 
 public class ConvertTryCatch implements ASTTransformer {
@@ -139,7 +140,7 @@ public class ConvertTryCatch implements ASTTransformer {
         exclocal.setLocaltype((TypeElement) block.getType().detach());
         ClassCastExpression cast = new ClassCastExpression(span);
         cast.setSource(get_call);
-        cast.setTarget((TypeElement) block.getType().detach());
+        cast.setTarget(AlgebraicType.derive(block.getType()));
         exclocal.setInitializer(cast);
 
         CompoundStatement body = new CompoundStatement(span);

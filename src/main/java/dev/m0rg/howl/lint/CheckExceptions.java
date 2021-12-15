@@ -10,8 +10,12 @@ import dev.m0rg.howl.ast.expression.FunctionCallExpression;
 import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.IfStatement;
 import dev.m0rg.howl.ast.statement.TryStatement;
-import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.algebraic.AVariable;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.logger.Logger;
 
 public class CheckExceptions extends LintPass {
@@ -19,23 +23,27 @@ public class CheckExceptions extends LintPass {
         if (e instanceof FunctionCallExpression) {
             FunctionCallExpression call = (FunctionCallExpression) e;
             if (call.isGeneratedFromThrow) {
-                if (((TypeElement) NamedType.build(e.getSpan(), "root.lib.UncheckedException")
-                        .setParent(e.getParent())).resolve().accepts(call.getArguments().get(0).getResolvedType())) {
+                AVariable.reset();
+                ALambdaTerm exctype = ALambdaTerm.evaluate(AlgebraicType.derive(call.getArguments().get(0)));
+                if (new AStructureReference(
+                        (ClassType) new ClassType(e.getSpan(), "root.lib.UncheckedException").setParent(e.getParent()))
+                                .accepts(exctype)) {
                     // we don't have to check it!
                     return;
                 }
 
-                if (getContainingTry(e, call.getArguments().get(0).getResolvedType()).isPresent()) {
+                if (getContainingTry(e, exctype).isPresent()) {
                     // it's caught in a catch block
                     return;
                 }
 
                 List<String> allowed_types = new ArrayList<>();
                 for (TypeElement th : call.getContainingFunction().getThrows()) {
+                    ALambdaTerm thtype = ALambdaTerm.evaluate(AlgebraicType.derive(th));
                     Logger.trace(
-                            "throw " + call.getArguments().get(0).getResolvedType().format() + " -> "
-                                    + th.resolve().format());
-                    if (th.resolve().accepts(call.getArguments().get(0).getResolvedType())) {
+                            "throw " + exctype.format() + " -> "
+                                    + thtype.format());
+                    if (thtype.accepts(exctype)) {
                         // it was declared!
                         return;
                     }
@@ -44,19 +52,20 @@ public class CheckExceptions extends LintPass {
                 if (allowed_types.isEmpty()) {
                     allowed_types.add("<no types>");
                 }
-                e.getSpan().addError("Uncaught exception type " + call.getArguments().get(0).getResolvedType().format(),
+                e.getSpan().addError("Uncaught exception type " + exctype.format(),
                         "declared types:\n" + String.join("\n", allowed_types).indent(2));
+                throw new RuntimeException();
             }
         }
     }
 
-    static Optional<ASTElement> getContainingTry(ASTElement source, TypeElement exctype) {
+    static Optional<ASTElement> getContainingTry(ASTElement source, ALambdaTerm exctype) {
         ASTElement p = source;
         while (!(p instanceof Function)) {
             if (p instanceof IfStatement && ((IfStatement) p).originalTry.isPresent()) {
                 TryStatement orig = ((IfStatement) p).originalTry.get();
                 for (CatchStatement c : orig.getAlternatives()) {
-                    if (c.getType().resolve().accepts(exctype)) {
+                    if (AlgebraicType.derive(c.getType()).accepts(exctype)) {
                         return Optional.of(p);
                     }
                 }

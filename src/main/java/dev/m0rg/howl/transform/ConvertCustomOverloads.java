@@ -7,16 +7,17 @@ import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
 import dev.m0rg.howl.ast.expression.FunctionCallExpression;
 import dev.m0rg.howl.ast.expression.IndexExpression;
-import dev.m0rg.howl.ast.type.NumericType;
-import dev.m0rg.howl.ast.type.RawPointerType;
-import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ABaseType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.ARawPointer;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 
 public class ConvertCustomOverloads implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof IndexExpression) {
             IndexExpression as_index = (IndexExpression) e;
-            TypeElement source_type = as_index.getSource().getResolvedType();
-            if (source_type instanceof RawPointerType) {
+            ALambdaTerm source_type = ALambdaTerm.evaluate(AlgebraicType.derive(as_index.getSource()));
+            if (source_type instanceof ARawPointer) {
                 // don't have to overload those!
                 return e;
             } else {
@@ -29,8 +30,9 @@ public class ConvertCustomOverloads implements ASTTransformer {
             }
         } else if (e instanceof ArithmeticExpression) {
             ArithmeticExpression as_math = (ArithmeticExpression) e;
-            TypeElement lhs_type = as_math.getLHS().getResolvedType();
-            if (lhs_type instanceof NumericType) {
+            ALambdaTerm lhs_type = ALambdaTerm.evaluate(AlgebraicType.derive(as_math.getLHS()));
+
+            if (lhs_type instanceof ABaseType) {
                 return e;
             } else {
                 if (as_math.getOperator().equals("+")) {

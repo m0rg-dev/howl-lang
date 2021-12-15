@@ -6,9 +6,6 @@ import java.util.List;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.llvm.LLVMModule;
-import dev.m0rg.howl.llvm.LLVMPointerType;
-import dev.m0rg.howl.llvm.LLVMType;
 
 public class LambdaType extends FunctionType {
     TypeElement returntype;
@@ -82,10 +79,5 @@ public class LambdaType extends FunctionType {
         } else {
             return false;
         }
-    }
-
-    @Override
-    public LLVMType generate(LLVMModule m) {
-        return new LLVMPointerType<>(super.generate(m));
     }
 }

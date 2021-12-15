@@ -6,24 +6,25 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.llvm.LLVMModule;
-import dev.m0rg.howl.llvm.LLVMType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 
 public class NewType extends TypeElement implements NamedElement {
-    Optional<TypeElement> resolution;
+    Optional<ALambdaTerm> resolution;
     String name;
+    int index;
 
-    public NewType(Span span, String name) {
+    public NewType(Span span, String name, int index) {
         super(span);
         this.resolution = Optional.empty();
         this.name = name;
+        this.index = index;
     }
 
     @Override
     public ASTElement detach() {
-        NewType rc = new NewType(span, name);
+        NewType rc = new NewType(span, name, index);
         if (this.resolution.isPresent()) {
-            rc.setResolution((TypeElement) this.resolution.get().detach());
+            rc.setResolution(this.resolution.get());
         }
         return rc;
     }
@@ -42,20 +43,11 @@ public class NewType extends TypeElement implements NamedElement {
         return rc.toString();
     }
 
-    public void setResolution(TypeElement res) {
-        if (res instanceof NamedType && ((NamedType) res).getName().equals(this.getPath())) {
-            // avoid the cycle
-        } else if (res instanceof NamedType && ((NamedType) res).getName().equals("__error")) {
-            throw new RuntimeException("do not resolve to error please");
-        } else if (res instanceof NamedType && ((NamedType) res).getName().equals("__any")) {
-            // this should be equivalent to a no-op because setting to __any
-            // doesn't actually specify (but it will break stuff later)
-        } else {
-            this.resolution = Optional.of((TypeElement) res.setParent(this));
-        }
+    public void setResolution(ALambdaTerm res) {
+        this.resolution = Optional.of(res);
     }
 
-    public Optional<TypeElement> getResolution() {
+    public Optional<ALambdaTerm> getResolution() {
         return this.resolution;
     }
 
@@ -63,31 +55,21 @@ public class NewType extends TypeElement implements NamedElement {
         return this.name;
     }
 
+    public int getIndex() {
+        return index;
+    }
+
     public String mangle() {
         return "T" + name.length() + name;
     }
 
     public void transform(ASTTransformer t) {
-        if (this.resolution.isPresent()) {
-            this.resolution.get().transform(t);
-            this.resolution = Optional.of(t.transform(this.resolution.get()));
-        }
+        ;
     }
 
     @Override
     public boolean accepts(TypeElement other) {
-        if (this.resolution.isPresent()) {
-            return this.resolution.get().accepts(other);
-        } else if (other instanceof NewType) {
-            return this.getPath().equals(other.getPath());
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public LLVMType generate(LLVMModule module) {
-        throw new UnsupportedOperationException();
+        throw new RuntimeException();
     }
 
     public boolean isResolved() {
@@ -95,14 +77,7 @@ public class NewType extends TypeElement implements NamedElement {
     }
 
     public NewType getRealSource() {
-        if (this.resolution.isPresent()) {
-            if (this.resolution.get() instanceof NewType) {
-                return ((NewType) this.resolution.get()).getRealSource();
-            } else {
-                return this;
-            }
-        } else {
-            return this;
-        }
+        throw new RuntimeException();
+
     }
 }

@@ -5,7 +5,9 @@ import java.util.List;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
+import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
+import dev.m0rg.howl.ast.statement.ElseIfStatement;
 import dev.m0rg.howl.ast.statement.ElseStatement;
 import dev.m0rg.howl.ast.statement.IfStatement;
 import dev.m0rg.howl.ast.statement.Statement;
@@ -27,6 +29,17 @@ public class CoalesceElse implements ASTTransformer {
                                 (CompoundStatement) ((ElseStatement) contents.get(i)).getBody().detach());
                     } else {
                         throw new RuntimeException("COMPILATION-ERROR unattached else");
+                    }
+                } else if (contents.get(i) instanceof ElseIfStatement) {
+                    if (new_contents.get(j - 1) instanceof IfStatement) {
+                        ElseIfStatement else_if = (ElseIfStatement) contents.get(i);
+                        IfStatement new_chain = new IfStatement(else_if.getSpan());
+                        new_chain.setCondition((Expression) else_if.getCondition().detach());
+                        new_chain.setBody((CompoundStatement) else_if.getBody().detach());
+                        ((IfStatement) new_contents.get(j - 1)).setChain(
+                                (IfStatement) new_chain.detach());
+                    } else {
+                        throw new RuntimeException("COMPILATION-ERROR unattached else if");
                     }
                 } else {
                     new_contents.add((Statement) contents.get(i).detach());

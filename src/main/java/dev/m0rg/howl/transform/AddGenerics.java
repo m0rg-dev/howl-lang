@@ -35,7 +35,7 @@ public class AddGenerics implements ASTTransformer {
                         if (o.isPresent()) {
                             o.get().insertNewtype(name);
                         } else {
-                            m.get().insertItem(new NewType(e.getSpan(), name));
+                            m.get().insertItem(new NewType(e.getSpan(), name, -1));
                         }
                         new_parameters.add(NamedType.build(e.getSpan(), name));
                     }

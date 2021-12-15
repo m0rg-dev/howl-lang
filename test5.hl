@@ -1,0 +1,10 @@
+class Entry<K, V> {
+    K entry;
+    V value;
+}
+
+static fn i32 Main() {
+    let Entry e = new Entry<i32, i32>();
+
+    return 0;
+}

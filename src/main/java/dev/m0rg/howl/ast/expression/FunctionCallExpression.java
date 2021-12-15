@@ -8,15 +8,17 @@ import java.util.Map;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
+import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.FunctionType;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
-import dev.m0rg.howl.ast.type.algebraic.ABaseType;
-import dev.m0rg.howl.ast.type.algebraic.AFunctionType;
+import dev.m0rg.howl.ast.type.algebraic.AExtractArgument;
+import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMFunction;
+import dev.m0rg.howl.llvm.LLVMInstruction;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
 
@@ -60,19 +62,6 @@ public class FunctionCallExpression extends CallExpressionBase {
         this.transformArguments(t);
     }
 
-    @Override
-    public TypeElement getType() {
-        TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof FunctionType) {
-            FunctionType ft = (FunctionType) source_type;
-            if (ft.isValid()) {
-                return ft.getReturnType();
-            }
-        }
-        Logger.trace("creating error type (FunctionCallExpression " + source_type.format() + ")");
-        return NamedType.build(span, "__error");
-    }
-
     public boolean isResolved() {
         return resolved;
     }
@@ -82,22 +71,12 @@ public class FunctionCallExpression extends CallExpressionBase {
     }
 
     @Override
-    protected AlgebraicType getTypeForArgument(int index) {
-        AlgebraicType source_type = AlgebraicType.derive(source).evaluate();
-
-        if (source_type instanceof AFunctionType) {
-            AFunctionType function_type = (AFunctionType) source_type;
-            return function_type.getArgument(index);
-        } else if (source_type instanceof AAnyType) {
-            // TODO only-for-overloads
-            return source_type;
-        } else if (source_type instanceof ABaseType && ((ABaseType) source_type).getName().equals("__error")) {
-            return source_type;
-        } else {
-            // throw new RuntimeException(source_type.getClass().getName());
-            Logger.trace("creating error type: getTypeForArgument of non-function");
-            return new ABaseType("__error");
+    public ALambdaTerm getTypeForArgument(int index) {
+        List<ALambdaTerm> arg_types = new ArrayList<>(this.args.size());
+        for (Expression e : this.args) {
+            arg_types.add(AlgebraicType.derive(e));
         }
+        return new AExtractArgument(AlgebraicType.derive(source), arg_types, index);
     }
 
     @Override
@@ -112,13 +91,53 @@ public class FunctionCallExpression extends CallExpressionBase {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        LLVMValue callee = this.getSource().generate(builder);
+        ALambdaTerm source_type = ALambdaTerm.evaluateFrom(source);
+        Logger.trace(this.format());
+        if (source_type instanceof AOverloadType) {
+            Function source_function = ((AOverloadType) source_type)
+                    .select(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList());
+            Logger.trace("source function: " + source_function.format());
 
-        List<LLVMValue> args = new ArrayList<>(this.args.size());
-        for (Expression e : this.args) {
-            args.add(e.generate(builder));
+            if (source instanceof FieldReferenceExpression) {
+                FieldReferenceExpression new_source = (FieldReferenceExpression) source.detach();
+                new_source.name = source_function.getName();
+                new_source.setParent(source.getParent());
+                Logger.trace("new source " + new_source.format());
+
+                LLVMValue source_obj = new_source.getSource().generate(builder);
+
+                LLVMValue callee = builder.buildLoad(new_source.getPointerFrom(builder, source_obj), "");
+
+                List<LLVMValue> args = new ArrayList<>(this.args.size());
+                if (!source_function.isStatic()) {
+                    args.add(source_obj);
+                }
+
+                for (Expression e : this.args) {
+                    args.add(e.generate(builder));
+                }
+
+                LLVMInstruction rc = builder.buildCall(callee, args, "");
+                return rc;
+            }
+        } else if (source_type instanceof AFunctionReference) {
+            Function source_function = ((AFunctionReference) source_type).getSource();
+            LLVMFunction callee;
+            if (builder.getModule().getFunction(source_function.getLLVMPath()).isPresent()) {
+                callee = builder.getModule().getFunction(source_function.getLLVMPath()).get();
+            } else {
+                callee = new LLVMFunction(builder.getModule(), source_function.getLLVMPath(),
+                        ((AFunctionReference) source_type).toLLVM(builder.getModule()));
+            }
+            List<LLVMValue> args = new ArrayList<>(this.args.size());
+
+            for (Expression e : this.args) {
+                args.add(e.generate(builder));
+            }
+
+            LLVMInstruction rc = builder.buildCall(callee, args, "");
+            return rc;
         }
-
-        return builder.buildCall(callee, args, "");
+        throw new RuntimeException();
     }
 }

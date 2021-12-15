@@ -7,15 +7,14 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.NumericType;
-import dev.m0rg.howl.ast.type.TypeElement;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
+import dev.m0rg.howl.ast.type.algebraic.ABaseType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMValue;
 
 public class NumericCastExpression extends Expression {
     Expression source;
-    TypeElement target;
+    ABaseType target;
 
     public NumericCastExpression(Span span) {
         super(span);
@@ -25,7 +24,7 @@ public class NumericCastExpression extends Expression {
     public ASTElement detach() {
         NumericCastExpression rc = new NumericCastExpression(span);
         rc.setSource((Expression) source.detach());
-        rc.setTarget((TypeElement) target.detach());
+        rc.setTarget(target);
         return rc;
     }
 
@@ -42,20 +41,19 @@ public class NumericCastExpression extends Expression {
         this.source = (Expression) source.setParent(this);
     }
 
-    @Override
-    public TypeElement getType() {
+    public ABaseType getTarget() {
         return target;
     }
 
-    public void setTarget(TypeElement target) {
-        this.target = (TypeElement) target.setParent(this);
+    public void setTarget(ABaseType target) {
+        this.target = target;
     }
 
     @Override
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("source", new FieldHandle(() -> this.getSource(), (e) -> this.setSource(e),
-                () -> AlgebraicType.derive(target)));
+                () -> target));
         return rc;
     }
 
@@ -68,18 +66,17 @@ public class NumericCastExpression extends Expression {
     public LLVMValue generate(LLVMBuilder builder) {
         int source_width = 64;
         int dest_width = 64;
-        TypeElement source_type = source.getResolvedType();
-        if (source_type instanceof NumericType) {
-            source_width = ((NumericType) source_type).getWidth();
+        ALambdaTerm source_type = ALambdaTerm.evaluateFrom(source);
+        if (source_type instanceof ABaseType) {
+            source_width = ((ABaseType) source_type).numericWidth().orElse(64);
         }
-        TypeElement dest_type = target.resolve();
-        if (dest_type instanceof NumericType) {
-            dest_width = ((NumericType) dest_type).getWidth();
+        if (target instanceof ABaseType) {
+            dest_width = ((ABaseType) target).numericWidth().orElse(64);
         }
         if (source_width > dest_width) {
-            return builder.buildTrunc(source.generate(builder), dest_type.generate(builder.getModule()), "");
+            return builder.buildTrunc(source.generate(builder), target.toLLVM(builder.getModule()), "");
         } else {
-            return builder.buildSExt(source.generate(builder), dest_type.generate(builder.getModule()), "");
+            return builder.buildSExt(source.generate(builder), target.toLLVM(builder.getModule()), "");
         }
     }
 }

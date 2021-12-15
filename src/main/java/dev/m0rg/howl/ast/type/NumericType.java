@@ -5,9 +5,6 @@ import java.util.regex.Pattern;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.llvm.LLVMIntType;
-import dev.m0rg.howl.llvm.LLVMModule;
-import dev.m0rg.howl.llvm.LLVMType;
 
 public class NumericType extends NamedType {
     int width;
@@ -70,8 +67,10 @@ public class NumericType extends NamedType {
         return width;
     }
 
-    @Override
-    public LLVMType generate(LLVMModule module) {
-        return new LLVMIntType(module.getContext(), width);
+    public NumericType intersect(NumericType other) {
+        int width = Math.min(this.width, other.width);
+        // TODO
+        boolean signed = this.signed;
+        return NumericType.build(span, width, signed);
     }
 }

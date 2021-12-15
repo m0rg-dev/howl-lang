@@ -3,13 +3,10 @@ package dev.m0rg.howl.ast.type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.llvm.LLVMModule;
-import dev.m0rg.howl.llvm.LLVMType;
 
 public class SpecifiedType extends TypeElement {
     TypeElement base;
@@ -78,23 +75,5 @@ public class SpecifiedType extends TypeElement {
     @Override
     public boolean accepts(TypeElement other) {
         return false;
-    }
-
-    @Override
-    public LLVMType generate(LLVMModule module) {
-        throw new UnsupportedOperationException();
-    }
-
-    public Optional<ObjectSnapshotType> snapshot() {
-        TypeElement source = this.base.resolve();
-        if (source instanceof ObjectReferenceType) {
-            ObjectReferenceType ort = (ObjectReferenceType) source;
-            return Optional
-                    .of((ObjectSnapshotType) new ObjectSnapshotType(ort.getSpan(), ort.getSource().monomorphize(this))
-                            .setParent(source.getParent()));
-        } else {
-            // throw new UnsupportedOperationException(this.format());
-            return Optional.empty();
-        }
     }
 }

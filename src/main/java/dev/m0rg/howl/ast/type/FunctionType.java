@@ -9,9 +9,6 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.llvm.LLVMFunctionType;
-import dev.m0rg.howl.llvm.LLVMModule;
-import dev.m0rg.howl.llvm.LLVMType;
 
 public class FunctionType extends TypeElement {
     String source_path;
@@ -80,13 +77,4 @@ public class FunctionType extends TypeElement {
         }
     }
 
-    @Override
-    public LLVMType generate(LLVMModule module) {
-        LLVMType returntype = this.getReturnType().resolve().generate(module);
-        List<LLVMType> args = new ArrayList<>(this.getArgumentTypes().size());
-        for (TypeElement argtype : this.getArgumentTypes()) {
-            args.add(argtype.resolve().generate(module));
-        }
-        return new LLVMFunctionType(returntype, args);
-    }
 }
