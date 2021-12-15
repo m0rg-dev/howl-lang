@@ -21,6 +21,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.Finder;
 import dev.m0rg.howl.ast.ImportStatement;
 import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
@@ -197,7 +198,7 @@ public class Compiler {
         cc.root_module.transform(new CoalesceElse());
         cc.root_module.transform(new CoalesceCatch());
 
-        cc.root_module.transform(new RunStaticAnalysis());
+        Finder.find(cc.root_module, x -> RunStaticAnalysis.apply(x));
 
         // System.err.println(cc.root_module.getChild("main").get().format());
         // System.exit(0);

@@ -15,7 +15,7 @@ import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMModule;
 
-public class Module extends ASTElement implements NamedElement, NameHolder {
+public class Module extends ASTElement implements NamedElement, NameHolder, Walkable {
     String name;
     List<ASTElement> contents;
     Map<String, ASTElement> named_contents;
@@ -45,6 +45,10 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
             contents.add(s.format());
         }
         return "mod " + this.name + " {\n" + String.join("\n\n", contents).indent(2) + "}";
+    }
+
+    public List<ASTElement> getContents() {
+        return Collections.unmodifiableList(contents);
     }
 
     public void insertItem(ASTElement item) {

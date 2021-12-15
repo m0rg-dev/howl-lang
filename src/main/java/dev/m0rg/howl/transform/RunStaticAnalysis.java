@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
-import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.statement.ReturnExpectation;
 import dev.m0rg.howl.ast.statement.Statement;
@@ -14,8 +13,8 @@ import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.static_analysis.CFGNode;
 import dev.m0rg.howl.static_analysis.StaticAnalysis;
 
-public class RunStaticAnalysis implements ASTTransformer {
-    public ASTElement transform(ASTElement e) {
+public class RunStaticAnalysis {
+    public static Boolean apply(ASTElement e) {
         if (e instanceof Function) {
             Function f = (Function) e;
             if (f.getBody().isPresent()) {
@@ -34,15 +33,16 @@ public class RunStaticAnalysis implements ASTTransformer {
                     }
                 }
             }
+            return true;
         }
-        return e;
+        return false;
     }
 
-    Set<Statement> findReachable(CFGNode g) {
+    static Set<Statement> findReachable(CFGNode g) {
         return findReachable(g, new HashSet<>());
     }
 
-    Set<Statement> findReachable(CFGNode g, Set<Statement> found) {
+    static Set<Statement> findReachable(CFGNode g, Set<Statement> found) {
         found.add(g.getStatement());
         for (CFGNode succ : g.getSuccessors()) {
             findReachable(succ, found);
@@ -50,7 +50,7 @@ public class RunStaticAnalysis implements ASTTransformer {
         return found;
     }
 
-    class DeadCodeFinder extends LintPass {
+    static class DeadCodeFinder extends LintPass {
         Set<Statement> live_set;
 
         public DeadCodeFinder(Set<Statement> live_set) {

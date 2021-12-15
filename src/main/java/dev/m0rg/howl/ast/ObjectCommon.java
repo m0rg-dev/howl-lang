@@ -23,7 +23,7 @@ import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.transform.InferTypes;
 import dev.m0rg.howl.transform.Monomorphize2;
 
-public abstract class ObjectCommon extends ASTElement implements NamedElement, NameHolder, HasOwnType {
+public abstract class ObjectCommon extends ASTElement implements NamedElement, NameHolder, HasOwnType, Walkable {
     String name;
     List<String> generics;
     Map<String, NewType> generic_types;
@@ -291,6 +291,12 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
 
         Logger.trace("MONOMORPHIZE " + specified.getName());
         Logger.trace(specified.format());
+    }
+
+    public List<ASTElement> getContents() {
+        List<ASTElement> rc = new ArrayList<>(fields.values());
+        rc.addAll(methods);
+        return rc;
     }
 
     public abstract ObjectReferenceType getOwnType();

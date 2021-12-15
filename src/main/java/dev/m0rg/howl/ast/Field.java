@@ -3,7 +3,7 @@ package dev.m0rg.howl.ast;
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.TypeElement;
 
-public class Field extends ASTElement implements NamedElement, HasOwnType {
+public class Field extends ASTElement implements NamedElement, HasOwnType, Walkable {
     String name;
     TypeElement fieldtype;
     boolean is_static;
