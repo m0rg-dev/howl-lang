@@ -76,7 +76,7 @@ public class AssignmentStatement extends Statement implements HasUpstreamFields 
         Map<String, FieldHandle> rc = new HashMap<>();
         rc.put("rhs",
                 new FieldHandle(() -> this.getRHS(), (e) -> this.setRHS(e),
-                        () -> AlgebraicType.deriveNew(this.getLHS())));
+                        () -> AlgebraicType.derive(this.getLHS())));
         return rc;
     }
 }

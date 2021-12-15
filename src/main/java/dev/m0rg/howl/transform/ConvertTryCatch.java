@@ -140,7 +140,7 @@ public class ConvertTryCatch implements ASTTransformer {
         exclocal.setLocaltype((TypeElement) block.getType().detach());
         ClassCastExpression cast = new ClassCastExpression(span);
         cast.setSource(get_call);
-        cast.setTarget(AlgebraicType.deriveNew(block.getType()));
+        cast.setTarget(AlgebraicType.derive(block.getType()));
         exclocal.setInitializer(cast);
 
         CompoundStatement body = new CompoundStatement(span);

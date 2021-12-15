@@ -1,6 +1,5 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
-import java.util.Map;
 import java.util.Set;
 
 public class AIndexResult extends ALambdaTerm implements Applicable {

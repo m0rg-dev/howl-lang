@@ -35,7 +35,7 @@ public abstract class ALambdaTerm extends AlgebraicType {
      * Convenience function to derive a type and evaluate it.
      */
     public static ALambdaTerm evaluateFrom(ASTElement t) {
-        return evaluate(AlgebraicType.deriveNew(t));
+        return evaluate(AlgebraicType.derive(t));
     }
 
     /**

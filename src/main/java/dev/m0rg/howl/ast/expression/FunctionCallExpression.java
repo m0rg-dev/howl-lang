@@ -74,9 +74,9 @@ public class FunctionCallExpression extends CallExpressionBase {
     public ALambdaTerm getTypeForArgument(int index) {
         List<ALambdaTerm> arg_types = new ArrayList<>(this.args.size());
         for (Expression e : this.args) {
-            arg_types.add(AlgebraicType.deriveNew(e));
+            arg_types.add(AlgebraicType.derive(e));
         }
-        return new AExtractArgument(AlgebraicType.deriveNew(source), arg_types, index);
+        return new AExtractArgument(AlgebraicType.derive(source), arg_types, index);
     }
 
     @Override

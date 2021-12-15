@@ -9,7 +9,6 @@ import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
 import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.statement.TryStatement;
-import dev.m0rg.howl.logger.Logger;
 
 public class CoalesceCatch implements ASTTransformer {
     public ASTElement transform(ASTElement e) {

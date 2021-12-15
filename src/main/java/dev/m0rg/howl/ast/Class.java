@@ -9,7 +9,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
-import dev.m0rg.howl.ast.type.ClassStaticType;
 import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NamedType;
@@ -150,7 +149,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
 
     public boolean doesImplement(InterfaceType t) {
         for (TypeElement imp : this.interfaces()) {
-            ALambdaTerm res = ALambdaTerm.evaluate(AlgebraicType.deriveNew(imp));
+            ALambdaTerm res = ALambdaTerm.evaluate(AlgebraicType.derive(imp));
             if (res instanceof AStructureReference) {
                 if (t.getSource().getPath().equals(((AStructureReference) res).getSource().getSource().getPath())) {
                     return true;
@@ -175,10 +174,6 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
     @Override
     public ClassType getOwnType() {
         return (ClassType) new ClassType(span, this.getPath()).setParent(this);
-    }
-
-    public ClassStaticType getStaticType() {
-        return (ClassStaticType) new ClassStaticType(span, this.getPath()).setParent(this);
     }
 
     @Override
@@ -272,7 +267,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
 
             for (String name : res.getSource().getMethodNames()) {
                 Logger.trace("method: " + name);
-                LLVMType method_type = res.getSource().getMethod(name).get().getOwnType().generate(module);
+                LLVMType method_type = (new AFunctionReference(res.getSource().getMethod(name).get())).toLLVM(module);
                 LLVMFunction generated;
                 if (this.isOwnMethod(name)) {
                     Function m = this.getMethod(name).get();

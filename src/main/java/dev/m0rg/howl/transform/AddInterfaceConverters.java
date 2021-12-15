@@ -23,7 +23,7 @@ public class AddInterfaceConverters implements ASTTransformer {
             Class c = (Class) e;
             Logger.trace("AddInterfaceConverters " + e.getPath());
             for (TypeElement t : c.interfaces()) {
-                ALambdaTerm t_impl = ALambdaTerm.evaluate(AlgebraicType.deriveNew(t));
+                ALambdaTerm t_impl = ALambdaTerm.evaluate(AlgebraicType.derive(t));
                 if (t_impl instanceof AStructureReference) {
                     TypeElement resolved = ((AStructureReference) t_impl).getSource();
                     if (resolved instanceof InterfaceType) {
@@ -41,7 +41,7 @@ public class AddInterfaceConverters implements ASTTransformer {
                         ReturnStatement rc = new ReturnStatement(converter.getSpan());
                         CastToInterfaceExpression ice = new CastToInterfaceExpression(converter.getSpan());
                         ice.setSource(new NameExpression(converter.getSpan(), "self"));
-                        ice.setTarget(AlgebraicType.deriveNew(t));
+                        ice.setTarget(AlgebraicType.derive(t));
                         rc.setSource(ice);
                         body.insertStatement(rc);
                         converter.setBody(body);

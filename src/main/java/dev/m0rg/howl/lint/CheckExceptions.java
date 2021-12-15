@@ -24,7 +24,7 @@ public class CheckExceptions extends LintPass {
             FunctionCallExpression call = (FunctionCallExpression) e;
             if (call.isGeneratedFromThrow) {
                 AVariable.reset();
-                ALambdaTerm exctype = ALambdaTerm.evaluate(AlgebraicType.deriveNew(call.getArguments().get(0)));
+                ALambdaTerm exctype = ALambdaTerm.evaluate(AlgebraicType.derive(call.getArguments().get(0)));
                 if (new AStructureReference(
                         (ClassType) new ClassType(e.getSpan(), "root.lib.UncheckedException").setParent(e.getParent()))
                                 .accepts(exctype)) {
@@ -39,7 +39,7 @@ public class CheckExceptions extends LintPass {
 
                 List<String> allowed_types = new ArrayList<>();
                 for (TypeElement th : call.getContainingFunction().getThrows()) {
-                    ALambdaTerm thtype = ALambdaTerm.evaluate(AlgebraicType.deriveNew(th));
+                    ALambdaTerm thtype = ALambdaTerm.evaluate(AlgebraicType.derive(th));
                     Logger.trace(
                             "throw " + exctype.format() + " -> "
                                     + thtype.format());
@@ -65,7 +65,7 @@ public class CheckExceptions extends LintPass {
             if (p instanceof IfStatement && ((IfStatement) p).originalTry.isPresent()) {
                 TryStatement orig = ((IfStatement) p).originalTry.get();
                 for (CatchStatement c : orig.getAlternatives()) {
-                    if (AlgebraicType.deriveNew(c.getType()).accepts(exctype)) {
+                    if (AlgebraicType.derive(c.getType()).accepts(exctype)) {
                         return Optional.of(p);
                     }
                 }

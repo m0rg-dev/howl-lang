@@ -23,7 +23,7 @@ public class AddNumericCasts implements ASTTransformer {
                 AVariable.reset();
                 ALambdaTerm t_expected = ALambdaTerm.evaluate(ent.getValue().getExpectedType());
                 ALambdaTerm t_provided = ALambdaTerm
-                        .evaluate(AlgebraicType.deriveNew(ent.getValue().getSubexpression()));
+                        .evaluate(AlgebraicType.derive(ent.getValue().getSubexpression()));
 
                 // TODO sort this all out
                 if (t_expected instanceof ABaseType && t_provided instanceof ABaseType) {

@@ -59,7 +59,7 @@ public class AOverloadType extends AFunctionType implements Applicable {
         outer: for (Function candidate : candidates) {
             List<ALambdaTerm> candidate_types = candidate.getArgumentList().stream()
                     .map(x -> {
-                        ALambdaTerm rc = ALambdaTerm.evaluate(AlgebraicType.deriveNew(x.getOwnType()));
+                        ALambdaTerm rc = ALambdaTerm.evaluate(AlgebraicType.derive(x.getOwnType()));
                         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
                             rc = rc.substitute(s.getKey(), s.getValue());
                         }
@@ -95,7 +95,7 @@ public class AOverloadType extends AFunctionType implements Applicable {
     public ALambdaTerm getReturn(List<ALambdaTerm> argtypes) {
         Function candidate = select(argtypes);
 
-        ALambdaTerm rc = AlgebraicType.deriveNew(candidate.getReturn());
+        ALambdaTerm rc = AlgebraicType.derive(candidate.getReturn());
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
             rc = rc.substitute(s.getKey(), s.getValue());
         }
@@ -111,7 +111,7 @@ public class AOverloadType extends AFunctionType implements Applicable {
             index_offset = 1;
         }
 
-        ALambdaTerm rc = AlgebraicType.deriveNew(candidate.getArgumentList().get(index + index_offset).getOwnType());
+        ALambdaTerm rc = AlgebraicType.derive(candidate.getArgumentList().get(index + index_offset).getOwnType());
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
             rc = rc.substitute(s.getKey(), s.getValue());
         }

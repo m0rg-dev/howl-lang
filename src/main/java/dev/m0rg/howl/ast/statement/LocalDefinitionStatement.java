@@ -16,9 +16,7 @@ import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
-import dev.m0rg.howl.llvm.LLVMInstruction;
 import dev.m0rg.howl.llvm.LLVMValue;
-import dev.m0rg.howl.logger.Logger;
 
 public class LocalDefinitionStatement extends Statement implements NamedElement, HasOwnType, HasUpstreamFields {
     TypeElement localtype;
@@ -76,7 +74,7 @@ public class LocalDefinitionStatement extends Statement implements NamedElement,
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         rc.put("initializer", new FieldHandle(() -> this.getInitializer(), (e) -> this.setInitializer(e),
-                () -> AlgebraicType.deriveNew(localtype)));
+                () -> AlgebraicType.derive(localtype)));
         return rc;
     }
 

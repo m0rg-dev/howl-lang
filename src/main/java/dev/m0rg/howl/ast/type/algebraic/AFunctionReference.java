@@ -5,12 +5,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import dev.m0rg.howl.ast.Argument;
 import dev.m0rg.howl.ast.Function;
-import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMType;
@@ -26,15 +25,15 @@ public class AFunctionReference extends AFunctionType {
 
     @Override
     public ALambdaTerm getReturn(List<ALambdaTerm> argtypes) {
-        return AlgebraicType.deriveNew(source.getReturn());
+        return AlgebraicType.derive(source.getReturn());
     }
 
     @Override
     public ALambdaTerm getArgument(int index, List<ALambdaTerm> argtypes) {
         if (source.isStatic()) {
-            return AlgebraicType.deriveNew(source.getArgumentList().get(index));
+            return AlgebraicType.derive(source.getArgumentList().get(index));
         } else {
-            return AlgebraicType.deriveNew(source.getArgumentList().get(index + 1));
+            return AlgebraicType.derive(source.getArgumentList().get(index + 1));
         }
     }
 
@@ -77,7 +76,7 @@ public class AFunctionReference extends AFunctionType {
         LLVMType returntype = ALambdaTerm.evaluateFrom(source.getReturn()).toLLVM(module);
         List<LLVMType> args = new ArrayList<>(source.getArgumentList().size());
         for (Argument a : source.getArgumentList()) {
-            ALambdaTerm t = AlgebraicType.deriveNew(a.getOwnType());
+            ALambdaTerm t = AlgebraicType.derive(a.getOwnType());
             for (Entry<String, ALambdaTerm> e : substitutions.entrySet()) {
                 t = t.substitute(e.getKey(), e.getValue());
             }

@@ -23,7 +23,7 @@ public class AddClassCasts implements ASTTransformer {
                 AVariable.reset();
                 ALambdaTerm t_expected = ALambdaTerm.evaluate(ent.getValue().getExpectedType());
                 ALambdaTerm t_provided = ALambdaTerm
-                        .evaluate(AlgebraicType.deriveNew(ent.getValue().getSubexpression()));
+                        .evaluate(AlgebraicType.derive(ent.getValue().getSubexpression()));
 
                 if (t_expected instanceof AStructureReference && t_provided instanceof AStructureReference) {
                     ObjectReferenceType expected = ((AStructureReference) t_expected).getSource();

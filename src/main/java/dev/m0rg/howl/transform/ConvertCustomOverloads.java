@@ -16,7 +16,7 @@ public class ConvertCustomOverloads implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof IndexExpression) {
             IndexExpression as_index = (IndexExpression) e;
-            ALambdaTerm source_type = ALambdaTerm.evaluate(AlgebraicType.deriveNew(as_index.getSource()));
+            ALambdaTerm source_type = ALambdaTerm.evaluate(AlgebraicType.derive(as_index.getSource()));
             if (source_type instanceof ARawPointer) {
                 // don't have to overload those!
                 return e;
@@ -30,7 +30,7 @@ public class ConvertCustomOverloads implements ASTTransformer {
             }
         } else if (e instanceof ArithmeticExpression) {
             ArithmeticExpression as_math = (ArithmeticExpression) e;
-            ALambdaTerm lhs_type = ALambdaTerm.evaluate(AlgebraicType.deriveNew(as_math.getLHS()));
+            ALambdaTerm lhs_type = ALambdaTerm.evaluate(AlgebraicType.derive(as_math.getLHS()));
 
             if (lhs_type instanceof ABaseType) {
                 return e;

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 
-import dev.m0rg.howl.ast.type.InterfaceStaticType;
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NewType;
 
@@ -62,10 +61,6 @@ public class Interface extends ObjectCommon {
     @Override
     public InterfaceType getOwnType() {
         return (InterfaceType) new InterfaceType(span, this.getPath()).setParent(this);
-    }
-
-    public InterfaceStaticType getStaticType() {
-        return (InterfaceStaticType) new InterfaceStaticType(span, this.getPath()).setParent(this);
     }
 
     @Override

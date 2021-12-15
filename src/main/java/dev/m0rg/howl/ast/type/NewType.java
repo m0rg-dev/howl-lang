@@ -7,9 +7,6 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
-import dev.m0rg.howl.llvm.LLVMModule;
-import dev.m0rg.howl.llvm.LLVMType;
-import dev.m0rg.howl.logger.Logger;
 
 public class NewType extends TypeElement implements NamedElement {
     Optional<ALambdaTerm> resolution;
@@ -73,11 +70,6 @@ public class NewType extends TypeElement implements NamedElement {
     @Override
     public boolean accepts(TypeElement other) {
         throw new RuntimeException();
-    }
-
-    @Override
-    public LLVMType generate(LLVMModule module) {
-        throw new UnsupportedOperationException();
     }
 
     public boolean isResolved() {

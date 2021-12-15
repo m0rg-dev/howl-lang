@@ -122,22 +122,6 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
         }
     }
 
-    // this is a class method because we're gonna mutate this.contents
-    public void dropGenerics() {
-        List<ASTElement> alias = new ArrayList<>(this.contents);
-        for (ASTElement item : alias) {
-            if (item instanceof Class) {
-                if (((Class) item).isGeneric()) {
-                    this.contents.remove(item);
-                }
-            } else if (item instanceof Interface) {
-                if (((Interface) item).getGenericNames().size() > 0) {
-                    this.contents.remove(item);
-                }
-            }
-        }
-    }
-
     public List<LLVMModule> generate(LLVMContext context, boolean isMain) {
         List<LLVMModule> rc = new ArrayList<>();
         LLVMModule this_module = new LLVMModule(this.getPath(), context);

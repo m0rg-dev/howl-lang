@@ -1,7 +1,7 @@
 package dev.m0rg.howl.transform;
 
-import java.util.Map.Entry;
 import java.io.IOException;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 import dev.m0rg.howl.CompilationError;
@@ -11,7 +11,6 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
-import dev.m0rg.howl.ast.type.algebraic.ANewtype;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
@@ -27,7 +26,7 @@ public class InferTypes implements ASTTransformer {
                 AVariable.reset();
                 ALambdaTerm t_expected = ALambdaTerm.evaluate(f.getValue().getExpectedType());
                 Logger.trace(" " + f.getKey() + " expected: " + t_expected.format());
-                ALambdaTerm t_provided = ALambdaTerm.evaluate(AlgebraicType.deriveNew(f.getValue().getSubexpression()));
+                ALambdaTerm t_provided = ALambdaTerm.evaluate(AlgebraicType.derive(f.getValue().getSubexpression()));
                 Logger.trace(" " + f.getKey() + " provided: " + t_provided.format());
 
                 if (t_expected.accepts(t_provided)) {

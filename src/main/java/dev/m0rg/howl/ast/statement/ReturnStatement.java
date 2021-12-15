@@ -60,7 +60,7 @@ public class ReturnStatement extends Statement implements HasUpstreamFields {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         if (this.source.isPresent()) {
             rc.put("source", new FieldHandle(() -> this.getSource().get(), (e) -> this.setSource(e),
-                    () -> AlgebraicType.deriveNew(this.getContainingFunction().getReturn())));
+                    () -> AlgebraicType.derive(this.getContainingFunction().getReturn())));
         }
         return rc;
     }

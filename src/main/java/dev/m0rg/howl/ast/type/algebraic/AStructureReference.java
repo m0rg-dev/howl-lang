@@ -1,6 +1,5 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
-import java.lang.module.ResolutionException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -78,7 +77,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             }
         });
 
-        ALambdaTerm rc = AlgebraicType.deriveNew(src.get());
+        ALambdaTerm rc = AlgebraicType.derive(src.get());
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
             rc = rc.substitute(s.getKey(), s.getValue());
         }

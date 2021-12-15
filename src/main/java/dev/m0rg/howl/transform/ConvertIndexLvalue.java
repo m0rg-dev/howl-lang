@@ -18,7 +18,7 @@ public class ConvertIndexLvalue implements ASTTransformer {
             AssignmentStatement as_assignment = (AssignmentStatement) e;
             if (as_assignment.getLHS() instanceof IndexExpression) {
                 IndexExpression as_index = (IndexExpression) as_assignment.getLHS();
-                ALambdaTerm source_type = ALambdaTerm.evaluate(AlgebraicType.deriveNew(as_index.getSource()));
+                ALambdaTerm source_type = ALambdaTerm.evaluate(AlgebraicType.derive(as_index.getSource()));
                 if (source_type instanceof ARawPointer) {
                     // don't have to overload those!
                     return e;

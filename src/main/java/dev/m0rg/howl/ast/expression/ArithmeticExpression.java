@@ -10,8 +10,6 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.NamedType;
-import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
@@ -88,7 +86,7 @@ public class ArithmeticExpression extends Expression {
         // TODO
         rc.put("rhs",
                 new FieldHandle(() -> this.getRHS(), (e) -> this.setRHS(e),
-                        () -> AlgebraicType.deriveNew(this.getLHS())));
+                        () -> AlgebraicType.derive(this.getLHS())));
         return rc;
     }
 
@@ -97,7 +95,7 @@ public class ArithmeticExpression extends Expression {
             return new ABaseType("bool");
         } else {
             // TODO
-            return AlgebraicType.deriveNew(this.getLHS());
+            return AlgebraicType.derive(this.getLHS());
         }
     }
 
