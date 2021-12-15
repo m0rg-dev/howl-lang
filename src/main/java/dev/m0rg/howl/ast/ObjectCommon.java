@@ -300,4 +300,12 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
     }
 
     public abstract ObjectReferenceType getOwnType();
+
+    public int getDepth() {
+        int rc = 1;
+        if (this.ext.isPresent()) {
+            rc += ((ObjectReferenceType) this.ext.get().resolve()).getSource().getDepth();
+        }
+        return rc;
+    }
 }

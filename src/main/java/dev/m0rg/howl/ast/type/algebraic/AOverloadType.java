@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +57,7 @@ public class AOverloadType extends AFunctionType implements Applicable {
         Logger.trace("  overload args: " + String.join(", ", argtypes.stream().map(x -> x.format()).toList()));
 
         List<Function> candidates = source.getSource().getOverloadCandidates(source.getName());
+        Map<Function, Integer> matches = new HashMap<>();
         outer: for (Function candidate : candidates) {
             List<ALambdaTerm> candidate_types = candidate.getArgumentList().stream()
                     .map(x -> {
@@ -76,20 +78,58 @@ public class AOverloadType extends AFunctionType implements Applicable {
             Logger.trace("  candidate: " + candidate.getName() + "{"
                     + String.join(", ", candidate_types.stream().map(x -> x.format()).toList()) + "}");
             if (candidate_types.size() == argtypes.size() + index_offset) {
+                int score = 0;
                 for (int i = index_offset; i < candidate_types.size(); i++) {
                     if (!candidate_types.get(i).accepts(argtypes.get(i - index_offset))) {
                         Logger.trace("  => mismatch at position " + i);
                         continue outer;
                     }
+
+                    int candidate_depth = 0;
+                    int provided_depth = 0;
+                    if (candidate_types.get(i) instanceof AStructureReference) {
+                        candidate_depth = ((AStructureReference) candidate_types.get(i)).getDepth();
+                        Logger.trace("  candidate argument depth: " + candidate_depth);
+                    }
+
+                    if (argtypes.get(i - index_offset) instanceof AStructureReference) {
+                        provided_depth = ((AStructureReference) argtypes.get(i - index_offset)).getDepth();
+                        Logger.trace("  provided argument depth: " + provided_depth);
+                    }
+
+                    score = Math.abs(candidate_depth - provided_depth);
+                    Logger.trace("delta = " + Math.abs(candidate_depth - provided_depth));
                 }
                 Logger.trace("  selected.");
-                return candidate;
+                matches.put(candidate, score);
             } else {
                 Logger.trace("  => wrong argument count");
                 continue outer;
             }
         }
-        throw new RuntimeException();
+
+        if (matches.size() == 1) {
+            return matches.keySet().iterator().next();
+        } else if (matches.size() == 0) {
+            throw new RuntimeException("overload matched 0 cases");
+        } else {
+            Map<Integer, List<Function>> inverted = new HashMap<>();
+            for (Entry<Function, Integer> match : matches.entrySet()) {
+                List<Function> l = inverted.getOrDefault(match.getValue(), new ArrayList<>());
+                l.add(match.getKey());
+                inverted.put(match.getValue(), l);
+            }
+            Integer[] scores = inverted.keySet().toArray(new Integer[0]);
+            Arrays.sort(scores);
+            int lowest = scores[0];
+            Logger.trace("lowest score is " + lowest);
+            List<Function> specific = inverted.get(lowest);
+            if (specific.size() == 1) {
+                return specific.get(0);
+            }
+            throw new RuntimeException("ambiguous overload");
+        }
+
     }
 
     public ALambdaTerm getReturn(List<ALambdaTerm> argtypes) {

@@ -111,7 +111,10 @@ public class ConstructorCallExpression extends CallExpressionBase {
             }
 
             List<LLVMValue> args = new ArrayList<>(this.args.size());
-            args.add(builder.buildLoad(storage, ""));
+            ClassCastExpression cast = new ClassCastExpression(span);
+            cast.setSource(new LLVMInternalExpression(builder.buildLoad(storage, ""), source_type));
+            cast.setTarget(ALambdaTerm.evaluateFrom(source_function_two.getArgumentList().get(0).getOwnType()));
+            args.add(cast.generate(builder));
             for (Expression e : this.args) {
                 args.add(e.generate(builder));
             }

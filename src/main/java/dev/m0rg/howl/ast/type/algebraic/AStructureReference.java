@@ -13,6 +13,7 @@ import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Field;
+import dev.m0rg.howl.ast.Interface;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Overload;
@@ -290,5 +291,13 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         }
 
         return t;
+    }
+
+    public int getDepth() {
+        int rc = getSource().getSource().getDepth();
+        if (getSource().getSource() instanceof Interface) {
+            rc = -rc;
+        }
+        return rc;
     }
 }

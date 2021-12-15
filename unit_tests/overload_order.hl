@@ -1,0 +1,34 @@
+class A {
+    fn void frob(Display d) {
+        Test.fail("A.frob(String s) is more specific");
+    }
+
+    fn void frob(String s) {
+        Test.ok("correct overload called");
+    }
+}
+
+class B extends String {
+
+}
+
+class C {
+    fn void frob(Display d) {
+        Test.fail("C.frob(B b) is more specific than C.frob(Display d)");
+    }
+
+    fn void frob(String s) {
+        Test.fail("C.frob(B b) is more specific than C.frob(String s)");
+    }
+
+    fn void frob(B b) {
+        Test.ok("correct overload called");
+    }
+}
+
+static fn i32 Main() {
+    Test.init(2);
+    (new A()).frob("");
+    (new C()).frob(new B());
+    return Test.report();
+}
