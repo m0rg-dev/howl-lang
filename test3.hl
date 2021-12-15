@@ -16,6 +16,6 @@ class B<T> {
 
 static fn i32 Main() {
     let B test = new B(42);
-    let B test2 = new B(test);
+    test.get(3);
     return 0;
 }

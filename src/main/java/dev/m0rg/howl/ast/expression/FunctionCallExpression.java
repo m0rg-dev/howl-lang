@@ -102,16 +102,21 @@ public class FunctionCallExpression extends CallExpressionBase {
                 new_source.name = source_function.getName();
                 new_source.setParent(source.getParent());
                 Logger.trace("new source " + new_source.format());
-                LLVMValue callee = new_source.generate(builder);
+
+                LLVMValue source_obj = new_source.getSource().generate(builder);
+
+                LLVMValue callee = builder.buildLoad(new_source.getPointerFrom(builder, source_obj), "");
 
                 List<LLVMValue> args = new ArrayList<>(this.args.size());
+                if (!source_function.isStatic()) {
+                    args.add(source_obj);
+                }
+
                 for (Expression e : this.args) {
                     args.add(e.generate(builder));
                 }
 
                 LLVMInstruction rc = builder.buildCall(callee, args, "");
-                callee.dump();
-                rc.dump();
                 return rc;
             }
         }

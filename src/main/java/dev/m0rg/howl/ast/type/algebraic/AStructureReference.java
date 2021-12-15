@@ -40,13 +40,13 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
     @Override
     public String format() {
         if (substitutions.isEmpty()) {
-            return "struct " + source.getSource().getPath();
+            return "struct " + getSource().getSource().getPath();
         } else {
             List<String> s = new ArrayList<>();
             for (Entry<String, ALambdaTerm> e : substitutions.entrySet()) {
                 s.add(e.getKey() + " := " + e.getValue().format());
             }
-            return "struct " + source.getSource().getPath() + "[" + String.join(", ", s) + "]";
+            return "struct " + getSource().getSource().getPath() + "[" + String.join(", ", s) + "]";
         }
     }
 
@@ -149,8 +149,8 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         }
 
         parts.add("N");
-        parts.add(Integer.toString(source.getSource().getPath().length()));
-        parts.add(source.getSource().getPath().replace('.', '_'));
+        parts.add(Integer.toString(getSource().getSource().getPath().length()));
+        parts.add(getSource().getSource().getPath().replace('.', '_'));
 
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
             if (s.getValue() instanceof Mangle) {
@@ -164,7 +164,6 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
     }
 
     public String getSourcePath() {
-        Logger.trace("AStructureReference generate " + this.format());
         if (substitutions.size() > 0) {
             // i wanna die
             Optional<ASTElement> mmc = ((Module) getSource().getSource().getParent()).getChild(mangle());
@@ -185,7 +184,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
     static Set<String> structures_generated = new HashSet<>();
 
     @Override
-    public LLVMType toLLVM(LLVMModule module) {
+    public LLVMStructureType toLLVM(LLVMModule module) {
         Logger.trace("AStructureReference generate " + this.format());
         if (substitutions.size() > 0) {
             // i wanna die
@@ -220,7 +219,9 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                 static_type = new LLVMPointerType<>(this.generateStaticType(module));
                 itable_type = new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8));
             } else {
-                throw new RuntimeException();
+                object_type = new LLVMPointerType<>(this.generateObjectType(module));
+                static_type = new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8));
+                itable_type = new LLVMPointerType<>(this.generateStaticType(module));
             }
             t.setBody(Arrays.asList(new LLVMType[] { object_type, static_type, itable_type }), true);
         }
@@ -228,7 +229,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
 
     }
 
-    LLVMType generateObjectType(LLVMModule module) {
+    public LLVMStructureType generateObjectType(LLVMModule module) {
         String name = getSourcePath() + "_object";
         LLVMStructureType t;
         if (module.getContext().getStructureType(name).isPresent()) {
@@ -251,7 +252,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         return t;
     }
 
-    LLVMType generateStaticType(LLVMModule module) {
+    public LLVMStructureType generateStaticType(LLVMModule module) {
         String name = getSourcePath() + "_static";
         LLVMStructureType t;
         if (module.getContext().getStructureType(name).isPresent()) {
@@ -270,6 +271,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             // parent
             contents.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
             for (String fieldname : this.getSource().getSource().getMethodNames()) {
+                Logger.trace("  => method " + fieldname);
                 ALambdaTerm fieldtype = ALambdaTerm.evaluate(this.getField(fieldname));
                 contents.add(new LLVMPointerType<>(fieldtype.toLLVM(module)));
             }

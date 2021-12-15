@@ -39,6 +39,9 @@ public class ABaseType extends ALambdaTerm implements Mangle {
 
     @Override
     public boolean accepts(ALambdaTerm other) {
+        if (other.isFree())
+            return true;
+
         if (other instanceof ABaseType) {
             if (((ABaseType) other).name.equals(name)) {
                 return true;
@@ -57,8 +60,6 @@ public class ABaseType extends ALambdaTerm implements Mangle {
                     return false;
                 }
             }
-        } else if (other instanceof AVariable || other instanceof AAnyType) {
-            return true;
         } else {
             return false;
         }

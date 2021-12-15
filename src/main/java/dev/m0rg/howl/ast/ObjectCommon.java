@@ -3,13 +3,11 @@ package dev.m0rg.howl.ast;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.NamedType;
@@ -19,6 +17,7 @@ import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.transform.InferTypes;
 
 public abstract class ObjectCommon extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     String name;
@@ -128,15 +127,17 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
     }
 
     public List<String> getMethodNames() {
-        Set<String> names = new HashSet<>();
+        List<String> names = new ArrayList<>();
         if (this.ext.isPresent()) {
             names.addAll(((ObjectReferenceType) this.ext.get().resolve()).getSource().getMethodNames());
         }
 
         for (Function m : methods) {
-            names.add(m.getName());
+            if (names.stream().noneMatch(x -> x.equals(m.getName()))) {
+                names.add(m.getName());
+            }
         }
-        return new ArrayList<>(names);
+        return names;
     }
 
     public List<Function> getMethods() {
@@ -203,7 +204,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
                 for (Entry<String, NewType> t : this.generic_types.entrySet()) {
                     rc.insertParameter((TypeElement) t.getValue().detach());
                 }
-                rc.setParent(this.getParent());
+                rc.setParent(this);
                 return Optional.of(rc);
             } else {
                 return Optional.of(this);
@@ -242,6 +243,8 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
             specified.setGeneric(this.generics.get(i), p);
         }
         specified.clearGenerics();
+        ((Module) this.getParent()).insertItem(specified);
+        specified.transform(new InferTypes());
         return specified;
     }
 

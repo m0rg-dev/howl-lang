@@ -41,7 +41,7 @@ public class AddInterfaceConverters implements ASTTransformer {
                         ReturnStatement rc = new ReturnStatement(converter.getSpan());
                         CastToInterfaceExpression ice = new CastToInterfaceExpression(converter.getSpan());
                         ice.setSource(new NameExpression(converter.getSpan(), "self"));
-                        ice.setTarget(t_impl);
+                        ice.setTarget(AlgebraicType.deriveNew(t));
                         rc.setSource(ice);
                         body.insertStatement(rc);
                         converter.setBody(body);

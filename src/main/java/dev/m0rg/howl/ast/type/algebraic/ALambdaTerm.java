@@ -65,4 +65,17 @@ public abstract class ALambdaTerm extends AlgebraicType {
     public LLVMType toLLVM(LLVMModule module) {
         throw new UnsupportedOperationException(this.getClass().getName());
     }
+
+    public boolean isFree() {
+        if (this instanceof AAnyType)
+            return true;
+        if (this instanceof AVariable)
+            return true;
+        if (this instanceof ANewtype) {
+            if (!((ANewtype) this).source.isResolved()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

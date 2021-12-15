@@ -9,6 +9,7 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMType;
+import dev.m0rg.howl.logger.Logger;
 
 public class NewType extends TypeElement implements NamedElement {
     Optional<ALambdaTerm> resolution;

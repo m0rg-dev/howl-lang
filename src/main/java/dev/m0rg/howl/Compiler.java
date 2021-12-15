@@ -207,23 +207,25 @@ public class Compiler {
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
 
-        cc.root_module.transform(new AddInterfaceConverters());
         cc.root_module.transform(new AddNumericCasts());
 
         // needs to come before AddClassCasts - easier to find what type the
         // to-be-thrown exception is
         cc.root_module.transform(new CheckExceptions());
 
-        cc.root_module.transform(new AddInterfaceCasts());
-        cc.root_module.transform(new AddClassCasts());
-
         Monomorphize2 mc2 = new Monomorphize2();
         cc.root_module.transform(mc2);
         for (AStructureReference r : mc2.getToGenerate()) {
             Logger.trace("generate: " + r.format() + " " + r.mangle());
-            ((Module) r.getSource().getSource().getParent()).insertItem(
-                    r.getSource().getSource().monomorphize(r));
+            r.getSource().getSource().monomorphize(r);
         }
+
+        // This needs to happen after monomorphization because
+        // AddInterfaceConverters creates newtype references that will break
+        // when monomorphization happens.
+        cc.root_module.transform(new AddInterfaceConverters());
+        cc.root_module.transform(new AddInterfaceCasts());
+        cc.root_module.transform(new AddClassCasts());
 
         cc.root_module.transform(new ExternFunctionBaseTypesOnly());
 

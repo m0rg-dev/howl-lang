@@ -73,8 +73,7 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
         return builder.buildLoad(this.getPointer(builder), "");
     }
 
-    @Override
-    public LLVMValue getPointer(LLVMBuilder builder) {
+    public LLVMValue getPointerFrom(LLVMBuilder builder, LLVMValue source_value) {
         ALambdaTerm source_type = ALambdaTerm.evaluateFrom(source);
         if (source_type instanceof AStructureReference) {
             AStructureReference ct = (AStructureReference) source_type;
@@ -84,39 +83,48 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
             if (index >= 0) {
                 LLVMValue src;
 
-                if (ot instanceof ClassType) {
-                    LLVMValue temp = builder.buildAlloca(source_type.toLLVM(builder.getModule()), "");
-                    builder.buildStore(source.generate(builder), temp);
-                    src = builder.buildLoad(
-                            builder.buildStructGEP(source_type.toLLVM(builder.getModule()), temp, 0, ""),
-                            "");
-                } else {
-                    src = source.generate(builder);
-                }
+                // object type is always on field 0
+                LLVMValue temp = builder.buildAlloca(source_type.toLLVM(builder.getModule()), "");
+                builder.buildStore(source_value, temp);
+                src = builder.buildLoad(
+                        builder.buildStructGEP(source_type.toLLVM(builder.getModule()), temp, 0, ""),
+                        "");
                 @SuppressWarnings("unchecked")
                 LLVMPointerType<LLVMType> t = (LLVMPointerType<LLVMType>) src.getType();
                 return builder.buildStructGEP(t.getInner(), src, index, name);
             } else {
                 index = ot.getSource().getMethodNames().indexOf(name);
                 Logger.trace("index = " + index);
+                Logger.trace(String.join(", ", ot.getSource().getMethodNames()));
                 LLVMValue src;
 
+                // need to pick 1 or 2 depending on whether we're a class or an interface
                 if (ot instanceof ClassType) {
                     LLVMValue temp = builder.buildAlloca(source_type.toLLVM(builder.getModule()), "");
-                    builder.buildStore(source.generate(builder), temp);
+                    builder.buildStore(source_value, temp);
                     src = builder.buildLoad(
                             builder.buildStructGEP(source_type.toLLVM(builder.getModule()), temp, 1, ""),
                             "");
                 } else {
-                    src = source.generate(builder);
+                    LLVMValue temp = builder.buildAlloca(source_type.toLLVM(builder.getModule()), "");
+                    builder.buildStore(source_value, temp);
+                    src = builder.buildLoad(
+                            builder.buildStructGEP(source_type.toLLVM(builder.getModule()), temp, 2, ""),
+                            "");
                 }
                 @SuppressWarnings("unchecked")
                 LLVMPointerType<LLVMType> t = (LLVMPointerType<LLVMType>) src.getType();
-                return builder.buildStructGEP(t.getInner(), src, index, name);
+                // offset past RTTI portion of stable
+                return builder.buildStructGEP(t.getInner(), src, index + 2, name);
             }
         } else {
             Logger.error("fieldreference of non StructureType " + source.format());
             throw new IllegalStateException();
         }
+    }
+
+    @Override
+    public LLVMValue getPointer(LLVMBuilder builder) {
+        return getPointerFrom(builder, source.generate(builder));
     }
 }

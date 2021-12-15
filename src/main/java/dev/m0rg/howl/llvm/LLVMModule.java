@@ -55,7 +55,6 @@ public class LLVMModule {
         return Optional.ofNullable(r).map(r2 -> new LLVMFunction(this, r2));
     }
 
-    @Deprecated
     public LLVMFunction getOrInsertFunction(LLVMFunctionType type, String name, Consumer<LLVMFunction> callback,
             boolean allowExternal) {
         LLVMValueRef r = LLVMGetNamedFunction(this.getInternal(), name);

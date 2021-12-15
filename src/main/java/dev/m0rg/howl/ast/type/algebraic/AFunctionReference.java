@@ -73,7 +73,7 @@ public class AFunctionReference extends AFunctionType {
     }
 
     @Override
-    public LLVMType toLLVM(LLVMModule module) {
+    public LLVMFunctionType toLLVM(LLVMModule module) {
         LLVMType returntype = ALambdaTerm.evaluateFrom(source.getReturn()).toLLVM(module);
         List<LLVMType> args = new ArrayList<>(source.getArgumentList().size());
         for (Argument a : source.getArgumentList()) {
