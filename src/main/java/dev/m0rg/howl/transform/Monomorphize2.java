@@ -5,22 +5,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Map.Entry;
 
 import dev.m0rg.howl.CompilationError;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.expression.Expression;
-import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
-import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.logger.Logger;
 
 public class Monomorphize2 implements ASTTransformer {
