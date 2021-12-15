@@ -45,6 +45,7 @@ import dev.m0rg.howl.ast.expression.StringLiteral;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
+import dev.m0rg.howl.ast.statement.ElseIfStatement;
 import dev.m0rg.howl.ast.statement.ElseStatement;
 import dev.m0rg.howl.ast.statement.IfStatement;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
@@ -106,6 +107,8 @@ public class CSTImporter {
                 return this.parseCompoundStatement(inner_obj);
             case "ConstructorCallExpression":
                 return this.parseConstructorCallExpression(inner_obj);
+            case "ElseIfStatement":
+                return this.parseElseIfStatement(inner_obj);
             case "ElseStatement":
                 return this.parseElseStatement(inner_obj);
             case "FieldReferenceExpression":
@@ -335,6 +338,26 @@ public class CSTImporter {
                 throw new IllegalArgumentException();
             }
         }
+        return rc;
+    }
+
+    ElseIfStatement parseElseIfStatement(JsonObject source) {
+        ElseIfStatement rc = new ElseIfStatement(extractSpan(source));
+
+        ASTElement condition = parseElement(source.get("condition"));
+        if (condition instanceof Expression) {
+            rc.setCondition((Expression) condition);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        ASTElement body = parseElement(source.get("body"));
+        if (body instanceof CompoundStatement) {
+            rc.setBody((CompoundStatement) body);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
         return rc;
     }
 

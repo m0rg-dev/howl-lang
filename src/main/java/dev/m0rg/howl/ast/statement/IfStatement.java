@@ -22,11 +22,13 @@ public class IfStatement extends Statement implements HasUpstreamFields {
 
     // TODO, probably
     Optional<CompoundStatement> alternative;
+    Optional<IfStatement> chain;
     public Optional<TryStatement> originalTry;
 
     public IfStatement(Span span) {
         super(span);
         alternative = Optional.empty();
+        chain = Optional.empty();
         originalTry = Optional.empty();
     }
 
@@ -38,6 +40,9 @@ public class IfStatement extends Statement implements HasUpstreamFields {
         if (this.alternative.isPresent()) {
             rc.setAlternative((CompoundStatement) this.alternative.get().detach());
         }
+        if (this.chain.isPresent()) {
+            rc.setChain((IfStatement) this.chain.get().detach());
+        }
         rc.originalTry = originalTry;
         return rc;
     }
@@ -47,6 +52,9 @@ public class IfStatement extends Statement implements HasUpstreamFields {
         String rc = "if " + this.condition.format() + " " + this.body.format();
         if (alternative.isPresent()) {
             rc += " else " + this.alternative.get().format();
+        }
+        if (chain.isPresent()) {
+            rc += " else " + this.chain.get().format();
         }
         return rc;
     }
@@ -60,7 +68,18 @@ public class IfStatement extends Statement implements HasUpstreamFields {
     }
 
     public void setAlternative(CompoundStatement alternative) {
-        this.alternative = Optional.of((CompoundStatement) alternative.setParent(this));
+        if (this.chain.isPresent()) {
+            this.chain.get().setAlternative(alternative);
+        } else {
+            this.alternative = Optional.of((CompoundStatement) alternative.setParent(this));
+        }
+    }
+
+    public void setChain(IfStatement chain) {
+        if (this.alternative.isPresent()) {
+            throw new RuntimeException();
+        }
+        this.chain = Optional.of((IfStatement) chain.setParent(this));
     }
 
     public void setBody(CompoundStatement body) {
@@ -68,6 +87,10 @@ public class IfStatement extends Statement implements HasUpstreamFields {
     }
 
     public void transform(ASTTransformer t) {
+        if (this.chain.isPresent() && this.alternative.isPresent()) {
+            throw new RuntimeException();
+        }
+
         condition.transform(t);
         this.setCondition(t.transform(condition));
         body.transform(t);
@@ -75,6 +98,10 @@ public class IfStatement extends Statement implements HasUpstreamFields {
         if (this.alternative.isPresent()) {
             this.alternative.get().transform(t);
             this.setAlternative(t.transform(this.alternative.get()));
+        }
+        if (this.chain.isPresent()) {
+            this.chain.get().transform(t);
+            this.setChain((IfStatement) t.transform(this.chain.get()));
         }
     }
 
@@ -100,6 +127,9 @@ public class IfStatement extends Statement implements HasUpstreamFields {
             LLVMBasicBlock false_block = f.appendBasicBlock("false");
             if (this.alternative.isPresent()) {
                 this.alternative.get().generate(f);
+            }
+            if (this.chain.isPresent()) {
+                this.chain.get().generate(f);
             }
             LLVMBasicBlock last_false_block = f.lastBasicBlock();
 
