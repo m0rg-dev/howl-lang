@@ -20,6 +20,9 @@ public class Interface extends ObjectCommon {
         for (Function method : methods) {
             rc.insertMethodUnchecked((Function) method.detach());
         }
+
+        rc.original = original;
+
         return rc;
     }
 

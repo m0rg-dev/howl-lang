@@ -65,6 +65,8 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
             rc.insertImplementation((TypeElement) imp.detach());
         }
 
+        rc.original = original;
+
         return rc;
     }
 

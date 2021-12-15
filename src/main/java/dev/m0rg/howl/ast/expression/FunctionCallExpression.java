@@ -17,6 +17,7 @@ import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMInstruction;
 import dev.m0rg.howl.llvm.LLVMValue;
 import dev.m0rg.howl.logger.Logger;
@@ -119,6 +120,23 @@ public class FunctionCallExpression extends CallExpressionBase {
                 LLVMInstruction rc = builder.buildCall(callee, args, "");
                 return rc;
             }
+        } else if (source_type instanceof AFunctionReference) {
+            Function source_function = ((AFunctionReference) source_type).getSource();
+            LLVMFunction callee;
+            if (builder.getModule().getFunction(source_function.getPath()).isPresent()) {
+                callee = builder.getModule().getFunction(source_function.getPath()).get();
+            } else {
+                callee = new LLVMFunction(builder.getModule(), source_function.getPath(),
+                        ((AFunctionReference) source_type).toLLVM(builder.getModule()));
+            }
+            List<LLVMValue> args = new ArrayList<>(this.args.size());
+
+            for (Expression e : this.args) {
+                args.add(e.generate(builder));
+            }
+
+            LLVMInstruction rc = builder.buildCall(callee, args, "");
+            return rc;
         }
         throw new RuntimeException();
     }

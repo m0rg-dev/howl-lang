@@ -11,6 +11,7 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.ANewtype;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
@@ -55,6 +56,9 @@ public class InferTypes implements ASTTransformer {
                 t.setResolution(provided);
             }
         } else if (expected instanceof AStructureReference && provided instanceof AStructureReference) {
+            if (((AStructureReference) provided).getSource().getSource().original != null) {
+                return;
+            }
             for (Entry<String, ALambdaTerm> s : ((AStructureReference) expected).getSubstitutions().entrySet()) {
                 setEqual(s.getValue(),
                         ((AStructureReference) provided).getSubstitutions().get(s.getKey()), e);

@@ -11,7 +11,11 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.llvm.LLVMBuilder;
+import dev.m0rg.howl.llvm.LLVMGlobalVariable;
+import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
 
 public class SpecifiedTypeExpression extends Expression {
@@ -71,8 +75,12 @@ public class SpecifiedTypeExpression extends Expression {
         }
     }
 
-    public LLVMValue generate(LLVMBuilder b) {
-        throw new UnsupportedOperationException();
+    public LLVMValue generate(LLVMBuilder builder) {
+        AStructureReference t = (AStructureReference) ALambdaTerm.evaluateFrom(this);
+        LLVMType static_type = (t).generateStaticType(builder.getModule());
+        LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type,
+                t.getSourceResolved().getSource().getPath() + "_static");
+        return g;
     }
 
     public Map<String, FieldHandle> getUpstreamFields() {

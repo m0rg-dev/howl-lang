@@ -3,11 +3,13 @@ package dev.m0rg.howl.ast;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.NamedType;
@@ -17,7 +19,9 @@ import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.transform.InferTypes;
+import dev.m0rg.howl.transform.Monomorphize2;
 
 public abstract class ObjectCommon extends ASTElement implements NamedElement, NameHolder, HasOwnType {
     String name;
@@ -26,6 +30,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
     LinkedHashMap<String, Field> fields;
     List<Function> methods;
     Optional<NamedType> ext;
+    public AStructureReference original;
 
     public ObjectCommon(Span span, String name, List<String> generics) {
         super(span);
@@ -240,7 +245,13 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         return this.name;
     }
 
-    public ObjectCommon monomorphize(AStructureReference spec) {
+    static Set<String> monomorphized = new HashSet<>();
+
+    public void monomorphize(AStructureReference spec) {
+        if (monomorphized.contains(spec.mangle())) {
+            return;
+        }
+        monomorphized.add(spec.mangle());
         ObjectCommon specified = (ObjectCommon) this.detach();
         specified.setName(spec.mangle());
         for (int i = 0; i < this.generics.size(); i++) {
@@ -249,8 +260,17 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         }
         specified.clearGenerics();
         ((Module) this.getParent()).insertItem(specified);
+        specified.original = spec;
         specified.transform(new InferTypes());
-        return specified;
+        Monomorphize2 sub_types = new Monomorphize2();
+        specified.transform(sub_types);
+        for (AStructureReference r : sub_types.getToGenerate()) {
+            Logger.trace("generate: " + r.format() + " " + r.mangle());
+            r.getSource().getSource().monomorphize(r);
+        }
+
+        Logger.trace("MONOMORPHIZE " + specified.getName());
+        Logger.trace(specified.format());
     }
 
     public abstract ObjectReferenceType getOwnType();

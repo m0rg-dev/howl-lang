@@ -1,5 +1,6 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
+import java.lang.module.ResolutionException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -116,6 +117,18 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         if (other instanceof AStructureReference) {
             AStructureReference other_ref = (AStructureReference) other;
 
+            // TODO this is probably too accepting - idea is to allow
+            // monomorphizations of the same class to come out OK for
+            // constructor overload selection. it'll make sense if you take
+            // these blocks out and look at the errors
+            if (other_ref.getSource().getSource().original != null) {
+                return true;
+            }
+
+            if (this.getSource().getSource().original != null) {
+                return true;
+            }
+
             if (source.accepts(other_ref.source)) {
                 if (other_ref.substitutions.size() == substitutions.size()) {
                     for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
@@ -125,18 +138,13 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                             return false;
                         }
                     }
-                } else {
-                    return false;
+                    return true;
                 }
-            } else {
-                return false;
             }
-        } else if (other instanceof AVariable || other instanceof AAnyType) {
+        } else if (other.isFree()) {
             return true;
-        } else {
-            return false;
         }
-        return true;
+        return false;
     }
 
     @Override
@@ -175,9 +183,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                 return rc.getSourceResolved();
             } else {
                 Logger.trace("generate: " + this.format() + " " + this.mangle());
-                ((Module) this.getSource().getSource().getParent()).insertItem(
-                        this.getSource().getSource().monomorphize(this));
-                return this.getSourceResolved();
+                throw new RuntimeException();
             }
         }
         return this.source;
@@ -195,9 +201,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                 return rc.toLLVM(module);
             } else {
                 Logger.trace("generate: " + this.format() + " " + this.mangle());
-                ((Module) this.getSource().getSource().getParent()).insertItem(
-                        this.getSource().getSource().monomorphize(this));
-                return this.toLLVM(module);
+                throw new RuntimeException();
             }
         }
 

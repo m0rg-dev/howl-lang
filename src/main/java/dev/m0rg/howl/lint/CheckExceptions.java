@@ -26,7 +26,8 @@ public class CheckExceptions extends LintPass {
                 AVariable.reset();
                 ALambdaTerm exctype = ALambdaTerm.evaluate(AlgebraicType.deriveNew(call.getArguments().get(0)));
                 if (new AStructureReference(
-                        new ClassType(e.getSpan(), "root.lib.UncheckedException")).accepts(exctype)) {
+                        (ClassType) new ClassType(e.getSpan(), "root.lib.UncheckedException").setParent(e.getParent()))
+                                .accepts(exctype)) {
                     // we don't have to check it!
                     return;
                 }
