@@ -29,6 +29,7 @@ import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
+import dev.m0rg.howl.ast.type.TypeElement;
 
 public abstract class AlgebraicType {
     public static ALambdaTerm derive(ASTElement source) {
@@ -78,12 +79,18 @@ public abstract class AlgebraicType {
             ALambda new_operation = v.lambda(v);
             return new AApplication(new_operation, new_source);
         } else if (source instanceof SpecifiedType) {
-            // TODO handle source<T, U> etc
             SpecifiedType as_specified = (SpecifiedType) source;
-            ALambdaTerm spec_source = derive(as_specified.getBase());
-            AVariable v = new AVariable("T0");
-            ALambda spec_operation = v.lambda(spec_source);
-            return new AApplication(spec_operation, derive(as_specified.getParameters().get(0)));
+
+            int i = 0;
+            ALambdaTerm rc = derive(as_specified.getBase());
+            for (TypeElement t : as_specified.getParameters()) {
+                AVariable v = new AVariable("T" + i);
+                ALambda spec_operation = v.lambda(rc);
+                rc = new AApplication(spec_operation, derive(t));
+                i++;
+            }
+
+            return rc;
         } else if (source instanceof Argument) {
             return AlgebraicType.derive(((Argument) source).getOwnType());
         } else if (source instanceof ObjectCommon) {
@@ -116,10 +123,17 @@ public abstract class AlgebraicType {
             return ((ArithmeticExpression) source).getType();
         } else if (source instanceof SpecifiedTypeExpression) {
             SpecifiedTypeExpression as_specified = (SpecifiedTypeExpression) source;
-            ALambdaTerm spec_source = derive(as_specified.getSource());
-            AVariable v = new AVariable("T0");
-            ALambda spec_operation = v.lambda(spec_source);
-            return new AApplication(spec_operation, derive(as_specified.getParameters().get(0)));
+
+            int i = 0;
+            ALambdaTerm rc = derive(as_specified.getSource());
+            for (TypeElement t : as_specified.getParameters()) {
+                AVariable v = new AVariable("T" + i);
+                ALambda spec_operation = v.lambda(rc);
+                rc = new AApplication(spec_operation, derive(t));
+                i++;
+            }
+
+            return rc;
         } else if (source instanceof ClassCastExpression) {
             return ((ClassCastExpression) source).getTarget();
         } else if (source instanceof CastToInterfaceExpression) {
