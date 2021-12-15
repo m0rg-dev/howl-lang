@@ -5,7 +5,6 @@ import java.util.Set;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMType;
-import dev.m0rg.howl.logger.Logger;
 
 public abstract class ALambdaTerm extends AlgebraicType {
     /**
@@ -23,10 +22,8 @@ public abstract class ALambdaTerm extends AlgebraicType {
      * application.
      */
     public static ALambdaTerm evaluate(ALambdaTerm t) {
-        Logger.trace("evaluate: " + t.format());
         while (t instanceof Applicable && ((Applicable) t).isApplicable()) {
             t = ((Applicable) t).apply();
-            Logger.trace(" => " + t.format());
         }
         return t;
     }
