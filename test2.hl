@@ -24,6 +24,12 @@ class B<T> {
 
 static fn i32 Main() {
     let A test = new A(42);
-    lib.IO.println("" + test.get().get().value);
+    if true {
+        1;
+    } else {
+        return 2;
+    }
+
+    // lib.IO.println("" + test.get().get().value);
     return 0;
 }

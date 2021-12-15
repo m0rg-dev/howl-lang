@@ -73,7 +73,6 @@ class VecIterator<T> implements Iterator<T> {
         } else {
             throw new OverrunException("VecIterator index out of bounds (index was " + self.index + ", length was " + self.source.length() + ")");
         }
-        $unreachable();
     }
 }
 

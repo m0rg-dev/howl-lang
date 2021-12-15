@@ -67,6 +67,10 @@ public class IfStatement extends Statement implements HasUpstreamFields {
         this.condition = (Expression) condition.setParent(this);
     }
 
+    public Optional<CompoundStatement> getAlternative() {
+        return alternative;
+    }
+
     public void setAlternative(CompoundStatement alternative) {
         if (this.chain.isPresent()) {
             this.chain.get().setAlternative(alternative);
@@ -75,11 +79,19 @@ public class IfStatement extends Statement implements HasUpstreamFields {
         }
     }
 
+    public Optional<IfStatement> getChain() {
+        return chain;
+    }
+
     public void setChain(IfStatement chain) {
         if (this.alternative.isPresent()) {
             throw new RuntimeException();
         }
         this.chain = Optional.of((IfStatement) chain.setParent(this));
+    }
+
+    public CompoundStatement getBody() {
+        return body;
     }
 
     public void setBody(CompoundStatement body) {

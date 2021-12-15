@@ -44,6 +44,10 @@ public class WhileStatement extends Statement implements HasUpstreamFields {
         this.condition = (Expression) condition.setParent(this);
     }
 
+    public Statement getBody() {
+        return body;
+    }
+
     public void setBody(CompoundStatement body) {
         this.body = (CompoundStatement) body.setParent(this);
     }

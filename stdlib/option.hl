@@ -23,9 +23,6 @@ class Option<T> {
         } else {
             throw new NoSuchValueException();
         }
-        // TODO: Compiler should be able to run reachability analysis and
-        // generate this automatically
-        $unreachable();
     }
 
     fn bool isSome() {

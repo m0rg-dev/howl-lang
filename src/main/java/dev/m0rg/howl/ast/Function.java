@@ -132,6 +132,10 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         return Collections.unmodifiableList(throws_list);
     }
 
+    public Optional<CompoundStatement> getBody() {
+        return body;
+    }
+
     public void setBody(CompoundStatement body) {
         ASTElement associated = body.setParent(this);
         this.body = Optional.of((CompoundStatement) associated);
@@ -205,13 +209,6 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
                 if (this.body.isPresent()) {
                     f.appendBasicBlock("entry");
                     this.body.get().generate(f);
-
-                    if (this.rc instanceof NamedType && ((NamedType) this.rc).getName().equals("void")) {
-                        try (LLVMBuilder builder = new LLVMBuilder(f.getModule())) {
-                            builder.positionAtEnd(f.lastBasicBlock());
-                            builder.buildReturn();
-                        }
-                    }
                 }
             }, false);
         }

@@ -49,6 +49,7 @@ import dev.m0rg.howl.transform.ConvertTryCatch;
 import dev.m0rg.howl.transform.InferTypes;
 import dev.m0rg.howl.transform.Monomorphize2;
 import dev.m0rg.howl.transform.ResolveNames;
+import dev.m0rg.howl.transform.RunStaticAnalysis;
 
 public class Compiler {
     final String[] frontend_command = { "./howl-rs/target/debug/howl-rs" };
@@ -195,6 +196,12 @@ public class Compiler {
 
         cc.root_module.transform(new CoalesceElse());
         cc.root_module.transform(new CoalesceCatch());
+
+        cc.root_module.transform(new RunStaticAnalysis());
+
+        // System.err.println(cc.root_module.getChild("main").get().format());
+        // System.exit(0);
+
         cc.root_module.transform(new ConvertTryCatch());
         cc.root_module.transform(new ConvertThrow());
         cc.root_module.transform(new ConvertBooleans());
@@ -231,9 +238,6 @@ public class Compiler {
 
         // cc.root_module.transform(new IndirectMethodCalls());
 
-        // System.err.println(cc.root_module.getChild("main").get().format());
-        // System.exit(0);
-
         if (cmd.hasOption("trace")) {
             System.err.println(cc.root_module.format());
         }
@@ -252,6 +256,7 @@ public class Compiler {
             ld_args.add(cmd.getOptionValue("output"));
             ld_args.add(stdlib_path.resolve("hrt0.c").toAbsolutePath().toString());
             for (LLVMModule module : modules) {
+                // System.err.println(module);
                 Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
                         module.toString());
 
