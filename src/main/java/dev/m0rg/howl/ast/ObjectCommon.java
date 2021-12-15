@@ -26,7 +26,7 @@ import dev.m0rg.howl.transform.Monomorphize2;
 public abstract class ObjectCommon extends ASTElement implements NamedElement, NameHolder, HasOwnType, Walkable {
     String name;
     List<String> generics;
-    Map<String, NewType> generic_types;
+    LinkedHashMap<String, NewType> generic_types;
     LinkedHashMap<String, Field> fields;
     List<Function> methods;
     Optional<NamedType> ext;
@@ -37,7 +37,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         this.name = name;
         this.generics = generics;
 
-        this.generic_types = new HashMap<String, NewType>();
+        this.generic_types = new LinkedHashMap<String, NewType>();
         this.fields = new LinkedHashMap<String, Field>();
         this.methods = new ArrayList<Function>();
         this.ext = Optional.empty();

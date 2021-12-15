@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast.type;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import dev.m0rg.howl.ast.ASTElement;
@@ -24,6 +25,10 @@ public class TypeConstraint extends ASTElement implements NamedElement {
 
     public void insertConstraint(TypeElement constraint) {
         constraints.add(constraint);
+    }
+
+    public List<TypeElement> getConstraints() {
+        return Collections.unmodifiableList(constraints);
     }
 
     @Override

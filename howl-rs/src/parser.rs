@@ -253,4 +253,9 @@ pub enum CSTElement<'a> {
         source: &'a CSTElement<'a>,
         ctype: &'a CSTElement<'a>,
     },
+    CastExpression {
+        span: SerializableSpan,
+        source: &'a CSTElement<'a>,
+        target: &'a CSTElement<'a>,
+    },
 }

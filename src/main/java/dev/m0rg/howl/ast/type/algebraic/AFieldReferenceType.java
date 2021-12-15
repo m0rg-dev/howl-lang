@@ -28,11 +28,11 @@ public class AFieldReferenceType extends ALambdaTerm implements Applicable {
 
     @Override
     public ALambdaTerm apply() {
-        if (source instanceof AStructureType) {
+        if (source instanceof Applicable && ((Applicable) source).isApplicable()) {
+            return new AFieldReferenceType(((Applicable) source).apply(), name);
+        } else if (source instanceof AStructureType) {
             AStructureType struct = (AStructureType) source;
             return struct.getField(name);
-        } else if (source instanceof Applicable) {
-            return new AFieldReferenceType(((Applicable) source).apply(), name);
         } else {
             throw new RuntimeException();
         }

@@ -6,8 +6,9 @@ interface Eq {
     fn bool equals(Self other);
 }
 
-class HashMap<K: <Hash, Eq>, V> {
+class HashMap<K: Hash & Eq, V> {
     fn void put(K key, V value) {
+        key.equals(key);
         return;
     }
 }
@@ -17,8 +18,18 @@ class Entry<K, V> {
     V value;
 }
 
+class Thingy implements Hash, Eq {
+    fn i32 hashCode() {
+        return 69;
+    }
+
+    fn bool equals(Self other) {
+        return false;
+    }
+}
+
 static fn i32 Main() {
-    let Entry e = new Entry<i32, i32>();
+    let HashMap test = new HashMap<Thingy, i32>();
 
     return 0;
 }

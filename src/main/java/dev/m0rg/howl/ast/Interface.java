@@ -9,13 +9,23 @@ import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NewType;
 
 public class Interface extends ObjectCommon {
-    public Interface(Span span, String name, List<String> generics) {
+    public Interface(Span span, String name, List<String> generics, boolean _a) {
         super(span, name, generics);
+    }
+
+    public Interface(Span span, String name, List<ASTElement> generics) {
+        super(span, name, generics.stream().map(x -> {
+            if (x instanceof Identifier) {
+                return ((Identifier) x).getName();
+            } else {
+                throw new RuntimeException();
+            }
+        }).toList());
     }
 
     @Override
     public ASTElement detach() {
-        Interface rc = new Interface(span, name, new ArrayList<>(generics));
+        Interface rc = new Interface(span, name, new ArrayList<>(generics), true);
         for (Function method : methods) {
             rc.insertMethodUnchecked((Function) method.detach());
         }

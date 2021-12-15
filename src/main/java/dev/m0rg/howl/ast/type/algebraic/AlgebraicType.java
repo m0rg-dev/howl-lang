@@ -85,15 +85,15 @@ public abstract class AlgebraicType {
         } else if (source instanceof SpecifiedType) {
             SpecifiedType as_specified = (SpecifiedType) source;
 
-            int i = 0;
             ALambdaTerm rc = derive(as_specified.getBase());
             List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
+            int i = parameters.size() - 1;
             Collections.reverse(parameters);
             for (TypeElement t : parameters) {
                 AVariable v = new AVariable("T" + i);
                 ALambda spec_operation = v.lambda(rc);
                 rc = new AApplication(spec_operation, derive(t));
-                i++;
+                i--;
             }
 
             return rc;
@@ -130,13 +130,15 @@ public abstract class AlgebraicType {
         } else if (source instanceof SpecifiedTypeExpression) {
             SpecifiedTypeExpression as_specified = (SpecifiedTypeExpression) source;
 
-            int i = 0;
             ALambdaTerm rc = derive(as_specified.getSource());
-            for (TypeElement t : as_specified.getParameters()) {
+            List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
+            int i = parameters.size() - 1;
+            Collections.reverse(parameters);
+            for (TypeElement t : parameters) {
                 AVariable v = new AVariable("T" + i);
                 ALambda spec_operation = v.lambda(rc);
                 rc = new AApplication(spec_operation, derive(t));
-                i++;
+                i--;
             }
 
             return rc;

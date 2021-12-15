@@ -321,6 +321,9 @@ Expression3 -> Result<CSTElement<'input>, ()>:
         }
     }
     | Expression3 ':' ':' TypeParameterList { Ok(CSTElement::SpecifiedTypeExpression{span: $span.into(), base: alloc($1?), parameters: alloc($4?) }) }
+    | '(' Expression3 'AS' Type ')' {
+        Ok(CSTElement::CastExpression{span: $span.into(), source: alloc($2?), target: alloc($4?) })
+    }
     | Expression3 '.' 'identifier' {
         match $3 {
             Ok(_) => Ok(CSTElement::FieldReferenceExpression{span: $span.into(), source: alloc($1?), name: $lexer.span_str($3.as_ref().unwrap().span()).to_string()}),
@@ -381,15 +384,24 @@ TypeParameterListInner -> Result<Vec<CSTElement<'input>>, ()>:
     | TypeParameterListInner ',' Type { flatten($1, $3) }
     ;
 
+ConstraintList -> Result<CSTElement<'input>, ()>:
+    ':' ConstraintListInner { Ok(CSTElement::TypeParameterList{span: $span.into(), parameters: $2? }) }
+    ;
+
+ConstraintListInner -> Result<Vec<CSTElement<'input>>, ()>:
+    Type { Ok(vec![$1?]) }
+    | ConstraintListInner '&' Type { flatten($1, $3) }
+    ;
+
 GenericList -> Result<CSTElement<'input>, ()>:
     '<' GenericListInner '>' { Ok(CSTElement::GenericList{span: $span.into(), names: $2? }) }
     ;
 
 GenericListInner -> Result<Vec<CSTElement<'input>>, ()>:
     Identifier { Ok(vec![$1?]) }
-    | Identifier ':' TypeParameterList { Ok(vec![CSTElement::TypeConstraint{span: $span.into(), source: alloc($1?), ctype: alloc($3?) }]) }
+    | Identifier ConstraintList { Ok(vec![CSTElement::TypeConstraint{span: $span.into(), source: alloc($1?), ctype: alloc($2?) }]) }
     | GenericListInner ',' Identifier { flatten($1, $3) }
-    | GenericListInner ',' Identifier ':' TypeParameterList { flatten($1, Ok(CSTElement::TypeConstraint{span: $span.into(), source: alloc($3?), ctype: alloc($5?)})) }
+    | GenericListInner ',' Identifier ConstraintList { flatten($1, Ok(CSTElement::TypeConstraint{span: $span.into(), source: alloc($3?), ctype: alloc($4?)})) }
     ;
 
 Identifier -> Result<CSTElement<'input>, ()>:

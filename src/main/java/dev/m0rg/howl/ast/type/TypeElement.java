@@ -55,11 +55,7 @@ public abstract class TypeElement extends ASTElement {
                 }
             } else if (rc instanceof NewType) {
                 NewType nt = (NewType) rc;
-                if (nt.getResolution().isPresent()) {
-                    throw new RuntimeException();
-                } else {
-                    return nt;
-                }
+                return nt;
             } else if (rc instanceof RawPointerType) {
                 RawPointerType new_rc = (RawPointerType) rc.detach();
                 new_rc.setParent(rc.getParent());

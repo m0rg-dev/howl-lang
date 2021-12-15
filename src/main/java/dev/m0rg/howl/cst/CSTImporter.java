@@ -285,17 +285,12 @@ public class CSTImporter {
 
     ClassHeader parseClassHeader(JsonObject source) {
         Identifier name = parseIdentifier(chain(source, "name", "Identifier"));
-        List<String> generics = new ArrayList<String>();
+        List<ASTElement> generics = new ArrayList<ASTElement>();
 
         if (!source.get("generics").isJsonNull()) {
             JsonArray generics_raw = chain(source, "generics", "GenericList").get("names").getAsJsonArray();
             for (JsonElement el : generics_raw) {
-                ASTElement parsed = parseElement(el);
-                if (parsed instanceof Identifier) {
-                    generics.add(((Identifier) parsed).getName());
-                } else if (parsed instanceof TypeConstraint) {
-                    generics.add(((TypeConstraint) parsed).getName());
-                }
+                generics.add(parseElement(el));
             }
         }
 
@@ -544,13 +539,12 @@ public class CSTImporter {
 
     InterfaceHeader parseInterfaceHeader(JsonObject source) {
         Identifier name = parseIdentifier(chain(source, "name", "Identifier"));
-        List<String> generics = new ArrayList<String>();
+        List<ASTElement> generics = new ArrayList<ASTElement>();
 
         if (!source.get("generics").isJsonNull()) {
             JsonArray generics_raw = chain(source, "generics", "GenericList").get("names").getAsJsonArray();
             for (JsonElement el : generics_raw) {
-                Identifier parsed = parseIdentifier(el.getAsJsonObject().get("Identifier").getAsJsonObject());
-                generics.add(parsed.getName());
+                generics.add(parseElement(el));
             }
         }
 
@@ -767,11 +761,11 @@ public class CSTImporter {
     // CST-only elements below this line
     static class ClassHeader extends ASTElement {
         String name;
-        List<String> generics;
+        List<ASTElement> generics;
         Optional<Identifier> ext;
         List<TypeElement> impl;
 
-        public ClassHeader(Span span, String name, List<String> generics, Optional<Identifier> ext,
+        public ClassHeader(Span span, String name, List<ASTElement> generics, Optional<Identifier> ext,
                 List<TypeElement> impl) {
             super(span);
             this.name = name;
@@ -795,9 +789,9 @@ public class CSTImporter {
 
     static class InterfaceHeader extends ASTElement {
         String name;
-        List<String> generics;
+        List<ASTElement> generics;
 
-        public InterfaceHeader(Span span, String name, List<String> generics) {
+        public InterfaceHeader(Span span, String name, List<ASTElement> generics) {
             super(span);
             this.name = name;
             this.generics = generics;

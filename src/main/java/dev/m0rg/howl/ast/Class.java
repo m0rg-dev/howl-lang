@@ -13,9 +13,12 @@ import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
+import dev.m0rg.howl.ast.type.TypeConstraint;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ADefer;
 import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AProductType;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
@@ -34,14 +37,36 @@ import dev.m0rg.howl.logger.Logger;
 public class Class extends ObjectCommon implements GeneratesTopLevelItems {
     List<TypeElement> impl;
 
-    public Class(Span span, String name, List<String> generics) {
+    public Class(Span span, String name, List<String> generics, boolean _a) {
         super(span, name, generics);
+        this.impl = new ArrayList<>();
+    }
+
+    public Class(Span span, String name, List<ASTElement> generics) {
+        super(span, name, generics.stream().map(x -> {
+            if (x instanceof Identifier) {
+                return ((Identifier) x).getName();
+            } else if (x instanceof TypeConstraint) {
+                return ((TypeConstraint) x).getName();
+            } else {
+                throw new RuntimeException();
+            }
+        }).toList());
+
+        for (ASTElement e : generics) {
+            if (e instanceof TypeConstraint) {
+                List<ALambdaTerm> params = ((TypeConstraint) e).getConstraints().stream()
+                        .map(x -> (ALambdaTerm) new ADefer((TypeElement) x.detach().setParent(this))).toList();
+                this.setGeneric(((TypeConstraint) e).getName(), new AProductType(params));
+            }
+        }
+
         this.impl = new ArrayList<>();
     }
 
     @Override
     public ASTElement detach() {
-        Class rc = new Class(span, name, new ArrayList<>(generics));
+        Class rc = new Class(span, name, new ArrayList<>(generics), true);
         for (Entry<String, NewType> generic : generic_types.entrySet()) {
             if (generic.getValue().getResolution().isPresent()) {
                 rc.setGeneric(generic.getKey(), generic.getValue().getResolution().get());

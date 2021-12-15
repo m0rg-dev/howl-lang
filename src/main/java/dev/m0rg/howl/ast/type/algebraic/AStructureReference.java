@@ -85,6 +85,20 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         return rc;
     }
 
+    public boolean hasField(String name) {
+        Optional<ASTElement> src = source.getSource().getField(name).map(x -> x.getOwnType());
+        src = src.or(() -> source.getSource().getMethod(name));
+        src = src.or(() -> {
+            if (source.getSource().getOverloadCandidates(name).size() > 0) {
+                return Optional.of(new Overload(source.getSource().getSpan(), name, source));
+            } else {
+                return Optional.empty();
+            }
+        });
+
+        return src.isPresent();
+    }
+
     public Map<String, ALambdaTerm> getSubstitutions() {
         return Collections.unmodifiableMap(substitutions);
     }
@@ -142,6 +156,8 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                     return true;
                 }
             }
+        } else if (other instanceof AProductType) {
+            return ((AProductType) other).accepts(this);
         } else if (other.isFree()) {
             return true;
         }
