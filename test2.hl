@@ -17,13 +17,13 @@ class B<T> {
         self.value = value;
     }
 
-    fn T get() {
-        return self.value.get();
+    fn A<T> get() {
+        return self.value;
     }
 }
 
 static fn i32 Main() {
     let A test = new A(42);
-    test.get().get();
+    lib.IO.println("" + test.get().get().value);
     return 0;
 }

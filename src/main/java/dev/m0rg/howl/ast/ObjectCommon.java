@@ -110,6 +110,26 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         return Collections.unmodifiableList(fields);
     }
 
+    public int getStaticFieldIndex(String name) {
+        int idx = -1;
+        for (int i = 0; i < getFields().size();) {
+            Field f = getFields().get(i);
+            Logger.trace(f.format());
+            if (f.isStatic()) {
+                if (f.getName().equals(name)) {
+                    idx = i;
+                    break;
+                }
+                i++;
+            }
+        }
+
+        if (idx >= 0) {
+            idx += this.synthesizeMethods().size();
+        }
+        return idx;
+    }
+
     public Optional<Function> getMethod(String name) {
         for (Function m : methods) {
             if (m.getName().equals(name)) {

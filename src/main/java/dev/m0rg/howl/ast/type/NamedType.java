@@ -70,10 +70,11 @@ public class NamedType extends TypeElement {
             return this.name;
         }
 
-        // Optional<ASTElement> target = this.resolveName(this.name);
-        // if (target.isPresent()) {
-        // return target.get().getPath();
-        // }
+        // TODO if you remove this it breaks exceptions
+        Optional<ASTElement> target = this.resolveName(this.name);
+        if (target.isPresent()) {
+            return target.get().getPath();
+        }
 
         return this.name + "?";
     }

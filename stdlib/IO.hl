@@ -2,29 +2,28 @@
 // here.
 
 class IO {
-    static fn void print(String s) {
+    static fn void print(Display d) {
+        let String s = d.toString();
         RawIO.write(1, s.contents.value, s.contents.length());
     }
 
-    static fn void println(String s) {
-        IO.print(s);
-        IO.print("\n");
-    }
-
     static fn void println(Display d) {
-        IO.println(d.toString());
+        IO.print(d);
+        IO.print("\n");
     }
 
     static fn void println() {
         IO.print("\n");
     }
 
-    static fn void eprint(String s) {
+    static fn void eprint(Display d) {
+        let String s = d.toString();
         RawIO.write(2, s.contents.value, s.contents.length());
     }
 
-    static fn void eprintln(String s) {
-        IO.eprint(s + "\n");
+    static fn void eprintln(Display d) {
+        IO.eprint(d);
+        IO.eprint("\n");
     }
 
     static fn void eprintln() {

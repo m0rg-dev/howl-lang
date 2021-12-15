@@ -84,17 +84,4 @@ public class SpecifiedType extends TypeElement {
     public LLVMType generate(LLVMModule module) {
         throw new UnsupportedOperationException();
     }
-
-    public Optional<ObjectSnapshotType> snapshot() {
-        TypeElement source = this.base.resolve();
-        if (source instanceof ObjectReferenceType) {
-            ObjectReferenceType ort = (ObjectReferenceType) source;
-            return Optional
-                    .of((ObjectSnapshotType) new ObjectSnapshotType(ort.getSpan(), ort.getSource().monomorphize(this))
-                            .setParent(source.getParent()));
-        } else {
-            // throw new UnsupportedOperationException(this.format());
-            return Optional.empty();
-        }
-    }
 }

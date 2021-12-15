@@ -68,13 +68,7 @@ public abstract class TypeElement extends ASTElement {
                 new_rc.setInner((TypeElement) new_rc.getInner().resolve().detach());
                 return new_rc;
             } else if (rc instanceof SpecifiedType) {
-                Optional<ObjectSnapshotType> t = ((SpecifiedType) rc).snapshot();
-                if (t.isPresent()) {
-                    rc = t.get();
-                    continue;
-                } else {
-                    return new NamedType(span, "__error");
-                }
+                throw new RuntimeException();
             } else {
                 return rc;
             }

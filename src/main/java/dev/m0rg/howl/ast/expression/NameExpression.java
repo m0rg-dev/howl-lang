@@ -14,6 +14,7 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
+import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMConstant;
@@ -99,7 +100,7 @@ public class NameExpression extends Expression implements Lvalue {
             return anon_struct;
         } else if (target instanceof Function) {
             Function f = (Function) target;
-            LLVMFunctionType type = (LLVMFunctionType) f.getOwnType().resolve().generate(builder.getModule());
+            LLVMFunctionType type = new AFunctionReference(f).toLLVM(builder.getModule());
             if (f.isExtern()) {
                 return builder.getModule().getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true);
             } else {

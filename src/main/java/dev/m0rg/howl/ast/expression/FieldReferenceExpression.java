@@ -80,7 +80,7 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
             ObjectReferenceType ot = ct.getSource();
             int index = ot.getFieldNames().indexOf(name);
             Logger.trace("index = " + index);
-            if (index >= 0) {
+            if (index >= 0 && !ot.getField(name).get().isStatic()) {
                 LLVMValue src;
 
                 // object type is always on field 0
@@ -95,6 +95,13 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
             } else {
                 index = ot.getSource().getMethodNames().indexOf(name);
                 Logger.trace("index = " + index);
+                if (index < 0) {
+                    index = ot.getSource().getStaticFieldIndex(name);
+                    Logger.trace("index = " + index + " " + name);
+                }
+                if (index < 0) {
+                    throw new RuntimeException();
+                }
                 Logger.trace(String.join(", ", ot.getSource().getMethodNames()));
                 LLVMValue src;
 

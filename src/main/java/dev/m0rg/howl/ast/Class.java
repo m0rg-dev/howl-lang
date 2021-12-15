@@ -198,6 +198,11 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
             methods.add(this.getParentTable(module));
 
             methods.addAll(this.generateMethodList(module));
+            for (Field f : getFields()) {
+                if (f.isStatic()) {
+                    methods.add(ALambdaTerm.evaluateFrom(f.getOwnType()).toLLVM(module).getNull(module));
+                }
+            }
 
             AStructureReference this_type = (AStructureReference) ALambdaTerm.evaluateFrom(this.getOwnType());
             LLVMStructureType static_type = this_type.generateStaticType(module);

@@ -112,7 +112,6 @@ public class ConstructorCallExpression extends CallExpressionBase {
                         constructor_call.getFunction(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList())
                                 .toLLVM(builder.getModule()));
             }
-            constructor.dump();
 
             List<LLVMValue> args = new ArrayList<>(this.args.size());
             args.add(builder.buildLoad(storage, ""));

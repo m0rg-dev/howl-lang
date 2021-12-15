@@ -252,7 +252,6 @@ public class Compiler {
             ld_args.add(cmd.getOptionValue("output"));
             ld_args.add(stdlib_path.resolve("hrt0.c").toAbsolutePath().toString());
             for (LLVMModule module : modules) {
-                System.err.println(module);
                 Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
                         module.toString());
 

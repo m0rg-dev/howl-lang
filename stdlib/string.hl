@@ -2,9 +2,7 @@ interface Display {
     fn String toString();
 }
 
-// TODO: String should implement Display but I have to get overload selection
-// working a little better first
-class String {
+class String implements Display {
     Vec<u8> contents;
 
     fn void constructor() {
@@ -97,5 +95,9 @@ class String {
 
     static fn String from(Display other) {
         return other.toString();
+    }
+
+    fn String toString() {
+        return String.from(self);
     }
 }

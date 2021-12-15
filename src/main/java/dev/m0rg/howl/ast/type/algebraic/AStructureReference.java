@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Overload;
@@ -279,6 +280,12 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                 Logger.trace("  => method " + fieldname);
                 ALambdaTerm fieldtype = ALambdaTerm.evaluate(this.getField(fieldname));
                 contents.add(new LLVMPointerType<>(fieldtype.toLLVM(module)));
+            }
+
+            for (Field f : this.getSource().getSource().getFields()) {
+                if (f.isStatic()) {
+                    contents.add(ALambdaTerm.evaluateFrom(f.getOwnType()).toLLVM(module));
+                }
             }
             t.setBody(contents, true);
         }
