@@ -107,6 +107,8 @@ public class Module extends ASTElement implements NamedElement, NameHolder {
         int index = 0;
         ASTElement[] contents = this.contents.toArray(new ASTElement[0]);
         for (ASTElement item : contents) {
+            if (item instanceof ImportStatement)
+                continue;
             item.transform(t);
             ASTElement rc = t.transform(item).setParent(this);
             this.contents.set(index, rc);

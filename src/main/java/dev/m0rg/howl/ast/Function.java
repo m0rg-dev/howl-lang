@@ -185,6 +185,14 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
         return is_extern;
     }
 
+    public String getLLVMPath() {
+        if (this.is_extern) {
+            return original_name;
+        } else {
+            return getPath();
+        }
+    }
+
     public LLVMFunction generate(LLVMModule module) {
         Logger.trace("  => Function generate " + this.getPath() + " (" + module.getName() + ")");
         LLVMFunctionType type = this.generateType(module);

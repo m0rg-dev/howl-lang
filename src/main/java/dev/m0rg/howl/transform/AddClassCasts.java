@@ -38,7 +38,7 @@ public class AddClassCasts implements ASTTransformer {
                             ClassCastExpression ice = new ClassCastExpression(
                                     ent.getValue().getSubexpression().getSpan());
                             ice.setSource((Expression) ent.getValue().getSubexpression().detach());
-                            ice.setTarget(t_provided);
+                            ice.setTarget(t_expected);
                             ent.getValue().setSubexpression(ice);
                         }
                     }

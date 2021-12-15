@@ -84,6 +84,7 @@ public class NameExpression extends Expression implements Lvalue {
             }
             throw new IllegalStateException();
         } else if (target instanceof Class) {
+            // TODO dedupe with SpecifiedTypeExpression
             Class c = (Class) target;
             AStructureReference t = (new AStructureReference(c.getOwnType()));
             LLVMType static_type = t.generateStaticType(builder.getModule());

@@ -12,6 +12,9 @@ import dev.m0rg.howl.ast.expression.StringLiteral;
 public class ConvertStrings implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof StringLiteral) {
+            if (((StringLiteral) e).converted)
+                return e;
+            ((StringLiteral) e).converted = true;
             NameExpression source = new NameExpression(e.getSpan(), "root.lib.String");
             FieldReferenceExpression from_bytes = new FieldReferenceExpression(e.getSpan(), "fromBytes");
             from_bytes.setSource(source);

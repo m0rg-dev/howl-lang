@@ -9,7 +9,7 @@ class Pointer<T> {
         self.value[0] = value;
     }
 
-    fn i32 size() {
+    fn i64 size() {
         return $sizeof(self.value[0]);
     }
 

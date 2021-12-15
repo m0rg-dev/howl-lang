@@ -123,10 +123,10 @@ public class FunctionCallExpression extends CallExpressionBase {
         } else if (source_type instanceof AFunctionReference) {
             Function source_function = ((AFunctionReference) source_type).getSource();
             LLVMFunction callee;
-            if (builder.getModule().getFunction(source_function.getPath()).isPresent()) {
-                callee = builder.getModule().getFunction(source_function.getPath()).get();
+            if (builder.getModule().getFunction(source_function.getLLVMPath()).isPresent()) {
+                callee = builder.getModule().getFunction(source_function.getLLVMPath()).get();
             } else {
-                callee = new LLVMFunction(builder.getModule(), source_function.getPath(),
+                callee = new LLVMFunction(builder.getModule(), source_function.getLLVMPath(),
                         ((AFunctionReference) source_type).toLLVM(builder.getModule()));
             }
             List<LLVMValue> args = new ArrayList<>(this.args.size());

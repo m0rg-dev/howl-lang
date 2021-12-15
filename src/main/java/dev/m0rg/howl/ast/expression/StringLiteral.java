@@ -19,6 +19,7 @@ import dev.m0rg.howl.llvm.LLVMValue;
 
 public class StringLiteral extends Expression {
     String contents;
+    public boolean converted = false;
 
     public StringLiteral(Span span, String contents) {
         super(span);
@@ -26,7 +27,9 @@ public class StringLiteral extends Expression {
     }
 
     public ASTElement detach() {
-        return new StringLiteral(this.span, this.contents);
+        StringLiteral rc = new StringLiteral(this.span, this.contents);
+        rc.converted = converted;
+        return rc;
     }
 
     public String format() {

@@ -10,9 +10,11 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
+import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntPredicate;
 import dev.m0rg.howl.llvm.LLVMValue;
@@ -83,10 +85,10 @@ public class ArithmeticExpression extends Expression {
     @Override
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
-        rc.put("lhs", new FieldHandle(() -> this.getLHS(), (e) -> this.setLHS(e),
-                () -> new AAnyType()));
-        rc.put("rhs", new FieldHandle(() -> this.getRHS(), (e) -> this.setRHS(e),
-                () -> new AAnyType()));
+        // TODO
+        rc.put("rhs",
+                new FieldHandle(() -> this.getRHS(), (e) -> this.setRHS(e),
+                        () -> AlgebraicType.deriveNew(this.getLHS())));
         return rc;
     }
 
@@ -95,7 +97,7 @@ public class ArithmeticExpression extends Expression {
             return new ABaseType("bool");
         } else {
             // TODO
-            return new ABaseType("u64");
+            return AlgebraicType.deriveNew(this.getLHS());
         }
     }
 

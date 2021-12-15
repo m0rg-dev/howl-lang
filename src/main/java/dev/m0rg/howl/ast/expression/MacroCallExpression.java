@@ -8,6 +8,7 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
+import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntType;
@@ -30,9 +31,13 @@ public class MacroCallExpression extends CallExpressionBase {
         return rc;
     }
 
+    public String getName() {
+        return name;
+    }
+
     @Override
     public String format() {
-        return "!" + this.name + this.getArgString();
+        return "$" + this.name + this.getArgString();
     }
 
     public void transform(ASTTransformer t) {

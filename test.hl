@@ -1,5 +1,3 @@
-import lib.IO;
-
 fn i32 Main() {
     lib.IO.println("Hello, World!");
     return 0;
