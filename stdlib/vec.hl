@@ -7,6 +7,7 @@ class Vec<T> {
     extern fn *i8 realloc(*i8 ptr, i64 size);
 
     fn void constructor() {
+        self.value = $typednull();
         $pointer_assign(Self.malloc(0), self.value);
         self.element_size = $sizeof(self.value[0]);
         self._length = 0;

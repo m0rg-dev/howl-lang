@@ -3,6 +3,7 @@ class Option<T> {
     T value;
 
     fn void constructor() {
+        self.value = new T();
         self.has_value = false;
     }
 

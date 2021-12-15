@@ -147,6 +147,16 @@ public abstract class ASTElement {
         }
     }
 
+    public Optional<ASTElement> nearest(java.util.function.Function<ASTElement, Boolean> predicate) {
+        if (predicate.apply(this)) {
+            return Optional.of(this);
+        } else if (this.parent != null) {
+            return this.getParent().nearest(predicate);
+        } else {
+            return Optional.empty();
+        }
+    }
+
     public List<String> getSearchPath() {
         ArrayList<String> rc = new ArrayList<String>();
         rc.add("");

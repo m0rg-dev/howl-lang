@@ -215,8 +215,6 @@ public class Compiler {
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
 
-        cc.root_module.transform(new AddNumericCasts());
-
         // needs to come before AddClassCasts - easier to find what type the
         // to-be-thrown exception is
         cc.root_module.transform(new CheckExceptions());
@@ -233,6 +231,7 @@ public class Compiler {
         // when monomorphization happens.
         cc.root_module.transform(new AddInterfaceConverters());
         cc.root_module.transform(new AddInterfaceCasts());
+        cc.root_module.transform(new AddNumericCasts());
         cc.root_module.transform(new AddClassCasts());
 
         cc.root_module.transform(new ExternFunctionBaseTypesOnly());

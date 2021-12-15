@@ -18,7 +18,9 @@ public class ReturnExpectation extends Statement {
         super(f.getSpan());
         List<Statement> s = f.getBody().get().getContents();
         Span new_span = f.getBody().get().getSpan();
-        new_span.start = s.get(s.size() - 1).getSpan().start;
+        if (s.size() > 0) {
+            new_span.start = s.get(s.size() - 1).getSpan().start;
+        }
         this.span = new_span;
         func = f;
     }

@@ -30,6 +30,5 @@ static fn i32 Main() {
         return 2;
     }
 
-    // lib.IO.println("" + test.get().get().value);
     return 0;
 }

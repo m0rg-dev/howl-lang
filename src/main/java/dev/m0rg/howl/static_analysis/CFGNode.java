@@ -50,6 +50,11 @@ public class CFGNode {
         return statement;
     }
 
+    public void walk(Consumer<CFGNode> c) {
+        c.accept(this);
+        this.getSuccessors().forEach((n) -> n.walk(c));
+    }
+
     public String format() {
         StringBuilder rc = new StringBuilder("#" + this.id + " " + statement.getClass().getSimpleName());
 
@@ -68,6 +73,10 @@ public class CFGNode {
             }
         }
         return rc.toString();
+    }
+
+    public long getID() {
+        return id;
     }
 
     @Override
