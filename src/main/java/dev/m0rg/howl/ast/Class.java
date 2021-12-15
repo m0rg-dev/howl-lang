@@ -302,6 +302,10 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
             allocator = new LLVMFunction(module, allocator_name, allocator_type);
         }
 
+        // avoid generating the allocator body multiple times
+        if (allocator.countBasicBlocks() > 0)
+            return;
+
         LLVMStructureType this_llvm_type = this_type.toLLVM(module);
         LLVMStructureType object_type = this_type.generateObjectType(module);
         LLVMStructureType static_type = this_type.generateStaticType(module);

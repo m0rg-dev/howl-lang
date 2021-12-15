@@ -36,6 +36,10 @@ public class LLVMFunction extends LLVMConstant {
         return LLVMIsDeclaration(obj) > 0;
     }
 
+    public int countBasicBlocks() {
+        return LLVMCountBasicBlocks(obj);
+    }
+
     public LLVMValue getParam(int index) {
         int count = LLVMCountParams(obj);
         if (index < 0 || index >= count) {

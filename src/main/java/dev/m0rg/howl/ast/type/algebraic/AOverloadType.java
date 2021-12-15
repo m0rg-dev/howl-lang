@@ -118,6 +118,15 @@ public class AOverloadType extends AFunctionType implements Applicable {
         return rc;
     }
 
+    public AFunctionReference getFunction(List<ALambdaTerm> argtypes) {
+        Function candidate = select(argtypes);
+        ALambdaTerm rc = new AFunctionReference(candidate);
+        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+            rc = rc.substitute(s.getKey(), s.getValue());
+        }
+        return (AFunctionReference) rc;
+    }
+
     @Override
     public boolean isApplicable() {
         boolean rc = false;

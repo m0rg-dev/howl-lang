@@ -8,11 +8,14 @@ import java.util.Map;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
+import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AExtractArgument;
 import dev.m0rg.howl.ast.type.algebraic.AFieldReferenceType;
+import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
@@ -89,6 +92,37 @@ public class ConstructorCallExpression extends CallExpressionBase {
         } else {
             allocator = new LLVMFunction(builder.getModule(), allocator_name, allocator_type);
         }
-        return builder.buildCall(allocator, new ArrayList<>(), "");
+
+        LLVMValue storage = builder.buildAlloca(source_type.toLLVM(builder.getModule()), "");
+        builder.buildStore(builder.buildCall(allocator, new ArrayList<>(), ""), storage);
+
+        if (((AStructureReference) source_type).getSource().getSource().getOverloadCandidates("constructor")
+                .size() > 0) {
+            AOverloadType constructor_call = (AOverloadType) ALambdaTerm
+                    .evaluate(new AFieldReferenceType(source_type, "constructor"));
+            Function source_function = constructor_call
+                    .select(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList());
+            Function source_function_two = ((AStructureReference) source_type).getSourceResolved().getSource()
+                    .getMethod(source_function.getName()).get();
+            LLVMFunction constructor;
+            if (builder.getModule().getFunction(source_function_two.getPath()).isPresent()) {
+                constructor = builder.getModule().getFunction(source_function_two.getPath()).get();
+            } else {
+                constructor = new LLVMFunction(builder.getModule(), source_function_two.getPath(),
+                        constructor_call.getFunction(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList())
+                                .toLLVM(builder.getModule()));
+            }
+            constructor.dump();
+
+            List<LLVMValue> args = new ArrayList<>(this.args.size());
+            args.add(builder.buildLoad(storage, ""));
+            for (Expression e : this.args) {
+                args.add(e.generate(builder));
+            }
+
+            builder.buildCall(constructor, args, "");
+        }
+
+        return builder.buildLoad(storage, "");
     }
 }
