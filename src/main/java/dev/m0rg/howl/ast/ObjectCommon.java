@@ -196,6 +196,11 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         this.methods.add(method);
     }
 
+    protected void insertMethodUnchecked(Function method) {
+        method.setParent(this);
+        this.methods.add(method);
+    }
+
     public Optional<ASTElement> getChild(String name) {
         if (name.equals("Self")) {
             if (this.isGeneric()) {

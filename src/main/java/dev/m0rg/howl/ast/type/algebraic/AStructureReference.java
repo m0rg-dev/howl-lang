@@ -164,21 +164,23 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
     }
 
     public String getSourcePath() {
+        return this.getSourceResolved().getSource().getPath();
+    }
+
+    public ObjectReferenceType getSourceResolved() {
         if (substitutions.size() > 0) {
-            // i wanna die
             Optional<ASTElement> mmc = ((Module) getSource().getSource().getParent()).getChild(mangle());
             if (mmc.isPresent()) {
                 AStructureReference rc = new AStructureReference(((ObjectCommon) mmc.get()).getOwnType());
-                return rc.getSourcePath();
+                return rc.getSourceResolved();
             } else {
                 Logger.trace("generate: " + this.format() + " " + this.mangle());
                 ((Module) this.getSource().getSource().getParent()).insertItem(
                         this.getSource().getSource().monomorphize(this));
-                return this.getSourcePath();
+                return this.getSourceResolved();
             }
         }
-
-        return this.getSource().getSource().getPath();
+        return this.source;
     }
 
     static Set<String> structures_generated = new HashSet<>();
@@ -187,7 +189,6 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
     public LLVMStructureType toLLVM(LLVMModule module) {
         Logger.trace("AStructureReference generate " + this.format());
         if (substitutions.size() > 0) {
-            // i wanna die
             Optional<ASTElement> mmc = ((Module) getSource().getSource().getParent()).getChild(mangle());
             if (mmc.isPresent()) {
                 AStructureReference rc = new AStructureReference(((ObjectCommon) mmc.get()).getOwnType());

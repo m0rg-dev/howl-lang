@@ -54,7 +54,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
         }
 
         for (Function method : methods) {
-            rc.insertMethod((Function) method.detach());
+            rc.insertMethodUnchecked((Function) method.detach());
         }
 
         if (ext.isPresent()) {
@@ -204,6 +204,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
             static_global.setInitializer(stable);
 
             this.generateAllocator(module);
+            this.generateInterfaceTables(module);
         }
     }
 
@@ -244,6 +245,47 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
         }
 
         return methods;
+    }
+
+    void generateInterfaceTables(LLVMModule module) {
+        LLVMConstant str = module.stringConstant(this.getPath());
+        LLVMGlobalVariable name_var = module.getOrInsertGlobal(str.getType(), this.getPath() + "_name");
+
+        for (TypeElement itype : this.interfaces()) {
+            AStructureReference res_type = (AStructureReference) ALambdaTerm.evaluateFrom(itype);
+            InterfaceType res = (InterfaceType) res_type.getSourceResolved();
+            LLVMStructureType itable_type = res_type.generateStaticType(module);
+            LLVMGlobalVariable itable = module.getOrInsertGlobal(itable_type,
+                    this.getPath() + "_interface_" + res.getSource().getPath());
+            List<LLVMConstant> imethods = new ArrayList<>();
+
+            imethods.add(name_var
+                    .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
+            imethods.add(this.getParentTable(module));
+
+            for (String name : res.getSource().getMethodNames()) {
+                Logger.trace("method: " + name);
+                LLVMType method_type = res.getSource().getMethod(name).get().getOwnType().generate(module);
+                LLVMFunction generated;
+                if (this.isOwnMethod(name)) {
+                    Function m = this.getMethod(name).get();
+                    Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
+                    generated = m.generate(module);
+                } else {
+                    Function f = (Function) this.getMethod(name).get();
+                    LLVMFunctionType type = (new AFunctionReference(f)).toLLVM(module);
+
+                    Logger.trace("declaring: " + f.getPath() + " (" + module.getName() + ")");
+                    if (f.is_extern) {
+                        generated = module.getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true);
+                    } else {
+                        generated = module.getOrInsertFunction(type, f.getPath(), x -> x.setExternal(), true);
+                    }
+                }
+                imethods.add(generated.cast(new LLVMPointerType<LLVMType>(method_type)));
+            }
+            itable.setInitializer(itable_type.createConstant(module.getContext(), imethods));
+        }
     }
 
     void generateAllocator(LLVMModule module) {

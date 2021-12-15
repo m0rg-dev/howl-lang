@@ -86,7 +86,7 @@ public class CastToInterfaceExpression extends Expression {
         LLVMValue target_stable_pointer = builder.buildStructGEP(target_llvm, target_alloca, 1, "");
         LLVMValue target_itable_pointer = builder.buildStructGEP(target_llvm, target_alloca, 2, "");
 
-        InterfaceType res = (InterfaceType) target_type.getSource();
+        InterfaceType res = (InterfaceType) target_type.getSourceResolved();
         LLVMStructureType itable_type = target_type
                 .generateStaticType(builder.getModule());
         LLVMGlobalVariable itable = builder.getModule().getOrInsertGlobal(itable_type,

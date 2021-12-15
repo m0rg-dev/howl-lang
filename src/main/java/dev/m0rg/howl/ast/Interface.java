@@ -18,7 +18,7 @@ public class Interface extends ObjectCommon {
     public ASTElement detach() {
         Interface rc = new Interface(span, name, new ArrayList<>(generics));
         for (Function method : methods) {
-            rc.insertMethod((Function) method.detach());
+            rc.insertMethodUnchecked((Function) method.detach());
         }
         return rc;
     }
