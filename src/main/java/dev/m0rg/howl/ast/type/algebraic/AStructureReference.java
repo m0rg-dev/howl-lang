@@ -156,8 +156,8 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                     return true;
                 }
             }
-        } else if (other instanceof AProductType) {
-            return ((AProductType) other).accepts(this);
+        } else if (other instanceof AIntersectionType) {
+            return ((AIntersectionType) other).accepts(this);
         } else if (other.isFree()) {
             return true;
         }

@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class AProductType extends ALambdaTerm implements AStructureType, Applicable {
+public class AIntersectionType extends ALambdaTerm implements AStructureType, Applicable {
     List<ALambdaTerm> members;
 
-    public AProductType(List<ALambdaTerm> members) {
+    public AIntersectionType(List<ALambdaTerm> members) {
         this.members = new ArrayList<>(members);
     }
 
@@ -25,7 +25,7 @@ public class AProductType extends ALambdaTerm implements AStructureType, Applica
 
     @Override
     public String format() {
-        return "(" + String.join(" x ", members.stream().map(x -> x.format()).toList()) + ")";
+        return "(" + String.join(" ∩ ", members.stream().map(x -> x.format()).toList()) + ")";
     }
 
     @Override
@@ -66,12 +66,12 @@ public class AProductType extends ALambdaTerm implements AStructureType, Applica
                 rc.add(t);
             }
         }
-        return new AProductType(rc);
+        return new AIntersectionType(rc);
     }
 
     @Override
     public boolean accepts(ALambdaTerm other) {
-        if (other instanceof AProductType) {
+        if (other instanceof AIntersectionType) {
             throw new UnsupportedOperationException();
         } else if (other instanceof AStructureType) {
             return this.members.stream().anyMatch(x -> x.accepts(other));

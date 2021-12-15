@@ -18,7 +18,7 @@ import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ADefer;
 import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
-import dev.m0rg.howl.ast.type.algebraic.AProductType;
+import dev.m0rg.howl.ast.type.algebraic.AIntersectionType;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
@@ -57,7 +57,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
             if (e instanceof TypeConstraint) {
                 List<ALambdaTerm> params = ((TypeConstraint) e).getConstraints().stream()
                         .map(x -> (ALambdaTerm) new ADefer((TypeElement) x.detach().setParent(this))).toList();
-                this.setGeneric(((TypeConstraint) e).getName(), new AProductType(params));
+                this.setGeneric(((TypeConstraint) e).getName(), new AIntersectionType(params));
             }
         }
 
