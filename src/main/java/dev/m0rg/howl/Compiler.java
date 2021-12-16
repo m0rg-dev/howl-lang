@@ -2,6 +2,7 @@ package dev.m0rg.howl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,7 +54,6 @@ import dev.m0rg.howl.transform.ResolveNames;
 import dev.m0rg.howl.transform.RunStaticAnalysis;
 
 public class Compiler {
-    final String[] frontend_command = { "./howl-rs/target/debug/howl-rs" };
     public static CommandLine cmd;
 
     Module root_module;
@@ -74,6 +74,15 @@ public class Compiler {
 
     public ASTElement[] parse(Path file, String prefix) throws IOException, InterruptedException {
         Logger.trace("Compiling: " + prefix + " (" + file.toString() + ")");
+
+        String[] frontend_command = new String[1];
+
+        try {
+            frontend_command[0] = new File(Compiler.class.getProtectionDomain().getCodeSource().getLocation()
+                    .toURI()).getParent() + "/howl-rs";
+        } catch (URISyntaxException e) {
+            ;
+        }
 
         ArrayList<String> args = new ArrayList<String>(Arrays.asList(frontend_command));
         args.add(file.toString());
@@ -190,7 +199,12 @@ public class Compiler {
 
         Compiler cc = new Compiler();
 
-        Path stdlib_path = FileSystems.getDefault().getPath("stdlib/").toAbsolutePath();
+        Path stdlib_path;
+        if (System.getenv().containsKey("HOWL_STDLIB")) {
+            stdlib_path = FileSystems.getDefault().getPath(System.getenv().get("HOWL_STDLIB")).toAbsolutePath();
+        } else {
+            stdlib_path = FileSystems.getDefault().getPath("stdlib/").toAbsolutePath();
+        }
 
         cc.ingestDirectory(stdlib_path, "lib");
         cc.ingest(FileSystems.getDefault().getPath(args[0]).toAbsolutePath(), "main");

@@ -1,7 +1,6 @@
 package dev.m0rg.howl.static_analysis;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
