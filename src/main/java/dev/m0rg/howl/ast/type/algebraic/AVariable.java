@@ -13,8 +13,7 @@ public class AVariable extends ALambdaTerm {
     }
 
     public AVariable() {
-        name = Long.toString(counter);
-        counter++;
+        name = "0";
     }
 
     public AVariable(String name) {

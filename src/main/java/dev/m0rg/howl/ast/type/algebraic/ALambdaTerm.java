@@ -35,13 +35,14 @@ public abstract class ALambdaTerm extends AlgebraicType {
      */
     public static ALambdaTerm evaluate(ALambdaTerm t) {
         evalcount++;
-        Logger.trace("eval: " + t.format());
+        Logger.trace("eval: " + t.formatForLog());
         long start = System.currentTimeMillis();
         String source = t.format();
         if (evalcache.containsKey(source)) {
             evalhit++;
             return evalcache.get(source);
         } else {
+            // Logger.info("eval miss: " + source);
             evalmiss++;
         }
 

@@ -19,10 +19,13 @@ public abstract class ASTElement {
         this.pathcache = Optional.empty();
     }
 
+    public static long setparentcount = 0;
+
     public ASTElement setParent(ASTElement parent) {
+        setparentcount++;
         if (this.parent == null || this.parent == parent) {
             this.parent = parent;
-            pathcache = Optional.of(this.getPath_intern());
+            // pathcache = Optional.of(this.getPath_intern());
             return this;
         } else {
             throw new RuntimeException("Attempt to move owned ASTElement");

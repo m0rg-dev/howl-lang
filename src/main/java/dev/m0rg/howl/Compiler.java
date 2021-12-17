@@ -313,6 +313,7 @@ public class Compiler {
 
         Logger.info("Logger.log() invocations: " + Logger.count);
         Logger.info("ASTElement.getPath() invocations: " + ASTElement.pathcount);
+        Logger.info("ASTElement.setParent() invocations: " + ASTElement.setparentcount);
         Logger.info("ASTElement.getPath() inner runtime = " + ASTElement.pathtime + " ms");
         Logger.info("ALambdaTerm.evaluate() invocations: " + ALambdaTerm.evalcount);
         Logger.info("ALambdaTerm.evaluate() unique expressions: " + ALambdaTerm.evalcache.size());
