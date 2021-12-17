@@ -56,6 +56,14 @@ public abstract class ASTElement {
     public abstract String format();
 
     /**
+     * Formats in a way that more closely represents the element in the original
+     * source, even if that loses information.
+     */
+    public String formatPretty() {
+        return format();
+    }
+
+    /**
      * Formats only if --trace was passed; otherwise, returns empty string.
      */
     public String formatForLog() {
@@ -87,6 +95,11 @@ public abstract class ASTElement {
         } else {
             return parent_path + "_" + this.getClass().getSimpleName();
         }
+    }
+
+    public String getPathPretty() {
+        String rc = getPath();
+        return rc.replaceFirst("^root\\.", "");
     }
 
     public Optional<ASTElement> resolveName(String name) {

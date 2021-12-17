@@ -95,7 +95,7 @@ public class FunctionCallExpression extends CallExpressionBase {
         Logger.trace(this.format());
         if (source_type instanceof AOverloadType) {
             Function source_function = ((AOverloadType) source_type)
-                    .select(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList());
+                    .select(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList()).get();
             Logger.trace("source function: " + source_function.format());
 
             if (source instanceof FieldReferenceExpression) {

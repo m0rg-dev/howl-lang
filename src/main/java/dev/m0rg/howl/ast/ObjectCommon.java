@@ -28,16 +28,20 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
     List<String> generics;
     LinkedHashMap<String, NewType> generic_types;
     LinkedHashMap<String, Field> fields;
+    Map<String, NewType> non_generic_types;
     List<Function> methods;
     Optional<NamedType> ext;
+    Span header_span;
     public AStructureReference original;
 
-    public ObjectCommon(Span span, String name, List<String> generics) {
+    public ObjectCommon(Span span, Span header_span, String name, List<String> generics) {
         super(span);
+        this.header_span = header_span;
         this.name = name;
         this.generics = generics;
 
         this.generic_types = new LinkedHashMap<String, NewType>();
+        this.non_generic_types = new HashMap<String, NewType>();
         this.fields = new LinkedHashMap<String, Field>();
         this.methods = new ArrayList<Function>();
         this.ext = Optional.empty();
@@ -45,6 +49,10 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         for (String generic : generics) {
             generic_types.put(generic, (NewType) new NewType(span, generic, generic_types.size()).setParent(this));
         }
+    }
+
+    public Span getHeaderSpan() {
+        return header_span;
     }
 
     public Optional<NamedType> getExtends() {
@@ -76,7 +84,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
     }
 
     public void insertNewtype(String name) {
-        generic_types.put(name, (NewType) new NewType(span, name, generic_types.size()).setParent(this));
+        non_generic_types.put(name, (NewType) new NewType(span, name, -1).setParent(this));
     }
 
     public void insertField(Field contents) {
@@ -245,6 +253,10 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
             return Optional.of(this.generic_types.get(name));
         }
 
+        if (this.non_generic_types.containsKey(name)) {
+            return Optional.of(this.non_generic_types.get(name));
+        }
+
         for (Function m : methods) {
             if (m.name.equals(name)) {
                 return Optional.of(m);
@@ -291,6 +303,27 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
 
         Logger.trace("MONOMORPHIZE " + specified.getName());
         Logger.trace(specified.format());
+    }
+
+    public String formatPretty(AStructureReference spec) {
+        if (this.original != null) {
+            return this.original.getSource().getSource().formatPretty(spec);
+        }
+
+        List<String> generics = new ArrayList<>();
+
+        for (int i = 0; i < this.generics.size(); i++) {
+            ALambdaTerm p = spec.getSubstitutions().get("T" + i);
+            generics.add(p.formatPretty());
+        }
+
+        StringBuilder rc = new StringBuilder(this.getPathPretty());
+        if (generics.size() > 0) {
+            rc.append("<");
+            rc.append(String.join(", ", generics));
+            rc.append(">");
+        }
+        return rc.toString();
     }
 
     public List<ASTElement> getContents() {

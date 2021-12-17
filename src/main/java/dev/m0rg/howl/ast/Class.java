@@ -18,6 +18,7 @@ import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ADefer;
 import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AIntersectionType;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
@@ -37,13 +38,13 @@ import dev.m0rg.howl.logger.Logger;
 public class Class extends ObjectCommon implements GeneratesTopLevelItems {
     List<TypeElement> impl;
 
-    public Class(Span span, String name, List<String> generics, boolean _a) {
-        super(span, name, generics);
+    public Class(Span span, Span header_span, String name, List<String> generics, boolean _a) {
+        super(span, header_span, name, generics);
         this.impl = new ArrayList<>();
     }
 
-    public Class(Span span, String name, List<ASTElement> generics) {
-        super(span, name, generics.stream().map(x -> {
+    public Class(Span span, Span header_span, String name, List<ASTElement> generics) {
+        super(span, header_span, name, generics.stream().map(x -> {
             if (x instanceof Identifier) {
                 return ((Identifier) x).getName();
             } else if (x instanceof TypeConstraint) {
@@ -66,7 +67,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
 
     @Override
     public ASTElement detach() {
-        Class rc = new Class(span, name, new ArrayList<>(generics), true);
+        Class rc = new Class(span, header_span, name, new ArrayList<>(generics), true);
         for (Entry<String, NewType> generic : generic_types.entrySet()) {
             if (generic.getValue().getResolution().isPresent()) {
                 rc.setGeneric(generic.getKey(), generic.getValue().getResolution().get());
@@ -87,6 +88,10 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
 
         for (TypeElement imp : this.impl) {
             rc.insertImplementation((TypeElement) imp.detach());
+        }
+
+        for (Entry<String, NewType> non_generic : non_generic_types.entrySet()) {
+            rc.non_generic_types.put(non_generic.getKey(), (NewType) non_generic.getValue().detach().setParent(rc));
         }
 
         rc.original = original;
@@ -122,6 +127,9 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
         rc.append(" {\n");
         for (Entry<String, NewType> generic : generic_types.entrySet()) {
             rc.append("  " + generic.getValue().format() + ";\n");
+        }
+        for (Entry<String, NewType> non_generic_type : non_generic_types.entrySet()) {
+            rc.append("  /* ng " + non_generic_type.getKey() + " */ " + non_generic_type.getValue().format() + ";\n");
         }
         for (Entry<String, Field> field : fields.entrySet()) {
             rc.append("  " + field.getValue().format() + ";\n");
@@ -274,32 +282,55 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
         return methods;
     }
 
+    public Optional<Function> getFunctionFromInterface(AFunctionReference their_method) {
+        Overload o = (new Overload(getSpan(), their_method.getSource().getOriginalName(), getOwnType()));
+        AOverloadType ao = new AOverloadType(o);
+        Logger.trace("  method: " + their_method.getSource().getOriginalName());
+        Logger.trace("  " + ao.format());
+        Optional<Function> match = ao.select(their_method.argumentTypesEvaluated());
+
+        if (match.isPresent()) {
+            if (ALambdaTerm.evaluate(their_method.getReturn(new ArrayList<>()))
+                    .accepts(ALambdaTerm.evaluateFrom(match.get().getReturn()))) {
+                return match;
+            } else {
+                Logger.trace("return mismatch " + their_method.getReturn(new ArrayList<>()).format()
+                        + " vs " + ALambdaTerm.evaluateFrom(match.get().getReturn()).format());
+            }
+        }
+        return Optional.empty();
+    }
+
     void generateInterfaceTables(LLVMModule module) {
         LLVMConstant str = module.stringConstant(this.getPath());
         LLVMGlobalVariable name_var = module.getOrInsertGlobal(str.getType(), this.getPath() + "_name");
 
         for (TypeElement itype : this.interfaces()) {
             AStructureReference res_type = (AStructureReference) ALambdaTerm.evaluateFrom(itype);
-            InterfaceType res = (InterfaceType) res_type.getSourceResolved();
+            InterfaceType i_res = (InterfaceType) res_type.getSourceResolved();
             LLVMStructureType itable_type = res_type.generateStaticType(module);
             LLVMGlobalVariable itable = module.getOrInsertGlobal(itable_type,
-                    this.getPath() + "_interface_" + res.getSource().getPath());
+                    this.getPath() + "_interface_" + i_res.getSource().getPath());
             List<LLVMConstant> imethods = new ArrayList<>();
 
             imethods.add(name_var
                     .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8))));
             imethods.add(this.getParentTable(module));
 
-            for (String name : res.getSource().getMethodNames()) {
-                Logger.trace("method: " + name);
-                LLVMType method_type = (new AFunctionReference(res.getSource().getMethod(name).get())).toLLVM(module);
+            for (String name : i_res.getSource().getMethodNames()) {
+                Function on_self = getFunctionFromInterface(
+                        new AFunctionReference(i_res.getSource().getMethod(name).get()))
+                                .get();
+                Logger.trace("method: " + name + " (" + on_self.getName() + ")");
+                LLVMType method_type = (new AFunctionReference(
+                        i_res.getSource().getMethod(name).get())).toLLVM(module);
                 LLVMFunction generated;
-                if (this.isOwnMethod(name)) {
-                    Function m = this.getMethod(name).get();
+                if (this.isOwnMethod(on_self.getName())) {
+                    Function m = this.getMethod(on_self.getName()).get();
                     Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
                     generated = m.generate(module);
                 } else {
-                    Function f = (Function) this.getMethod(name).get();
+                    Function f = this.getMethod(on_self.getName()).get();
                     LLVMFunctionType type = (new AFunctionReference(f)).toLLVM(module);
 
                     Logger.trace("declaring: " + f.getPath() + " (" + module.getName() + ")");

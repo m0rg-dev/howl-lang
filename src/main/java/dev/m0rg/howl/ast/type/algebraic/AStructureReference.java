@@ -12,7 +12,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Field;
+import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Interface;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.ObjectCommon;
@@ -50,6 +52,11 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             }
             return "struct " + getSource().getSource().getPath() + "[" + String.join(", ", s) + "]";
         }
+    }
+
+    @Override
+    public String formatPretty() {
+        return this.source.getSource().formatPretty(this);
     }
 
     public Set<String> freeVariables() {
@@ -99,6 +106,16 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         return src.isPresent();
     }
 
+    public List<AFunctionReference> getMethods() {
+        List<AFunctionReference> rc = new ArrayList<>();
+        for (Function f : source.getSource().synthesizeMethods()) {
+            AFunctionReference t = new AFunctionReference(f);
+            t.substitutions = new HashMap<>(this.substitutions);
+            rc.add(t);
+        }
+        return rc;
+    }
+
     public Map<String, ALambdaTerm> getSubstitutions() {
         return Collections.unmodifiableMap(substitutions);
     }
@@ -142,6 +159,16 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
 
             if (this.getSource().getSource().original != null) {
                 return true;
+            }
+
+            if (other_ref.getSource().getSource() instanceof Class) {
+                Class other_class = (Class) other_ref.getSource().getSource();
+                for (ALambdaTerm impl : other_class.interfaces().stream().map(x -> ALambdaTerm.evaluateFrom(x))
+                        .toList()) {
+                    if (this.accepts(impl)) {
+                        return true;
+                    }
+                }
             }
 
             if (source.accepts(other_ref.source)) {
@@ -295,6 +322,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             for (String fieldname : this.getSource().getSource().getMethodNames()) {
                 Logger.trace("  => method " + fieldname);
                 ALambdaTerm fieldtype = ALambdaTerm.evaluate(this.getField(fieldname));
+                Logger.trace("  type = " + fieldtype.format());
                 contents.add(new LLVMPointerType<>(fieldtype.toLLVM(module)));
             }
 

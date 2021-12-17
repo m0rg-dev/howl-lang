@@ -5,6 +5,7 @@ import java.util.Set;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMType;
+import dev.m0rg.howl.logger.Logger;
 
 public abstract class ALambdaTerm extends AlgebraicType {
     /**
@@ -23,6 +24,7 @@ public abstract class ALambdaTerm extends AlgebraicType {
      */
     public static ALambdaTerm evaluate(ALambdaTerm t) {
         while (t instanceof Applicable && ((Applicable) t).isApplicable()) {
+            Logger.trace("apply " + t.format());
             t = ((Applicable) t).apply();
         }
         return t;
@@ -60,7 +62,15 @@ public abstract class ALambdaTerm extends AlgebraicType {
      * β-normal form.
      */
     public LLVMType toLLVM(LLVMModule module) {
-        throw new UnsupportedOperationException(this.getClass().getName());
+        throw new UnsupportedOperationException(this.getClass().getName() + " " + this.format());
+    }
+
+    /**
+     * Formats in a way that more closely represents the element in the original
+     * source, even if that loses information.
+     */
+    public String formatPretty() {
+        return format();
     }
 
     public boolean isFree() {

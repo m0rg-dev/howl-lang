@@ -7,6 +7,7 @@ import java.util.Optional;
 import dev.m0rg.howl.CompilationError;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
+import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.type.NewType;
@@ -55,12 +56,20 @@ public class InferTypes implements ASTTransformer {
                 t.setResolution(provided);
             }
         } else if (expected instanceof AStructureReference && provided instanceof AStructureReference) {
-            if (((AStructureReference) provided).getSource().getSource().original != null) {
+            AStructureReference s_expected = (AStructureReference) expected;
+            AStructureReference s_provided = (AStructureReference) provided;
+            if (s_provided.getSource().getSource().original != null) {
                 return;
             }
-            for (Entry<String, ALambdaTerm> s : ((AStructureReference) expected).getSubstitutions().entrySet()) {
-                setEqual(s.getValue(),
-                        ((AStructureReference) provided).getSubstitutions().get(s.getKey()), e);
+
+            if (s_expected.getSource().getSource() instanceof Class
+                    && s_provided.getSource().getSource() instanceof Class) {
+                for (Entry<String, ALambdaTerm> s : s_expected.getSubstitutions().entrySet()) {
+                    setEqual(s.getValue(),
+                            s_provided.getSubstitutions().get(s.getKey()), e);
+                }
+            } else {
+                // TODO
             }
         }
     }

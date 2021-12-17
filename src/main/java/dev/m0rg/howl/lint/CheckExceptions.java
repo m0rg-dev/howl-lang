@@ -12,7 +12,10 @@ import dev.m0rg.howl.ast.statement.IfStatement;
 import dev.m0rg.howl.ast.statement.TryStatement;
 import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ACallResult;
+import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
@@ -22,9 +25,28 @@ public class CheckExceptions extends LintPass {
     public void check(ASTElement e) {
         if (e instanceof FunctionCallExpression) {
             FunctionCallExpression call = (FunctionCallExpression) e;
+            List<ALambdaTerm> thrown_types = new ArrayList<>();
+
             if (call.isGeneratedFromThrow) {
                 AVariable.reset();
-                ALambdaTerm exctype = ALambdaTerm.evaluate(AlgebraicType.derive(call.getArguments().get(0)));
+                ALambdaTerm exctype = ALambdaTerm.evaluateFrom(call.getArguments().get(0));
+                thrown_types.add(exctype);
+            } else {
+                ALambdaTerm ftype = ALambdaTerm.evaluateFrom(call.getSource());
+                if (ftype instanceof AOverloadType) {
+                    AOverloadType as_overload = (AOverloadType) ftype;
+                    AFunctionReference source = as_overload
+                            .getFunction(((ACallResult) AlgebraicType.derive(call)).getArguments().stream()
+                                    .map(x -> ALambdaTerm.evaluate(x)).toList());
+                    thrown_types = source.getSource().getThrows().stream()
+                            .map(x -> ALambdaTerm.evaluateFrom(x)).toList();
+                } else if (ftype instanceof AFunctionReference) {
+                    thrown_types = ((AFunctionReference) ftype).getSource().getThrows().stream()
+                            .map(x -> ALambdaTerm.evaluateFrom(x)).toList();
+                }
+            }
+
+            for (ALambdaTerm exctype : thrown_types) {
                 if (new AStructureReference(
                         (ClassType) new ClassType(e.getSpan(), "root.lib.UncheckedException").setParent(e.getParent()))
                                 .accepts(exctype)) {
@@ -54,7 +76,6 @@ public class CheckExceptions extends LintPass {
                 }
                 e.getSpan().addError("Uncaught exception type " + exctype.format(),
                         "declared types:\n" + String.join("\n", allowed_types).indent(2));
-                throw new RuntimeException();
             }
         }
     }

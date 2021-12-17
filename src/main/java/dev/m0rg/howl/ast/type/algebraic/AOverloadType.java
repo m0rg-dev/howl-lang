@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -52,7 +53,7 @@ public class AOverloadType extends AFunctionType implements Applicable {
         }
     }
 
-    public Function select(List<ALambdaTerm> argtypes) {
+    public Optional<Function> select(List<ALambdaTerm> argtypes) {
         Logger.trace("Starting overload selection: " + this.format());
         Logger.trace("  overload args: " + String.join(", ", argtypes.stream().map(x -> x.format()).toList()));
 
@@ -109,9 +110,9 @@ public class AOverloadType extends AFunctionType implements Applicable {
         }
 
         if (matches.size() == 1) {
-            return matches.keySet().iterator().next();
+            return Optional.of(matches.keySet().iterator().next());
         } else if (matches.size() == 0) {
-            throw new RuntimeException("overload matched 0 cases");
+            return Optional.empty();
         } else {
             Map<Integer, List<Function>> inverted = new HashMap<>();
             for (Entry<Function, Integer> match : matches.entrySet()) {
@@ -125,7 +126,7 @@ public class AOverloadType extends AFunctionType implements Applicable {
             Logger.trace("lowest score is " + lowest);
             List<Function> specific = inverted.get(lowest);
             if (specific.size() == 1) {
-                return specific.get(0);
+                return Optional.of(specific.get(0));
             }
             throw new RuntimeException("ambiguous overload");
         }
@@ -133,9 +134,9 @@ public class AOverloadType extends AFunctionType implements Applicable {
     }
 
     public ALambdaTerm getReturn(List<ALambdaTerm> argtypes) {
-        Function candidate = select(argtypes);
+        Optional<Function> candidate = select(argtypes);
 
-        ALambdaTerm rc = AlgebraicType.derive(candidate.getReturn());
+        ALambdaTerm rc = AlgebraicType.derive(candidate.get().getReturn());
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
             rc = rc.substitute(s.getKey(), s.getValue());
         }
@@ -143,15 +144,15 @@ public class AOverloadType extends AFunctionType implements Applicable {
     }
 
     public ALambdaTerm getArgument(int index, List<ALambdaTerm> argtypes) {
-        Function candidate = select(argtypes);
+        Optional<Function> candidate = select(argtypes);
 
         int index_offset = 0;
         // slight hack to deal with methods having self as the first argument
-        if (!candidate.isStatic()) {
+        if (!candidate.get().isStatic()) {
             index_offset = 1;
         }
 
-        ALambdaTerm rc = AlgebraicType.derive(candidate.getArgumentList().get(index + index_offset).getOwnType());
+        ALambdaTerm rc = AlgebraicType.derive(candidate.get().getArgumentList().get(index + index_offset).getOwnType());
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
             rc = rc.substitute(s.getKey(), s.getValue());
         }
@@ -159,8 +160,8 @@ public class AOverloadType extends AFunctionType implements Applicable {
     }
 
     public AFunctionReference getFunction(List<ALambdaTerm> argtypes) {
-        Function candidate = select(argtypes);
-        ALambdaTerm rc = new AFunctionReference(candidate);
+        Optional<Function> candidate = select(argtypes);
+        ALambdaTerm rc = new AFunctionReference(candidate.get());
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
             rc = rc.substitute(s.getKey(), s.getValue());
         }

@@ -21,8 +21,14 @@ public class ABaseType extends ALambdaTerm implements Mangle {
         this.name = name;
     }
 
+    @Override
     public String format() {
         return "#" + name;
+    }
+
+    @Override
+    public String formatPretty() {
+        return name;
     }
 
     public String getName() {

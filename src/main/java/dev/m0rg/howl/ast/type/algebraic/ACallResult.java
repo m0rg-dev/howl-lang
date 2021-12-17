@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -48,5 +49,9 @@ public class ACallResult extends ALambdaTerm implements Applicable {
             return ((AFunctionType) source).getReturn(args);
         }
         throw new RuntimeException();
+    }
+
+    public List<ALambdaTerm> getArguments() {
+        return Collections.unmodifiableList(args);
     }
 }

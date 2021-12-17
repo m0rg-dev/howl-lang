@@ -98,7 +98,7 @@ public class ConstructorCallExpression extends CallExpressionBase {
             AOverloadType constructor_call = (AOverloadType) ALambdaTerm
                     .evaluate(new AFieldReferenceType(source_type, "constructor"));
             Function source_function = constructor_call
-                    .select(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList());
+                    .select(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList()).get();
             Function source_function_two = ((AStructureReference) source_type).getSourceResolved().getSource()
                     .getMethod(source_function.getName()).get();
             LLVMFunction constructor;

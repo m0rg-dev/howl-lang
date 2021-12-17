@@ -11,7 +11,7 @@ public class ANewtype extends ALambdaTerm implements Applicable {
     NewType source;
 
     public ANewtype(NewType source) {
-        name = source.getPath();
+        name = source.getName();
         this.source = source;
     }
 

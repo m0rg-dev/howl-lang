@@ -30,6 +30,7 @@ import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckExceptions;
+import dev.m0rg.howl.lint.CheckInterfaceImplementations;
 import dev.m0rg.howl.lint.ExternFunctionBaseTypesOnly;
 import dev.m0rg.howl.llvm.LLVMContext;
 import dev.m0rg.howl.llvm.LLVMModule;
@@ -48,6 +49,7 @@ import dev.m0rg.howl.transform.ConvertIndexLvalue;
 import dev.m0rg.howl.transform.ConvertStrings;
 import dev.m0rg.howl.transform.ConvertThrow;
 import dev.m0rg.howl.transform.ConvertTryCatch;
+import dev.m0rg.howl.transform.EnsureTypesResolve;
 import dev.m0rg.howl.transform.InferTypes;
 import dev.m0rg.howl.transform.Monomorphize2;
 import dev.m0rg.howl.transform.ResolveNames;
@@ -228,6 +230,7 @@ public class Compiler {
 
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
+        Finder.find(cc.root_module, x -> CheckInterfaceImplementations.apply(x));
 
         // needs to come before AddClassCasts - easier to find what type the
         // to-be-thrown exception is
@@ -239,6 +242,8 @@ public class Compiler {
             Logger.trace("generate: " + r.format() + " " + r.mangle());
             r.getSource().getSource().monomorphize(r);
         }
+
+        cc.root_module.transform(new EnsureTypesResolve());
 
         // This needs to happen after monomorphization because
         // AddInterfaceConverters creates newtype references that will break

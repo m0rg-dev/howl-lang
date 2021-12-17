@@ -249,7 +249,7 @@ public class CSTImporter {
         ClassHeader header = parseClassHeader(chain(source, "header", "ClassHeader"));
         ASTElement[] body = parseElements(
                 chain(source, "body", "ClassBody").get("elements").getAsJsonArray());
-        Class rc = new Class(extractSpan(source), header.name, header.generics);
+        Class rc = new Class(extractSpan(source), header.getSpan(), header.name, header.generics);
 
         if (header.ext.isPresent()) {
             NamedType ext_type = NamedType.build(header.ext.get().getSpan(), header.ext.get().getName());
@@ -526,7 +526,7 @@ public class CSTImporter {
         InterfaceHeader header = parseInterfaceHeader(chain(source, "header", "InterfaceHeader"));
         ASTElement[] body = parseElements(
                 chain(source, "body", "InterfaceBody").get("elements").getAsJsonArray());
-        Interface rc = new Interface(extractSpan(source), header.name, header.generics);
+        Interface rc = new Interface(extractSpan(source), header.getSpan(), header.name, header.generics);
 
         for (ASTElement el : body) {
             if (el instanceof Function) {
