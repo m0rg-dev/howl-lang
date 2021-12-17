@@ -66,6 +66,8 @@ public class InferTypes implements ASTTransformer {
                 for (Entry<String, ALambdaTerm> s : s_expected.getSubstitutions().entrySet()) {
                     setEqual(s.getValue(),
                             s_provided.getSubstitutions().get(s.getKey()), e);
+                    setEqual(s_provided.getSubstitutions().get(s.getKey()), s.getValue(),
+                            e);
                 }
             } else if (s_expected.getSource().getSource() instanceof Interface) {
                 if (s_provided.getSource().getSource() instanceof Class) {
@@ -75,6 +77,7 @@ public class InferTypes implements ASTTransformer {
                                 AlgebraicType.derive(i_provided).applySubstitutions(s_provided.getSubstitutions()));
                         if (expected.accepts(i_eval)) {
                             setEqual(expected, i_eval, e);
+                            setEqual(i_eval, expected, e);
                             return;
                         }
                     }

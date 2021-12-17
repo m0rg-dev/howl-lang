@@ -42,10 +42,12 @@ public abstract class ALambdaTerm extends AlgebraicType {
         } else {
             evalmiss++;
         }
-
+        Logger.trace("eval:" + t.format());
         while (t instanceof Applicable && ((Applicable) t).isApplicable()) {
             t = ((Applicable) t).apply();
+            Logger.trace("apply:" + t.format());
         }
+        Logger.trace("return:" + t.format());
 
         evalcache.put(source, t);
         long end = System.currentTimeMillis();

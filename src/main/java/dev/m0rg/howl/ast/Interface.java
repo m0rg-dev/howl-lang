@@ -7,6 +7,11 @@ import java.util.Optional;
 
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NewType;
+import dev.m0rg.howl.ast.type.TypeConstraint;
+import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ADefer;
+import dev.m0rg.howl.ast.type.algebraic.AIntersectionType;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.logger.Logger;
 
 public class Interface extends ObjectCommon {
@@ -18,10 +23,20 @@ public class Interface extends ObjectCommon {
         super(span, header_span, name, generics.stream().map(x -> {
             if (x instanceof Identifier) {
                 return ((Identifier) x).getName();
+            } else if (x instanceof TypeConstraint) {
+                return ((TypeConstraint) x).getName();
             } else {
                 throw new RuntimeException();
             }
         }).toList());
+
+        for (ASTElement e : generics) {
+            if (e instanceof TypeConstraint) {
+                List<ALambdaTerm> params = ((TypeConstraint) e).getConstraints().stream()
+                        .map(x -> (ALambdaTerm) new ADefer((TypeElement) x.detach().setParent(this))).toList();
+                this.setGeneric(((TypeConstraint) e).getName(), new AIntersectionType(params));
+            }
+        }
     }
 
     @Override
@@ -29,6 +44,10 @@ public class Interface extends ObjectCommon {
         Interface rc = new Interface(span, header_span, name, new ArrayList<>(generics), true);
         for (Function method : methods) {
             rc.insertMethodUnchecked((Function) method.detach());
+        }
+
+        for (Entry<String, NewType> non_generic : non_generic_types.entrySet()) {
+            rc.non_generic_types.put(non_generic.getKey(), (NewType) non_generic.getValue().detach().setParent(rc));
         }
 
         rc.original = original;

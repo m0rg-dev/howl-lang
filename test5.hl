@@ -1,35 +1,5 @@
-interface Hash {
-    fn i32 hashCode();
-}
-
-interface Eq<T> {
-    fn bool equals(T other);
-}
-
-class HashMap<K: Hash & Eq, V> {
-    fn void put(K key, V value) {
-        key.equals(key);
-        return;
-    }
-}
-
-class Entry<K, V> {
-    K entry;
-    V value;
-}
-
-class Thingy implements Hash, Eq<Self> {
-    fn i32 hashCode() {
-        return 69;
-    }
-
-    fn bool equals(Thingy other) {
-        return false;
-    }
-}
-
 static fn i32 Main() {
-    let HashMap<Thingy, i32> test = new HashMap<Thingy, i32>();
+    let Map<Integer<i32>, i32> test = new HashMap();
 
     return 0;
 }

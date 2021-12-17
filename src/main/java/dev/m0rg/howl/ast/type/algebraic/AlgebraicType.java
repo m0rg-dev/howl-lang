@@ -149,12 +149,15 @@ public abstract class AlgebraicType {
             ALambdaTerm rc = derive_inner(as_specified.getSource());
             List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
             int i = 0;
+            List<String> vars = new ArrayList<>();
+            List<ALambdaTerm> reps = new ArrayList<>();
             for (TypeElement t : parameters) {
-                AVariable v = new AVariable("T" + i);
-                ALambda spec_operation = v.lambda(rc);
-                rc = new AApplication(spec_operation, derive_inner(t));
+                vars.add("T" + i);
+                reps.add(derive_inner(t));
                 i++;
             }
+
+            rc = new AApplication(new ALambda(vars, rc), reps);
 
             return rc;
         } else if (source instanceof ClassCastExpression) {

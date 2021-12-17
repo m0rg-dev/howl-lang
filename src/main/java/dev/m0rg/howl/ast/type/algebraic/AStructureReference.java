@@ -99,8 +99,11 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         });
 
         ALambdaTerm rc = AlgebraicType.derive(src.get());
+        Logger.trace("  => field " + rc.format());
         for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+            Logger.trace("  => field " + s.getKey() + " " + s.getValue().format());
             rc = rc.substitute(s.getKey(), s.getValue());
+            Logger.trace("    => " + rc.format());
         }
         return rc;
     }
