@@ -1,5 +1,7 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
@@ -20,15 +22,36 @@ public abstract class ALambdaTerm extends AlgebraicType {
      */
     public abstract ALambdaTerm substitute(String from, ALambdaTerm to);
 
+    public static long evalcount = 0;
+    public static Map<String, ALambdaTerm> evalcache = new HashMap<>();
+    public static long evalhit = 0;
+    public static long evalmiss = 0;
+    public static long evalbust = 0;
+    public static long evaltime = 0;
+
     /**
      * Attempts to β-normalize the given {@code ALambdaTerm} by repeated
      * application.
      */
     public static ALambdaTerm evaluate(ALambdaTerm t) {
+        evalcount++;
+        Logger.trace("eval: " + t.format());
+        long start = System.currentTimeMillis();
+        String source = t.format();
+        if (evalcache.containsKey(source)) {
+            evalhit++;
+            return evalcache.get(source);
+        } else {
+            evalmiss++;
+        }
+
         while (t instanceof Applicable && ((Applicable) t).isApplicable()) {
-            // Logger.trace("apply " + t.format());
             t = ((Applicable) t).apply();
         }
+
+        evalcache.put(source, t);
+        long end = System.currentTimeMillis();
+        evaltime += (end - start);
         return t;
     }
 

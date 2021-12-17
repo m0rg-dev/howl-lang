@@ -27,6 +27,7 @@ import dev.m0rg.howl.ast.ImportStatement;
 import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckExceptions;
@@ -211,8 +212,12 @@ public class Compiler {
             stdlib_path = FileSystems.getDefault().getPath("stdlib/").toAbsolutePath();
         }
 
+        long parse_start = System.currentTimeMillis();
+
         cc.ingestDirectory(stdlib_path, "lib");
         cc.ingest(FileSystems.getDefault().getPath(args[0]).toAbsolutePath(), "main");
+
+        Logger.info("parse complete at " + (System.currentTimeMillis() - parse_start) + " ms");
 
         cc.root_module.transform(new CoalesceElse());
         cc.root_module.transform(new CoalesceCatch());
@@ -268,11 +273,25 @@ public class Compiler {
             System.err.println(cc.root_module.format());
         }
 
+        Logger.info("transform complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+
+        Logger.info("Logger.log() invocations: " + Logger.count);
+        Logger.info("ASTElement.getPath() invocations: " + ASTElement.pathcount);
+        Logger.info("ASTElement.getPath() inner runtime = " + ASTElement.pathtime + " ms");
+        Logger.info("ALambdaTerm.evaluate() invocations: " + ALambdaTerm.evalcount);
+        Logger.info("ALambdaTerm.evaluate() unique expressions: " + ALambdaTerm.evalcache.size());
+        Logger.info("ALambdaTerm.evaluate() naïve cache results: " + ALambdaTerm.evalhit + " hits, "
+                + ALambdaTerm.evalmiss + " misses, " + ALambdaTerm.evalbust + " busts");
+        Logger.info("ALambdaTerm.evaluate() inner runtime = " + ALambdaTerm.evaltime + " ms");
+
         List<LLVMModule> modules = new ArrayList<>();
         if (cc.successful) {
             LLVMContext context = new LLVMContext();
             modules = cc.root_module.generate(context, true);
         }
+
+        Logger.info("generate complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+
         if (cc.successful) {
             Path tmpdir = Files.createTempDirectory("howl." + ProcessHandle.current().pid());
             List<String> ld_args = new ArrayList<>();
@@ -304,12 +323,17 @@ public class Compiler {
                 }
             }
 
+            Logger.info("assemble complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+
             ProcessBuilder ld_builder = new ProcessBuilder(ld_args).inheritIO();
             Process ld_process = ld_builder.start();
             if (ld_process.waitFor() != 0) {
                 Logger.error("(compilation aborted)");
                 System.exit(1);
             }
+
+            Logger.info("link complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+
         } else {
             for (CompilationError e : cc.errors) {
                 if (cc.errors_displayed.contains(e))

@@ -6,19 +6,23 @@ import java.util.List;
 import java.util.Optional;
 
 import dev.m0rg.howl.Compiler;
+import dev.m0rg.howl.logger.Logger;
 
 public abstract class ASTElement {
     ASTElement parent;
     protected Span span;
     ASTElement original;
+    Optional<String> pathcache;
 
     public ASTElement(Span span) {
         this.span = span;
+        this.pathcache = Optional.empty();
     }
 
     public ASTElement setParent(ASTElement parent) {
         if (this.parent == null || this.parent == parent) {
             this.parent = parent;
+            pathcache = Optional.of(this.getPath_intern());
             return this;
         } else {
             throw new RuntimeException("Attempt to move owned ASTElement");
@@ -83,10 +87,31 @@ public abstract class ASTElement {
         return Optional.empty();
     }
 
+    public static long pathcount = 0;
+    public static long pathtime = 0;
+
     public String getPath() {
+        pathcount++;
+        long start = System.currentTimeMillis();
+        String rc;
+        if (pathcache.isPresent()) {
+            rc = getPath_intern();
+            if (!rc.equals(pathcache.get())) {
+                Logger.trace("path cache bust " + pathcache.get() + " " + rc);
+                pathcache = Optional.of(rc);
+            }
+        } else {
+            rc = getPath_intern();
+        }
+        long end = System.currentTimeMillis();
+        pathtime += (end - start);
+        return rc;
+    }
+
+    String getPath_intern() {
         String parent_path = "";
         if (this.parent != null) {
-            parent_path = this.parent.getPath() + ".";
+            parent_path = this.parent.getPath_intern() + ".";
         }
 
         if (this instanceof NamedElement) {
