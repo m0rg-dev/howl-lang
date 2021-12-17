@@ -22,6 +22,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Finder;
 import dev.m0rg.howl.ast.ImportStatement;
 import dev.m0rg.howl.ast.ModStatement;
@@ -44,8 +45,8 @@ import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddInterfaceConverters;
 import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
-import dev.m0rg.howl.transform.CoalesceCatch;
 import dev.m0rg.howl.transform.Coalesce;
+import dev.m0rg.howl.transform.MultiPass;
 import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertIndexLvalue;
@@ -231,8 +232,14 @@ public class Compiler {
         // System.err.println(cc.root_module.getChild("main").get().format());
         // System.exit(0);
 
-        cc.root_module.transform(new ConvertTryCatch());
-        Logger.info("  => ConvertTryCatch " + (System.currentTimeMillis() -
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new ConvertTryCatch(),
+                new ConvertBooleans(),
+                new ConvertSuper(),
+                new SuperConstructorCalls(),
+                new AddSelfToMethods(),
+        }));
+        Logger.info("  => Combined1 " + (System.currentTimeMillis() -
                 transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
@@ -240,40 +247,18 @@ public class Compiler {
         Logger.info("  => ConvertThrow " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new ConvertBooleans());
-        Logger.info("  => ConvertBooleans " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new ConvertSuper());
-        Logger.info("  => ConvertSuper " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new SuperConstructorCalls());
-        Logger.info("  => SuperConstructorCalls " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new AddSelfToMethods());
-        Logger.info("  => AddSelfToMethods " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new ResolveNames());
-        Logger.info("  => ResolveNames " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new ConvertStrings());
-        Logger.info("  => ConvertStrings " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new ConvertIndexLvalue());
-        Logger.info("  => ConvertIndexLvalue " + (System.currentTimeMillis() - transform_start) + " ms");
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new ResolveNames(),
+                new ConvertStrings(),
+                new ConvertIndexLvalue(),
+                new AddGenerics(),
+        }));
+        Logger.info("  => Combined2 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new ConvertCustomOverloads());
-        Logger.info("  => ConvertCustomOverloads " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new AddGenerics());
-        Logger.info("  => AddGenerics " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.info("  => ConvertCustomOverloads " + (System.currentTimeMillis() -
+                transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new InferTypes());
@@ -284,14 +269,11 @@ public class Compiler {
         Logger.info("  => CheckInterfaceImplementations " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new StaticNonStatic());
-        Logger.info("  => StaticNonStatic " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        // needs to come before AddClassCasts - easier to find what type the
-        // to-be-thrown exception is
-        cc.root_module.transform(new CheckExceptions());
-        Logger.info("  => CheckExceptions " + (System.currentTimeMillis() - transform_start) + " ms");
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new StaticNonStatic(),
+                new CheckExceptions(),
+        }));
+        Logger.info("  => Combined3 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         Monomorphize2 mc2 = new Monomorphize2();
@@ -303,31 +285,23 @@ public class Compiler {
         Logger.info("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new EnsureTypesResolve());
-        Logger.info("  => EnsureTypesResolve " + (System.currentTimeMillis() - transform_start) + " ms");
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new EnsureTypesResolve(),
+                // This needs to happen after monomorphization because
+                // AddInterfaceConverters creates newtype references that will break
+                // when monomorphization happens.
+                new AddInterfaceConverters(),
+        }));
+        Logger.info("  => Combined4 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        // This needs to happen after monomorphization because
-        // AddInterfaceConverters creates newtype references that will break
-        // when monomorphization happens.
-        cc.root_module.transform(new AddInterfaceConverters());
-        Logger.info("  => AddInterfaceConverters " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new AddInterfaceCasts());
-        Logger.info("  => AddInterfaceCasts " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new AddNumericCasts());
-        Logger.info("  => AddNumericCasts " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new AddClassCasts());
-        Logger.info("  => AddClassCasts " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
-
-        cc.root_module.transform(new ExternFunctionBaseTypesOnly());
-        Logger.info("  => ExternFunctionBaseTypesOnly " + (System.currentTimeMillis() - transform_start) + " ms");
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new AddInterfaceCasts(),
+                new AddNumericCasts(),
+                new AddClassCasts(),
+                new ExternFunctionBaseTypesOnly(),
+        }));
+        Logger.info("  => Combined5 " + (System.currentTimeMillis() - transform_start) + " ms");
 
         if (cmd.hasOption("trace")) {
             System.err.println(cc.root_module.format());

@@ -21,7 +21,12 @@ public class CompoundStatement extends Statement implements NameHolder {
     public CompoundStatement(Span span) {
         super(span);
         statements = new ArrayList<Statement>();
+    }
+
+    @Override
+    public ASTElement setParent(ASTElement parent) {
         all_compounds.add(this);
+        return super.setParent(parent);
     }
 
     @Override
