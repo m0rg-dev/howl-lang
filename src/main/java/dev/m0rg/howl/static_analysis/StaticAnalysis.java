@@ -124,6 +124,6 @@ public class StaticAnalysis {
             return rc;
         }
 
-        throw new RuntimeException("buildGraph unsupported " + s.getClass().getName());
+        throw new RuntimeException("buildGraph unsupported " + s.getClass().getName() + " " + s.getPath());
     }
 }

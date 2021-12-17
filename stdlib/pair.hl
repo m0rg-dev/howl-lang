@@ -1,0 +1,17 @@
+class Pair<First, Second> {
+    First first;
+    Second second;
+
+    fn void constructor(First first, Second second) {
+        self.first = first;
+        self.second = second;
+    }
+
+    fn First getFirst() {
+        return self.first;
+    }
+
+    fn Second getSecond() {
+        return self.second;
+    }
+}

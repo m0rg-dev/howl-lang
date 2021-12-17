@@ -3,6 +3,8 @@ package dev.m0rg.howl.transform;
 import java.util.ArrayList;
 import java.util.List;
 
+import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
@@ -12,13 +14,13 @@ import dev.m0rg.howl.ast.statement.IfStatement;
 import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.statement.TryStatement;
 
-public class Coalesce {
-    public void apply() {
-        for (CompoundStatement e : CompoundStatement.all_compounds) {
+public class Coalesce implements ASTTransformer {
+    public ASTElement transform(ASTElement e) {
+        if (e instanceof CompoundStatement) {
             CompoundStatement rc = (CompoundStatement) e;
             List<Statement> contents = ((CompoundStatement) e).getContents();
             if (contents.isEmpty() || rc.getParent() == null)
-                return;
+                return e;
             List<Statement> new_contents = new ArrayList<>();
             new_contents.add((Statement) contents.get(0).detachUnsafe());
 
@@ -58,7 +60,7 @@ public class Coalesce {
             for (Statement s : new_contents) {
                 rc.insertStatement(s);
             }
-
         }
+        return e;
     }
 }

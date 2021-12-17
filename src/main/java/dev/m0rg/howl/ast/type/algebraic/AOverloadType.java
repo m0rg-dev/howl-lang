@@ -12,6 +12,7 @@ import java.util.Set;
 
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Overload;
+import dev.m0rg.howl.logger.Logger;
 
 public class AOverloadType extends AFunctionType implements Applicable {
     Overload source;
@@ -104,6 +105,9 @@ public class AOverloadType extends AFunctionType implements Applicable {
         if (matches.size() == 1) {
             return Optional.of(matches.keySet().iterator().next());
         } else if (matches.size() == 0) {
+            Logger.error("no overload match " + source.getName() + " " + source.getSource().getPath());
+            Logger.error(String.join(", ", argtypes.stream().map(x -> x.format()).toList()));
+            Logger.error(format());
             return Optional.empty();
         } else {
             Map<Integer, List<Function>> inverted = new HashMap<>();
@@ -136,7 +140,9 @@ public class AOverloadType extends AFunctionType implements Applicable {
 
     public ALambdaTerm getArgument(int index, List<ALambdaTerm> argtypes) {
         Optional<Function> candidate = select(argtypes);
-
+        if (candidate.isEmpty()) {
+            return new AErrorType(source.getSpan(), "no overload found");
+        }
         int index_offset = 0;
         // slight hack to deal with methods having self as the first argument
         if (!candidate.get().isStatic()) {

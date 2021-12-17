@@ -3,8 +3,6 @@ package dev.m0rg.howl.ast.type.algebraic;
 import java.util.HashSet;
 import java.util.Set;
 
-import dev.m0rg.howl.logger.Logger;
-
 public class ALambda extends ALambdaTerm {
     String boundVariable;
     ALambdaTerm definition;
@@ -29,6 +27,8 @@ public class ALambda extends ALambdaTerm {
         return rc;
     }
 
+    static long alpha_counter = 0;
+
     @Override
     public ALambdaTerm substitute(String from, ALambdaTerm to) {
         if (boundVariable.equals(from)) {
@@ -37,10 +37,10 @@ public class ALambda extends ALambdaTerm {
         } else {
             Set<String> to_vars = to.freeVariables();
             if (to_vars.contains(boundVariable)) {
-                Logger.trace(this.format());
-                Logger.trace(to.format());
-                throw new RuntimeException(
-                        "α-conversion time " + this.format() + "[" + from + " := " + to.format() + "]");
+                String replacement = boundVariable + "_" + alpha_counter;
+                alpha_counter++;
+                ALambda rc = new ALambda(replacement, definition.substitute(boundVariable, new AVariable(replacement)));
+                return rc.substitute(from, to);
             } else {
                 // (\y.t)[x := r] -> \y.(t[x := r])
                 return new ALambda(boundVariable,

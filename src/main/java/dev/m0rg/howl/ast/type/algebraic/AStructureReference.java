@@ -71,6 +71,19 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         AStructureReference rc = new AStructureReference(source);
         rc.substitutions.putAll(substitutions);
         rc.substitutions.put(from, to);
+
+        // handle an edge case with α-conversion where we can get t[r := r', r'
+        // = r''] - we'd like to collapse those here (i.e. to t[r := r'']) and
+        // not have to worry about it in apply()
+        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+            if (s.getValue() instanceof AVariable) {
+                AVariable v = ((AVariable) s.getValue());
+                if (v.name.equals(from) && !v.name.equals(s.getKey())) {
+                    rc.substitutions.put(s.getKey(), to);
+                    rc.substitutions.remove(from);
+                }
+            }
+        }
         return rc;
     }
 

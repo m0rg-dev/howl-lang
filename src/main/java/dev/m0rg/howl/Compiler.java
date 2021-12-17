@@ -221,7 +221,7 @@ public class Compiler {
         Logger.trace("parse complete at " + (System.currentTimeMillis() - parse_start) + " ms");
 
         long transform_start = System.currentTimeMillis();
-        new Coalesce().apply();
+        cc.root_module.transform(new Coalesce());
         Logger.trace("  => Coalesce " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 

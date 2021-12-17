@@ -4,8 +4,8 @@ static fn i32 Main() throws IOException {
     v.push("bar");
     v.push("baz");
 
-    for String s in v.iter() {
-        IO.println(s);
+    for Pair<i64, String> s in v.enumerate() {
+        IO.println("index: " + s.getFirst() + " value: " + s.getSecond());
     }
 
     return 0;

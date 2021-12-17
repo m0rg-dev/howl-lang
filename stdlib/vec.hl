@@ -53,8 +53,12 @@ class Vec<T> {
         self.value[idx] = value;
     }
 
-    fn VecIterator<T> iter() {
+    fn Iterator<T> iter() {
         return new VecIterator<T>(self);
+    }
+
+    fn Iterator<Pair<i64, T>> enumerate() {
+        return new VecEnumerator<T>(self);
     }
 }
 
@@ -76,6 +80,30 @@ class VecIterator<T> implements Iterator<T> {
             let T rc = self.source[self.index];
             self.index = self.index + 1;
             return rc;
+        } else {
+            throw new OverrunException("VecIterator index out of bounds (index was " + self.index + ", length was " + self.source.length() + ")");
+        }
+    }
+}
+
+class VecEnumerator<T> implements Iterator<Pair<i64, T>> {
+    Vec<T> source;
+    i64 index;
+
+    fn void constructor(Vec<T> source) {
+        self.source = source;
+        self.index = 0;
+    }
+
+    fn bool hasNext() {
+        return self.index < self.source.length();
+    }
+
+    fn Pair<i64, T> next() throws OverrunException {
+        if self.hasNext() {
+            let T rc = self.source[self.index];
+            self.index = self.index + 1;
+            return new Pair<i64, T>(self.index - 1, rc);
         } else {
             throw new OverrunException("VecIterator index out of bounds (index was " + self.index + ", length was " + self.source.length() + ")");
         }
