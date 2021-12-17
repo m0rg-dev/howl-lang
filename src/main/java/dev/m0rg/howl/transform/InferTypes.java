@@ -22,15 +22,11 @@ import dev.m0rg.howl.logger.Logger;
 public class InferTypes implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof HasUpstreamFields) {
-            Logger.trace("InferTypes: " + e.formatForLog());
             HasUpstreamFields holder = (HasUpstreamFields) e;
             for (Entry<String, FieldHandle> f : holder.getUpstreamFields().entrySet()) {
-                Logger.trace("key: " + f.getKey());
                 AVariable.reset();
                 ALambdaTerm t_expected = ALambdaTerm.evaluate(f.getValue().getExpectedType());
-                Logger.trace(" " + f.getKey() + " expected: " + t_expected.format());
                 ALambdaTerm t_provided = ALambdaTerm.evaluate(AlgebraicType.derive(f.getValue().getSubexpression()));
-                Logger.trace(" " + f.getKey() + " provided: " + t_provided.format());
 
                 if (t_expected.accepts(t_provided)) {
                     setEqual(t_expected, t_provided, e);
@@ -51,7 +47,6 @@ public class InferTypes implements ASTTransformer {
     }
 
     void setEqual(ALambdaTerm expected, ALambdaTerm provided, ASTElement e) {
-        Logger.trace(expected.format() + " <- " + provided.format());
         if (expected instanceof AVariable && !(provided instanceof AVariable)) {
             Optional<ASTElement> res = e.resolveName(((AVariable) expected).getName());
             if (res.isPresent()) {
@@ -79,7 +74,6 @@ public class InferTypes implements ASTTransformer {
                     for (TypeElement i_provided : implementer.interfaces()) {
                         ALambdaTerm i_eval = ALambdaTerm.evaluate(
                                 AlgebraicType.derive(i_provided).applySubstitutions(s_provided.getSubstitutions()));
-                        Logger.trace("  i " + i_eval.format());
                         if (expected.accepts(i_eval)) {
                             setEqual(expected, i_eval, e);
                             return;

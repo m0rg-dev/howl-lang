@@ -16,8 +16,7 @@ import dev.m0rg.howl.ast.statement.TryStatement;
 
 public class Coalesce {
     public void apply() {
-        Set<CompoundStatement> statements = new HashSet<>(CompoundStatement.all_compounds);
-        for (CompoundStatement e : statements) {
+        for (CompoundStatement e : CompoundStatement.all_compounds) {
             CompoundStatement rc = (CompoundStatement) e;
             List<Statement> contents = ((CompoundStatement) e).getContents();
             if (contents.isEmpty() || rc.getParent() == null)
