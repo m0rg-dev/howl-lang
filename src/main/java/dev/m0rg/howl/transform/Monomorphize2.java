@@ -31,10 +31,16 @@ public class Monomorphize2 implements ASTTransformer {
             if (t instanceof AStructureReference) {
                 AStructureReference as_ref = (AStructureReference) t;
                 for (Entry<String, ALambdaTerm> s : as_ref.getSubstitutions().entrySet()) {
-                    if (s.getValue() instanceof AVariable) {
+                    if (!ALambdaTerm.evaluate(s.getValue()).freeVariables().isEmpty()) {
+                        Logger.trace("   => not complete.");
                         return e;
                     }
                 }
+
+                if (as_ref.getSubstitutions().size() == 0 || to_generate.containsKey(as_ref.mangle())) {
+                    return e;
+                }
+
                 if (as_ref.getSource().getSource().getGenericNames().size() != as_ref.getSubstitutions().size()) {
                     try {
                         System.out.println(
@@ -46,13 +52,7 @@ public class Monomorphize2 implements ASTTransformer {
                 }
 
                 if (as_ref.getSubstitutions().size() > 0) {
-                    Logger.trace("Monomorphize2: " + t.format());
-                    for (Entry<String, ALambdaTerm> s : as_ref.getSubstitutions().entrySet()) {
-                        if (!ALambdaTerm.evaluate(s.getValue()).freeVariables().isEmpty()) {
-                            Logger.trace("   => not complete.");
-                            return e;
-                        }
-                    }
+                    Logger.trace("Monomorphize2: " + t.formatForLog());
                     to_generate.put(as_ref.mangle(), as_ref);
                 }
             }

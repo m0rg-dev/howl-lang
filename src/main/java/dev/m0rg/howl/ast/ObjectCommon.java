@@ -287,6 +287,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         if (monomorphized.contains(spec.mangle())) {
             return;
         }
+        Logger.trace("generate: " + spec.formatForLog() + " " + spec.mangle());
         monomorphized.add(spec.mangle());
         ObjectCommon specified = (ObjectCommon) this.detach();
         specified.setName(spec.mangle());
@@ -301,12 +302,8 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         Monomorphize2 sub_types = new Monomorphize2();
         specified.transform(sub_types);
         for (AStructureReference r : sub_types.getToGenerate()) {
-            Logger.trace("generate: " + r.format() + " " + r.mangle());
             r.getSource().getSource().monomorphize(r);
         }
-
-        Logger.trace("MONOMORPHIZE " + specified.getName());
-        Logger.trace(specified.format());
     }
 
     public String formatPretty(AStructureReference spec) {

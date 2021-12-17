@@ -279,8 +279,9 @@ public class Compiler {
 
         Monomorphize2 mc2 = new Monomorphize2();
         cc.root_module.transform(mc2);
+        Logger.info("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
         for (AStructureReference r : mc2.getToGenerate()) {
-            Logger.trace("generate: " + r.format() + " " + r.mangle());
+            Logger.trace("generate: " + r.formatForLog() + " " + r.mangle());
             r.getSource().getSource().monomorphize(r);
         }
         Logger.info("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
