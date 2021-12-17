@@ -162,17 +162,22 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
     }
 
     public void transform(ASTTransformer t) {
-        rc.transform(t);
-        setReturn(t.transform(rc));
+        try {
+            rc.transform(t);
+            setReturn(t.transform(rc));
 
-        for (Entry<String, Argument> arg : args.entrySet()) {
-            arg.getValue().transform(t);
-            args.replace(arg.getKey(), (Argument) t.transform(arg.getValue()).setParent(this));
-        }
+            for (Entry<String, Argument> arg : args.entrySet()) {
+                arg.getValue().transform(t);
+                args.replace(arg.getKey(), (Argument) t.transform(arg.getValue()).setParent(this));
+            }
 
-        if (this.body.isPresent()) {
-            this.body.get().transform(t);
-            this.setBody(t.transform(this.body.get()));
+            if (this.body.isPresent()) {
+                this.body.get().transform(t);
+                this.setBody(t.transform(this.body.get()));
+            }
+        } catch (Exception e) {
+            Logger.error("Exception in transform: " + this.getPath());
+            throw e;
         }
     }
 

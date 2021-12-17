@@ -10,8 +10,11 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.HasUpstreamFields;
+import dev.m0rg.howl.ast.Interface;
 import dev.m0rg.howl.ast.type.NewType;
+import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.algebraic.ANewtype;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
@@ -62,14 +65,33 @@ public class InferTypes implements ASTTransformer {
                 return;
             }
 
-            if (s_expected.getSource().getSource() instanceof Class
-                    && s_provided.getSource().getSource() instanceof Class) {
+            if (s_expected.getSource().getSource().getPath().equals(
+                    s_provided.getSource().getSource().getPath())
+                    || (s_expected.getSource().getSource() instanceof Class
+                            && s_provided.getSource().getSource() instanceof Class)) {
                 for (Entry<String, ALambdaTerm> s : s_expected.getSubstitutions().entrySet()) {
                     setEqual(s.getValue(),
                             s_provided.getSubstitutions().get(s.getKey()), e);
                 }
-            } else {
+            } else if (s_expected.getSource().getSource() instanceof Interface) {
+                if (s_provided.getSource().getSource() instanceof Class) {
+                    Class implementer = (Class) s_provided.getSource().getSource();
+                    for (TypeElement i_provided : implementer.interfaces()) {
+                        ALambdaTerm i_eval = ALambdaTerm.evaluate(
+                                AlgebraicType.derive(i_provided).applySubstitutions(s_provided.getSubstitutions()));
+                        Logger.trace("  i " + i_eval.format());
+                        if (expected.accepts(i_eval)) {
+                            setEqual(expected, i_eval, e);
+                            return;
+                        }
+                    }
+                    throw new RuntimeException();
+                } else {
+                    throw new RuntimeException();
+                }
                 // TODO
+            } else {
+                throw new RuntimeException();
             }
         }
     }

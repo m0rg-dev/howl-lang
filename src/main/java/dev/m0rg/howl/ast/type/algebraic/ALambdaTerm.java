@@ -1,6 +1,8 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.llvm.LLVMModule;
@@ -84,5 +86,13 @@ public abstract class ALambdaTerm extends AlgebraicType {
             }
         }
         return false;
+    }
+
+    public ALambdaTerm applySubstitutions(Map<String, ALambdaTerm> substitutions) {
+        ALambdaTerm rc = this;
+        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+            rc = rc.substitute(s.getKey(), s.getValue());
+        }
+        return rc;
     }
 }

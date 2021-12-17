@@ -47,6 +47,12 @@ public class Monomorphize2 implements ASTTransformer {
 
                 if (as_ref.getSubstitutions().size() > 0) {
                     Logger.trace("Monomorphize2: " + t.format());
+                    for (Entry<String, ALambdaTerm> s : as_ref.getSubstitutions().entrySet()) {
+                        if (!ALambdaTerm.evaluate(s.getValue()).freeVariables().isEmpty()) {
+                            Logger.trace("   => not complete.");
+                            return e;
+                        }
+                    }
                     to_generate.put(as_ref.mangle(), as_ref);
                 }
             }

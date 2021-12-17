@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.NewType;
+import dev.m0rg.howl.logger.Logger;
 
 public class Interface extends ObjectCommon {
     public Interface(Span span, Span header_span, String name, List<String> generics, boolean _a) {
@@ -60,11 +61,16 @@ public class Interface extends ObjectCommon {
     }
 
     public void transform(ASTTransformer t) {
-        int index = 0;
-        for (Function method : methods) {
-            method.transform(t);
-            methods.set(index, (Function) t.transform(method).setParent(this));
-            index++;
+        try {
+            int index = 0;
+            for (Function method : methods) {
+                method.transform(t);
+                methods.set(index, (Function) t.transform(method).setParent(this));
+                index++;
+            }
+        } catch (Exception e) {
+            Logger.error("Exception in transform: " + this.getPath());
+            throw e;
         }
     }
 

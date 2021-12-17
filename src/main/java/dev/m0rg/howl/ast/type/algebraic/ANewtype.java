@@ -20,6 +20,10 @@ public class ANewtype extends ALambdaTerm implements Applicable {
         this.source = source;
     }
 
+    public String getName() {
+        return name;
+    }
+
     @Override
     public String format() {
         return "@" + source.getPath();
@@ -54,7 +58,7 @@ public class ANewtype extends ALambdaTerm implements Applicable {
     public boolean accepts(ALambdaTerm other) {
         if (other instanceof ANewtype) {
             return ((ANewtype) other).name.equals(name);
-        } else if (other instanceof AAnyType || other instanceof AVariable) {
+        } else if (other.isFree()) {
             return true;
         } else {
             return false;
