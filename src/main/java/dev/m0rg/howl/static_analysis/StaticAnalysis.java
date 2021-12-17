@@ -8,6 +8,7 @@ import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.BreakContinueStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
+import dev.m0rg.howl.ast.statement.ForStatement;
 import dev.m0rg.howl.ast.statement.IfStatement;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
 import dev.m0rg.howl.ast.statement.ReturnExpectation;
@@ -105,6 +106,16 @@ public class StaticAnalysis {
             WhileStatement as_while = (WhileStatement) s;
             CFGNode rc = new CFGNode(s);
             rc.addReflexive(buildGraph(as_while.getBody(), next_sibling));
+
+            if (next_sibling.isPresent()) {
+                rc.addSuccessor(next_sibling.get());
+            }
+
+            return rc;
+        } else if (s instanceof ForStatement) {
+            ForStatement as_for = (ForStatement) s;
+            CFGNode rc = new CFGNode(s);
+            rc.addReflexive(buildGraph(as_for.getBody(), next_sibling));
 
             if (next_sibling.isPresent()) {
                 rc.addSuccessor(next_sibling.get());

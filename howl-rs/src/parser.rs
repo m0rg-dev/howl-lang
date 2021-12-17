@@ -221,6 +221,13 @@ pub enum CSTElement<'a> {
         condition: &'a CSTElement<'a>,
         body: &'a CSTElement<'a>,
     },
+    ForStatement {
+        span: SerializableSpan,
+        localtype: &'a CSTElement<'a>,
+        name: String,
+        source: &'a CSTElement<'a>,
+        body: &'a CSTElement<'a>,
+    },
     LocalDefinitionStatement {
         span: SerializableSpan,
         localtype: &'a CSTElement<'a>,
