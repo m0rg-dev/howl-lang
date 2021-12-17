@@ -24,7 +24,6 @@ public class StaticNonStatic extends LintPass {
             if (type instanceof AErrorType)
                 return;
             AStructureReference r = (AStructureReference) type;
-            Logger.trace(e.format() + " " + r.format());
             boolean field_is_static;
             boolean reference_is_static = (as_ref.getSource() instanceof NameExpression
                     && as_ref.resolveName(((NameExpression) as_ref.getSource()).getName()).map(x -> {

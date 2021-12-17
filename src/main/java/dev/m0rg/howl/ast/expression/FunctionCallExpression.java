@@ -94,22 +94,18 @@ public class FunctionCallExpression extends CallExpressionBase {
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
         ALambdaTerm source_type = ALambdaTerm.evaluateFrom(source);
-        Logger.trace(this.format());
         if (source_type instanceof AOverloadType) {
             Function source_function = ((AOverloadType) source_type)
                     .select(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList()).get();
-            Logger.trace("source function: " + source_function.format());
 
             if (source instanceof FieldReferenceExpression) {
                 FieldReferenceExpression new_source = (FieldReferenceExpression) source.detach();
                 new_source.name = source_function.getName();
                 new_source.setParent(source.getParent());
-                Logger.trace("new source " + new_source.format());
 
                 if (!((AOverloadType) source_type).getSource().getSource().isOwnMethod(new_source.name)) {
                     ObjectCommon o = ((AOverloadType) source_type).getSource().getSource();
                     while (!o.isOwnMethod(new_source.name)) {
-                        Logger.trace("step " + o.getPath());
                         o = (ObjectCommon) o.resolveName(o.getExtends().get().getName()).get();
                     }
                     ClassCastExpression cast = new ClassCastExpression(new_source.getSpan());

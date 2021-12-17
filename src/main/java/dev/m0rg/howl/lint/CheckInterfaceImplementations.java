@@ -17,8 +17,6 @@ public class CheckInterfaceImplementations {
             Class c = (Class) e;
             for (TypeElement t : c.interfaces()) {
                 ALambdaTerm itype = ALambdaTerm.evaluateFrom(t);
-                Logger.trace("implcheck: " + itype.format());
-                Logger.trace("  class: " + String.join(", ", c.getMethodNames()));
                 for (AFunctionReference f : ((AStructureReference) itype).getMethods()) {
                     if (!c.getFunctionFromInterface(f).isPresent()) {
                         c.getHeaderSpan().addError("class " + c.getName() + " does not implement method "

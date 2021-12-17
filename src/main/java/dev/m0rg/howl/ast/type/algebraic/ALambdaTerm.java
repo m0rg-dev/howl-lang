@@ -1,15 +1,13 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMType;
-import dev.m0rg.howl.logger.Logger;
 
 public abstract class ALambdaTerm extends AlgebraicType {
     /**
@@ -35,14 +33,12 @@ public abstract class ALambdaTerm extends AlgebraicType {
      */
     public static ALambdaTerm evaluate(ALambdaTerm t) {
         evalcount++;
-        Logger.trace("eval: " + t.formatForLog());
         long start = System.currentTimeMillis();
         String source = t.format();
         if (evalcache.containsKey(source)) {
             evalhit++;
             return evalcache.get(source);
         } else {
-            // Logger.info("eval miss: " + source);
             evalmiss++;
         }
 

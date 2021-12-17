@@ -10,10 +10,8 @@ import java.util.Optional;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
 import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.HasOwnType;
-import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
-import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMModule;
@@ -203,14 +201,12 @@ public class Function extends ASTElement implements NamedElement, NameHolder, Ha
     }
 
     public LLVMFunction generate(LLVMModule module) {
-        Logger.trace("  => Function generate " + this.getPath() + " (" + module.getName() + ")");
         LLVMFunctionType type = this.generateType(module);
         if (this.is_extern) {
             // TODO check for duplicate extern functions
             return module.getOrInsertFunction(type, this.getOriginalName(), f -> f.setExternal(), true);
         } else {
             return module.getOrInsertFunction(type, this.getPath(), (f) -> {
-                Logger.trace("    called back");
                 if (this.body.isPresent()) {
                     f.appendBasicBlock("entry");
                     this.body.get().generate(f);

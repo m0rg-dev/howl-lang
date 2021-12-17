@@ -14,7 +14,6 @@ import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
-import dev.m0rg.howl.logger.Logger;
 
 public class AddClassCasts implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
@@ -32,9 +31,6 @@ public class AddClassCasts implements ASTTransformer {
                         ClassType ct_expected = (ClassType) expected;
                         ClassType ct_provided = (ClassType) provided;
                         if (!ct_expected.getSource().getPath().equals(ct_provided.getSource().getPath())) {
-                            Logger.trace("AddClassCasts " + ent.getValue().getSubexpression().formatForLog() +
-                                    " -> "
-                                    + expected.formatForLog());
                             ClassCastExpression ice = new ClassCastExpression(
                                     ent.getValue().getSubexpression().getSpan());
                             ice.setSource((Expression) ent.getValue().getSubexpression().detach());

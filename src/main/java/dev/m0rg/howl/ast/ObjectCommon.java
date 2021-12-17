@@ -122,7 +122,6 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         int idx = -1;
         for (int i = 0; i < getFields().size();) {
             Field f = getFields().get(i);
-            Logger.trace(f.format());
             if (f.isStatic()) {
                 if (f.getName().equals(name)) {
                     idx = i;
@@ -287,7 +286,6 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         if (monomorphized.contains(spec.mangle())) {
             return;
         }
-        Logger.trace("generate: " + spec.formatForLog() + " " + spec.mangle());
         monomorphized.add(spec.mangle());
         ObjectCommon specified = (ObjectCommon) this.detach();
         specified.setName(spec.mangle());

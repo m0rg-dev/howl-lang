@@ -25,8 +25,6 @@ public class StaticAnalysis {
     }
 
     public static CFGNode buildGraph(Statement s, Optional<CFGNode> next_sibling) {
-        Logger.trace("buildGraph: " + s.format());
-
         if (s instanceof CompoundStatement) {
             CompoundStatement block = (CompoundStatement) s;
             if (block.getContents().isEmpty()) {

@@ -264,13 +264,11 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
         for (String name : this.getMethodNames()) {
             if (this.isOwnMethod(name)) {
                 Function m = this.getMethod(name).get();
-                Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
                 methods.add(m.generate(module));
             } else {
                 Function f = (Function) this.getMethod(name).get();
                 LLVMFunctionType type = (new AFunctionReference(f)).toLLVM(module);
 
-                Logger.trace("declaring: " + f.getPath() + " (" + module.getName() + ")");
                 if (f.is_extern) {
                     methods.add(module.getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true));
                 } else {
@@ -285,17 +283,12 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
     public Optional<Function> getFunctionFromInterface(AFunctionReference their_method) {
         Overload o = (new Overload(getSpan(), their_method.getSource().getOriginalName(), getOwnType()));
         AOverloadType ao = new AOverloadType(o);
-        Logger.trace("  method: " + their_method.getSource().getOriginalName());
-        Logger.trace("  " + ao.format());
         Optional<Function> match = ao.select(their_method.argumentTypesEvaluated());
 
         if (match.isPresent()) {
             if (ALambdaTerm.evaluate(their_method.getReturn(new ArrayList<>()))
                     .accepts(ALambdaTerm.evaluateFrom(match.get().getReturn()))) {
                 return match;
-            } else {
-                Logger.trace("return mismatch " + their_method.getReturn(new ArrayList<>()).format()
-                        + " vs " + ALambdaTerm.evaluateFrom(match.get().getReturn()).format());
             }
         }
         return Optional.empty();
@@ -321,19 +314,16 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
                 Function on_self = getFunctionFromInterface(
                         new AFunctionReference(i_res.getSource().getMethod(name).get()))
                                 .get();
-                Logger.trace("method: " + name + " (" + on_self.getName() + ")");
                 LLVMType method_type = (new AFunctionReference(
                         i_res.getSource().getMethod(name).get())).toLLVM(module);
                 LLVMFunction generated;
                 if (this.isOwnMethod(on_self.getName())) {
                     Function m = this.getMethod(on_self.getName()).get();
-                    Logger.trace("generating: " + m.getPath() + " (" + module.getName() + ")");
                     generated = m.generate(module);
                 } else {
                     Function f = this.getMethod(on_self.getName()).get();
                     LLVMFunctionType type = (new AFunctionReference(f)).toLLVM(module);
 
-                    Logger.trace("declaring: " + f.getPath() + " (" + module.getName() + ")");
                     if (f.is_extern) {
                         generated = module.getOrInsertFunction(type, f.getOriginalName(), x -> x.setExternal(), true);
                     } else {

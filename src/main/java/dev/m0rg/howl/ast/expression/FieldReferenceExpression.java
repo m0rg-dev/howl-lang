@@ -79,7 +79,6 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
             AStructureReference ct = (AStructureReference) source_type;
             ObjectReferenceType ot = ct.getSource();
             int index = ot.getFieldNames().indexOf(name);
-            Logger.trace("index = " + index);
             if (index >= 0 && !ot.getField(name).get().isStatic()) {
                 LLVMValue src;
 
@@ -94,15 +93,12 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
                 return builder.buildStructGEP(t.getInner(), src, index, name);
             } else {
                 index = ot.getSource().getMethodNames().indexOf(name);
-                Logger.trace("index = " + index);
                 if (index < 0) {
                     index = ot.getSource().getStaticFieldIndex(name);
-                    Logger.trace("index = " + index + " " + name);
                 }
                 if (index < 0) {
                     throw new RuntimeException();
                 }
-                Logger.trace(String.join(", ", ot.getSource().getMethodNames()));
                 LLVMValue src;
 
                 // need to pick 1 or 2 depending on whether we're a class or an interface

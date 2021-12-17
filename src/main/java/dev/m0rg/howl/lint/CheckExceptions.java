@@ -62,9 +62,6 @@ public class CheckExceptions extends LintPass {
                 List<String> allowed_types = new ArrayList<>();
                 for (TypeElement th : call.getContainingFunction().getThrows()) {
                     ALambdaTerm thtype = ALambdaTerm.evaluate(AlgebraicType.derive(th));
-                    Logger.trace(
-                            "throw " + exctype.format() + " -> "
-                                    + thtype.format());
                     if (thtype.accepts(exctype)) {
                         // it was declared!
                         return;

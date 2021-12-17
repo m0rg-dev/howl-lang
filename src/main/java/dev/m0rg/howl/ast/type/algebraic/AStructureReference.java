@@ -226,7 +226,6 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                 AStructureReference rc = new AStructureReference(((ObjectCommon) mmc.get()).getOwnType());
                 return rc.getSourceResolved();
             } else {
-                Logger.trace("generate: " + this.format() + " " + this.mangle());
                 throw new RuntimeException();
             }
         }
@@ -237,7 +236,6 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
 
     @Override
     public LLVMStructureType toLLVM(LLVMModule module) {
-        Logger.trace("AStructureReference generate " + this.format());
         if (substitutions.size() > 0) {
             Optional<ASTElement> mmc = ((Module) getSource().getSource().getParent()).getChild(mangle());
             if (mmc.isPresent()) {
@@ -258,7 +256,6 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         }
 
         if (t.isOpaqueStruct() && !structures_generated.contains(name)) {
-            Logger.trace("Creating structure type: " + name);
             structures_generated.add(name);
 
             LLVMType object_type, static_type, itable_type;
@@ -288,7 +285,6 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         }
 
         if (t.isOpaqueStruct() && !structures_generated.contains(name)) {
-            Logger.trace("Creating object type: " + name);
             structures_generated.add(name);
 
             List<LLVMType> contents = new ArrayList<>();
@@ -311,7 +307,6 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         }
 
         if (t.isOpaqueStruct() && !structures_generated.contains(name)) {
-            Logger.trace("Creating static type: " + name);
             structures_generated.add(name);
 
             List<LLVMType> contents = new ArrayList<>();
@@ -320,9 +315,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             // parent
             contents.add(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
             for (String fieldname : this.getSource().getSource().getMethodNames()) {
-                Logger.trace("  => method " + fieldname);
                 ALambdaTerm fieldtype = ALambdaTerm.evaluate(this.getField(fieldname));
-                Logger.trace("  type = " + fieldtype.format());
                 contents.add(new LLVMPointerType<>(fieldtype.toLLVM(module)));
             }
 

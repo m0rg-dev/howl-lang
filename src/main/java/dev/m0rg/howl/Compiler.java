@@ -81,8 +81,6 @@ public class Compiler {
     }
 
     public ASTElement[] parse(Path file, String prefix) throws IOException, InterruptedException {
-        Logger.trace("Compiling: " + prefix + " (" + file.toString() + ")");
-
         String[] frontend_command = new String[1];
 
         try {
@@ -281,7 +279,6 @@ public class Compiler {
         cc.root_module.transform(mc2);
         Logger.info("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
         for (AStructureReference r : mc2.getToGenerate()) {
-            Logger.trace("generate: " + r.formatForLog() + " " + r.mangle());
             r.getSource().getSource().monomorphize(r);
         }
         Logger.info("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");

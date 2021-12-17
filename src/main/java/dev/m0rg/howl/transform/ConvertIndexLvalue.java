@@ -11,12 +11,10 @@ import dev.m0rg.howl.ast.statement.SimpleStatement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.ARawPointer;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
-import dev.m0rg.howl.logger.Logger;
 
 public class ConvertIndexLvalue implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof AssignmentStatement) {
-            Logger.trace("ConvertIndexLvalue " + e.format());
             AssignmentStatement as_assignment = (AssignmentStatement) e;
             if (as_assignment.getLHS() instanceof IndexExpression) {
                 IndexExpression as_index = (IndexExpression) as_assignment.getLHS();

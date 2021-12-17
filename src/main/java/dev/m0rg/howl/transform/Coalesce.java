@@ -1,9 +1,7 @@
 package dev.m0rg.howl.transform;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.statement.CatchStatement;

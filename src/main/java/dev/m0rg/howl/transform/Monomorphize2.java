@@ -17,7 +17,6 @@ import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
-import dev.m0rg.howl.logger.Logger;
 
 public class Monomorphize2 implements ASTTransformer {
     Map<String, AStructureReference> to_generate = new HashMap<>();
@@ -32,7 +31,6 @@ public class Monomorphize2 implements ASTTransformer {
                 AStructureReference as_ref = (AStructureReference) t;
                 for (Entry<String, ALambdaTerm> s : as_ref.getSubstitutions().entrySet()) {
                     if (!ALambdaTerm.evaluate(s.getValue()).freeVariables().isEmpty()) {
-                        Logger.trace("   => not complete.");
                         return e;
                     }
                 }
@@ -52,7 +50,6 @@ public class Monomorphize2 implements ASTTransformer {
                 }
 
                 if (as_ref.getSubstitutions().size() > 0) {
-                    Logger.trace("Monomorphize2: " + t.formatForLog());
                     to_generate.put(as_ref.mangle(), as_ref);
                 }
             }

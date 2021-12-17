@@ -17,7 +17,6 @@ import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
-import dev.m0rg.howl.logger.Logger;
 
 public class InferTypes implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
