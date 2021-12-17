@@ -1,9 +1,9 @@
 class SillyHTTPServer implements net.SocketServer {
-    extern fn *i8 malloc(i64 size);
-    extern fn void free(*i8 ptr);
+    extern fn *u8 malloc(i64 size);
+    extern fn void free(*u8 ptr);
 
     fn void handle(i32 childfd) throws ErrnoException {
-        let *i8 req_buf = SillyHTTPServer.malloc(1024);
+        let *u8 req_buf = SillyHTTPServer.malloc(1024);
         RawIO.read(childfd, req_buf, 1024);
         let String msg = "HTTP/1.1 200 OK\r\nConnection: Close\r\nContent-Type: text/plain\r\n\r\nHowl HTTP server test\r\n";
         RawIO.write(childfd, msg.contents.value, msg.contents.length());

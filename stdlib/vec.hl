@@ -3,8 +3,8 @@ class Vec<T> {
     i64 _length;
     i64 element_size;
 
-    extern fn *i8 malloc(i64 size);
-    extern fn *i8 realloc(*i8 ptr, i64 size);
+    extern fn *u8 malloc(i64 size);
+    extern fn *u8 realloc(*u8 ptr, i64 size);
 
     fn void constructor() {
         self.value = $typednull();

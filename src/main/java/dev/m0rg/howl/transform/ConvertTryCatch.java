@@ -35,8 +35,8 @@ public class ConvertTryCatch implements ASTTransformer {
             TryStatement as_try = (TryStatement) e;
             Logger.trace("ConvertTryCatch: " + as_try.formatForLog());
 
-            RawPointerType pi8 = new RawPointerType(e.getSpan());
-            pi8.setInner(NumericType.build(e.getSpan(), 8, true));
+            RawPointerType pu8 = new RawPointerType(e.getSpan());
+            pu8.setInner(NumericType.build(e.getSpan(), 8, false));
             NameExpression handler = new NameExpression(e.getSpan(), "__handler");
 
             NameExpression push = new NameExpression(e.getSpan(), "lib.Exception.__exc_push");
@@ -44,7 +44,7 @@ public class ConvertTryCatch implements ASTTransformer {
             push_call.setSource(push);
 
             LocalDefinitionStatement handler_buf = new LocalDefinitionStatement(e.getSpan(), "__handler");
-            handler_buf.setLocaltype((TypeElement) pi8.detach());
+            handler_buf.setLocaltype((TypeElement) pu8.detach());
             handler_buf.setInitializer(push_call);
 
             NameExpression get = new NameExpression(e.getSpan(), "lib.Exception.__jmp_buf");

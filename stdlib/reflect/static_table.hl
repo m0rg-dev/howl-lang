@@ -2,15 +2,15 @@ class StaticTable {
     String name;
     Option<StaticTable> parent;
 
-    extern fn i64 strlen(*i8 s);
-    extern fn i32 __checknull(*i8 ptr);
+    extern fn i64 strlen(*u8 s);
+    extern fn i32 __checknull(*u8 ptr);
 
     // stable_pointer: *{*name, *parent, ...}
-    static fn StaticTable load(*i8 stable_pointer) {
-        let unsafe.ExternalPointer<*i8> real_ptr = new unsafe.ExternalPointer<*i8>(stable_pointer);
+    static fn StaticTable load(*u8 stable_pointer) {
+        let unsafe.ExternalPointer<*u8> real_ptr = new unsafe.ExternalPointer<*u8>(stable_pointer);
         let StaticTable rc = new StaticTable();
-        let *i8 raw_name = real_ptr.value[0];
-        let *i8 raw_parent = real_ptr.value[1];
+        let *u8 raw_name = real_ptr.value[0];
+        let *u8 raw_parent = real_ptr.value[1];
         
         rc.name = String.fromBytes(raw_name, StaticTable.strlen(raw_name));
         if StaticTable.__checknull(raw_parent) > 0 {

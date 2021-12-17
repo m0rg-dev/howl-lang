@@ -8,7 +8,7 @@ extern fn i32 __get_errno();
 extern fn i64 strlen(*u8 str);
 
 extern fn i32 socket(i32 domain, i32 type, i32 protocol);
-extern fn i32 bind(i32 socket, *i8 address, i32 size);
+extern fn i32 bind(i32 socket, *u8 address, i32 size);
 extern fn i32 listen(i32 socket, i32 backlog);
-extern fn i32 accept(i32 socket, *i8 address, *i32 address_len);
+extern fn i32 accept(i32 socket, *u8 address, *i32 address_len);
 extern fn i16 htons(i16 hostshort);

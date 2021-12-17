@@ -72,6 +72,35 @@ public class ABaseType extends ALambdaTerm implements Mangle {
     }
 
     @Override
+    public boolean equals(ALambdaTerm other) {
+        if (other.isFree())
+            return true;
+
+        if (other instanceof ABaseType) {
+            if (((ABaseType) other).name.equals(name)) {
+                return true;
+            } else {
+                NamedType t_this = NamedType.build(null, name);
+                NamedType t_other = NamedType.build(null, ((ABaseType) other).name);
+                if (t_this instanceof NumericType && t_other instanceof NumericType) {
+                    if (((NumericType) t_other).isLiteral()) {
+                        return true;
+                    } else if (((NumericType) t_other).getWidth() >= ((NumericType) t_this).getWidth()
+                            && ((NumericType) t_other).isSigned() == ((NumericType) t_this).isSigned()) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+    }
+
+    @Override
     public String mangle() {
         return Integer.toString(name.length()) + name;
     }

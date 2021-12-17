@@ -55,25 +55,30 @@ class EOFException extends IOException {}
 interface Reader<T> {
     fn void close() throws IOException;
 
-    fn T read() throws IOException;
+    fn Option<T> read() throws IOException;
 
     fn i64 read(Vec<T> buf, i64 offset, i64 length) throws IOException;
 }
 
 class ReaderUtils<T> {
-    static fn T read(Reader<T> source) throws IOException {
+    static fn Option<T> read(Reader<T> source) throws IOException {
         let Vec rc = new Vec<T>();
         let i64 count = source.read(rc, 0, 1);
         if count < 1 {
-            throw new EOFException();
+            return Option::<T>.none();
         }
-        return rc[0];
+        return Option::<T>.some(rc[0]);
     }
 
     static fn i64 read(Reader<T> source, Vec<T> buf, i64 offset, i64 length) throws IOException {
         let i64 i = 0;
         while i < length {
-            buf[i + offset] = source.read();
+            let Option<T> item = source.read();
+            if(item.isSome()) {
+                buf[i + offset] = item.unwrap();
+            } else {
+                return length;
+            }
             i = i + 1;
         }
         return length;
@@ -98,7 +103,7 @@ class StdinReader implements Reader<u8> {
         self.isOpen = false;
     }
 
-    fn i8 read() throws IOException {
+    fn Option<u8> read() throws IOException {
         self.assertOpen();
         return ReaderUtils::<u8>.read(self);
     }
@@ -129,18 +134,28 @@ class LineReader implements Reader<String> {
         self.source.close();
     }
 
-    fn String read() throws IOException {
+    fn Option<String> read() throws IOException {
         // TODO optimization, also unicode
         let Vec buf = new Vec<u8>();
-        buf.push(self.source.read());
+        let Option<u8> first_char = self.source.read();
+        if(first_char.isSome()) {
+            buf.push(first_char.unwrap());
+        } else {
+            return Option::<String>.none();
+        }
 
         while buf.peek() != 10 {
-            buf.push(self.source.read());
+            let Option<u8> c = self.source.read();
+            if(c.isSome()) {
+                buf.push(c.unwrap());
+            } else {
+                return Option::<String>.none();
+            }
         }
 
         buf.pop();
 
-        return String.fromBytes(buf);
+        return Option::<String>.some(String.fromBytes(buf));
     }
 
     fn i64 read(Vec<String> buf, i64 offset, i64 length) throws IOException {

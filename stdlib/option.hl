@@ -1,15 +1,16 @@
 class Option<T> {
     bool has_value;
-    T value;
+    *T value;
 
     fn void constructor() {
-        self.value = new T();
+        self.value = $typednull();
+        $pointer_assign(unsafe.malloc($sizeof(self.value[0])), self.value);
         self.has_value = false;
     }
 
     static fn Self some(T value) {
         let Self rc = new Self();
-        rc.value = value;
+        rc.value[0] = value;
         rc.has_value = true;
         return rc;
     }
@@ -20,7 +21,7 @@ class Option<T> {
 
     fn T unwrap() throws NoSuchValueException {
         if self.has_value {
-            return self.value;
+            return self.value[0];
         } else {
             throw new NoSuchValueException();
         }

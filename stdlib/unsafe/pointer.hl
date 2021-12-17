@@ -16,7 +16,7 @@ class Pointer<T> {
         return self.value[0];
     }
 
-    fn *i8 structure_pointer() {
+    fn *u8 structure_pointer() {
         return $get_object_pointer(self.value);
     }
 
@@ -28,7 +28,7 @@ class Pointer<T> {
 class ExternalPointer<T> {
     *T value;
 
-    fn void constructor(*i8 value) {
+    fn void constructor(*u8 value) {
         self.value = $typednull();
         $pointer_assign(value, self.value);
     }

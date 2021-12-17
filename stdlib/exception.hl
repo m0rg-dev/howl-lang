@@ -3,10 +3,10 @@ class Exception implements Display {
     Vec<String> stacktrace;
 
     extern fn void exit(i32 code);
-    extern fn *i8 __exc_push();
-    extern fn void __exc_pop(*i8 handler);
-    extern fn void __exc_throw(*i8 object);
-    extern fn *i8 __exc_get();
+    extern fn *u8 __exc_push();
+    extern fn void __exc_pop(*u8 handler);
+    extern fn void __exc_throw(*u8 object);
+    extern fn *u8 __exc_get();
     extern fn *i32 __jmp_buf();
     extern fn i32 setjmp(*i32 jmp_buf);
     extern fn i32 backtrace(*(*u8) buffer, i32 size);
