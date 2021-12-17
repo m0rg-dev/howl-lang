@@ -5,6 +5,7 @@ import java.util.Deque;
 import java.util.Optional;
 
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
+import dev.m0rg.howl.ast.statement.BreakContinueStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
 import dev.m0rg.howl.ast.statement.IfStatement;
@@ -58,6 +59,13 @@ public class StaticAnalysis {
             return rc;
         } else if (s instanceof ReturnStatement || s instanceof ThrowStatement || s instanceof ReturnExpectation) {
             return new CFGNode(s);
+        } else if (s instanceof BreakContinueStatement) {
+            // TODO
+            CFGNode rc = new CFGNode(s);
+            if (next_sibling.isPresent()) {
+                rc.addSuccessor(next_sibling.get());
+            }
+            return rc;
         } else if (s instanceof IfStatement) {
             IfStatement as_if = (IfStatement) s;
             CFGNode rc = new CFGNode(s);

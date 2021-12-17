@@ -186,6 +186,7 @@ Statement -> Result<CSTElement<'input>, ()>:
     | ThrowStatement { $1 }
     | TryStatement { $1 }
     | CatchStatement { $1 }
+    | BreakContinueStatement { $1 }
     ;
 
 SimpleStatement -> Result<CSTElement<'input>, ()>:
@@ -251,6 +252,11 @@ LocalDefinitionStatement -> Result<CSTElement<'input>, ()>:
             Err(_) => Err(())
         }
     }
+    ;
+
+BreakContinueStatement -> Result<CSTElement<'input>, ()>:
+    'BREAK' ';' { Ok(CSTElement::BreakContinue{span: $span.into(), mode: "break".to_string() }) }
+    | 'CONTINUE' ';' { Ok(CSTElement::BreakContinue{span: $span.into(), mode: "continue".to_string() }) }
     ;
 
 Expression -> Result<CSTElement<'input>, ()>:

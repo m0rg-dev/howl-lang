@@ -53,6 +53,10 @@ public class LLVMFunction extends LLVMConstant {
                 LLVMAppendBasicBlockInContext(this.getContext().getInternal(), this.getInternal(), name));
     }
 
+    public void appendBasicBlock(LLVMBasicBlock block) {
+        LLVMAppendExistingBasicBlock(obj, block.getInternal());
+    }
+
     public LLVMBasicBlock lastBasicBlock() {
         return new LLVMBasicBlock(this.module.get(), LLVMGetLastBasicBlock(this.getInternal()));
     }

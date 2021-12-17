@@ -19,6 +19,9 @@ public class WhileStatement extends Statement implements HasUpstreamFields {
     Expression condition;
     CompoundStatement body;
 
+    public LLVMBasicBlock continue_block;
+    public LLVMBasicBlock break_block;
+
     public WhileStatement(Span span) {
         super(span);
     }
@@ -76,10 +79,15 @@ public class WhileStatement extends Statement implements HasUpstreamFields {
             LLVMValue condition = this.condition.generate(builder);
 
             LLVMBasicBlock true_block = f.appendBasicBlock("true");
+
+            LLVMBasicBlock exit_block = new LLVMBasicBlock(f.getModule(), "exit");
+            this.continue_block = condition_block;
+            this.break_block = exit_block;
             body.generate(f);
+
             LLVMBasicBlock last_true_block = f.lastBasicBlock();
 
-            LLVMBasicBlock exit_block = f.appendBasicBlock("exit");
+            f.appendBasicBlock(exit_block);
 
             // and now to stick it all together
             builder.positionAtEnd(entry_block);

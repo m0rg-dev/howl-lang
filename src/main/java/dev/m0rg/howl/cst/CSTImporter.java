@@ -43,6 +43,7 @@ import dev.m0rg.howl.ast.expression.NumberExpression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.expression.StringLiteral;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
+import dev.m0rg.howl.ast.statement.BreakContinueStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
 import dev.m0rg.howl.ast.statement.ElseIfStatement;
@@ -98,6 +99,8 @@ public class CSTImporter {
                 return this.parseBaseType(inner_obj);
             case "BooleanInversionExpression":
                 return this.parseBooleanInversionExpression(inner_obj);
+            case "BreakContinue":
+                return this.parseBreakContinue(inner_obj);
             case "CatchStatement":
                 return this.parseCatchStatement(inner_obj);
             case "Class":
@@ -223,6 +226,10 @@ public class CSTImporter {
             throw new IllegalArgumentException();
         }
         return rc;
+    }
+
+    BreakContinueStatement parseBreakContinue(JsonObject source) {
+        return new BreakContinueStatement(extractSpan(source), source.get("mode").getAsString().equals("break"));
     }
 
     CatchStatement parseCatchStatement(JsonObject source) {

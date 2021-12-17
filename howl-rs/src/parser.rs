@@ -258,4 +258,8 @@ pub enum CSTElement<'a> {
         source: &'a CSTElement<'a>,
         target: &'a CSTElement<'a>,
     },
+    BreakContinue {
+        span: SerializableSpan,
+        mode: String,
+    },
 }

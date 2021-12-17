@@ -14,7 +14,6 @@ import dev.m0rg.howl.ast.Interface;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
-import dev.m0rg.howl.ast.type.algebraic.ANewtype;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
@@ -35,6 +34,7 @@ public class InferTypes implements ASTTransformer {
 
                 if (t_expected.accepts(t_provided)) {
                     setEqual(t_expected, t_provided, e);
+                    setEqual(t_provided, t_expected, e);
                 } else {
                     try {
                         System.out.println(new CompilationError(e.getSpan(), "type mismatch").format());
@@ -85,13 +85,9 @@ public class InferTypes implements ASTTransformer {
                             return;
                         }
                     }
-                    throw new RuntimeException();
                 } else {
-                    throw new RuntimeException();
+                    // TODO
                 }
-                // TODO
-            } else {
-                throw new RuntimeException();
             }
         }
     }

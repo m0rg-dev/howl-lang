@@ -10,7 +10,7 @@ static fn i32 Main() throws IOException {
                 IO.println(String.from(parsed));
             }
         } else {
-            return 0;
+            break;
         }
     }
 

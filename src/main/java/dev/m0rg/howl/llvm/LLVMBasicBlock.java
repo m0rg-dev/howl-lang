@@ -15,6 +15,11 @@ public class LLVMBasicBlock {
         this.module = new WeakReference<LLVMModule>(module);
     }
 
+    public LLVMBasicBlock(LLVMModule module, String name) {
+        this.module = new WeakReference<LLVMModule>(module);
+        this.obj = LLVMCreateBasicBlockInContext(module.getContext().getInternal(), name);
+    }
+
     public final LLVMBasicBlockRef getInternal() {
         return obj;
     }
