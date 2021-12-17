@@ -45,7 +45,7 @@ import dev.m0rg.howl.transform.AddInterfaceConverters;
 import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.CoalesceCatch;
-import dev.m0rg.howl.transform.CoalesceElse;
+import dev.m0rg.howl.transform.Coalesce;
 import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertIndexLvalue;
@@ -219,34 +219,80 @@ public class Compiler {
 
         Logger.info("parse complete at " + (System.currentTimeMillis() - parse_start) + " ms");
 
-        cc.root_module.transform(new CoalesceElse());
-        cc.root_module.transform(new CoalesceCatch());
+        long transform_start = System.currentTimeMillis();
+        new Coalesce().apply();
+        Logger.info("  => Coalesce " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         Finder.find(cc.root_module, x -> RunStaticAnalysis.apply(x));
+        Logger.info("  => RunStaticAnalysis " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         // System.err.println(cc.root_module.getChild("main").get().format());
         // System.exit(0);
 
         cc.root_module.transform(new ConvertTryCatch());
+        Logger.info("  => ConvertTryCatch " + (System.currentTimeMillis() -
+                transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new ConvertThrow());
+        Logger.info("  => ConvertThrow " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new ConvertBooleans());
+        Logger.info("  => ConvertBooleans " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new ConvertSuper());
+        Logger.info("  => ConvertSuper " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new SuperConstructorCalls());
+        Logger.info("  => SuperConstructorCalls " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new AddSelfToMethods());
+        Logger.info("  => AddSelfToMethods " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new ResolveNames());
+        Logger.info("  => ResolveNames " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new ConvertStrings());
+        Logger.info("  => ConvertStrings " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new ConvertIndexLvalue());
+        Logger.info("  => ConvertIndexLvalue " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new ConvertCustomOverloads());
+        Logger.info("  => ConvertCustomOverloads " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new AddGenerics());
+        Logger.info("  => AddGenerics " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new InferTypes());
+        Logger.info("  => InferTypes " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         Finder.find(cc.root_module, x -> CheckInterfaceImplementations.apply(x));
+        Logger.info("  => CheckInterfaceImplementations " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new StaticNonStatic());
+        Logger.info("  => StaticNonStatic " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         // needs to come before AddClassCasts - easier to find what type the
         // to-be-thrown exception is
         cc.root_module.transform(new CheckExceptions());
+        Logger.info("  => CheckExceptions " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         Monomorphize2 mc2 = new Monomorphize2();
         cc.root_module.transform(mc2);
@@ -254,20 +300,34 @@ public class Compiler {
             Logger.trace("generate: " + r.format() + " " + r.mangle());
             r.getSource().getSource().monomorphize(r);
         }
+        Logger.info("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new EnsureTypesResolve());
+        Logger.info("  => EnsureTypesResolve " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         // This needs to happen after monomorphization because
         // AddInterfaceConverters creates newtype references that will break
         // when monomorphization happens.
         cc.root_module.transform(new AddInterfaceConverters());
+        Logger.info("  => AddInterfaceConverters " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new AddInterfaceCasts());
+        Logger.info("  => AddInterfaceCasts " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new AddNumericCasts());
+        Logger.info("  => AddNumericCasts " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new AddClassCasts());
+        Logger.info("  => AddClassCasts " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new ExternFunctionBaseTypesOnly());
-
-        // cc.root_module.transform(new IndirectMethodCalls());
+        Logger.info("  => ExternFunctionBaseTypesOnly " + (System.currentTimeMillis() - transform_start) + " ms");
 
         if (cmd.hasOption("trace")) {
             System.err.println(cc.root_module.format());
