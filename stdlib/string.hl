@@ -69,6 +69,18 @@ class String implements Display {
         return rc;
     }
 
+    static fn String fromBytes(Vec<u8> bytes) {
+        let String rc = new String();
+
+        let i64 i = 0;
+        while i < bytes.length() {
+            rc.contents[i] = bytes[i];
+            i = i + 1;
+        }
+
+        return rc;
+    }
+
     static fn String from(String other) {
         return String.fromBytes(other.contents.value, other.contents.length());
     }

@@ -32,6 +32,8 @@ import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckExceptions;
 import dev.m0rg.howl.lint.CheckInterfaceImplementations;
 import dev.m0rg.howl.lint.ExternFunctionBaseTypesOnly;
+import dev.m0rg.howl.lint.StaticNonStatic;
+import dev.m0rg.howl.lint.SuperConstructorCalls;
 import dev.m0rg.howl.llvm.LLVMContext;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
@@ -47,6 +49,7 @@ import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertIndexLvalue;
 import dev.m0rg.howl.transform.ConvertStrings;
+import dev.m0rg.howl.transform.ConvertSuper;
 import dev.m0rg.howl.transform.ConvertThrow;
 import dev.m0rg.howl.transform.ConvertTryCatch;
 import dev.m0rg.howl.transform.EnsureTypesResolve;
@@ -222,6 +225,8 @@ public class Compiler {
         cc.root_module.transform(new ConvertTryCatch());
         cc.root_module.transform(new ConvertThrow());
         cc.root_module.transform(new ConvertBooleans());
+        cc.root_module.transform(new ConvertSuper());
+        cc.root_module.transform(new SuperConstructorCalls());
         cc.root_module.transform(new AddSelfToMethods());
         cc.root_module.transform(new ResolveNames());
         cc.root_module.transform(new ConvertStrings());
@@ -231,6 +236,8 @@ public class Compiler {
         cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
         Finder.find(cc.root_module, x -> CheckInterfaceImplementations.apply(x));
+
+        cc.root_module.transform(new StaticNonStatic());
 
         // needs to come before AddClassCasts - easier to find what type the
         // to-be-thrown exception is
@@ -284,7 +291,7 @@ public class Compiler {
                                 new String[] { "clang", "-c", "-o",
                                         tmpdir.resolve(module.getName() + ".o").toString(),
                                         tmpdir.resolve(module.getName() + ".ll").toString(), "-Wno-override-module",
-                                        "-O2" })).inheritIO();
+                                        "-O0" })).inheritIO();
                 Process cc_process = cc_builder.start();
                 cc_procs.add(cc_process);
                 ld_args.add(tmpdir.resolve(module.getName() + ".o").toString());

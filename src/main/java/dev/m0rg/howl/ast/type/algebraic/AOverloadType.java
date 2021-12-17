@@ -23,6 +23,10 @@ public class AOverloadType extends AFunctionType implements Applicable {
         this.substitutions = new HashMap<>();
     }
 
+    public Overload getSource() {
+        return source;
+    }
+
     @Override
     public Set<String> freeVariables() {
         HashSet<String> rc = new HashSet<>();

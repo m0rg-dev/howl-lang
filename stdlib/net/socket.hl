@@ -52,7 +52,7 @@ class InetSocket {
         return childfd;
     }
 
-    fn void serve(i32 queue_size, SocketServer server) {
+    fn void serve(i32 queue_size, SocketServer server) throws ErrnoException {
         self.listen(queue_size);
         while true {
             server.handle(self.accept());

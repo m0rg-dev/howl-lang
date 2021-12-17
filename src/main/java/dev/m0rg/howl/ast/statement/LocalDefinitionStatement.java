@@ -10,6 +10,7 @@ import dev.m0rg.howl.ast.HasUpstreamFields;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.MacroCallExpression;
 import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
@@ -83,7 +84,15 @@ public class LocalDefinitionStatement extends Statement implements NamedElement,
         try (LLVMBuilder builder = new LLVMBuilder(f.getModule())) {
             builder.positionAtEnd(f.lastBasicBlock());
             storage = builder.buildAlloca(ALambdaTerm.evaluateFrom(this.getOwnType()).toLLVM(f.getModule()), name);
-            builder.buildStore(initializer.generate(builder), storage);
+
+            if (this.getInitializer() instanceof MacroCallExpression
+                    && ((MacroCallExpression) this.getInitializer()).getName().equals("typednull")) {
+                ALambdaTerm target_type = ALambdaTerm.evaluateFrom(this.getOwnType());
+
+                builder.buildStore(target_type.toLLVM(f.getModule()).getNull(f.getModule()), storage);
+            } else {
+                builder.buildStore(initializer.generate(builder), storage);
+            }
         }
     }
 

@@ -34,8 +34,8 @@ class C<T> implements I<T> {
 
 static fn i32 Main() {
     let B test = new B(42069);
-    let I test2 = new C<i32>();
-    test2.frob(0);
+    let Vec test2 = new Vec<i32>();
+    // test2.frob(0);
 
     return 0;
 }

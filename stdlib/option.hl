@@ -33,6 +33,6 @@ class Option<T> {
 
 class NoSuchValueException extends UncheckedException {
     fn void constructor() {
-        self.message = "Attempt to unwrap none value";
+        super.constructor("Attempt to unwrap none value");
     }
 }

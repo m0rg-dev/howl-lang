@@ -52,7 +52,9 @@ public class AExtractArgument extends ALambdaTerm implements Applicable {
             return new AExtractArgument(((Applicable) source).apply(), args, index);
         } else if (source instanceof AFunctionType) {
             return ((AFunctionType) source).getArgument(index, args);
+        } else if (source instanceof AErrorType) {
+            return source;
         }
-        throw new RuntimeException();
+        throw new RuntimeException("source was " + source.format());
     }
 }

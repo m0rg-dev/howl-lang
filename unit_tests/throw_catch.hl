@@ -1,18 +1,18 @@
 class AException extends Exception {
     fn void constructor() {
-        self.message = "A";
+        super.constructor("A");
     }
 }
 
 class BException extends Exception {
     fn void constructor() {
-        self.message = "B";
+        super.constructor("B");
     }
 }
 
 class CException extends BException {
     fn void constructor() {
-        self.message = "C";
+        super.constructor("C");
     }
 }
 

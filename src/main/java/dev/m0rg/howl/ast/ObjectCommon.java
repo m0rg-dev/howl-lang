@@ -138,6 +138,10 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         return idx;
     }
 
+    public boolean isOwnField(String name) {
+        return this.fields.containsKey(name);
+    }
+
     public Optional<Function> getMethod(String name) {
         for (Function m : methods) {
             if (m.getName().equals(name)) {

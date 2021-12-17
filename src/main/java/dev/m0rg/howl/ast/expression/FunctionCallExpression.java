@@ -7,8 +7,10 @@ import java.util.Map;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
+import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Function;
+import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.ast.type.algebraic.AExtractArgument;
@@ -103,6 +105,18 @@ public class FunctionCallExpression extends CallExpressionBase {
                 new_source.name = source_function.getName();
                 new_source.setParent(source.getParent());
                 Logger.trace("new source " + new_source.format());
+
+                if (!((AOverloadType) source_type).getSource().getSource().isOwnMethod(new_source.name)) {
+                    ObjectCommon o = ((AOverloadType) source_type).getSource().getSource();
+                    while (!o.isOwnMethod(new_source.name)) {
+                        Logger.trace("step " + o.getPath());
+                        o = (ObjectCommon) o.resolveName(o.getExtends().get().getName()).get();
+                    }
+                    ClassCastExpression cast = new ClassCastExpression(new_source.getSpan());
+                    cast.setSource((Expression) new_source.getSource().detach());
+                    cast.setTarget(ALambdaTerm.evaluateFrom(o.getOwnType()));
+                    new_source.setSource(cast);
+                }
 
                 LLVMValue source_obj = new_source.getSource().generate(builder);
 

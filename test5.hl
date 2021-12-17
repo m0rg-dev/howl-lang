@@ -2,8 +2,8 @@ interface Hash {
     fn i32 hashCode();
 }
 
-interface Eq {
-    fn bool equals(Self other);
+interface Eq<T> {
+    fn bool equals(T other);
 }
 
 class HashMap<K: Hash & Eq, V> {

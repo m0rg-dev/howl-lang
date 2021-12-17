@@ -1,0 +1,12 @@
+static fn i32 Main() throws IOException {
+    let LineReader r = IO.stdinLineReader();
+    try {
+        while true {
+            IO.println(r.read());
+        }
+    } catch EOFException e {
+        return 0;
+    }
+
+    return 0;
+}

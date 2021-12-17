@@ -18,8 +18,13 @@ class Vec<T> {
     }
 
     fn T pop() {
+        let T rc = self[self._length - 1];
         self._length = self._length - 1;
-        return self[self._length];
+        return rc;
+    }
+
+    fn T peek() {
+        return self[self._length - 1];
     }
 
     fn i64 length() {
@@ -79,6 +84,6 @@ class VecIterator<T> implements Iterator<T> {
 
 class VectorIndexOutOfBoundsException extends UncheckedException {
     fn void constructor(i64 index, i64 length) {
-        self.message = "Vector index " + index + " out of bounds (length was " + length + ")";
+        super.constructor("Vector index " + index + " out of bounds (length was " + length + ")");
     }
 }

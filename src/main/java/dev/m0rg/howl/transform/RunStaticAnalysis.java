@@ -33,7 +33,7 @@ public class RunStaticAnalysis {
                 Set<Statement> live = findReachable(g);
                 f.transform((new DeadCodeFinder(live)));
                 if (f.getOriginalName().equals("constructor")) {
-                    f.transform((new UninitializedFieldFinder(g)));
+                    f.transform((new UninitializedFieldFinder(g, f)));
                 }
 
                 if (!(f.getReturn() instanceof NamedType && ((NamedType) f.getReturn()).getName().equals("void"))) {
@@ -75,14 +75,20 @@ public class RunStaticAnalysis {
         Map<Statement, Long> node_cache;
         Map<Long, Set<String>> initialized_cache;
 
-        public UninitializedFieldFinder(CFGNode graph) {
+        public UninitializedFieldFinder(CFGNode graph, ASTElement e) {
             this.graph = graph;
             this.initialized_cache = new HashMap<>();
             this.node_cache = new HashMap<>();
+
+            Class c = (Class) e.nearest(x -> x instanceof Class).get();
+            Set<String> methods = new HashSet<>();
+            c.synthesizeMethods().forEach(f -> methods.add(f.getOriginalName()));
+
             graph.walk(n -> {
                 Set<String> this_statement = new HashSet<>();
                 for (CFGNode pred : n.getPredecessors()) {
                     this_statement.addAll(initialized_cache.get(pred.getID()));
+                    this_statement.addAll(methods);
                 }
 
                 if (n.getStatement() instanceof AssignmentStatement) {
@@ -125,6 +131,8 @@ public class RunStaticAnalysis {
                 Class c = (Class) e.nearest(x -> x instanceof Class).get();
                 c.getFields().forEach(f -> {
                     if (f.isStatic())
+                        return;
+                    if (!c.isOwnField(f.getName()))
                         return;
                     if (!initialized_cache.get(node_cache.get(e)).contains(f.getName())) {
                         e.getSpan().addError(

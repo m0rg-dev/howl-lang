@@ -26,6 +26,10 @@ public class SimpleStatement extends Statement {
         return this.expression.format() + ";";
     }
 
+    public Expression getExpression() {
+        return expression;
+    }
+
     public void setExpression(Expression expression) {
         this.expression = (Expression) expression.setParent(this);
     }

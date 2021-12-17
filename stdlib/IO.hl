@@ -29,12 +29,122 @@ class IO {
     static fn void eprintln() {
         IO.eprint("\n");
     }
+
+    static fn LineReader stdinLineReader() {
+        return new LineReader(new StdinReader());
+    }
 }
 
-class ErrnoException extends Exception {
+class IOException extends Exception {
+    fn void constructor() {
+        super.constructor("End of file");
+    }
+}
+
+class ErrnoException extends IOException {
     fn void constructor(String desc) {
+        super.constructor("");
         // strerror is fine here because String.fromBytes() will copy it out
         let *u8 raw_error = RawIO.strerror(RawIO.__get_errno());
         self.message = desc + ": " + String.fromBytes(raw_error, RawIO.strlen(raw_error));
     }
 }
+
+class EOFException extends IOException {}
+
+interface Reader<T> {
+    fn void close() throws IOException;
+
+    fn T read() throws IOException;
+
+    fn i64 read(Vec<T> buf, i64 offset, i64 length) throws IOException;
+}
+
+class ReaderUtils<T> {
+    static fn T read(Reader<T> source) throws IOException {
+        let Vec rc = new Vec<T>();
+        let i64 count = source.read(rc, 0, 1);
+        if count < 1 {
+            throw new EOFException();
+        }
+        return rc[0];
+    }
+
+    static fn i64 read(Reader<T> source, Vec<T> buf, i64 offset, i64 length) throws IOException {
+        let i64 i = 0;
+        while i < length {
+            buf[i + offset] = source.read();
+            i = i + 1;
+        }
+        return length;
+    }
+}
+
+class StdinReader implements Reader<u8> {
+    bool isOpen;
+
+    fn void constructor() {
+        self.isOpen = true;
+    }
+
+    fn void assertOpen() throws IOException {
+        if !self.isOpen {
+            throw new IOException("attempt to use closed StdinReader");
+        }
+    }
+
+    // dunno why you would
+    fn void close() {
+        self.isOpen = false;
+    }
+
+    fn i8 read() throws IOException {
+        self.assertOpen();
+        return ReaderUtils::<u8>.read(self);
+    }
+
+    fn i64 read(Vec<u8> buf, i64 offset, i64 length) throws IOException {
+        self.assertOpen();
+
+        let *u8 real_buf = unsafe.malloc(length);
+        let i64 count = RawIO.read(0, real_buf, length);
+        let i64 i = 0;
+        while i < count {
+            buf[i + offset] = real_buf[i];
+            i = i + 1;
+        }
+
+        return count;
+    }
+}
+
+class LineReader implements Reader<String> {
+    Reader<u8> source;
+
+    fn void constructor(Reader<u8> source) {
+        self.source = source;
+    }
+
+    fn void close() throws IOException {
+        self.source.close();
+    }
+
+    fn String read() throws IOException {
+        // TODO optimization, also unicode
+        let Vec buf = new Vec<u8>();
+        buf.push(self.source.read());
+
+        while buf.peek() != 10 {
+            buf.push(self.source.read());
+        }
+
+        buf.pop();
+
+        return String.fromBytes(buf);
+    }
+
+    fn i64 read(Vec<String> buf, i64 offset, i64 length) throws IOException {
+        return 0;
+    }
+}
+

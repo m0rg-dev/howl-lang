@@ -1,5 +1,6 @@
 class Exception implements Display {
     String message;
+    Vec<String> stacktrace;
 
     extern fn void exit(i32 code);
     extern fn *i8 __exc_push();
@@ -8,13 +9,38 @@ class Exception implements Display {
     extern fn *i8 __exc_get();
     extern fn *i32 __jmp_buf();
     extern fn i32 setjmp(*i32 jmp_buf);
+    extern fn i32 backtrace(*(*u8) buffer, i32 size);
+    extern fn *(*u8) backtrace_symbols(*(*u8) buffer, i32 size);
+    extern fn i64 strlen(*u8 str);
 
     fn void constructor(String message) {
         self.message = message;
+        self.stacktrace = self.getStackTrace();
+    }
+
+    fn Vec<String> getStackTrace() {
+        let *(*u8) callstack = $typednull();
+        $pointer_assign(unsafe.malloc(128 * 4), callstack);
+        let i32 frames = Exception.backtrace(callstack, 128);
+        let *(*u8) strs = Exception.backtrace_symbols(callstack, 128);
+        let i32 i = 0;
+        let Vec rc = new Vec<String>();
+        while i < frames {
+            rc.push(String.fromBytes(strs[i], Exception.strlen(strs[i])));
+            i = i + 1;
+        }
+        unsafe.free($as_raw(callstack));
+        return rc;
     }
 
     fn String toString() {
-        return self.message;
+        let String rc = (reflect.StaticTable.load($get_stable_pointer(self))).getName() + ": " + self.message + "\n";
+        rc = rc + "Stack trace:\n";
+        let Iterator i = self.stacktrace.iter();
+        while i.hasNext() {
+            rc = rc + "  " + i.next() + "\n";
+        }
+        return rc;
     }
 
     static fn Exception exc_get() {
@@ -46,8 +72,4 @@ class Exception implements Display {
     }
 }
 
-class UncheckedException extends Exception {
-    fn void constructor(String message) {
-        self.message = message;
-    }
-}
+class UncheckedException extends Exception {}

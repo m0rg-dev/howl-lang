@@ -2,11 +2,9 @@
 class Pointer<T> {
     *T value;
 
-    extern fn *i8 malloc(i64 size);
-
     fn void constructor(T value) {
         self.value = $typednull();
-        $pointer_assign(Self.malloc($sizeof(self.value[0])), self.value);
+        $pointer_assign(unsafe.malloc($sizeof(self.value[0])), self.value);
         self.value[0] = value;
     }
 
@@ -39,3 +37,6 @@ class ExternalPointer<T> {
         return self.value[0];
     }
 }
+
+extern fn *u8 malloc(i64 size);
+extern fn void free(*u8 ptr);

@@ -27,6 +27,7 @@ import dev.m0rg.howl.ast.expression.NumberExpression;
 import dev.m0rg.howl.ast.expression.NumericCastExpression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.expression.StringLiteral;
+import dev.m0rg.howl.ast.expression.SuperCastExpression;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
@@ -150,6 +151,8 @@ public abstract class AlgebraicType {
             return ((NumericCastExpression) source).getTarget();
         } else if (source instanceof LLVMInternalExpression) {
             return ((LLVMInternalExpression) source).getType();
+        } else if (source instanceof SuperCastExpression) {
+            return derive(source.nearestObject().get().getExtends().get());
         }
         throw new RuntimeException(source.getClass().getName() + " " + source.getPath());
     }
