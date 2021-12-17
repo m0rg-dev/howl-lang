@@ -6,17 +6,14 @@ import java.util.List;
 import java.util.Optional;
 
 import dev.m0rg.howl.Compiler;
-import dev.m0rg.howl.logger.Logger;
 
 public abstract class ASTElement {
     ASTElement parent;
     protected Span span;
     ASTElement original;
-    Optional<String> pathcache;
 
     public ASTElement(Span span) {
         this.span = span;
-        this.pathcache = Optional.empty();
     }
 
     public static long setparentcount = 0;
@@ -25,7 +22,6 @@ public abstract class ASTElement {
         setparentcount++;
         if (this.parent == null || this.parent == parent) {
             this.parent = parent;
-            // pathcache = Optional.of(this.getPath_intern());
             return this;
         } else {
             throw new RuntimeException("Attempt to move owned ASTElement");
@@ -96,16 +92,7 @@ public abstract class ASTElement {
     public String getPath() {
         pathcount++;
         long start = System.currentTimeMillis();
-        String rc;
-        if (pathcache.isPresent()) {
-            rc = getPath_intern();
-            if (!rc.equals(pathcache.get())) {
-                Logger.trace("path cache bust " + pathcache.get() + " " + rc);
-                pathcache = Optional.of(rc);
-            }
-        } else {
-            rc = getPath_intern();
-        }
+        String rc = getPath_intern();
         long end = System.currentTimeMillis();
         pathtime += (end - start);
         return rc;
@@ -130,13 +117,20 @@ public abstract class ASTElement {
         return rc.replaceFirst("^root\\.", "");
     }
 
+    public static long rescount = 0;
+    public static long restime = 0;
+
     public Optional<ASTElement> resolveName(String name) {
+        rescount++;
+        long start = System.currentTimeMillis();
         for (String prefix : this.getSearchPath()) {
             Optional<ASTElement> rc = this.resolveNameInt((prefix + name).split("\\."));
             if (rc.isPresent()) {
+                restime += System.currentTimeMillis() - start;
                 return rc;
             }
         }
+        restime += System.currentTimeMillis() - start;
         return Optional.empty();
     }
 

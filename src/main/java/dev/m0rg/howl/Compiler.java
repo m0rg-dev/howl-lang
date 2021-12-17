@@ -313,8 +313,10 @@ public class Compiler {
 
         Logger.info("Logger.log() invocations: " + Logger.count);
         Logger.info("ASTElement.getPath() invocations: " + ASTElement.pathcount);
-        Logger.info("ASTElement.setParent() invocations: " + ASTElement.setparentcount);
         Logger.info("ASTElement.getPath() inner runtime = " + ASTElement.pathtime + " ms");
+        Logger.info("ASTElement.resolveName() invocations: " + ASTElement.rescount);
+        Logger.info("ASTElement.resolveName() inner runtime = " + ASTElement.restime + " ms");
+        Logger.info("ASTElement.setParent() invocations: " + ASTElement.setparentcount);
         Logger.info("ALambdaTerm.evaluate() invocations: " + ALambdaTerm.evalcount);
         Logger.info("ALambdaTerm.evaluate() unique expressions: " + ALambdaTerm.evalcache.size());
         Logger.info("ALambdaTerm.evaluate() naïve cache results: " + ALambdaTerm.evalhit + " hits, "
