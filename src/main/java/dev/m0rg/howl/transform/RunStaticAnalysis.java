@@ -28,7 +28,6 @@ public class RunStaticAnalysis {
                 f.getBody().get().insertStatement(re);
 
                 CFGNode g = StaticAnalysis.buildGraph(f.getBody().get());
-                Logger.trace("Graph for " + f.getPath() + ":\n" + g.format());
 
                 Set<Statement> live = findReachable(g);
                 f.transform((new DeadCodeFinder(live)));

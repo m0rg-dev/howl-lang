@@ -16,7 +16,7 @@ import dev.m0rg.howl.logger.Logger;
 public class ConvertCustomOverloads implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof IndexExpression) {
-            Logger.trace("ConvertCustomOverloads " + e.format());
+            Logger.trace("ConvertCustomOverloads " + e.formatForLog());
             IndexExpression as_index = (IndexExpression) e;
             ALambdaTerm source_type = ALambdaTerm.evaluate(AlgebraicType.derive(as_index.getSource()));
             if (source_type instanceof ARawPointer) {
@@ -31,7 +31,7 @@ public class ConvertCustomOverloads implements ASTTransformer {
                 return call;
             }
         } else if (e instanceof ArithmeticExpression) {
-            Logger.trace("ConvertCustomOverloads " + e.format());
+            Logger.trace("ConvertCustomOverloads " + e.formatForLog());
             ArithmeticExpression as_math = (ArithmeticExpression) e;
             ALambdaTerm lhs_type = ALambdaTerm.evaluate(AlgebraicType.derive(as_math.getLHS()));
 

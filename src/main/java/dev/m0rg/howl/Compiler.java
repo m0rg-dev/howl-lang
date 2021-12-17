@@ -30,6 +30,7 @@ import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckExceptions;
 import dev.m0rg.howl.lint.CheckInterfaceImplementations;
