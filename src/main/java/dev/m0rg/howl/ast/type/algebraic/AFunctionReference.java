@@ -110,9 +110,6 @@ public class AFunctionReference extends AFunctionType implements Applicable {
             count--;
         for (int i = 0; i < count; i++) {
             ALambdaTerm a = getArgument(i, new ArrayList<>());
-            for (Entry<String, ALambdaTerm> e : substitutions.entrySet()) {
-                a = a.substitute(e.getKey(), e.getValue());
-            }
             a = ALambdaTerm.evaluate(a);
             argtypes.add(a);
         }
