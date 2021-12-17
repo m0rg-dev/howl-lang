@@ -55,13 +55,17 @@ public class ABaseType extends ALambdaTerm implements Mangle {
                 NamedType t_this = NamedType.build(null, name);
                 NamedType t_other = NamedType.build(null, ((ABaseType) other).name);
                 if (t_this instanceof NumericType && t_other instanceof NumericType) {
-                    if (((NumericType) t_other).isLiteral()) {
-                        return true;
-                    } else if (((NumericType) t_other).getWidth() >= ((NumericType) t_this).getWidth()) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+                    // TODO: add support for explicit numeric casts so I can
+                    // turn this back on
+                    return true;
+                    // if (((NumericType) t_other).isLiteral()) {
+                    // return true;
+                    // } else if (((NumericType) t_other).getWidth() >= ((NumericType)
+                    // t_this).getWidth()) {
+                    // return true;
+                    // } else {
+                    // return false;
+                    // }
                 } else {
                     return false;
                 }
@@ -85,7 +89,7 @@ public class ABaseType extends ALambdaTerm implements Mangle {
                 if (t_this instanceof NumericType && t_other instanceof NumericType) {
                     if (((NumericType) t_other).isLiteral()) {
                         return true;
-                    } else if (((NumericType) t_other).getWidth() >= ((NumericType) t_this).getWidth()
+                    } else if (((NumericType) t_other).getWidth() == ((NumericType) t_this).getWidth()
                             && ((NumericType) t_other).isSigned() == ((NumericType) t_this).isSigned()) {
                         return true;
                     } else {

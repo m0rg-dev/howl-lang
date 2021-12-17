@@ -3,7 +3,12 @@ static fn i32 Main() throws IOException {
     while true {
         let Option<String> line = r.read();
         if(line.isSome()) {
-            IO.println(line.unwrap());
+            let i64 parsed = line.unwrap().toInt().unwrap();
+            if parsed == 69 {
+                IO.println("nice!");
+            } else {
+                IO.println(String.from(parsed));
+            }
         } else {
             return 0;
         }

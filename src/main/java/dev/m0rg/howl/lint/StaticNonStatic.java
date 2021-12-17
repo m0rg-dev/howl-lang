@@ -10,6 +10,7 @@ import dev.m0rg.howl.ast.expression.FieldReferenceExpression;
 import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.type.SpecifiedType;
+import dev.m0rg.howl.ast.type.algebraic.AErrorType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.logger.Logger;
@@ -18,8 +19,11 @@ public class StaticNonStatic extends LintPass {
     public void check(ASTElement e) {
         if (e instanceof FieldReferenceExpression) {
             FieldReferenceExpression as_ref = (FieldReferenceExpression) e;
-            AStructureReference r = (AStructureReference) ALambdaTerm
+            ALambdaTerm type = ALambdaTerm
                     .evaluateFrom(as_ref.getSource());
+            if (type instanceof AErrorType)
+                return;
+            AStructureReference r = (AStructureReference) type;
             Logger.trace(e.format() + " " + r.format());
             boolean field_is_static;
             boolean reference_is_static = (as_ref.getSource() instanceof NameExpression
