@@ -217,15 +217,15 @@ public class Compiler {
         cc.ingestDirectory(stdlib_path, "lib");
         cc.ingest(FileSystems.getDefault().getPath(args[0]).toAbsolutePath(), "main");
 
-        Logger.info("parse complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+        Logger.trace("parse complete at " + (System.currentTimeMillis() - parse_start) + " ms");
 
         long transform_start = System.currentTimeMillis();
         new Coalesce().apply();
-        Logger.info("  => Coalesce " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => Coalesce " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         Finder.find(cc.root_module, x -> RunStaticAnalysis.apply(x));
-        Logger.info("  => RunStaticAnalysis " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => RunStaticAnalysis " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         // System.err.println(cc.root_module.getChild("main").get().format());
@@ -238,12 +238,12 @@ public class Compiler {
                 new SuperConstructorCalls(),
                 new AddSelfToMethods(),
         }));
-        Logger.info("  => Combined1 " + (System.currentTimeMillis() -
+        Logger.trace("  => Combined1 " + (System.currentTimeMillis() -
                 transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new ConvertThrow());
-        Logger.info("  => ConvertThrow " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => ConvertThrow " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
@@ -252,36 +252,36 @@ public class Compiler {
                 new ConvertIndexLvalue(),
                 new AddGenerics(),
         }));
-        Logger.info("  => Combined2 " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => Combined2 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new ConvertCustomOverloads());
-        Logger.info("  => ConvertCustomOverloads " + (System.currentTimeMillis() -
+        Logger.trace("  => ConvertCustomOverloads " + (System.currentTimeMillis() -
                 transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new InferTypes());
-        Logger.info("  => InferTypes " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => InferTypes " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         Finder.find(cc.root_module, x -> CheckInterfaceImplementations.apply(x));
-        Logger.info("  => CheckInterfaceImplementations " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => CheckInterfaceImplementations " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
                 new StaticNonStatic(),
                 new CheckExceptions(),
         }));
-        Logger.info("  => Combined3 " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => Combined3 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         Monomorphize2 mc2 = new Monomorphize2();
         cc.root_module.transform(mc2);
-        Logger.info("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
         for (AStructureReference r : mc2.getToGenerate()) {
             r.getSource().getSource().monomorphize(r);
         }
-        Logger.info("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
@@ -291,7 +291,7 @@ public class Compiler {
                 // when monomorphization happens.
                 new AddInterfaceConverters(),
         }));
-        Logger.info("  => Combined4 " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => Combined4 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
@@ -300,25 +300,25 @@ public class Compiler {
                 new AddClassCasts(),
                 new ExternFunctionBaseTypesOnly(),
         }));
-        Logger.info("  => Combined5 " + (System.currentTimeMillis() - transform_start) + " ms");
+        Logger.trace("  => Combined5 " + (System.currentTimeMillis() - transform_start) + " ms");
 
         if (cmd.hasOption("trace")) {
             System.err.println(cc.root_module.format());
         }
 
-        Logger.info("transform complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+        Logger.trace("transform complete at " + (System.currentTimeMillis() - parse_start) + " ms");
 
-        Logger.info("Logger.log() invocations: " + Logger.count);
-        Logger.info("ASTElement.getPath() invocations: " + ASTElement.pathcount);
-        Logger.info("ASTElement.getPath() inner runtime = " + ASTElement.pathtime + " ms");
-        Logger.info("ASTElement.resolveName() invocations: " + ASTElement.rescount);
-        Logger.info("ASTElement.resolveName() inner runtime = " + ASTElement.restime + " ms");
-        Logger.info("ASTElement.setParent() invocations: " + ASTElement.setparentcount);
-        Logger.info("ALambdaTerm.evaluate() invocations: " + ALambdaTerm.evalcount);
-        Logger.info("ALambdaTerm.evaluate() unique expressions: " + ALambdaTerm.evalcache.size());
-        Logger.info("ALambdaTerm.evaluate() naïve cache results: " + ALambdaTerm.evalhit + " hits, "
+        Logger.trace("Logger.log() invocations: " + Logger.count);
+        Logger.trace("ASTElement.getPath() invocations: " + ASTElement.pathcount);
+        Logger.trace("ASTElement.getPath() inner runtime = " + ASTElement.pathtime + " ms");
+        Logger.trace("ASTElement.resolveName() invocations: " + ASTElement.rescount);
+        Logger.trace("ASTElement.resolveName() inner runtime = " + ASTElement.restime + " ms");
+        Logger.trace("ASTElement.setParent() invocations: " + ASTElement.setparentcount);
+        Logger.trace("ALambdaTerm.evaluate() invocations: " + ALambdaTerm.evalcount);
+        Logger.trace("ALambdaTerm.evaluate() unique expressions: " + ALambdaTerm.evalcache.size());
+        Logger.trace("ALambdaTerm.evaluate() naïve cache results: " + ALambdaTerm.evalhit + " hits, "
                 + ALambdaTerm.evalmiss + " misses, " + ALambdaTerm.evalbust + " busts");
-        Logger.info("ALambdaTerm.evaluate() inner runtime = " + ALambdaTerm.evaltime + " ms");
+        Logger.trace("ALambdaTerm.evaluate() inner runtime = " + ALambdaTerm.evaltime + " ms");
 
         List<LLVMModule> modules = new ArrayList<>();
         if (cc.successful) {
@@ -326,7 +326,7 @@ public class Compiler {
             modules = cc.root_module.generate(context, true);
         }
 
-        Logger.info("generate complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+        Logger.trace("generate complete at " + (System.currentTimeMillis() - parse_start) + " ms");
 
         if (cc.successful) {
             Path tmpdir = Files.createTempDirectory("howl." + ProcessHandle.current().pid());
@@ -359,7 +359,7 @@ public class Compiler {
                 }
             }
 
-            Logger.info("assemble complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+            Logger.trace("assemble complete at " + (System.currentTimeMillis() - parse_start) + " ms");
 
             ProcessBuilder ld_builder = new ProcessBuilder(ld_args).inheritIO();
             Process ld_process = ld_builder.start();
@@ -368,7 +368,7 @@ public class Compiler {
                 System.exit(1);
             }
 
-            Logger.info("link complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+            Logger.trace("link complete at " + (System.currentTimeMillis() - parse_start) + " ms");
 
         } else {
             for (CompilationError e : cc.errors) {
