@@ -8,6 +8,7 @@ import java.util.Set;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.llvm.LLVMType;
+import dev.m0rg.howl.logger.Logger;
 
 public abstract class ALambdaTerm extends AlgebraicType {
     /**

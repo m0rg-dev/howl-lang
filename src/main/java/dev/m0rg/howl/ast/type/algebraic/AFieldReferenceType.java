@@ -2,6 +2,8 @@ package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.Set;
 
+import dev.m0rg.howl.logger.Logger;
+
 public class AFieldReferenceType extends ALambdaTerm implements Applicable {
     ALambdaTerm source;
     String name;
@@ -36,6 +38,7 @@ public class AFieldReferenceType extends ALambdaTerm implements Applicable {
         } else if (source instanceof AErrorType) {
             return source;
         } else {
+            Logger.error(this.format());
             throw new RuntimeException();
         }
     }

@@ -49,10 +49,8 @@ class String implements Display {
 
     fn String repeat(i64 count) {
         let String rc = String.from(self);
-        let i64 i = 0;
-        while i < count {
+        for i64 i in range(count - 1).iter() {
             rc = rc + self;
-            i = i + 1;
         }
         return rc;
     }
@@ -60,17 +58,15 @@ class String implements Display {
     fn Option<i64> toInt() {
         // ascii nonsense time
         let i64 rc = 0;
-        let i64 i = 0;
-        while i < self.contents.length() {
-            if self.contents[i] > 57 {
+        for u8 byte in self.contents.iter() {
+            if byte > 57 {
                 return Option::<i64>.none();
             }
-            if self.contents[i] < 48 {
+            if byte < 48 {
                 return Option::<i64>.none();
             }
             rc = rc * 10;
-            rc = rc + (self.contents[i] - 48);
-            i = i + 1;
+            rc = rc + (byte - 48);
         }
         return Option::<i64>.some(rc);
     }
@@ -90,10 +86,8 @@ class String implements Display {
     static fn String fromBytes(Vec<u8> bytes) {
         let String rc = new String();
 
-        let i64 i = 0;
-        while i < bytes.length() {
-            rc.contents[i] = bytes[i];
-            i = i + 1;
+        for Pair<i64, u8> byte in bytes.enumerate() {
+            rc.contents[byte.getFirst()] = byte.getSecond();
         }
 
         return rc;

@@ -1,8 +1,11 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import dev.m0rg.howl.logger.Logger;
 
 public class AIntersectionType extends ALambdaTerm implements AStructureType, Applicable {
     List<ALambdaTerm> members;
@@ -13,8 +16,11 @@ public class AIntersectionType extends ALambdaTerm implements AStructureType, Ap
 
     @Override
     public Set<String> freeVariables() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException();
+        Set<String> rc = new HashSet<>();
+        for (ALambdaTerm t : this.members) {
+            rc.addAll(t.freeVariables());
+        }
+        return rc;
     }
 
     @Override

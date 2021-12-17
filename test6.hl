@@ -8,5 +8,7 @@ static fn i32 Main() throws IOException {
         IO.println("index: " + s.getFirst() + " value: " + s.getSecond());
     }
 
+    IO.println("asdf".repeat(2));
+
     return 0;
 }
