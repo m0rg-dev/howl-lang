@@ -78,7 +78,6 @@ public class ConstructorCallExpression extends CallExpressionBase {
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
         ALambdaTerm source_type = ALambdaTerm.evaluateFrom(source);
-        Logger.trace("Generating constructor call: " + source_type.format());
         String allocator_name = ((AStructureReference) source_type).getSourcePath() + "_alloc";
         LLVMFunctionType allocator_type = new LLVMFunctionType(
                 source_type.toLLVM(builder.getModule()),

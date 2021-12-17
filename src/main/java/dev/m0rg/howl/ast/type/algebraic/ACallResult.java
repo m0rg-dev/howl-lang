@@ -26,7 +26,7 @@ public class ACallResult extends ALambdaTerm implements Applicable {
 
     @Override
     public String format() {
-        return "call " + source.format();
+        return "call " + source.format() + "(" + String.join(", ", args.stream().map(x -> x.format()).toList()) + ")";
     }
 
     @Override

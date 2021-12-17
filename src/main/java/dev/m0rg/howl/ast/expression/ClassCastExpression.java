@@ -72,7 +72,6 @@ public class ClassCastExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        Logger.trace("CCE" + this.format());
         AStructureReference source_type = (AStructureReference) ALambdaTerm.evaluateFrom(source);
         AStructureReference target_type = (AStructureReference) ALambdaTerm.evaluate(target);
         LLVMType source_llvm = source_type.toLLVM(builder.getModule());

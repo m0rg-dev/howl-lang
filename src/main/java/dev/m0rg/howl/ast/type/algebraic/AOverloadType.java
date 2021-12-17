@@ -6,13 +6,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Overload;
-import dev.m0rg.howl.logger.Logger;
 
 public class AOverloadType extends AFunctionType implements Applicable {
     Overload source;
@@ -58,9 +57,6 @@ public class AOverloadType extends AFunctionType implements Applicable {
     }
 
     public Optional<Function> select(List<ALambdaTerm> argtypes) {
-        Logger.trace("Starting overload selection: " + this.format());
-        Logger.trace("  overload args: " + String.join(", ", argtypes.stream().map(x -> x.format()).toList()));
-
         List<Function> candidates = source.getSource().getOverloadCandidates(source.getName());
         Map<Function, Integer> matches = new HashMap<>();
         outer: for (Function candidate : candidates) {
@@ -80,13 +76,10 @@ public class AOverloadType extends AFunctionType implements Applicable {
                 index_offset = 1;
             }
 
-            Logger.trace("  candidate: " + candidate.getName() + "{"
-                    + String.join(", ", candidate_types.stream().map(x -> x.format()).toList()) + "}");
             if (candidate_types.size() == argtypes.size() + index_offset) {
                 int score = 0;
                 for (int i = index_offset; i < candidate_types.size(); i++) {
                     if (!candidate_types.get(i).accepts(argtypes.get(i - index_offset))) {
-                        Logger.trace("  => mismatch at position " + i);
                         continue outer;
                     }
 
@@ -94,21 +87,16 @@ public class AOverloadType extends AFunctionType implements Applicable {
                     int provided_depth = 0;
                     if (candidate_types.get(i) instanceof AStructureReference) {
                         candidate_depth = ((AStructureReference) candidate_types.get(i)).getDepth();
-                        Logger.trace("  candidate argument depth: " + candidate_depth);
                     }
 
                     if (argtypes.get(i - index_offset) instanceof AStructureReference) {
                         provided_depth = ((AStructureReference) argtypes.get(i - index_offset)).getDepth();
-                        Logger.trace("  provided argument depth: " + provided_depth);
                     }
 
                     score = Math.abs(candidate_depth - provided_depth);
-                    Logger.trace("delta = " + Math.abs(candidate_depth - provided_depth));
                 }
-                Logger.trace("  selected.");
                 matches.put(candidate, score);
             } else {
-                Logger.trace("  => wrong argument count");
                 continue outer;
             }
         }
@@ -127,7 +115,6 @@ public class AOverloadType extends AFunctionType implements Applicable {
             Integer[] scores = inverted.keySet().toArray(new Integer[0]);
             Arrays.sort(scores);
             int lowest = scores[0];
-            Logger.trace("lowest score is " + lowest);
             List<Function> specific = inverted.get(lowest);
             if (specific.size() == 1) {
                 return Optional.of(specific.get(0));

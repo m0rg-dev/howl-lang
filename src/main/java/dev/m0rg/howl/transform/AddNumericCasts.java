@@ -14,7 +14,6 @@ import dev.m0rg.howl.ast.type.algebraic.ABaseType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
-import dev.m0rg.howl.logger.Logger;
 
 public class AddNumericCasts implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
@@ -33,9 +32,6 @@ public class AddNumericCasts implements ASTTransformer {
                     if (expected instanceof NumericType && provided instanceof NamedType) {
                         NumericType n_expected = (NumericType) expected;
                         NamedType n_provided = (NamedType) provided;
-                        Logger.trace("AddNumericCasts " + ent.getValue().getSubexpression().format()
-                                + " -> "
-                                + expected.format());
                         if (!n_expected.getName().equals(n_provided.getName())) {
                             NumericCastExpression nce = new NumericCastExpression(
                                     ent.getValue().getSubexpression().getSpan());

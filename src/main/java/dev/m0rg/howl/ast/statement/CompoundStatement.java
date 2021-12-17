@@ -2,8 +2,10 @@ package dev.m0rg.howl.ast.statement;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
@@ -14,9 +16,17 @@ import dev.m0rg.howl.llvm.LLVMFunction;
 public class CompoundStatement extends Statement implements NameHolder {
     List<Statement> statements;
 
+    public static Set<CompoundStatement> all_compounds = new HashSet<>();
+
     public CompoundStatement(Span span) {
         super(span);
         statements = new ArrayList<Statement>();
+    }
+
+    @Override
+    public ASTElement setParent(ASTElement parent) {
+        all_compounds.add(this);
+        return super.setParent(parent);
     }
 
     @Override
@@ -35,6 +45,10 @@ public class CompoundStatement extends Statement implements NameHolder {
             contents.add(s.format());
         }
         return "{\n" + String.join("\n", contents).indent(2) + "}";
+    }
+
+    public void clear() {
+        this.statements.clear();
     }
 
     public void insertStatement(Statement statement) {

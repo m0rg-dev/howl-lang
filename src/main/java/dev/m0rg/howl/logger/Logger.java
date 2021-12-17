@@ -6,7 +6,10 @@ public class Logger {
     public static final String OK = "\u001b[32m✔︎\u001b[0m";
     public static final String Error = "\u001b[31m✘\u001b[0m";
 
+    public static long count = 0;
+
     public static void log(LogLevel level, String message) {
+        count++;
         switch (level) {
             case Trace:
                 if (Compiler.cmd.hasOption("trace")) {

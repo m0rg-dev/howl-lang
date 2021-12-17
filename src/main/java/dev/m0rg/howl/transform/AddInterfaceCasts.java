@@ -16,7 +16,6 @@ import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
-import dev.m0rg.howl.logger.Logger;
 
 public class AddInterfaceCasts implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
@@ -31,10 +30,6 @@ public class AddInterfaceCasts implements ASTTransformer {
                     ObjectReferenceType expected = ((AStructureReference) t_expected).getSource();
                     ObjectReferenceType provided = ((AStructureReference) t_provided).getSource();
                     if (expected instanceof InterfaceType && provided instanceof ClassType) {
-                        Logger.trace("AddInterfaceCasts " +
-                                ent.getValue().getSubexpression().formatForLog() + " -> "
-                                + expected.formatForLog());
-
                         InterfaceType it = (InterfaceType) expected;
 
                         FieldReferenceExpression get_converter = new FieldReferenceExpression(e.getSpan(),

@@ -122,7 +122,6 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         int idx = -1;
         for (int i = 0; i < getFields().size();) {
             Field f = getFields().get(i);
-            Logger.trace(f.format());
             if (f.isStatic()) {
                 if (f.getName().equals(name)) {
                     idx = i;
@@ -301,12 +300,8 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         Monomorphize2 sub_types = new Monomorphize2();
         specified.transform(sub_types);
         for (AStructureReference r : sub_types.getToGenerate()) {
-            Logger.trace("generate: " + r.format() + " " + r.mangle());
             r.getSource().getSource().monomorphize(r);
         }
-
-        Logger.trace("MONOMORPHIZE " + specified.getName());
-        Logger.trace(specified.format());
     }
 
     public String formatPretty(AStructureReference spec) {

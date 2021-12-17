@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
-import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Class;
+import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.ReturnExpectation;
@@ -15,7 +15,6 @@ import dev.m0rg.howl.ast.statement.ReturnStatement;
 import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.lint.LintPass;
-import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.static_analysis.CFGNode;
 import dev.m0rg.howl.static_analysis.StaticAnalysis;
 
@@ -28,7 +27,6 @@ public class RunStaticAnalysis {
                 f.getBody().get().insertStatement(re);
 
                 CFGNode g = StaticAnalysis.buildGraph(f.getBody().get());
-                Logger.trace("Graph for " + f.getPath() + ":\n" + g.format());
 
                 Set<Statement> live = findReachable(g);
                 f.transform((new DeadCodeFinder(live)));
@@ -63,7 +61,6 @@ public class RunStaticAnalysis {
         public void check(ASTElement e) {
             if (e instanceof Statement && !(e instanceof ReturnExpectation)) {
                 if (!live_set.contains(e)) {
-                    Logger.trace("found dead statement");
                     e.getSpan().addError("dead code");
                 }
             }
@@ -98,7 +95,6 @@ public class RunStaticAnalysis {
                         if (lhs_name.getName().startsWith("self.")) {
                             String fieldname = lhs_name.getName().substring(5);
                             if (!fieldname.contains(".")) {
-                                Logger.trace("UninitializedFieldFinder " + n.getID() + " " + fieldname);
                                 this_statement.add(fieldname);
                             }
                         }

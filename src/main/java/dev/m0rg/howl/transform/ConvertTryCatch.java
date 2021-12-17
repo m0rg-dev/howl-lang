@@ -27,13 +27,11 @@ import dev.m0rg.howl.ast.type.NumericType;
 import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
-import dev.m0rg.howl.logger.Logger;
 
 public class ConvertTryCatch implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof TryStatement) {
             TryStatement as_try = (TryStatement) e;
-            Logger.trace("ConvertTryCatch: " + as_try.formatForLog());
 
             RawPointerType pu8 = new RawPointerType(e.getSpan());
             pu8.setInner(NumericType.build(e.getSpan(), 8, false));

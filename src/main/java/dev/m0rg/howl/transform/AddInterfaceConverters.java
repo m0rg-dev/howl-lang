@@ -1,8 +1,8 @@
 package dev.m0rg.howl.transform;
 
+import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Argument;
-import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.expression.CastToInterfaceExpression;
@@ -15,20 +15,17 @@ import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
-import dev.m0rg.howl.logger.Logger;
 
 public class AddInterfaceConverters implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof Class) {
             Class c = (Class) e;
-            Logger.trace("AddInterfaceConverters " + e.getPath());
             for (TypeElement t : c.interfaces()) {
                 ALambdaTerm t_impl = ALambdaTerm.evaluate(AlgebraicType.derive(t));
                 if (t_impl instanceof AStructureReference) {
                     TypeElement resolved = ((AStructureReference) t_impl).getSource();
                     if (resolved instanceof InterfaceType) {
                         InterfaceType it = (InterfaceType) resolved;
-                        Logger.trace("  => " + it.getSource().getPath());
 
                         Function converter = new Function(e.getSpan(), false, false,
                                 "__as_" + it.getSource().getPath().replace('.', '_'));

@@ -16,7 +16,10 @@ public abstract class ASTElement {
         this.span = span;
     }
 
+    public static long setparentcount = 0;
+
     public ASTElement setParent(ASTElement parent) {
+        setparentcount++;
         if (this.parent == null || this.parent == parent) {
             this.parent = parent;
             return this;
@@ -83,10 +86,22 @@ public abstract class ASTElement {
         return Optional.empty();
     }
 
+    public static long pathcount = 0;
+    public static long pathtime = 0;
+
     public String getPath() {
+        pathcount++;
+        long start = System.currentTimeMillis();
+        String rc = getPath_intern();
+        long end = System.currentTimeMillis();
+        pathtime += (end - start);
+        return rc;
+    }
+
+    String getPath_intern() {
         String parent_path = "";
         if (this.parent != null) {
-            parent_path = this.parent.getPath() + ".";
+            parent_path = this.parent.getPath_intern() + ".";
         }
 
         if (this instanceof NamedElement) {
@@ -102,13 +117,20 @@ public abstract class ASTElement {
         return rc.replaceFirst("^root\\.", "");
     }
 
+    public static long rescount = 0;
+    public static long restime = 0;
+
     public Optional<ASTElement> resolveName(String name) {
+        rescount++;
+        long start = System.currentTimeMillis();
         for (String prefix : this.getSearchPath()) {
             Optional<ASTElement> rc = this.resolveNameInt((prefix + name).split("\\."));
             if (rc.isPresent()) {
+                restime += System.currentTimeMillis() - start;
                 return rc;
             }
         }
+        restime += System.currentTimeMillis() - start;
         return Optional.empty();
     }
 

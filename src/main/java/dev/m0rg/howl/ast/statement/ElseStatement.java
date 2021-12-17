@@ -25,7 +25,7 @@ public class ElseStatement extends Statement {
 
     @Override
     public String format() {
-        return "else " + this.getBody().format();
+        return "ELSE " + this.getBody().format();
     }
 
     public void setBody(CompoundStatement body) {

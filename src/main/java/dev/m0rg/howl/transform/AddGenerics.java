@@ -6,17 +6,16 @@ import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
+import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
-import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
-import dev.m0rg.howl.logger.Logger;
 
 public class AddGenerics implements ASTTransformer {
     long index = 0;
@@ -28,7 +27,6 @@ public class AddGenerics implements ASTTransformer {
             if (source_type instanceof ObjectReferenceType) {
                 ObjectReferenceType ort = (ObjectReferenceType) source_type;
                 if (ort.getSource().isGeneric()) {
-                    Logger.trace("AddGenerics " + e.format());
                     Optional<ObjectCommon> o = e.nearestObject();
                     Optional<Module> m = e.nearestModule();
                     List<TypeElement> new_parameters = new ArrayList<>();
@@ -57,7 +55,6 @@ public class AddGenerics implements ASTTransformer {
             if (source.isPresent() && source.get() instanceof ObjectCommon) {
                 ObjectReferenceType ort = ((ObjectCommon) source.get()).getOwnType();
                 if (ort.getSource().isGeneric()) {
-                    Logger.trace("AddGenerics expression " + e.format());
                     Optional<ObjectCommon> o = e.nearestObject();
                     Optional<Module> m = e.nearestModule();
                     List<TypeElement> new_parameters = new ArrayList<>();

@@ -2,7 +2,9 @@ package dev.m0rg.howl.ast.statement;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
@@ -13,6 +15,8 @@ public class TryStatement extends Statement {
     private CompoundStatement body;
     List<CatchStatement> alternatives;
 
+    public static Set<TryStatement> all_try_statements = new HashSet<>();
+
     public TryStatement(Span span) {
         super(span);
         alternatives = new ArrayList<CatchStatement>();
@@ -20,6 +24,12 @@ public class TryStatement extends Statement {
 
     public CompoundStatement getBody() {
         return body;
+    }
+
+    @Override
+    public ASTElement setParent(ASTElement parent) {
+        all_try_statements.add(this);
+        return super.setParent(parent);
     }
 
     @Override

@@ -22,12 +22,15 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import dev.m0rg.howl.ast.ASTElement;
+import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Finder;
 import dev.m0rg.howl.ast.ImportStatement;
 import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
+import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckExceptions;
 import dev.m0rg.howl.lint.CheckInterfaceImplementations;
@@ -43,8 +46,8 @@ import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddInterfaceConverters;
 import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
-import dev.m0rg.howl.transform.CoalesceCatch;
-import dev.m0rg.howl.transform.CoalesceElse;
+import dev.m0rg.howl.transform.Coalesce;
+import dev.m0rg.howl.transform.MultiPass;
 import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertIndexLvalue;
@@ -78,8 +81,6 @@ public class Compiler {
     }
 
     public ASTElement[] parse(Path file, String prefix) throws IOException, InterruptedException {
-        Logger.trace("Compiling: " + prefix + " (" + file.toString() + ")");
-
         String[] frontend_command = new String[1];
 
         try {
@@ -211,68 +212,122 @@ public class Compiler {
             stdlib_path = FileSystems.getDefault().getPath("stdlib/").toAbsolutePath();
         }
 
+        long parse_start = System.currentTimeMillis();
+
         cc.ingestDirectory(stdlib_path, "lib");
         cc.ingest(FileSystems.getDefault().getPath(args[0]).toAbsolutePath(), "main");
 
-        cc.root_module.transform(new CoalesceElse());
-        cc.root_module.transform(new CoalesceCatch());
+        Logger.trace("parse complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+
+        long transform_start = System.currentTimeMillis();
+        new Coalesce().apply();
+        Logger.trace("  => Coalesce " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         Finder.find(cc.root_module, x -> RunStaticAnalysis.apply(x));
+        Logger.trace("  => RunStaticAnalysis " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         // System.err.println(cc.root_module.getChild("main").get().format());
         // System.exit(0);
 
-        cc.root_module.transform(new ConvertTryCatch());
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new ConvertTryCatch(),
+                new ConvertBooleans(),
+                new ConvertSuper(),
+                new SuperConstructorCalls(),
+                new AddSelfToMethods(),
+        }));
+        Logger.trace("  => Combined1 " + (System.currentTimeMillis() -
+                transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new ConvertThrow());
-        cc.root_module.transform(new ConvertBooleans());
-        cc.root_module.transform(new ConvertSuper());
-        cc.root_module.transform(new SuperConstructorCalls());
-        cc.root_module.transform(new AddSelfToMethods());
-        cc.root_module.transform(new ResolveNames());
-        cc.root_module.transform(new ConvertStrings());
-        cc.root_module.transform(new ConvertIndexLvalue());
+        Logger.trace("  => ConvertThrow " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new ResolveNames(),
+                new ConvertStrings(),
+                new ConvertIndexLvalue(),
+                new AddGenerics(),
+        }));
+        Logger.trace("  => Combined2 " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         cc.root_module.transform(new ConvertCustomOverloads());
+        Logger.trace("  => ConvertCustomOverloads " + (System.currentTimeMillis() -
+                transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new AddGenerics());
         cc.root_module.transform(new InferTypes());
+        Logger.trace("  => InferTypes " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
         Finder.find(cc.root_module, x -> CheckInterfaceImplementations.apply(x));
+        Logger.trace("  => CheckInterfaceImplementations " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new StaticNonStatic());
-
-        // needs to come before AddClassCasts - easier to find what type the
-        // to-be-thrown exception is
-        cc.root_module.transform(new CheckExceptions());
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new StaticNonStatic(),
+                new CheckExceptions(),
+        }));
+        Logger.trace("  => Combined3 " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
         Monomorphize2 mc2 = new Monomorphize2();
         cc.root_module.transform(mc2);
+        Logger.trace("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
         for (AStructureReference r : mc2.getToGenerate()) {
-            Logger.trace("generate: " + r.format() + " " + r.mangle());
             r.getSource().getSource().monomorphize(r);
         }
+        Logger.trace("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new EnsureTypesResolve());
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new EnsureTypesResolve(),
+                // This needs to happen after monomorphization because
+                // AddInterfaceConverters creates newtype references that will break
+                // when monomorphization happens.
+                new AddInterfaceConverters(),
+        }));
+        Logger.trace("  => Combined4 " + (System.currentTimeMillis() - transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
 
-        // This needs to happen after monomorphization because
-        // AddInterfaceConverters creates newtype references that will break
-        // when monomorphization happens.
-        cc.root_module.transform(new AddInterfaceConverters());
-        cc.root_module.transform(new AddInterfaceCasts());
-        cc.root_module.transform(new AddNumericCasts());
-        cc.root_module.transform(new AddClassCasts());
-
-        cc.root_module.transform(new ExternFunctionBaseTypesOnly());
-
-        // cc.root_module.transform(new IndirectMethodCalls());
+        cc.root_module.transform(new MultiPass(new ASTTransformer[] {
+                new AddInterfaceCasts(),
+                new AddNumericCasts(),
+                new AddClassCasts(),
+                new ExternFunctionBaseTypesOnly(),
+        }));
+        Logger.trace("  => Combined5 " + (System.currentTimeMillis() - transform_start) + " ms");
 
         if (cmd.hasOption("trace")) {
             System.err.println(cc.root_module.format());
         }
+
+        Logger.trace("transform complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+
+        Logger.trace("Logger.log() invocations: " + Logger.count);
+        Logger.trace("ASTElement.getPath() invocations: " + ASTElement.pathcount);
+        Logger.trace("ASTElement.getPath() inner runtime = " + ASTElement.pathtime + " ms");
+        Logger.trace("ASTElement.resolveName() invocations: " + ASTElement.rescount);
+        Logger.trace("ASTElement.resolveName() inner runtime = " + ASTElement.restime + " ms");
+        Logger.trace("ASTElement.setParent() invocations: " + ASTElement.setparentcount);
+        Logger.trace("ALambdaTerm.evaluate() invocations: " + ALambdaTerm.evalcount);
+        Logger.trace("ALambdaTerm.evaluate() unique expressions: " + ALambdaTerm.evalcache.size());
+        Logger.trace("ALambdaTerm.evaluate() naïve cache results: " + ALambdaTerm.evalhit + " hits, "
+                + ALambdaTerm.evalmiss + " misses, " + ALambdaTerm.evalbust + " busts");
+        Logger.trace("ALambdaTerm.evaluate() inner runtime = " + ALambdaTerm.evaltime + " ms");
 
         List<LLVMModule> modules = new ArrayList<>();
         if (cc.successful) {
             LLVMContext context = new LLVMContext();
             modules = cc.root_module.generate(context, true);
         }
+
+        Logger.trace("generate complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+
         if (cc.successful) {
             Path tmpdir = Files.createTempDirectory("howl." + ProcessHandle.current().pid());
             List<String> ld_args = new ArrayList<>();
@@ -304,12 +359,17 @@ public class Compiler {
                 }
             }
 
+            Logger.trace("assemble complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+
             ProcessBuilder ld_builder = new ProcessBuilder(ld_args).inheritIO();
             Process ld_process = ld_builder.start();
             if (ld_process.waitFor() != 0) {
                 Logger.error("(compilation aborted)");
                 System.exit(1);
             }
+
+            Logger.trace("link complete at " + (System.currentTimeMillis() - parse_start) + " ms");
+
         } else {
             for (CompilationError e : cc.errors) {
                 if (cc.errors_displayed.contains(e))

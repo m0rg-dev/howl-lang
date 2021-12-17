@@ -2,7 +2,9 @@ package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import dev.m0rg.howl.Compiler;
@@ -37,12 +39,24 @@ import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 
 public abstract class AlgebraicType {
+
+    static Map<ASTElement, ALambdaTerm> derive_cache = new HashMap<>();
+
     public static ALambdaTerm derive(ASTElement source) {
+        if (derive_cache.containsKey(source)) {
+            return derive_cache.get(source);
+        }
+        ALambdaTerm rc = derive_inner(source);
+        derive_cache.put(source, rc);
+        return rc;
+    }
+
+    static ALambdaTerm derive_inner(ASTElement source) {
         if (source instanceof NameExpression) {
             // well, a name could be anything...
             Optional<ASTElement> res = source.resolveName(((NameExpression) source).getName());
             if (res.isPresent()) {
-                return AlgebraicType.derive(res.get());
+                return AlgebraicType.derive_inner(res.get());
             } else {
                 return new AErrorType(source.getSpan(), "unresolved name");
             }
@@ -54,7 +68,7 @@ public abstract class AlgebraicType {
             } else {
                 Optional<ASTElement> res = as_named.resolveName(as_named.getName());
                 if (res.isPresent()) {
-                    return AlgebraicType.derive(res.get());
+                    return AlgebraicType.derive_inner(res.get());
                 } else {
                     throw new IllegalArgumentException("derive unresolvable " + source.format());
                 }
@@ -72,54 +86,54 @@ public abstract class AlgebraicType {
             return new AStructureReference(as_ref);
         } else if (source instanceof FieldReferenceExpression) {
             FieldReferenceExpression as_field_reference = (FieldReferenceExpression) source;
-            ALambdaTerm field_source = derive(as_field_reference.getSource());
+            ALambdaTerm field_source = derive_inner(as_field_reference.getSource());
             AVariable v = new AVariable();
             ALambda field_operation = v.lambda(new AFieldReferenceType(v, as_field_reference.getName()));
             return new AApplication(field_operation, field_source);
         } else if (source instanceof ConstructorCallExpression) {
             // Constructor calls return their own type - i.e. (\x.x).
             ConstructorCallExpression as_constructor_call = (ConstructorCallExpression) source;
-            ALambdaTerm new_source = derive(as_constructor_call.getType());
+            ALambdaTerm new_source = derive_inner(as_constructor_call.getType());
             AVariable v = new AVariable();
             ALambda new_operation = v.lambda(v);
             return new AApplication(new_operation, new_source);
         } else if (source instanceof SpecifiedType) {
             SpecifiedType as_specified = (SpecifiedType) source;
 
-            ALambdaTerm rc = derive(as_specified.getBase());
+            ALambdaTerm rc = derive_inner(as_specified.getBase());
             List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
             int i = parameters.size() - 1;
             Collections.reverse(parameters);
             for (TypeElement t : parameters) {
                 AVariable v = new AVariable("T" + i);
                 ALambda spec_operation = v.lambda(rc);
-                rc = new AApplication(spec_operation, derive(t));
+                rc = new AApplication(spec_operation, derive_inner(t));
                 i--;
             }
 
             return rc;
         } else if (source instanceof Argument) {
-            return AlgebraicType.derive(((Argument) source).getOwnType());
+            return AlgebraicType.derive_inner(((Argument) source).getOwnType());
         } else if (source instanceof ObjectCommon) {
-            return AlgebraicType.derive(((ObjectCommon) source).getOwnType());
+            return AlgebraicType.derive_inner(((ObjectCommon) source).getOwnType());
         } else if (source instanceof NumberExpression) {
             return new ABaseType("__numeric");
         } else if (source instanceof BooleanConstantExpression || source instanceof BooleanInversionExpression) {
             return new ABaseType("bool");
         } else if (source instanceof LocalDefinitionStatement) {
             LocalDefinitionStatement as_def = (LocalDefinitionStatement) source;
-            return AlgebraicType.derive(as_def.getOwnType());
+            return AlgebraicType.derive_inner(as_def.getOwnType());
         } else if (source instanceof Overload) {
             Overload as_overload = (Overload) source;
             return new AOverloadType(as_overload);
         } else if (source instanceof FunctionCallExpression) {
             FunctionCallExpression as_call = (FunctionCallExpression) source;
-            return new ACallResult(AlgebraicType.derive(as_call.getSource()),
-                    as_call.getArguments().stream().map(x -> AlgebraicType.derive(x)).toList());
+            return new ACallResult(AlgebraicType.derive_inner(as_call.getSource()),
+                    as_call.getArguments().stream().map(x -> AlgebraicType.derive_inner(x)).toList());
         } else if (source instanceof RawPointerType) {
-            return new ARawPointer(AlgebraicType.derive(((RawPointerType) source).getInner()));
+            return new ARawPointer(AlgebraicType.derive_inner(((RawPointerType) source).getInner()));
         } else if (source instanceof IndexExpression) {
-            return new AIndexResult(AlgebraicType.derive(((IndexExpression) source).getSource()));
+            return new AIndexResult(AlgebraicType.derive_inner(((IndexExpression) source).getSource()));
         } else if (source instanceof MacroCallExpression) {
             return new AAnyType();
         } else if (source instanceof Function) {
@@ -131,14 +145,14 @@ public abstract class AlgebraicType {
         } else if (source instanceof SpecifiedTypeExpression) {
             SpecifiedTypeExpression as_specified = (SpecifiedTypeExpression) source;
 
-            ALambdaTerm rc = derive(as_specified.getSource());
+            ALambdaTerm rc = derive_inner(as_specified.getSource());
             List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
             int i = parameters.size() - 1;
             Collections.reverse(parameters);
             for (TypeElement t : parameters) {
                 AVariable v = new AVariable("T" + i);
                 ALambda spec_operation = v.lambda(rc);
-                rc = new AApplication(spec_operation, derive(t));
+                rc = new AApplication(spec_operation, derive_inner(t));
                 i--;
             }
 
@@ -152,7 +166,7 @@ public abstract class AlgebraicType {
         } else if (source instanceof LLVMInternalExpression) {
             return ((LLVMInternalExpression) source).getType();
         } else if (source instanceof SuperCastExpression) {
-            return derive(source.nearestObject().get().getExtends().get());
+            return derive_inner(source.nearestObject().get().getExtends().get());
         }
         throw new RuntimeException(source.getClass().getName() + " " + source.getPath());
     }
