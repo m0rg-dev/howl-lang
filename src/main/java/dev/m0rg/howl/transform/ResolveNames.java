@@ -16,7 +16,7 @@ public class ResolveNames implements ASTTransformer {
             List<String> parts = Arrays.asList(name_expression.getSplit());
 
             int split_point = parts.size();
-            for (; split_point > 0; split_point--) {
+            for (; split_point > 1; split_point--) {
                 NameExpression test = new NameExpression(name_expression.getSpan(),
                         String.join(".", parts.subList(0, split_point)));
                 test.setParent(name_expression.getParent());

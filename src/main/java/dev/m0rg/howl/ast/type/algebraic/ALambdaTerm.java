@@ -26,7 +26,7 @@ public abstract class ALambdaTerm extends AlgebraicType {
      */
     public static ALambdaTerm evaluate(ALambdaTerm t) {
         while (t instanceof Applicable && ((Applicable) t).isApplicable()) {
-            Logger.trace("apply " + t.format());
+            // Logger.trace("apply " + t.format());
             t = ((Applicable) t).apply();
         }
         return t;

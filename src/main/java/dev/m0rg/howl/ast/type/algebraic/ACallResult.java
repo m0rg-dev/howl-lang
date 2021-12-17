@@ -47,6 +47,8 @@ public class ACallResult extends ALambdaTerm implements Applicable {
             return new ACallResult(((Applicable) source).apply(), args);
         } else if (source instanceof AFunctionType) {
             return ((AFunctionType) source).getReturn(args);
+        } else if (source instanceof AErrorType) {
+            return source;
         }
         throw new RuntimeException();
     }

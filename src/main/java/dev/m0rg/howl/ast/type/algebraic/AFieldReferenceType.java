@@ -33,6 +33,8 @@ public class AFieldReferenceType extends ALambdaTerm implements Applicable {
         } else if (source instanceof AStructureType) {
             AStructureType struct = (AStructureType) source;
             return struct.getField(name);
+        } else if (source instanceof AErrorType) {
+            return source;
         } else {
             throw new RuntimeException();
         }

@@ -43,7 +43,7 @@ public abstract class AlgebraicType {
             if (res.isPresent()) {
                 return AlgebraicType.derive(res.get());
             } else {
-                throw new IllegalArgumentException("derive unresolvable " + source.format());
+                return new AErrorType(source.getSpan(), "unresolved name");
             }
         } else if (source instanceof NamedType) {
             // this name could be a base type!
@@ -151,7 +151,7 @@ public abstract class AlgebraicType {
         } else if (source instanceof LLVMInternalExpression) {
             return ((LLVMInternalExpression) source).getType();
         }
-        throw new RuntimeException(source.getClass().getName());
+        throw new RuntimeException(source.getClass().getName() + " " + source.getPath());
     }
 
     public abstract String format();
