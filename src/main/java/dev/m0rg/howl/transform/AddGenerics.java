@@ -7,6 +7,9 @@ import java.util.Optional;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.ObjectCommon;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.NameExpression;
+import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.type.NamedType;
 import dev.m0rg.howl.ast.type.NewType;
@@ -43,6 +46,35 @@ public class AddGenerics implements ASTTransformer {
 
                     SpecifiedType rc = new SpecifiedType(e.getSpan());
                     rc.setBase((TypeElement) ort.detach());
+                    for (TypeElement p : new_parameters) {
+                        rc.insertParameter(p);
+                    }
+                    return rc;
+                }
+            }
+        } else if (e instanceof NameExpression && !(e.getParent() instanceof SpecifiedTypeExpression)) {
+            Optional<ASTElement> source = e.resolveName(((NameExpression) e).getName());
+            if (source.isPresent() && source.get() instanceof ObjectCommon) {
+                ObjectReferenceType ort = ((ObjectCommon) source.get()).getOwnType();
+                if (ort.getSource().isGeneric()) {
+                    Logger.trace("AddGenerics expression " + e.format());
+                    Optional<ObjectCommon> o = e.nearestObject();
+                    Optional<Module> m = e.nearestModule();
+                    List<TypeElement> new_parameters = new ArrayList<>();
+
+                    for (String generic : ort.getSource().getGenericNames()) {
+                        String name = "__infer_" + index + "_" + generic;
+                        if (o.isPresent()) {
+                            o.get().insertNewtype(name);
+                        } else {
+                            m.get().insertItem(new NewType(e.getSpan(), name, -1));
+                        }
+                        new_parameters.add(NamedType.build(e.getSpan(), name));
+                    }
+                    index++;
+
+                    SpecifiedTypeExpression rc = new SpecifiedTypeExpression(e.getSpan());
+                    rc.setSource((Expression) e.detach());
                     for (TypeElement p : new_parameters) {
                         rc.insertParameter(p);
                     }
