@@ -48,6 +48,7 @@ import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
 import dev.m0rg.howl.ast.statement.ElseIfStatement;
 import dev.m0rg.howl.ast.statement.ElseStatement;
+import dev.m0rg.howl.ast.statement.ForStatement;
 import dev.m0rg.howl.ast.statement.IfStatement;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
 import dev.m0rg.howl.ast.statement.ReturnStatement;
@@ -117,6 +118,8 @@ public class CSTImporter {
                 return this.parseElseStatement(inner_obj);
             case "FieldReferenceExpression":
                 return this.parseFieldReferenceExpression(inner_obj);
+            case "ForStatement":
+                return this.parseForStatement(inner_obj);
             case "FunctionCallExpression":
                 return this.parseFunctionCallExpression(inner_obj);
             case "FunctionDeclaration":
@@ -392,6 +395,33 @@ public class CSTImporter {
         ASTElement f_source = parseElement(source.get("source"));
         if (f_source instanceof Expression) {
             rc.setSource((Expression) f_source);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        return rc;
+    }
+
+    ForStatement parseForStatement(JsonObject source) {
+        ForStatement rc = new ForStatement(extractSpan(source), source.get("name").getAsString());
+
+        ASTElement localtype = parseElement(source.get("localtype"));
+        if (localtype instanceof TypeElement) {
+            rc.setLocaltype((TypeElement) localtype);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        ASTElement c_source = parseElement(source.get("source"));
+        if (c_source instanceof Expression) {
+            rc.setSource((Expression) c_source);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        ASTElement body = parseElement(source.get("body"));
+        if (body instanceof CompoundStatement) {
+            rc.setBody((CompoundStatement) body);
         } else {
             throw new IllegalArgumentException();
         }

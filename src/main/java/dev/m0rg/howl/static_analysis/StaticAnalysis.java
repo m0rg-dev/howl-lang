@@ -8,6 +8,7 @@ import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.BreakContinueStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
+import dev.m0rg.howl.ast.statement.ForStatement;
 import dev.m0rg.howl.ast.statement.IfStatement;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
 import dev.m0rg.howl.ast.statement.ReturnExpectation;
@@ -111,8 +112,18 @@ public class StaticAnalysis {
             }
 
             return rc;
+        } else if (s instanceof ForStatement) {
+            ForStatement as_for = (ForStatement) s;
+            CFGNode rc = new CFGNode(s);
+            rc.addReflexive(buildGraph(as_for.getBody(), next_sibling));
+
+            if (next_sibling.isPresent()) {
+                rc.addSuccessor(next_sibling.get());
+            }
+
+            return rc;
         }
 
-        throw new RuntimeException("buildGraph unsupported " + s.getClass().getName());
+        throw new RuntimeException("buildGraph unsupported " + s.getClass().getName() + " " + s.getPath());
     }
 }

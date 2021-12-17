@@ -7,7 +7,6 @@ import java.util.Map;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
-import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.ObjectCommon;
@@ -22,7 +21,6 @@ import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMInstruction;
 import dev.m0rg.howl.llvm.LLVMValue;
-import dev.m0rg.howl.logger.Logger;
 
 public class FunctionCallExpression extends CallExpressionBase {
     Expression source;

@@ -1,22 +1,28 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import dev.m0rg.howl.logger.Logger;
-
 public class ALambda extends ALambdaTerm {
-    String boundVariable;
+    List<String> boundVariables;
     ALambdaTerm definition;
 
     public ALambda(String boundVariable, ALambdaTerm definition) {
-        this.boundVariable = boundVariable;
+        this.boundVariables = Arrays.asList(new String[] { boundVariable });
+        this.definition = definition;
+    }
+
+    public ALambda(List<String> boundVariables, ALambdaTerm definition) {
+        this.boundVariables = new ArrayList<>(boundVariables);
         this.definition = definition;
     }
 
     @Override
     public String format() {
-        return "(λ" + boundVariable + " . " + definition.format() + ")";
+        return "(λ" + String.join(", ", boundVariables) + " . " + definition.format() + ")";
     }
 
     @Override
@@ -25,27 +31,33 @@ public class ALambda extends ALambdaTerm {
         if (definition instanceof ALambdaTerm) {
             rc.addAll(((ALambdaTerm) definition).freeVariables());
         }
-        rc.remove(boundVariable);
+        for (String v : boundVariables) {
+            rc.remove(v);
+        }
         return rc;
     }
 
+    static long alpha_counter = 0;
+
     @Override
     public ALambdaTerm substitute(String from, ALambdaTerm to) {
-        if (boundVariable.equals(from)) {
+        if (boundVariables.contains(from)) {
             // (\x.t)[x := r] -> \x.t
-            return new ALambda(from, definition);
+            return new ALambda(boundVariables, definition);
         } else {
             Set<String> to_vars = to.freeVariables();
-            if (to_vars.contains(boundVariable)) {
-                Logger.trace(this.format());
-                Logger.trace(to.format());
-                throw new RuntimeException(
-                        "α-conversion time " + this.format() + "[" + from + " := " + to.format() + "]");
-            } else {
-                // (\y.t)[x := r] -> \y.(t[x := r])
-                return new ALambda(boundVariable,
-                        definition.substitute(from, to));
+            for (String boundVariable : boundVariables) {
+                if (to_vars.contains(boundVariable)) {
+                    String replacement = boundVariable + "_" + alpha_counter;
+                    alpha_counter++;
+                    ALambda rc = new ALambda(replacement,
+                            definition.substitute(boundVariable, new AVariable(replacement)));
+                    return rc.substitute(from, to);
+                }
             }
+            // (\y.t)[x := r] -> \y.(t[x := r])
+            return new ALambda(boundVariables,
+                    definition.substitute(from, to));
         }
     }
 }

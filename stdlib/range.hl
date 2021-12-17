@@ -1,0 +1,9 @@
+static fn Vec<i64> range(i64 limit) {
+    let Vec<i64> rc = new Vec();
+    let i64 i = 0;
+    while i < limit {
+        rc.push(i);
+        i = i + 1;
+    }
+    return rc;
+}

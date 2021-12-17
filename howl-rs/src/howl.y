@@ -187,6 +187,7 @@ Statement -> Result<CSTElement<'input>, ()>:
     | TryStatement { $1 }
     | CatchStatement { $1 }
     | BreakContinueStatement { $1 }
+    | ForStatement { $1 }
     ;
 
 SimpleStatement -> Result<CSTElement<'input>, ()>:
@@ -238,6 +239,18 @@ ElseStatement -> Result<CSTElement<'input>, ()>:
 
 WhileStatement -> Result<CSTElement<'input>, ()>:
     'WHILE' Expression CompoundStatement { Ok(CSTElement::WhileStatement{span: $span.into(), condition: alloc($2?), body: alloc($3?) }) }
+    ;
+
+ForStatement -> Result<CSTElement<'input>, ()>:
+    'FOR' Type 'identifier' 'IN' Expression CompoundStatement {
+        Ok(CSTElement::ForStatement{
+            span: $span.into(),
+            localtype: alloc($2?),
+            name: $lexer.span_str($3.as_ref().unwrap().span()).to_string(),
+            source: alloc($5?),
+            body: alloc($6?),
+        })
+    }
     ;
 
 LocalDefinitionStatement -> Result<CSTElement<'input>, ()>:

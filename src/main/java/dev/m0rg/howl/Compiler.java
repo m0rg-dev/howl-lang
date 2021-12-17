@@ -50,6 +50,7 @@ import dev.m0rg.howl.transform.Coalesce;
 import dev.m0rg.howl.transform.MultiPass;
 import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
+import dev.m0rg.howl.transform.ConvertFor;
 import dev.m0rg.howl.transform.ConvertIndexLvalue;
 import dev.m0rg.howl.transform.ConvertStrings;
 import dev.m0rg.howl.transform.ConvertSuper;
@@ -220,7 +221,7 @@ public class Compiler {
         Logger.trace("parse complete at " + (System.currentTimeMillis() - parse_start) + " ms");
 
         long transform_start = System.currentTimeMillis();
-        new Coalesce().apply();
+        cc.root_module.transform(new Coalesce());
         Logger.trace("  => Coalesce " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
@@ -233,6 +234,7 @@ public class Compiler {
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
                 new ConvertTryCatch(),
+                new ConvertFor(),
                 new ConvertBooleans(),
                 new ConvertSuper(),
                 new SuperConstructorCalls(),

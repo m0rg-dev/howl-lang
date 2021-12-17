@@ -1,7 +1,6 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,14 +101,16 @@ public abstract class AlgebraicType {
 
             ALambdaTerm rc = derive_inner(as_specified.getBase());
             List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
-            int i = parameters.size() - 1;
-            Collections.reverse(parameters);
+            int i = 0;
+            List<String> vars = new ArrayList<>();
+            List<ALambdaTerm> reps = new ArrayList<>();
             for (TypeElement t : parameters) {
-                AVariable v = new AVariable("T" + i);
-                ALambda spec_operation = v.lambda(rc);
-                rc = new AApplication(spec_operation, derive_inner(t));
-                i--;
+                vars.add("T" + i);
+                reps.add(derive_inner(t));
+                i++;
             }
+
+            rc = new AApplication(new ALambda(vars, rc), reps);
 
             return rc;
         } else if (source instanceof Argument) {
@@ -147,13 +148,12 @@ public abstract class AlgebraicType {
 
             ALambdaTerm rc = derive_inner(as_specified.getSource());
             List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
-            int i = parameters.size() - 1;
-            Collections.reverse(parameters);
+            int i = 0;
             for (TypeElement t : parameters) {
                 AVariable v = new AVariable("T" + i);
                 ALambda spec_operation = v.lambda(rc);
                 rc = new AApplication(spec_operation, derive_inner(t));
-                i--;
+                i++;
             }
 
             return rc;

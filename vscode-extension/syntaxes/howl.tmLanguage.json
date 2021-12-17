@@ -23,7 +23,7 @@
 			"patterns": [
 				{
 					"name": "keyword.control.howl",
-					"match": "\\b(if|else|while|for|return|let|throw|try|catch|new)\\b"
+					"match": "\\b(if|else|while|for|return|let|throw|try|catch|new|for|in)\\b"
 				},
 				{
 					"name": "storage.type",
@@ -39,7 +39,7 @@
 				},
 				{
 					"name": "variable.language",
-					"match": "\\b(self|true|false)\\b"
+					"match": "\\b(self|super|true|false)\\b"
 				}
 			]
 		},

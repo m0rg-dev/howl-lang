@@ -1,18 +1,14 @@
 static fn i32 Main() throws IOException {
-    let LineReader r = IO.stdinLineReader();
-    while true {
-        let Option<String> line = r.read();
-        if(line.isSome()) {
-            let i64 parsed = line.unwrap().toInt().unwrap();
-            if parsed == 69 {
-                IO.println("nice!");
-            } else {
-                IO.println(String.from(parsed));
-            }
-        } else {
-            break;
-        }
+    let Vec<String> v = new Vec();
+    v.push("foo");
+    v.push("bar");
+    v.push("baz");
+
+    for Pair<i64, String> s in v.enumerate() {
+        IO.println("index: " + s.getFirst() + " value: " + s.getSecond());
     }
+
+    IO.println("asdf".repeat(2));
 
     return 0;
 }

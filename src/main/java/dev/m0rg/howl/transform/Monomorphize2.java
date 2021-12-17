@@ -42,7 +42,8 @@ public class Monomorphize2 implements ASTTransformer {
                 if (as_ref.getSource().getSource().getGenericNames().size() != as_ref.getSubstitutions().size()) {
                     try {
                         System.out.println(
-                                new CompilationError(e.getSpan(), "generic mismatch " + as_ref.format()).format());
+                                new CompilationError(e.getSpan(), "generic mismatch " + as_ref.format(),
+                                        String.join(", ", as_ref.getSubstitutions().keySet())).format());
                     } catch (IOException ex) {
                         ;
                     }
