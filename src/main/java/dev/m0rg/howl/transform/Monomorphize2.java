@@ -29,28 +29,17 @@ public class Monomorphize2 implements ASTTransformer {
             ALambdaTerm t = ALambdaTerm.evaluateFrom(e);
             if (t instanceof AStructureReference) {
                 AStructureReference as_ref = (AStructureReference) t;
-                for (Entry<String, ALambdaTerm> s : as_ref.getSubstitutions().entrySet()) {
-                    if (!ALambdaTerm.evaluate(s.getValue()).freeVariables().isEmpty()) {
+                for (ALambdaTerm p : as_ref.getParameters()) {
+                    if (!ALambdaTerm.evaluate(p).freeVariables().isEmpty()) {
                         return e;
                     }
                 }
 
-                if (as_ref.getSubstitutions().size() == 0 || to_generate.containsKey(as_ref.mangle())) {
+                if (as_ref.getParameters().size() == 0 || to_generate.containsKey(as_ref.mangle())) {
                     return e;
                 }
 
-                if (as_ref.getSource().getSource().getGenericNames().size() != as_ref.getSubstitutions().size()) {
-                    try {
-                        System.out.println(
-                                new CompilationError(e.getSpan(), "generic mismatch " + as_ref.format(),
-                                        String.join(", ", as_ref.getSubstitutions().keySet())).format());
-                    } catch (IOException ex) {
-                        ;
-                    }
-                    throw new RuntimeException();
-                }
-
-                if (as_ref.getSubstitutions().size() > 0) {
+                if (as_ref.getParameters().size() > 0) {
                     to_generate.put(as_ref.mangle(), as_ref);
                 }
             }

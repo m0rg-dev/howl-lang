@@ -85,7 +85,7 @@ public class SpecifiedTypeExpression extends Expression {
         AStructureReference t = (AStructureReference) ALambdaTerm.evaluateFrom(this);
         LLVMType static_type = t.generateStaticType(builder.getModule());
         LLVMType object_type = t.generateObjectType(builder.getModule());
-        LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, t.getSourcePath() + "_static");
+        LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, t.getPathMangled() + "_static");
         LLVMStructureType rctype = t.toLLVM(builder.getModule());
         LLVMConstant anon_struct = rctype.createConstant(builder.getContext(), Arrays.asList(new LLVMConstant[] {
                 new LLVMPointerType<>(object_type).getNull(builder.getModule()),

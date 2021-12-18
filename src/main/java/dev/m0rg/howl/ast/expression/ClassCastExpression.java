@@ -72,6 +72,7 @@ public class ClassCastExpression extends Expression {
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
+        Logger.info("ClassCastExpression " + this.format() + " " + target.format());
         AStructureReference source_type = (AStructureReference) ALambdaTerm.evaluateFrom(source);
         AStructureReference target_type = (AStructureReference) ALambdaTerm.evaluate(target);
         LLVMType source_llvm = source_type.toLLVM(builder.getModule());
@@ -96,6 +97,6 @@ public class ClassCastExpression extends Expression {
                 builder.buildBitcast(target_stable_pointer,
                         new LLVMPointerType<>(new LLVMPointerType<>(source_stable_type)), ""));
 
-        return builder.buildLoad(target_alloca, "as_" + target_type.getSourcePath());
+        return builder.buildLoad(target_alloca, "as_" + target_type.getPathMangled());
     }
 }

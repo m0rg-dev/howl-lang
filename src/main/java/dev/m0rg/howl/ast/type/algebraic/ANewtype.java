@@ -1,6 +1,5 @@
 package dev.m0rg.howl.ast.type.algebraic;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -31,7 +30,7 @@ public class ANewtype extends ALambdaTerm implements Applicable {
 
     @Override
     public Set<String> freeVariables() {
-        return new HashSet<>(Arrays.asList(new String[] { name }));
+        return new HashSet<>();
     }
 
     @Override
@@ -43,6 +42,11 @@ public class ANewtype extends ALambdaTerm implements Applicable {
             // y[x := r] -> y
             return this;
         }
+    }
+
+    @Override
+    public boolean isApplicable() {
+        return source.isResolved();
     }
 
     @Override

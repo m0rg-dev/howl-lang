@@ -17,9 +17,9 @@ import dev.m0rg.howl.ast.type.TypeConstraint;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ADefer;
 import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
+import dev.m0rg.howl.ast.type.algebraic.AIntersectionType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
-import dev.m0rg.howl.ast.type.algebraic.AIntersectionType;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.llvm.LLVMBuilder;
@@ -33,7 +33,6 @@ import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
-import dev.m0rg.howl.logger.Logger;
 
 public class Class extends ObjectCommon implements GeneratesTopLevelItems {
     List<TypeElement> impl;
@@ -250,7 +249,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
             LLVMType parent_type = ext_type.generateStaticType(module);
             LLVMGlobalVariable parent_stable = module.getOrInsertGlobal(
                     parent_type,
-                    ext_type.getSourcePath() + "_static");
+                    ext_type.getPathMangled() + "_static");
             return parent_stable
                     .cast(new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8)));
         } else {
@@ -300,7 +299,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
 
         for (TypeElement itype : this.interfaces()) {
             AStructureReference res_type = (AStructureReference) ALambdaTerm.evaluateFrom(itype);
-            InterfaceType i_res = (InterfaceType) res_type.getSourceResolved();
+            InterfaceType i_res = null; // (InterfaceType) res_type.getSourceResolved();
             LLVMStructureType itable_type = res_type.generateStaticType(module);
             LLVMGlobalVariable itable = module.getOrInsertGlobal(itable_type,
                     this.getPath() + "_interface_" + i_res.getSource().getPath());
@@ -338,7 +337,7 @@ public class Class extends ObjectCommon implements GeneratesTopLevelItems {
 
     void generateAllocator(LLVMModule module) {
         AStructureReference this_type = (AStructureReference) ALambdaTerm.evaluateFrom(this.getOwnType());
-        String allocator_name = this_type.getSourcePath() + "_alloc";
+        String allocator_name = this_type.getPathMangled() + "_alloc";
 
         LLVMFunctionType allocator_type = new LLVMFunctionType(
                 this_type.toLLVM(module),

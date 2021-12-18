@@ -64,6 +64,7 @@ import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeConstraint;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ADefer;
 
 public class CSTImporter {
     Path source_path;
@@ -338,7 +339,7 @@ public class CSTImporter {
 
         ASTElement c_source = parseElement(source.get("source"));
         if (c_source instanceof TypeElement) {
-            rc.setSource((TypeElement) c_source);
+            rc.setSource(new ADefer((TypeElement) c_source.setParent(rc)));
         } else {
             throw new IllegalArgumentException();
         }

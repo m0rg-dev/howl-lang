@@ -17,6 +17,7 @@ import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
+import dev.m0rg.howl.logger.Logger;
 
 public class InferTypes implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
@@ -32,11 +33,11 @@ public class InferTypes implements ASTTransformer {
                     setEqual(t_provided, t_expected, e);
                 } else {
                     try {
-                        System.out.println(new CompilationError(e.getSpan(), "type mismatch").format());
+                        System.out.println(new CompilationError(e.getSpan(), "type mismatch",
+                                t_expected.format() + " <- " + t_provided.format()).format());
                     } catch (IOException ex) {
                         ;
                     }
-                    throw new RuntimeException("type mismatch: " + t_expected.format() + " <- " + t_provided.format());
                 }
             }
             return e;
@@ -46,6 +47,8 @@ public class InferTypes implements ASTTransformer {
     }
 
     void setEqual(ALambdaTerm expected, ALambdaTerm provided, ASTElement e) {
+        Logger.trace(expected.format() + " <-> " + provided.format());
+
         if (expected instanceof AVariable && !(provided instanceof AVariable)) {
             Optional<ASTElement> res = e.resolveName(((AVariable) expected).getName());
             if (res.isPresent()) {
@@ -55,35 +58,12 @@ public class InferTypes implements ASTTransformer {
         } else if (expected instanceof AStructureReference && provided instanceof AStructureReference) {
             AStructureReference s_expected = (AStructureReference) expected;
             AStructureReference s_provided = (AStructureReference) provided;
-            if (s_provided.getSource().getSource().original != null) {
+            if (s_expected.getSource().getSource() instanceof Interface) {
                 return;
             }
 
-            if (s_expected.getSource().getSource().getPath().equals(
-                    s_provided.getSource().getSource().getPath())
-                    || (s_expected.getSource().getSource() instanceof Class
-                            && s_provided.getSource().getSource() instanceof Class)) {
-                for (Entry<String, ALambdaTerm> s : s_expected.getSubstitutions().entrySet()) {
-                    setEqual(s.getValue(),
-                            s_provided.getSubstitutions().get(s.getKey()), e);
-                    setEqual(s_provided.getSubstitutions().get(s.getKey()), s.getValue(),
-                            e);
-                }
-            } else if (s_expected.getSource().getSource() instanceof Interface) {
-                if (s_provided.getSource().getSource() instanceof Class) {
-                    Class implementer = (Class) s_provided.getSource().getSource();
-                    for (TypeElement i_provided : implementer.interfaces()) {
-                        ALambdaTerm i_eval = ALambdaTerm.evaluate(
-                                AlgebraicType.derive(i_provided).applySubstitutions(s_provided.getSubstitutions()));
-                        if (expected.accepts(i_eval)) {
-                            setEqual(expected, i_eval, e);
-                            setEqual(i_eval, expected, e);
-                            return;
-                        }
-                    }
-                } else {
-                    // TODO
-                }
+            for (int i = 0; i < s_expected.getParameters().size(); i++) {
+                setEqual(s_expected.getParameters().get(i), s_provided.getParameters().get(i), e);
             }
         }
     }

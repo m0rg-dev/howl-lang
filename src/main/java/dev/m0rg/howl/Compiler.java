@@ -215,7 +215,7 @@ public class Compiler {
 
         long parse_start = System.currentTimeMillis();
 
-        cc.ingestDirectory(stdlib_path, "lib");
+        // cc.ingestDirectory(stdlib_path, "lib");
         cc.ingest(FileSystems.getDefault().getPath(args[0]).toAbsolutePath(), "main");
 
         Logger.trace("parse complete at " + (System.currentTimeMillis() - parse_start) + " ms");
@@ -252,7 +252,7 @@ public class Compiler {
                 new ResolveNames(),
                 new ConvertStrings(),
                 new ConvertIndexLvalue(),
-                new AddGenerics(),
+                // new AddGenerics(),
         }));
         Logger.trace("  => Combined2 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
@@ -262,9 +262,10 @@ public class Compiler {
                 transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new InferTypes());
-        Logger.trace("  => InferTypes " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
+        // cc.root_module.transform(new InferTypes());
+        // Logger.trace(" => InferTypes " + (System.currentTimeMillis() -
+        // transform_start) + " ms");
+        // transform_start = System.currentTimeMillis();
 
         Finder.find(cc.root_module, x -> CheckInterfaceImplementations.apply(x));
         Logger.trace("  => CheckInterfaceImplementations " + (System.currentTimeMillis() - transform_start) + " ms");
@@ -277,14 +278,16 @@ public class Compiler {
         Logger.trace("  => Combined3 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        Monomorphize2 mc2 = new Monomorphize2();
-        cc.root_module.transform(mc2);
-        Logger.trace("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
-        for (AStructureReference r : mc2.getToGenerate()) {
-            r.getSource().getSource().monomorphize(r);
-        }
-        Logger.trace("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
+        // Monomorphize2 mc2 = new Monomorphize2();
+        // cc.root_module.transform(mc2);
+        // Logger.trace(" => Monomorphize " + (System.currentTimeMillis() -
+        // transform_start) + " ms");
+        // for (AStructureReference r : mc2.getToGenerate()) {
+        // r.getSource().getSource().monomorphize(r);
+        // }
+        // Logger.trace(" => Monomorphize " + (System.currentTimeMillis() -
+        // transform_start) + " ms");
+        // transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
                 new EnsureTypesResolve(),
@@ -339,7 +342,7 @@ public class Compiler {
             ld_args.add(cmd.getOptionValue("output"));
             ld_args.add(stdlib_path.resolve("hrt0.c").toAbsolutePath().toString());
             for (LLVMModule module : modules) {
-                // System.err.println(module);
+                System.err.println(module);
                 Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
                         module.toString());
 

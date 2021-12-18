@@ -1,5 +1,6 @@
 package dev.m0rg.howl.ast.expression;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +17,7 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
 import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.algebraic.ATuple;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
@@ -87,7 +89,7 @@ public class NameExpression extends Expression implements Lvalue {
         } else if (target instanceof Class) {
             // TODO dedupe with SpecifiedTypeExpression
             Class c = (Class) target;
-            AStructureReference t = (new AStructureReference(c.getOwnType()));
+            AStructureReference t = (new AStructureReference(c.getOwnType(), new ATuple(new ArrayList<>())));
             LLVMType static_type = t.generateStaticType(builder.getModule());
             LLVMType object_type = t.generateObjectType(builder.getModule());
             LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, c.getPath() + "_static");

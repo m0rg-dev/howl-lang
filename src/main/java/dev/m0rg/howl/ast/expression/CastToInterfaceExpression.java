@@ -7,7 +7,6 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.InterfaceType;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
@@ -86,12 +85,11 @@ public class CastToInterfaceExpression extends Expression {
         LLVMValue target_stable_pointer = builder.buildStructGEP(target_llvm, target_alloca, 1, "");
         LLVMValue target_itable_pointer = builder.buildStructGEP(target_llvm, target_alloca, 2, "");
 
-        InterfaceType res = (InterfaceType) target_type.getSourceResolved();
         LLVMStructureType itable_type = target_type
                 .generateStaticType(builder.getModule());
         LLVMGlobalVariable itable = builder.getModule().getOrInsertGlobal(itable_type,
-                source_type.getSourcePath() + "_interface_" +
-                        res.getSource().getPath());
+                source_type.getPathMangled() + "_interface_" +
+                        target_type.getPathMangled());
         LLVMType source_object_type = source_type.generateObjectType(builder.getModule());
         LLVMType source_stable_type = source_type.generateStaticType(builder.getModule());
 

@@ -21,10 +21,9 @@ import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMValue;
-import dev.m0rg.howl.logger.Logger;
 
 public class ConstructorCallExpression extends CallExpressionBase {
-    TypeElement source;
+    ALambdaTerm source;
 
     public ConstructorCallExpression(Span span) {
         super(span);
@@ -33,7 +32,7 @@ public class ConstructorCallExpression extends CallExpressionBase {
     @Override
     public ASTElement detach() {
         ConstructorCallExpression rc = new ConstructorCallExpression(span);
-        rc.setSource((TypeElement) source.detach());
+        rc.setSource(source);
         this.copyArguments(rc);
         return rc;
     }
@@ -43,17 +42,15 @@ public class ConstructorCallExpression extends CallExpressionBase {
         return "new " + this.source.format() + this.getArgString();
     }
 
-    public void setSource(TypeElement source) {
-        this.source = (TypeElement) source.setParent(this);
+    public void setSource(ALambdaTerm source) {
+        this.source = source;
     }
 
     public void transform(ASTTransformer t) {
-        source.transform(t);
-        this.setSource(t.transform(source));
         this.transformArguments(t);
     }
 
-    public TypeElement getType() {
+    public ALambdaTerm getType() {
         return source;
     }
 
@@ -71,14 +68,14 @@ public class ConstructorCallExpression extends CallExpressionBase {
         for (Expression e : this.args) {
             arg_types.add(AlgebraicType.derive(e));
         }
-        return new AExtractArgument(new AFieldReferenceType(AlgebraicType.derive(source), "constructor"),
+        return new AExtractArgument(new AFieldReferenceType(source, "constructor"),
                 arg_types, index);
     }
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        ALambdaTerm source_type = ALambdaTerm.evaluateFrom(source);
-        String allocator_name = ((AStructureReference) source_type).getSourcePath() + "_alloc";
+        ALambdaTerm source_type = ALambdaTerm.evaluate(source);
+        String allocator_name = ((AStructureReference) source_type).getPathMangled() + "_alloc";
         LLVMFunctionType allocator_type = new LLVMFunctionType(
                 source_type.toLLVM(builder.getModule()),
                 new ArrayList<>());
@@ -98,13 +95,11 @@ public class ConstructorCallExpression extends CallExpressionBase {
                     .evaluate(new AFieldReferenceType(source_type, "constructor"));
             Function source_function = constructor_call
                     .select(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList()).get();
-            Function source_function_two = ((AStructureReference) source_type).getSourceResolved().getSource()
-                    .getMethod(source_function.getName()).get();
             LLVMFunction constructor;
-            if (builder.getModule().getFunction(source_function_two.getPath()).isPresent()) {
-                constructor = builder.getModule().getFunction(source_function_two.getPath()).get();
+            if (builder.getModule().getFunction(source_function.getPath()).isPresent()) {
+                constructor = builder.getModule().getFunction(source_function.getPath()).get();
             } else {
-                constructor = new LLVMFunction(builder.getModule(), source_function_two.getPath(),
+                constructor = new LLVMFunction(builder.getModule(), source_function.getPath(),
                         constructor_call.getFunction(args.stream().map(x -> ALambdaTerm.evaluateFrom(x)).toList())
                                 .toLLVM(builder.getModule()));
             }
@@ -112,7 +107,7 @@ public class ConstructorCallExpression extends CallExpressionBase {
             List<LLVMValue> args = new ArrayList<>(this.args.size());
             ClassCastExpression cast = new ClassCastExpression(span);
             cast.setSource(new LLVMInternalExpression(builder.buildLoad(storage, ""), source_type));
-            cast.setTarget(ALambdaTerm.evaluateFrom(source_function_two.getArgumentList().get(0).getOwnType()));
+            cast.setTarget(ALambdaTerm.evaluateFrom(source_function.getArgumentList().get(0).getOwnType()));
             args.add(cast.generate(builder));
             for (Expression e : this.args) {
                 args.add(e.generate(builder));

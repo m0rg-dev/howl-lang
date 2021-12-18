@@ -19,7 +19,6 @@ import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
-import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.transform.InferTypes;
 import dev.m0rg.howl.transform.Monomorphize2;
 
@@ -290,7 +289,7 @@ public abstract class ObjectCommon extends ASTElement implements NamedElement, N
         ObjectCommon specified = (ObjectCommon) this.detach();
         specified.setName(spec.mangle());
         for (int i = 0; i < this.generics.size(); i++) {
-            ALambdaTerm p = spec.getSubstitutions().get("T" + i);
+            ALambdaTerm p = spec.getParameters().get(i);
             specified.setGeneric(this.generics.get(i), p);
         }
         specified.clearGenerics();

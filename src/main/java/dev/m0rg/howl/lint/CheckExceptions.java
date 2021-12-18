@@ -17,6 +17,7 @@ import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.algebraic.ATuple;
 import dev.m0rg.howl.ast.type.algebraic.AVariable;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.logger.Logger;
@@ -48,7 +49,8 @@ public class CheckExceptions extends LintPass {
 
             for (ALambdaTerm exctype : thrown_types) {
                 if (new AStructureReference(
-                        (ClassType) new ClassType(e.getSpan(), "root.lib.UncheckedException").setParent(e.getParent()))
+                        (ClassType) new ClassType(e.getSpan(), "root.lib.UncheckedException").setParent(e.getParent()),
+                        new ATuple(new ArrayList<>()))
                                 .accepts(exctype)) {
                     // we don't have to check it!
                     return;
