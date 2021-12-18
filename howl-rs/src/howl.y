@@ -188,6 +188,7 @@ Statement -> Result<CSTElement<'input>, ()>:
     | CatchStatement { $1 }
     | BreakContinueStatement { $1 }
     | ForStatement { $1 }
+    | Annotation { $1 }
     ;
 
 SimpleStatement -> Result<CSTElement<'input>, ()>:
@@ -429,6 +430,27 @@ Identifier -> Result<CSTElement<'input>, ()>:
             Ok(_) => Ok(CSTElement::Identifier{span: $span.into(), name: $lexer.span_str($1.as_ref().unwrap().span()).to_string()}),
             Err(_) => Err(())
         }
+    }
+    ;
+
+Annotation -> Result<CSTElement<'input>, ()>:
+    "#" "[" AnnotationList "]" { Ok(CSTElement::Annotation{span: $span.into(), contents: $3? }) }
+    ;
+
+AnnotationList -> Result<Vec<CSTElement<'input>>, ()>:
+    'identifier' '=' 'string' { 
+        Ok(vec![CSTElement::SubAnnotation{
+            span: $span.into(),
+            name: $lexer.span_str($1.as_ref().unwrap().span()).to_string(),
+            value: $lexer.span_str($3.as_ref().unwrap().span()).to_string()
+        }] )
+    }
+    | AnnotationList ',' 'identifier' '=' 'string' { 
+        flatten($1, Ok(CSTElement::SubAnnotation{
+            span: $span.into(),
+            name: $lexer.span_str($2.as_ref().unwrap().span()).to_string(),
+            value: $lexer.span_str($4.as_ref().unwrap().span()).to_string()
+        }))
     }
     ;
 

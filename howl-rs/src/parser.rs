@@ -269,4 +269,13 @@ pub enum CSTElement<'a> {
         span: SerializableSpan,
         mode: String,
     },
+    Annotation {
+        span: SerializableSpan,
+        contents: Vec<CSTElement<'a>>,
+    },
+    SubAnnotation {
+        span: SerializableSpan,
+        name: String,
+        value: String,
+    },
 }

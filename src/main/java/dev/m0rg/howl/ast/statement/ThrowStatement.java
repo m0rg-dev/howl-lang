@@ -18,6 +18,7 @@ public class ThrowStatement extends Statement {
     @Override
     public ASTElement detach() {
         ThrowStatement rc = new ThrowStatement(span);
+        rc.setAnnotation(annotation);
         rc.setSource((Expression) source.detach());
         rc.isInternalRethrow = isInternalRethrow;
         return rc;

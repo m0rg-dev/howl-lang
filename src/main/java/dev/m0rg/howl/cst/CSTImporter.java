@@ -3,8 +3,10 @@ package dev.m0rg.howl.cst;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -57,6 +59,7 @@ import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.statement.ThrowStatement;
 import dev.m0rg.howl.ast.statement.TryStatement;
 import dev.m0rg.howl.ast.statement.WhileStatement;
+import dev.m0rg.howl.ast.type.Annotation;
 import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.LambdaType;
 import dev.m0rg.howl.ast.type.NamedType;
@@ -93,6 +96,8 @@ public class CSTImporter {
         Entry<String, JsonElement> first = entries.iterator().next();
         JsonObject inner_obj = first.getValue().getAsJsonObject();
         switch (first.getKey()) {
+            case "Annotation":
+                return this.parseAnnotation(inner_obj);
             case "ArithmeticExpression":
                 return this.parseArithmeticExpression(inner_obj);
             case "AssignmentStatement":
@@ -181,6 +186,17 @@ public class CSTImporter {
             source = source.get(step).getAsJsonObject();
         }
         return source;
+    }
+
+    Annotation parseAnnotation(JsonObject source) {
+        Map<String, String> contents = new LinkedHashMap<>();
+        for (JsonElement el : source.get("contents").getAsJsonArray()) {
+            contents.put(
+                    el.getAsJsonObject().get("SubAnnotation").getAsJsonObject().get("name").getAsString(),
+                    StringLiteral.fromLiteral(
+                            el.getAsJsonObject().get("SubAnnotation").getAsJsonObject().get("value").getAsString()));
+        }
+        return new Annotation(extractSpan(source), contents);
     }
 
     ArithmeticExpression parseArithmeticExpression(JsonObject source) {

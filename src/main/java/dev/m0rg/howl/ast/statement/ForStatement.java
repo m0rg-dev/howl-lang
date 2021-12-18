@@ -54,6 +54,7 @@ public class ForStatement extends Statement {
     @Override
     public ASTElement detach() {
         ForStatement rc = new ForStatement(span, name);
+        rc.setAnnotation(annotation);
         rc.setLocaltype((TypeElement) localtype.detach());
         rc.setSource((Expression) source.detach());
         rc.setBody((CompoundStatement) body.detach());

@@ -17,6 +17,7 @@ public class SimpleStatement extends Statement {
     @Override
     public ASTElement detach() {
         SimpleStatement rc = new SimpleStatement(span);
+        rc.setAnnotation(annotation);
         rc.setExpression((Expression) expression.detach());
         return rc;
     }

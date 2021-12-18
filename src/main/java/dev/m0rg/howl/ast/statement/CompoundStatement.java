@@ -32,6 +32,7 @@ public class CompoundStatement extends Statement implements NameHolder {
     @Override
     public ASTElement detach() {
         CompoundStatement rc = new CompoundStatement(span);
+        rc.setAnnotation(annotation);
         for (Statement s : statements) {
             rc.insertStatement((Statement) s.detach());
         }

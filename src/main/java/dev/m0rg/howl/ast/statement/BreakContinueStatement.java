@@ -16,7 +16,9 @@ public class BreakContinueStatement extends Statement {
 
     @Override
     public ASTElement detach() {
-        return new BreakContinueStatement(span, is_break);
+        BreakContinueStatement rc = new BreakContinueStatement(span, is_break);
+        rc.setAnnotation(annotation);
+        return rc;
     }
 
     @Override

@@ -29,6 +29,7 @@ public class WhileStatement extends Statement implements HasUpstreamFields {
     @Override
     public ASTElement detach() {
         WhileStatement rc = new WhileStatement(span);
+        rc.setAnnotation(annotation);
         rc.setBody((CompoundStatement) body.detach());
         rc.setCondition((Expression) condition.detach());
         return rc;

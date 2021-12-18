@@ -9,8 +9,11 @@ import dev.m0rg.howl.logger.Logger;
 public class EnsureTypesResolve implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof Expression) {
-            Logger.trace("EnsureTypesResolve " + e.formatForLog());
-            ALambdaTerm ty = ALambdaTerm.evaluateFrom(e);
+            boolean noisy = ((Expression) e).nearestStatement().getAnnotations().getOrDefault("debug", "")
+                    .contains("dumptypes");
+            if (noisy)
+                Logger.trace("EnsureTypesResolve: dumptypes " + e.formatForLog());
+            ALambdaTerm ty = ALambdaTerm.evaluateFrom(e, noisy);
             if (ty.freeVariables().size() > 0) {
                 e.getSpan().addError("Unable to resolve type for expression", ty.format());
             }

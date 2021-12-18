@@ -23,6 +23,7 @@ class B<T> {
 }
 
 static fn i32 Main() {
+    #[debug="dumptypes"]
     let A test = new A(42);
     if true {
         1;
