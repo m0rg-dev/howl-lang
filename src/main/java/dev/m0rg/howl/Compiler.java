@@ -272,7 +272,7 @@ public class Compiler {
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
-                new StaticNonStatic(),
+                // new StaticNonStatic(),
                 new CheckExceptions(),
         }));
         Logger.trace("  => Combined3 " + (System.currentTimeMillis() - transform_start) + " ms");

@@ -5,6 +5,7 @@ import dev.m0rg.howl.ast.Span;
 public class AErrorType extends AAnyType {
     public AErrorType(Span where, String message) {
         super();
-        where.addError(message);
+        if (where != null)
+            where.addError(message);
     }
 }

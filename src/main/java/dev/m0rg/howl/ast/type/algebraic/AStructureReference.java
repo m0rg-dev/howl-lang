@@ -85,7 +85,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
 
         ALambdaTerm rc = AlgebraicType.derive(src.get());
 
-        return applyParameters(rc);
+        return new ASpecify(rc, this.parameters);
     }
 
     public boolean hasField(String name) {

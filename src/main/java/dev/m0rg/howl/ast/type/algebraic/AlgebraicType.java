@@ -42,9 +42,9 @@ public abstract class AlgebraicType {
     static Map<ASTElement, ALambdaTerm> derive_cache = new HashMap<>();
 
     public static ALambdaTerm derive(ASTElement source) {
-        if (derive_cache.containsKey(source)) {
-            return derive_cache.get(source);
-        }
+        // if (derive_cache.containsKey(source)) {
+        // return derive_cache.get(source);
+        // }
         ALambdaTerm rc = derive_inner(source);
         derive_cache.put(source, rc);
         return rc;

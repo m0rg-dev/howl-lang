@@ -4,3 +4,6 @@ target
 howl-rs/target
 *.jfr
 *.jfc
+*.bak
+*.aux
+*.synctex.gz

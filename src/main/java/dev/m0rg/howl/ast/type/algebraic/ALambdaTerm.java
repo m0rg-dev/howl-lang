@@ -44,21 +44,22 @@ public abstract class ALambdaTerm extends AlgebraicType {
         evalcount++;
         long start = System.currentTimeMillis();
         String source = t.format();
-        if (evalcache.containsKey(source)) {
-            evalhit++;
-            return evalcache.get(source);
-        } else {
-            evalmiss++;
+        if (!noisy) {
+            if (evalcache.containsKey(source)) {
+                evalhit++;
+                return evalcache.get(source);
+            } else {
+                evalmiss++;
+            }
         }
+
         if (noisy)
-            Logger.trace("eval:" + t.format());
+            Logger.trace("   eval: " + t.format());
         while (t instanceof Applicable && ((Applicable) t).isApplicable()) {
             t = ((Applicable) t).apply();
             if (noisy)
-                Logger.trace("apply:" + t.format());
+                Logger.trace("  apply: " + t.format());
         }
-        if (noisy)
-            Logger.trace("return:" + t.format());
 
         evalcache.put(source, t);
         long end = System.currentTimeMillis();

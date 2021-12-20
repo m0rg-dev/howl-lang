@@ -14,7 +14,8 @@ public class ASpecify extends ALambdaTerm implements Applicable {
 
     @Override
     public boolean isApplicable() {
-        return ref instanceof AStructureReference || ((ref instanceof Applicable) && ((Applicable) ref).isApplicable());
+        return ref instanceof AStructureReference || ((ref instanceof Applicable) &&
+                ((Applicable) ref).isApplicable());
     }
 
     @Override
