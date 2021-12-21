@@ -3,6 +3,7 @@ package dev.m0rg.howl.ast.type.iterative;
 import java.util.Map;
 
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.logger.Logger;
 
 public class SubstituteDistributed extends ProductionRule {
     @Override
@@ -51,6 +52,8 @@ public class SubstituteDistributed extends ProductionRule {
 
         @Override
         public TypeObject apply(TypeObject source, Map<Expression, TypeObject> environment) {
+            if (source instanceof AnyType)
+                return source;
             FreeVariable v = new FreeVariable();
             environment.put(v, source);
             return new ParameterSubstitution(new TypeAlias(v), index, to);

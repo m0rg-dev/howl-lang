@@ -13,12 +13,14 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.type.iterative.AnyType;
 import dev.m0rg.howl.ast.type.iterative.FreeVariable;
 import dev.m0rg.howl.ast.type.iterative.Instantiation;
 import dev.m0rg.howl.ast.type.iterative.TypeAlias;
 import dev.m0rg.howl.ast.type.iterative.TypeConstant;
 import dev.m0rg.howl.ast.type.iterative.TypeObject;
+import dev.m0rg.howl.logger.Logger;
 
 public class NamedType extends TypeElement {
     static final Set<String> base_types;
@@ -130,7 +132,8 @@ public class NamedType extends TypeElement {
                 environment.put(rc, t);
             } else {
                 TypeObject t = new TypeConstant(target.get().getPath(), target.get());
-                if (target.get() instanceof ObjectCommon && !(this.getParent() instanceof SpecifiedType)) {
+                if (target.get() instanceof ObjectCommon && !(this.getParent() instanceof SpecifiedType
+                        || this.getParent() instanceof SpecifiedTypeExpression)) {
                     ObjectCommon ort = (ObjectCommon) target.get();
                     if (ort.isGeneric()) {
                         List<TypeObject> params = new ArrayList<>();

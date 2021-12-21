@@ -3,6 +3,7 @@ package dev.m0rg.howl.ast.type.iterative;
 import java.util.Map;
 
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.logger.Logger;
 
 public class TypeAlias extends TypeObject implements Distributive {
     Expression handle;

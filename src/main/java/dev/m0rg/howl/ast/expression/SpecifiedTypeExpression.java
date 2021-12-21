@@ -14,6 +14,9 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.iterative.Instantiation;
+import dev.m0rg.howl.ast.type.iterative.TypeAlias;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMGlobalVariable;
@@ -98,5 +101,13 @@ public class SpecifiedTypeExpression extends Expression {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         return rc;
+    }
+
+    @Override
+    public void deriveType(Map<Expression, TypeObject> environment) {
+        source.deriveType(environment);
+        environment.put(this, new Instantiation(
+                new TypeAlias(source),
+                parameters.stream().map(x -> (TypeObject) new TypeAlias(x.deriveType(environment))).toList()));
     }
 }

@@ -7,6 +7,8 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.type.NamedType;
+import dev.m0rg.howl.ast.type.NumericType;
 
 public class TypeConstant extends TypeObject implements FieldSource {
     String name;
@@ -19,7 +21,7 @@ public class TypeConstant extends TypeObject implements FieldSource {
 
     @Override
     public String format() {
-        return name;
+        return "#" + name;
     }
 
     @Override
@@ -32,7 +34,19 @@ public class TypeConstant extends TypeObject implements FieldSource {
 
     @Override
     public boolean accepts(TypeObject other, Map<Expression, TypeObject> environment) {
-        return this.equals(other, environment);
+        if (this.equals(other, environment)) {
+            return true;
+        }
+
+        if (other.dereferenced(environment) instanceof TypeConstant) {
+            NamedType t = NamedType.build(null, ((TypeConstant) other.dereferenced(environment)).name);
+            NamedType u = NamedType.build(null, name);
+            if (t instanceof NumericType && u instanceof NumericType) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -57,7 +71,11 @@ public class TypeConstant extends TypeObject implements FieldSource {
                             o.getOverloadCandidates(name).stream()
                                     .map(x -> {
                                         FreeVariable v = new FreeVariable();
-                                        environment.put(v, new FunctionType(x, environment));
+                                        FunctionType t = new FunctionType(x, environment);
+                                        if (x.isStatic()) {
+                                            t.self_type = this;
+                                        }
+                                        environment.put(v, t);
                                         return (TypeObject) new TypeAlias(v);
                                     })
                                     .toList());

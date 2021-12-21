@@ -6,6 +6,7 @@ import java.util.Map;
 
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.type.HasOwnType;
 
 public class FunctionType extends TypeObject implements Distributive {
     Function source;
@@ -17,8 +18,13 @@ public class FunctionType extends TypeObject implements Distributive {
         this.source = source;
         this.return_type = new TypeAlias(source.getReturn().deriveType(environment));
         if (source.isStatic()) {
-            this.self_type = new ErrorType(null, "static method self");
-            this.args = new ArrayList<>();
+            if (source.getParent() instanceof HasOwnType) {
+                this.self_type = new TypeAlias(((HasOwnType) source.getParent()).getOwnType().deriveType(environment));
+            } else {
+                this.self_type = new ErrorType(null, "static method self on module");
+            }
+            this.args = source.getArgumentList().stream()
+                    .map(x -> (TypeObject) new TypeAlias(x.getOwnType().deriveType(environment))).toList();
         } else {
             this.self_type = new TypeAlias(source.getArgumentList().get(0).getOwnType().deriveType(environment));
             this.args = source.getArgumentList().subList(1, source.getArgumentList().size()).stream()

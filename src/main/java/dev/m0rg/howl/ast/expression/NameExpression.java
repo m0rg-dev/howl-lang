@@ -13,6 +13,7 @@ import dev.m0rg.howl.ast.Argument;
 import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Function;
+import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
 import dev.m0rg.howl.ast.type.HasOwnType;
@@ -32,6 +33,7 @@ import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
 public class NameExpression extends Expression implements Lvalue {
     String name;
@@ -74,7 +76,10 @@ public class NameExpression extends Expression implements Lvalue {
     public void deriveType(Map<Expression, TypeObject> environment) {
         Optional<ASTElement> target = this.resolveName(this.name);
         if (target.isPresent()) {
-            if (target.get() instanceof HasOwnType) {
+            if (target.get() instanceof ObjectCommon) {
+                ObjectCommon a = (ObjectCommon) target.get();
+                environment.put(this, new TypeAlias(a.getOwnType().deriveType(environment, this.getParent())));
+            } else if (target.get() instanceof HasOwnType) {
                 HasOwnType a = (HasOwnType) target.get();
                 environment.put(this, new TypeAlias(a.getOwnType().deriveType(environment)));
             } else {

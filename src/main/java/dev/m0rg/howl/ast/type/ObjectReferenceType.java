@@ -51,4 +51,8 @@ public abstract class ObjectReferenceType extends TypeElement implements Structu
     public FreeVariable deriveType(Map<Expression, TypeObject> environment) {
         return ((NamedType) new NamedType(span, source_path).setParent(this.getParent())).deriveType(environment);
     }
+
+    public FreeVariable deriveType(Map<Expression, TypeObject> environment, ASTElement real_parent) {
+        return ((NamedType) new NamedType(span, source_path).setParent(real_parent)).deriveType(environment);
+    }
 }

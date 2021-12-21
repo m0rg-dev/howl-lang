@@ -2,16 +2,19 @@ static fn void a() {
 }
 
 class A<T> {
-    static fn T method(T source) {
+    static fn T static_method(T source) {
+        return source;
+    }
+
+    fn T method(T source) {
         return source;
     }
 }
 
 static fn i32 Main() {
-    #[debug="dumptypes"]
     a();
-
-    #[debug="dumptypes"]
-    // A::<i32>.method(0);
+    A::<i32>.static_method(0);
+    #[debug = "dumptypes"]
+    (new A<i32>()).method(0);
     return 0;
 }

@@ -111,21 +111,28 @@ public class Section {
                     if (r.matches(e.getValue(), environment)) {
                         TypeObject result = r.apply(e.getValue(), environment);
                         if (noisy) {
-                            Logger.trace(String.format("%40s: %s", r.getName(), e.getValue().format()));
+                            Logger.trace(String.format("%40s: %s -> %s", r.getName(),
+                                    e.getValue().format(), result.format()));
                         }
                         environment.put(e.getKey(), result);
                         did_change = true;
                     } else if (e.getValue() instanceof Distributive) {
                         Distributive d = (Distributive) e.getValue();
                         if (d.anyMatch(r, environment)) {
-                            if (noisy) {
-                                Logger.trace(String.format("%40s: %s", r.getName(), e.getValue().format()));
-                            }
+                            String before = e.getValue().format();
                             d.apply(r, environment);
+                            if (noisy) {
+                                Logger.trace(
+                                        String.format("%40s: %s -> %s", r.getName(), before,
+                                                environment.get(e.getKey()).format()));
+                            }
                             did_change = true;
                         }
                     }
                 }
+            }
+            if (noisy) {
+                this.dump();
             }
         }
         if (noisy) {

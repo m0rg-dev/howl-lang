@@ -14,6 +14,8 @@ public class Substitute extends ProductionRule {
                 return p.index == sub.from;
             } else if (sub.source.dereferenced(environment) instanceof TypeConstant) {
                 return true;
+            } else if (sub.source.dereferenced(environment) instanceof ErrorType) {
+                return true;
             } else {
                 return false;
             }
@@ -34,6 +36,8 @@ public class Substitute extends ProductionRule {
                     throw new RuntimeException();
                 }
             } else if (sub.source.dereferenced(environment) instanceof TypeConstant) {
+                return sub.source;
+            } else if (sub.source.dereferenced(environment) instanceof ErrorType) {
                 return sub.source;
             } else {
                 throw new RuntimeException();

@@ -18,6 +18,7 @@ import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.ast.type.iterative.CallType;
+import dev.m0rg.howl.ast.type.iterative.OverloadSelect;
 import dev.m0rg.howl.ast.type.iterative.TypeAlias;
 import dev.m0rg.howl.ast.type.iterative.TypeObject;
 import dev.m0rg.howl.llvm.LLVMBuilder;
@@ -86,7 +87,13 @@ public class FunctionCallExpression extends CallExpressionBase {
     public void deriveType(Map<Expression, TypeObject> environment) {
         source.deriveType(environment);
         TypeAlias source_type = new TypeAlias(source);
-        environment.put(this, new CallType(source_type));
+        List<TypeObject> args = new ArrayList<>();
+        for (Expression e : this.args) {
+            e.deriveType(environment);
+            args.add(new TypeAlias(e));
+        }
+
+        environment.put(this, new OverloadSelect(source_type, args));
     }
 
     @Override
