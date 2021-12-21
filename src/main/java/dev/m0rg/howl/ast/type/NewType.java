@@ -9,6 +9,7 @@ import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
+import dev.m0rg.howl.ast.type.iterative.FreeParameter;
 import dev.m0rg.howl.ast.type.iterative.FreeVariable;
 import dev.m0rg.howl.ast.type.iterative.TypeObject;
 
@@ -88,6 +89,8 @@ public class NewType extends TypeElement implements NamedElement {
     // TODO
     @Override
     public FreeVariable deriveType(Map<Expression, TypeObject> environment) {
-        return new NamedType(span, name).deriveType(environment);
+        FreeVariable rc = new FreeVariable();
+        environment.put(rc, new FreeParameter(index));
+        return rc;
     }
 }

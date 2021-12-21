@@ -26,4 +26,14 @@ public class FieldReferenceType extends TypeObject implements Distributive {
     public void apply(ProductionRule r, Map<Expression, TypeObject> environment) {
         source_type = r.apply(source_type, environment);
     }
+
+    @Override
+    public boolean equals(TypeObject other, Map<Expression, TypeObject> environment) {
+        return false;
+    }
+
+    @Override
+    public boolean accepts(TypeObject other, Map<Expression, TypeObject> environment) {
+        return this.equals(other, environment);
+    }
 }

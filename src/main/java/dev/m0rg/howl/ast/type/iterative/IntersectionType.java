@@ -18,14 +18,24 @@ public class IntersectionType extends TypeObject implements Distributive {
     }
 
     public boolean anyMatch(ProductionRule r, Map<Expression, TypeObject> environment) {
-        return r.matches(a, environment) || r.matches(b, environment);
+        return ProductionRule.matches(r, a, environment) || ProductionRule.matches(r, b, environment);
     }
 
     public void apply(ProductionRule r, Map<Expression, TypeObject> environment) {
-        if (r.matches(a, environment))
-            a = r.apply(a, environment);
+        if (ProductionRule.matches(r, a, environment))
+            a = ProductionRule.apply(r, a, environment);
 
-        if (r.matches(b, environment))
-            b = r.apply(b, environment);
+        if (ProductionRule.matches(r, b, environment))
+            b = ProductionRule.apply(r, b, environment);
+    }
+
+    @Override
+    public boolean equals(TypeObject other, Map<Expression, TypeObject> environment) {
+        return false;
+    }
+
+    @Override
+    public boolean accepts(TypeObject other, Map<Expression, TypeObject> environment) {
+        return this.equals(other, environment);
     }
 }

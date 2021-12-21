@@ -4,8 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.logger.Logger;
 
-public class Instantiation extends TypeObject implements Distributive {
+public class Instantiation extends TypeObject implements Distributive, FieldSource {
     TypeObject source;
     List<TypeObject> contents;
 
@@ -18,14 +19,21 @@ public class Instantiation extends TypeObject implements Distributive {
         return source.format() + "<" + String.join(", ", contents.stream().map(x -> x.format()).toList()) + ">";
     }
 
-    public boolean equals(TypeObject other) {
-        if (other instanceof Instantiation) {
-            Instantiation i_other = (Instantiation) other;
-            if (!source.equals(i_other.source))
+    @Override
+    public boolean equals(TypeObject other, Map<Expression, TypeObject> environment) {
+        return false;
+    }
+
+    public boolean accepts(TypeObject other, Map<Expression, TypeObject> environment) {
+        if (other.dereferenced(environment) instanceof Instantiation) {
+            Instantiation i_other = (Instantiation) other.dereferenced(environment);
+            if (!source.accepts(i_other.source, environment)) {
                 return false;
+            }
             for (int i = 0; i < contents.size(); i++) {
-                if (!contents.get(i).equals(i_other.contents.get(i)))
+                if (!contents.get(i).dereferenced(environment).equals(i_other.contents.get(i), environment)) {
                     return false;
+                }
             }
             return true;
         } else {
@@ -35,18 +43,19 @@ public class Instantiation extends TypeObject implements Distributive {
 
     @Override
     public boolean anyMatch(ProductionRule r, Map<Expression, TypeObject> environment) {
-        return r.matches(source, environment) || contents.stream().anyMatch(x -> r.matches(x, environment));
+        return ProductionRule.matches(r, source, environment)
+                || contents.stream().anyMatch(x -> ProductionRule.matches(r, x, environment));
     }
 
     @Override
     public void apply(ProductionRule r, Map<Expression, TypeObject> environment) {
-        if (r.matches(source, environment)) {
-            source = r.apply(source, environment);
+        if (ProductionRule.matches(r, source, environment)) {
+            source = ProductionRule.apply(r, source, environment);
         }
 
         contents = contents.stream().map(x -> {
-            if (r.matches(x, environment)) {
-                return r.apply(x, environment);
+            if (ProductionRule.matches(r, x, environment)) {
+                return ProductionRule.apply(r, x, environment);
             } else {
                 return x;
             }
@@ -54,7 +63,23 @@ public class Instantiation extends TypeObject implements Distributive {
     }
 
     @Override
-    public boolean isUniquelyDetermined() {
-        return source.isUniquelyDetermined() && contents.stream().allMatch(x -> x.isUniquelyDetermined());
+    public boolean isSubstitutable(Map<Expression, TypeObject> environment) {
+        return source.isSubstitutable(environment)
+                && contents.stream().allMatch(x -> x.isSubstitutable(environment));
+    }
+
+    @Override
+    public TypeObject getField(String name, Map<Expression, TypeObject> environment) {
+        if (source.dereferenced(environment) instanceof FieldSource) {
+            TypeObject rc = ((FieldSource) source.dereferenced(environment)).getField(name, environment);
+            for (int i = 0; i < contents.size(); i++) {
+                FreeVariable f = new FreeVariable();
+                environment.put(f, rc);
+                rc = new ParameterSubstitution(new TypeAlias(f), i, contents.get(i));
+            }
+            return rc;
+        } else {
+            return new ErrorType(null, "invalid instantiation");
+        }
     }
 }

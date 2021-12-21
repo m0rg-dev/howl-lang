@@ -1,9 +1,11 @@
 package dev.m0rg.howl.ast.type.iterative;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.expression.Expression;
@@ -29,8 +31,13 @@ public class Section {
     }
 
     static {
-        rules.add(new Dereference());
         rules.add(new IntersectEquals());
+        rules.add(new ReferenceFields());
+        rules.add(new SubstituteDistributed());
+        rules.add(new Substitute());
+        rules.add(new DistributeIntersection());
+        rules.add(new Select());
+        rules.add(new IntersectAny());
     }
 
     public boolean isEmpty() {
@@ -65,10 +72,12 @@ public class Section {
             ReturnStatement as_ret = (ReturnStatement) source;
             if (as_ret.getSource().isPresent()) {
                 as_ret.getSource().get().deriveType(rc.environment);
+                FreeVariable source_reg = new FreeVariable();
+                rc.environment.put(source_reg, rc.environment.get(as_ret.getSource().get()));
                 rc.environment.put(as_ret.getSource().get(),
                         new IntersectionType(
                                 new TypeAlias(as_ret.getContainingFunction().getReturn().deriveType(rc.environment)),
-                                rc.environment.get(as_ret.getSource().get())));
+                                new TypeAlias(source_reg)));
             }
         } else if (source instanceof SimpleStatement) {
             SimpleStatement as_simple = (SimpleStatement) source;
@@ -90,7 +99,8 @@ public class Section {
         while (did_change) {
             did_change = false;
             for (ProductionRule r : Section.rules) {
-                for (Entry<Expression, TypeObject> e : environment.entrySet()) {
+                Set<Entry<Expression, TypeObject>> this_iter = new HashSet<>(environment.entrySet());
+                for (Entry<Expression, TypeObject> e : this_iter) {
                     if (r.matches(e.getValue(), environment)) {
                         TypeObject result = r.apply(e.getValue(), environment);
                         if (noisy) {
@@ -114,16 +124,51 @@ public class Section {
         if (noisy) {
             Logger.trace("");
         }
+
+        did_change = true;
+        while (did_change) {
+            did_change = false;
+            Set<Entry<Expression, TypeObject>> this_iter = new HashSet<>(environment.entrySet());
+            for (Entry<Expression, TypeObject> e : this_iter) {
+                if (ProductionRule.matches(new Dereference(), e.getValue(), environment)) {
+                    environment.put(e.getKey(), ProductionRule.apply(new Dereference(),
+                            e.getValue(), environment));
+                    did_change = true;
+                }
+            }
+        }
+
+        did_change = true;
+        while (did_change) {
+            did_change = false;
+            for (Entry<Expression, TypeObject> e : environment.entrySet()) {
+                if (ProductionRule.matches(new FindVisible(), e.getValue(), environment)) {
+                    environment.put(e.getKey(), ProductionRule.apply(new FindVisible(), e.getValue(), environment));
+                }
+            }
+
+            Set<Entry<Expression, TypeObject>> this_iter = new HashSet<>(environment.entrySet());
+
+            for (Entry<Expression, TypeObject> e : this_iter) {
+                if (e.getKey() instanceof FreeVariable) {
+                    FreeVariable v = (FreeVariable) e.getKey();
+                    if (v.visible) {
+                        v.visible = false;
+                    } else {
+                        environment.remove(v);
+                        did_change = true;
+                    }
+                }
+            }
+        }
+
     }
 
     public void dump() {
         Logger.trace("Section: " + source_statement.format());
         for (Entry<Expression, TypeObject> e : environment.entrySet()) {
-            if (e.getKey() instanceof FreeVariable && ((FreeVariable) e.getKey()).reference_count == 0) {
-                continue;
-            }
             Logger.trace(String.format("%40s: %s%s\u001b[0m", e.getKey().format(),
-                    e.getValue().isUniquelyDetermined() ? "\u001b[32m" : "", e.getValue().format()));
+                    e.getValue().isSubstitutable(environment) ? "\u001b[32m" : "", e.getValue().format()));
         }
         Logger.trace("");
     }

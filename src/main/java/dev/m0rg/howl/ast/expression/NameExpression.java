@@ -32,7 +32,6 @@ import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
-import dev.m0rg.howl.logger.Logger;
 
 public class NameExpression extends Expression implements Lvalue {
     String name;
@@ -79,7 +78,7 @@ public class NameExpression extends Expression implements Lvalue {
                 HasOwnType a = (HasOwnType) target.get();
                 environment.put(this, new TypeAlias(a.getOwnType().deriveType(environment)));
             } else {
-                environment.put(this, new TypeConstant(target.get().getPath()));
+                environment.put(this, new TypeConstant(target.get().getPath(), target.get()));
             }
         } else {
             environment.put(this, new ErrorType(span, "Unresolved name"));

@@ -49,6 +49,6 @@ public class NumberExpression extends Expression {
 
     @Override
     public void deriveType(Map<Expression, TypeObject> environment) {
-        environment.put(this, new TypeConstant("__numeric"));
+        environment.put(this, new TypeConstant("__numeric", this));
     }
 }

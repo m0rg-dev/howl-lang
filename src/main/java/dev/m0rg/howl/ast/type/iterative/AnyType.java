@@ -2,20 +2,13 @@ package dev.m0rg.howl.ast.type.iterative;
 
 import java.util.Map;
 
-import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
 
-public class ErrorType extends TypeObject {
-    Span source;
-    String message;
+public class AnyType extends TypeObject {
 
-    public ErrorType(Span source, String message) {
-        this.source = source;
-        this.message = message;
-    }
-
+    @Override
     public String format() {
-        return "∅ (" + message + ")";
+        return "*";
     }
 
     @Override
@@ -25,6 +18,6 @@ public class ErrorType extends TypeObject {
 
     @Override
     public boolean accepts(TypeObject other, Map<Expression, TypeObject> environment) {
-        return this.equals(other, environment);
+        return true;
     }
 }

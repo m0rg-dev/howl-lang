@@ -11,8 +11,8 @@ import dev.m0rg.howl.llvm.LLVMValue;
 
 public class FreeVariable extends Expression {
     long id;
-    public int reference_count = 0;
     static long counter = 0;
+    boolean visible = false;
 
     public FreeVariable() {
         super(null);

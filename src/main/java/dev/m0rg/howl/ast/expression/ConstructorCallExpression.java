@@ -16,6 +16,9 @@ import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
+import dev.m0rg.howl.ast.type.iterative.FieldReferenceType;
+import dev.m0rg.howl.ast.type.iterative.FreeVariable;
+import dev.m0rg.howl.ast.type.iterative.OverloadSelect;
 import dev.m0rg.howl.ast.type.iterative.TypeAlias;
 import dev.m0rg.howl.ast.type.iterative.TypeObject;
 import dev.m0rg.howl.llvm.LLVMBuilder;
@@ -54,7 +57,19 @@ public class ConstructorCallExpression extends CallExpressionBase {
     @Override
     public void deriveType(Map<Expression, TypeObject> environment) {
         // TODO
-        environment.put(this, new TypeAlias(source.deriveType(environment)));
+        TypeAlias source_type = new TypeAlias(source.deriveType(environment));
+        FreeVariable constructor_field = new FreeVariable();
+        environment.put(constructor_field, new FieldReferenceType(source_type, "constructor"));
+
+        List<TypeObject> args = new ArrayList<>();
+        for (Expression e : this.args) {
+            e.deriveType(environment);
+            args.add(new TypeAlias(e));
+        }
+
+        FreeVariable constructor_overload = new FreeVariable();
+        environment.put(constructor_overload, new OverloadSelect(new TypeAlias(constructor_field), args));
+        environment.put(this, source_type);
     }
 
     public ALambdaTerm getType() {

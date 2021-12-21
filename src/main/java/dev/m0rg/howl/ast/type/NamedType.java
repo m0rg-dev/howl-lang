@@ -1,20 +1,24 @@
 package dev.m0rg.howl.ast.type;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
+import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.type.iterative.AnyType;
 import dev.m0rg.howl.ast.type.iterative.FreeVariable;
+import dev.m0rg.howl.ast.type.iterative.Instantiation;
 import dev.m0rg.howl.ast.type.iterative.TypeAlias;
 import dev.m0rg.howl.ast.type.iterative.TypeConstant;
 import dev.m0rg.howl.ast.type.iterative.TypeObject;
-import dev.m0rg.howl.logger.Logger;
 
 public class NamedType extends TypeElement {
     static final Set<String> base_types;
@@ -120,14 +124,30 @@ public class NamedType extends TypeElement {
         Optional<ASTElement> target = this.resolveName(this.name);
         if (target.isPresent()) {
             if (target.get() instanceof TypeElement) {
-                environment.put(rc, new TypeAlias(
-                        ((TypeElement) target.get()).deriveType(environment)));
+                TypeObject t = new TypeAlias(
+                        ((TypeElement) target.get()).deriveType(environment));
+
+                environment.put(rc, t);
             } else {
-                Logger.info(" target: " + name + " " + target.get().getClass().getName());
-                environment.put(rc, new TypeConstant(target.get().getPath()));
+                TypeObject t = new TypeConstant(target.get().getPath(), target.get());
+                if (target.get() instanceof ObjectCommon && !(this.getParent() instanceof SpecifiedType)) {
+                    ObjectCommon ort = (ObjectCommon) target.get();
+                    if (ort.isGeneric()) {
+                        List<TypeObject> params = new ArrayList<>();
+                        for (int i = 0; i < ort.getGenericNames().size(); i++) {
+                            FreeVariable v = new FreeVariable();
+                            environment.put(v, new AnyType());
+                            params.add(new TypeAlias(v));
+                        }
+                        FreeVariable base = new FreeVariable();
+                        environment.put(base, t);
+                        t = new Instantiation(new TypeAlias(base), params);
+                    }
+                }
+                environment.put(rc, t);
             }
         } else {
-            environment.put(rc, new TypeConstant(this.name));
+            environment.put(rc, new TypeConstant(this.name, this));
         }
         return rc;
     }
