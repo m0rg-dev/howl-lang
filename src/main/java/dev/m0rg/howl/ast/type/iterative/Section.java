@@ -1,6 +1,7 @@
 package dev.m0rg.howl.ast.type.iterative;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,8 +39,13 @@ public class Section {
         rules.add(new DistributeIntersection());
         rules.add(new Select());
         rules.add(new IntersectAny());
+        rules.add(new IntersectNumeric());
     }
 
+    public Map<Expression, TypeObject> getEnvironment() {
+        return Collections.unmodifiableMap(environment);
+    }
+    
     public boolean isEmpty() {
         return environment.isEmpty();
     }
