@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import dev.m0rg.howl.ast.expression.Expression;
-import dev.m0rg.howl.logger.Logger;
 
 public class Select extends ProductionRule {
 
@@ -27,7 +26,6 @@ public class Select extends ProductionRule {
     TypeObject apply(TypeObject source, Map<Expression, TypeObject> environment) {
         OverloadSelect sel = (OverloadSelect) source.dereferenced(environment);
         OverloadType o = (OverloadType) sel.source.dereferenced(environment);
-        Logger.trace("sel: " + source.format());
         List<FunctionType> matches = new ArrayList<>();
         candidate: for (TypeObject candidate : o.source) {
             if (candidate.dereferenced(environment) instanceof FunctionType) {
@@ -37,9 +35,7 @@ public class Select extends ProductionRule {
                 }
 
                 for (int i = 0; i < f.args.size(); i++) {
-                    Logger.trace(" check: " + f.args.get(i).format() + " <- " + sel.args.get(i).format());
                     if (!f.args.get(i).accepts(sel.args.get(i), environment)) {
-                        Logger.trace("    fail.");
                         continue candidate;
                     }
                 }
@@ -47,18 +43,12 @@ public class Select extends ProductionRule {
                 matches.add(f);
             }
         }
-        Logger.trace("matches:");
-        for (FunctionType f : matches) {
-            Logger.trace("  " + f.format());
-        }
 
         if (matches.size() == 1) {
             FunctionType f = matches.get(0);
             List<TypeObject> intersected_args = new ArrayList<>();
             for (int i = 0; i < f.args.size(); i++) {
-                Logger.info("  arg " + i + " : " + f.args.get(i).format());
                 if (f.args.get(i) instanceof TypeAlias) {
-                    Logger.info(" source " + ((TypeAlias) f.args.get(i)).last_reference(environment).format());
                     TypeAlias t = ((TypeAlias) f.args.get(i)).last_reference(environment);
                     FreeVariable v = new FreeVariable();
                     environment.put(v, environment.get(t.handle));

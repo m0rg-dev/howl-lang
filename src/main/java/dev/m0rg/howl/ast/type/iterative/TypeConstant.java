@@ -7,7 +7,6 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.expression.Expression;
-import dev.m0rg.howl.logger.Logger;
 
 public class TypeConstant extends TypeObject implements FieldSource {
     String name;

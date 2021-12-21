@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import dev.m0rg.howl.ast.expression.Expression;
-import dev.m0rg.howl.logger.Logger;
 
 public class Instantiation extends TypeObject implements Distributive, FieldSource {
     TypeObject source;

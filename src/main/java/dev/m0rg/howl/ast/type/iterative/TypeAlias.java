@@ -3,7 +3,6 @@ package dev.m0rg.howl.ast.type.iterative;
 import java.util.Map;
 
 import dev.m0rg.howl.ast.expression.Expression;
-import dev.m0rg.howl.logger.Logger;
 
 public class TypeAlias extends TypeObject implements Distributive {
     Expression handle;
@@ -19,7 +18,6 @@ public class TypeAlias extends TypeObject implements Distributive {
     @Override
     public boolean isSubstitutable(Map<Expression, TypeObject> environment) {
         return environment.get(handle).isSubstitutable(environment);
-        // return false;
     }
 
     @Override
@@ -29,9 +27,6 @@ public class TypeAlias extends TypeObject implements Distributive {
 
     @Override
     public boolean accepts(TypeObject other, Map<Expression, TypeObject> environment) {
-        Logger.trace(
-                environment.get(handle).format() + " <- " + other.format() + " = "
-                        + other.dereferenced(environment).format());
         return environment.get(handle).accepts(other, environment);
     }
 

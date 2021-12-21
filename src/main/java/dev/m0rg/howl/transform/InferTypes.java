@@ -9,8 +9,7 @@ public class InferTypes implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
         if (e instanceof Statement) {
             Section s = Section.derive((Statement) e);
-            boolean noisy = !s.isEmpty()
-                    || ((Statement) e).getAnnotations().getOrDefault("debug", "").contains("dumptypes");
+            boolean noisy = ((Statement) e).getAnnotations().getOrDefault("debug", "").contains("dumptypes");
 
             if (noisy) {
                 s.dump();
