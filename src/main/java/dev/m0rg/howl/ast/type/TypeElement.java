@@ -1,9 +1,13 @@
 package dev.m0rg.howl.ast.type;
 
+import java.util.Map;
 import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Span;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.type.iterative.FreeVariable;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 
 public abstract class TypeElement extends ASTElement {
     public TypeElement(Span span) {
@@ -11,6 +15,10 @@ public abstract class TypeElement extends ASTElement {
     }
 
     public abstract String mangle();
+
+    public FreeVariable deriveType(Map<Expression, TypeObject> environment) {
+        throw new UnsupportedOperationException(this.getClass().getName());
+    }
 
     public abstract boolean accepts(TypeElement other);
 

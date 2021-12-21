@@ -2,12 +2,19 @@ package dev.m0rg.howl.ast.type;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Span;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.type.iterative.FreeVariable;
+import dev.m0rg.howl.ast.type.iterative.TypeAlias;
+import dev.m0rg.howl.ast.type.iterative.TypeConstant;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
+import dev.m0rg.howl.logger.Logger;
 
 public class NamedType extends TypeElement {
     static final Set<String> base_types;
@@ -105,5 +112,23 @@ public class NamedType extends TypeElement {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public FreeVariable deriveType(Map<Expression, TypeObject> environment) {
+        FreeVariable rc = new FreeVariable();
+        Optional<ASTElement> target = this.resolveName(this.name);
+        if (target.isPresent()) {
+            if (target.get() instanceof TypeElement) {
+                environment.put(rc, new TypeAlias(
+                        ((TypeElement) target.get()).deriveType(environment)));
+            } else {
+                Logger.info(" target: " + name + " " + target.get().getClass().getName());
+                environment.put(rc, new TypeConstant(target.get().getPath()));
+            }
+        } else {
+            environment.put(rc, new TypeConstant(this.name));
+        }
+        return rc;
     }
 }

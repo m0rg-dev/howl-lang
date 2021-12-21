@@ -12,6 +12,9 @@ import dev.m0rg.howl.ast.type.ObjectReferenceType;
 import dev.m0rg.howl.ast.type.algebraic.AAnyType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.iterative.FieldReferenceType;
+import dev.m0rg.howl.ast.type.iterative.TypeAlias;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMType;
@@ -58,6 +61,12 @@ public class FieldReferenceExpression extends Expression implements Lvalue {
     public void transform(ASTTransformer t) {
         source.transform(t);
         setSource(t.transform(source));
+    }
+
+    @Override
+    public void deriveType(Map<Expression, TypeObject> environment) {
+        source.deriveType(environment);
+        environment.put(this, new FieldReferenceType(new TypeAlias(source), name));
     }
 
     @Override

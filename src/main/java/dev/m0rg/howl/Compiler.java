@@ -29,25 +29,20 @@ import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
-import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckExceptions;
 import dev.m0rg.howl.lint.CheckInterfaceImplementations;
 import dev.m0rg.howl.lint.ExternFunctionBaseTypesOnly;
-import dev.m0rg.howl.lint.StaticNonStatic;
 import dev.m0rg.howl.lint.SuperConstructorCalls;
 import dev.m0rg.howl.llvm.LLVMContext;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.transform.AddClassCasts;
-import dev.m0rg.howl.transform.AddGenerics;
 import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddInterfaceConverters;
 import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.Coalesce;
-import dev.m0rg.howl.transform.MultiPass;
 import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertFor;
@@ -58,7 +53,7 @@ import dev.m0rg.howl.transform.ConvertThrow;
 import dev.m0rg.howl.transform.ConvertTryCatch;
 import dev.m0rg.howl.transform.EnsureTypesResolve;
 import dev.m0rg.howl.transform.InferTypes;
-import dev.m0rg.howl.transform.Monomorphize2;
+import dev.m0rg.howl.transform.MultiPass;
 import dev.m0rg.howl.transform.ResolveNames;
 import dev.m0rg.howl.transform.RunStaticAnalysis;
 
@@ -229,9 +224,6 @@ public class Compiler {
         Logger.trace("  => RunStaticAnalysis " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        // System.err.println(cc.root_module.getChild("main").get().format());
-        // System.exit(0);
-
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
                 new ConvertTryCatch(),
                 new ConvertFor(),
@@ -262,10 +254,13 @@ public class Compiler {
                 transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        // cc.root_module.transform(new InferTypes());
-        // Logger.trace(" => InferTypes " + (System.currentTimeMillis() -
-        // transform_start) + " ms");
-        // transform_start = System.currentTimeMillis();
+        cc.root_module.transform(new InferTypes());
+        Logger.trace(" => InferTypes " + (System.currentTimeMillis() -
+                transform_start) + " ms");
+        transform_start = System.currentTimeMillis();
+
+        System.err.println(cc.root_module.getChild("main").get().format());
+        System.exit(0);
 
         Finder.find(cc.root_module, x -> CheckInterfaceImplementations.apply(x));
         Logger.trace("  => CheckInterfaceImplementations " + (System.currentTimeMillis() - transform_start) + " ms");

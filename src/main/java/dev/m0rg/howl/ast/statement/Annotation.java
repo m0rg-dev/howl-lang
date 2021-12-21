@@ -1,17 +1,15 @@
-package dev.m0rg.howl.ast.type;
+package dev.m0rg.howl.ast.statement;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Map.Entry;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.llvm.LLVMFunction;
 
 // we extend Statement here just so that things won't blow up when you have one
@@ -53,5 +51,4 @@ public class Annotation extends Statement {
     public void transform(ASTTransformer t) {
         ;
     }
-
 }

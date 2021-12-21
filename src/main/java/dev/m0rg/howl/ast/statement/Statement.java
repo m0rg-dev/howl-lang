@@ -7,7 +7,6 @@ import java.util.Optional;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
-import dev.m0rg.howl.ast.type.Annotation;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.logger.Logger;
 

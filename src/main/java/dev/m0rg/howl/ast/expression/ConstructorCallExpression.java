@@ -11,19 +11,20 @@ import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.TypeElement;
-import dev.m0rg.howl.ast.type.algebraic.AExtractArgument;
 import dev.m0rg.howl.ast.type.algebraic.AFieldReferenceType;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
+import dev.m0rg.howl.ast.type.iterative.TypeAlias;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
 import dev.m0rg.howl.llvm.LLVMValue;
 
 public class ConstructorCallExpression extends CallExpressionBase {
-    ALambdaTerm source;
+    TypeElement source;
 
     public ConstructorCallExpression(Span span) {
         super(span);
@@ -32,7 +33,7 @@ public class ConstructorCallExpression extends CallExpressionBase {
     @Override
     public ASTElement detach() {
         ConstructorCallExpression rc = new ConstructorCallExpression(span);
-        rc.setSource(source);
+        rc.setSource((TypeElement) source.detach());
         this.copyArguments(rc);
         return rc;
     }
@@ -42,16 +43,22 @@ public class ConstructorCallExpression extends CallExpressionBase {
         return "new " + this.source.format() + this.getArgString();
     }
 
-    public void setSource(ALambdaTerm source) {
-        this.source = source;
+    public void setSource(TypeElement source) {
+        this.source = (TypeElement) source.setParent(this);
     }
 
     public void transform(ASTTransformer t) {
         this.transformArguments(t);
     }
 
+    @Override
+    public void deriveType(Map<Expression, TypeObject> environment) {
+        // TODO
+        environment.put(this, new TypeAlias(source.deriveType(environment)));
+    }
+
     public ALambdaTerm getType() {
-        return source;
+        return null;
     }
 
     @Override
@@ -68,13 +75,12 @@ public class ConstructorCallExpression extends CallExpressionBase {
         for (Expression e : this.args) {
             arg_types.add(AlgebraicType.derive(e));
         }
-        return new AExtractArgument(new AFieldReferenceType(source, "constructor"),
-                arg_types, index);
+        return null;
     }
 
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
-        ALambdaTerm source_type = ALambdaTerm.evaluate(source);
+        ALambdaTerm source_type = null;
         String allocator_name = ((AStructureReference) source_type).getPathMangled() + "_alloc";
         LLVMFunctionType allocator_type = new LLVMFunctionType(
                 source_type.toLLVM(builder.getModule()),

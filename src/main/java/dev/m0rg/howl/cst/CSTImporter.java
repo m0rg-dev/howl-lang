@@ -44,6 +44,7 @@ import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.NumberExpression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.expression.StringLiteral;
+import dev.m0rg.howl.ast.statement.Annotation;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.BreakContinueStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
@@ -59,7 +60,6 @@ import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.statement.ThrowStatement;
 import dev.m0rg.howl.ast.statement.TryStatement;
 import dev.m0rg.howl.ast.statement.WhileStatement;
-import dev.m0rg.howl.ast.type.Annotation;
 import dev.m0rg.howl.ast.type.FunctionType;
 import dev.m0rg.howl.ast.type.LambdaType;
 import dev.m0rg.howl.ast.type.NamedType;
@@ -355,7 +355,7 @@ public class CSTImporter {
 
         ASTElement c_source = parseElement(source.get("source"));
         if (c_source instanceof TypeElement) {
-            rc.setSource(new ADefer((TypeElement) c_source.setParent(rc)));
+            rc.setSource((TypeElement) c_source.setParent(rc));
         } else {
             throw new IllegalArgumentException();
         }

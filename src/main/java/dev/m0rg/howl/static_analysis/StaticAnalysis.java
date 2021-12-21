@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Optional;
 
+import dev.m0rg.howl.ast.statement.Annotation;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.BreakContinueStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
@@ -18,7 +19,6 @@ import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.statement.ThrowStatement;
 import dev.m0rg.howl.ast.statement.TryStatement;
 import dev.m0rg.howl.ast.statement.WhileStatement;
-import dev.m0rg.howl.ast.type.Annotation;
 import dev.m0rg.howl.logger.Logger;
 
 public class StaticAnalysis {
