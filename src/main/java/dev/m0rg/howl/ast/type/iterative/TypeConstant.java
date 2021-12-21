@@ -44,6 +44,17 @@ public class TypeConstant extends TypeObject implements FieldSource {
             if (t instanceof NumericType && u instanceof NumericType) {
                 return true;
             }
+
+            Optional<ASTElement> source_element = source.resolveName(this.name);
+            Optional<ASTElement> other_element = ((TypeConstant) other).source.resolveName(((TypeConstant) other).name);
+
+            if (source_element.isPresent() && other_element.isPresent()) {
+                if (source_element.get() instanceof ObjectCommon && other_element.get() instanceof ObjectCommon) {
+                    return ((ObjectCommon) source_element.get()).getOwnType()
+                            .accepts(((ObjectCommon) other_element.get()).getOwnType());
+                }
+            }
+
         }
 
         return false;

@@ -1,0 +1,23 @@
+class A {
+    fn void method() {
+
+    }
+}
+
+class B extends A {
+
+}
+
+interface I {}
+
+class C implements I {}
+
+fn i32 Main() {
+    let A a = new B();
+    a.method();
+    let B b = new B();
+    b.method();
+    #[debug="dumptypes"]
+    let I i = new C();
+    return 0;
+}

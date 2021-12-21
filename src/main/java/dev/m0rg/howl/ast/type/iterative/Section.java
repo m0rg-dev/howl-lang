@@ -40,6 +40,7 @@ public class Section {
         rules.add(new Select());
         rules.add(new IntersectAny());
         rules.add(new IntersectNumeric());
+        rules.add(new IntersectAccepting());
         rules.add(new FunctionReturns());
     }
 
