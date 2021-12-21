@@ -27,4 +27,9 @@ public class ErrorType extends TypeObject {
     public boolean accepts(TypeObject other, Map<Expression, TypeObject> environment) {
         return this.equals(other, environment);
     }
+
+    @Override
+    public boolean isSubstitutable(Map<Expression, TypeObject> environment) {
+        return true;
+    }
 }

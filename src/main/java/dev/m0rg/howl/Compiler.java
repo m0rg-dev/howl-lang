@@ -249,18 +249,27 @@ public class Compiler {
         Logger.trace("  => Combined2 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new ConvertCustomOverloads());
-        Logger.trace("  => ConvertCustomOverloads " + (System.currentTimeMillis() -
-                transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
+        // TODO figure out how this works now
+        // cc.root_module.transform(new ConvertCustomOverloads());
+        // Logger.trace(" => ConvertCustomOverloads " + (System.currentTimeMillis() -
+        // transform_start) + " ms");
+        // transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new InferTypes());
         Logger.trace(" => InferTypes " + (System.currentTimeMillis() -
                 transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
+        // ########################################
+        for (CompilationError e : cc.errors) {
+            if (cc.errors_displayed.contains(e))
+                continue;
+            System.err.println(e.format());
+            cc.errors_displayed.add(e);
+        }
         System.err.println(cc.root_module.getChild("main").get().format());
         System.exit(0);
+        // ########################################
 
         Finder.find(cc.root_module, x -> CheckInterfaceImplementations.apply(x));
         Logger.trace("  => CheckInterfaceImplementations " + (System.currentTimeMillis() - transform_start) + " ms");

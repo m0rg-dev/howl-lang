@@ -57,7 +57,9 @@ public class Select extends ProductionRule {
                     throw new RuntimeException();
                 }
             }
-            return new FunctionType(f.source, f.return_type, f.self_type, intersected_args);
+            FreeVariable v = new FreeVariable();
+            environment.put(v, new FunctionType(f.source, f.return_type, f.self_type, intersected_args));
+            return new CallType(new TypeAlias(v));
         }
 
         throw new RuntimeException();

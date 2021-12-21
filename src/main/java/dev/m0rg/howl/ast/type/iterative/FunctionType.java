@@ -17,7 +17,7 @@ public class FunctionType extends TypeObject implements Distributive {
         this.source = source;
         this.return_type = new TypeAlias(source.getReturn().deriveType(environment));
         if (source.isStatic()) {
-            this.self_type = new AnyType();
+            this.self_type = new ErrorType(null, "static method self");
             this.args = new ArrayList<>();
         } else {
             this.self_type = new TypeAlias(source.getArgumentList().get(0).getOwnType().deriveType(environment));

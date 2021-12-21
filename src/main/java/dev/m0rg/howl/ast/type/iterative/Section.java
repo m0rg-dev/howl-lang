@@ -40,12 +40,13 @@ public class Section {
         rules.add(new Select());
         rules.add(new IntersectAny());
         rules.add(new IntersectNumeric());
+        rules.add(new FunctionReturns());
     }
 
     public Map<Expression, TypeObject> getEnvironment() {
         return Collections.unmodifiableMap(environment);
     }
-    
+
     public boolean isEmpty() {
         return environment.isEmpty();
     }

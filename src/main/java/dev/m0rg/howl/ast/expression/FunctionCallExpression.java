@@ -17,6 +17,9 @@ import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AOverloadType;
 import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
+import dev.m0rg.howl.ast.type.iterative.CallType;
+import dev.m0rg.howl.ast.type.iterative.TypeAlias;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMFunction;
 import dev.m0rg.howl.llvm.LLVMInstruction;
@@ -77,6 +80,13 @@ public class FunctionCallExpression extends CallExpressionBase {
             arg_types.add(AlgebraicType.derive(e));
         }
         return new AExtractArgument(AlgebraicType.derive(source), arg_types, index);
+    }
+
+    @Override
+    public void deriveType(Map<Expression, TypeObject> environment) {
+        source.deriveType(environment);
+        TypeAlias source_type = new TypeAlias(source);
+        environment.put(this, new CallType(source_type));
     }
 
     @Override

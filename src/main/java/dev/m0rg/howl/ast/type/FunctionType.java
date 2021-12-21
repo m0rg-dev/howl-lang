@@ -2,6 +2,7 @@ package dev.m0rg.howl.ast.type;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import dev.m0rg.howl.ast.ASTElement;
@@ -9,6 +10,9 @@ import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Span;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.type.iterative.FreeVariable;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 
 public class FunctionType extends TypeElement {
     String source_path;
@@ -75,6 +79,13 @@ public class FunctionType extends TypeElement {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public FreeVariable deriveType(Map<Expression, TypeObject> environment) {
+        FreeVariable v = new FreeVariable();
+        environment.put(v, new dev.m0rg.howl.ast.type.iterative.FunctionType(this.getSource(), environment));
+        return v;
     }
 
 }

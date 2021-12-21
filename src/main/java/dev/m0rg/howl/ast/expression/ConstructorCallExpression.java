@@ -56,7 +56,6 @@ public class ConstructorCallExpression extends CallExpressionBase {
 
     @Override
     public void deriveType(Map<Expression, TypeObject> environment) {
-        // TODO
         TypeAlias source_type = new TypeAlias(source.deriveType(environment));
         FreeVariable constructor_field = new FreeVariable();
         environment.put(constructor_field, new FieldReferenceType(source_type, "constructor"));
