@@ -62,11 +62,10 @@ public class SuperCastExpression extends Expression {
         LLVMValue target_object_pointer = builder.buildStructGEP(target_llvm, target_alloca, 0, "");
         LLVMValue target_stable_pointer = builder.buildStructGEP(target_llvm, target_alloca, 1, "");
 
-        ClassType res = (ClassType) target_type.getSourceResolved();
         LLVMStructureType stable_type = target_type
                 .generateStaticType(builder.getModule());
         LLVMGlobalVariable stable = builder.getModule().getOrInsertGlobal(stable_type,
-                res.getSource().getPath() + "_static");
+                target_type.getPathMangled() + "_static");
         LLVMType source_object_type = source_type.generateObjectType(builder.getModule());
 
         builder.buildStore(builder.buildLoad(source_object_pointer, ""),

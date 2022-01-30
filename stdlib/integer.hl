@@ -1,0 +1,23 @@
+class Integer<T> implements Hash, Eq<Self> {
+    T value;
+
+    fn void constructor(T value) {
+        self.value = value;
+    }
+
+    fn void assign(T value) {
+        self.value = value;
+    }
+
+    fn T deref() {
+        return self.value;
+    }
+    
+    fn i32 hashCode() {
+        return self.value % 2147483647;
+    }
+
+    fn bool equals(Self other) {
+        return self.value == other.value;
+    }
+}

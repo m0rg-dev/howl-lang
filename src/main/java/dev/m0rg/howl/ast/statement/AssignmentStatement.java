@@ -40,6 +40,7 @@ public class AssignmentStatement extends Statement implements HasUpstreamFields 
     @Override
     public ASTElement detach() {
         AssignmentStatement rc = new AssignmentStatement(span);
+        rc.setAnnotation(annotation);
         rc.setLHS((Expression) this.getLHS().detach());
         rc.setRHS((Expression) this.getRHS().detach());
         return rc;

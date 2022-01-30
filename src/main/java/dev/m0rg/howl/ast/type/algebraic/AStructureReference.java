@@ -2,12 +2,9 @@ package dev.m0rg.howl.ast.type.algebraic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
@@ -16,8 +13,6 @@ import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.Field;
 import dev.m0rg.howl.ast.Function;
 import dev.m0rg.howl.ast.Interface;
-import dev.m0rg.howl.ast.Module;
-import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Overload;
 import dev.m0rg.howl.ast.type.ClassType;
 import dev.m0rg.howl.ast.type.ObjectReferenceType;
@@ -30,11 +25,11 @@ import dev.m0rg.howl.logger.Logger;
 
 public class AStructureReference extends ALambdaTerm implements AStructureType, Applicable, Mangle {
     ObjectReferenceType source;
-    Map<String, ALambdaTerm> substitutions;
+    ATuple parameters;
 
-    public AStructureReference(ObjectReferenceType source) {
+    public AStructureReference(ObjectReferenceType source, ATuple parameters) {
         this.source = source;
-        this.substitutions = new HashMap<>();
+        this.parameters = parameters;
     }
 
     public ObjectReferenceType getSource() {
@@ -43,15 +38,8 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
 
     @Override
     public String format() {
-        if (substitutions.isEmpty()) {
-            return "struct " + getSource().getSource().getPath();
-        } else {
-            List<String> s = new ArrayList<>();
-            for (Entry<String, ALambdaTerm> e : substitutions.entrySet()) {
-                s.add(e.getKey() + " := " + e.getValue().format());
-            }
-            return "struct " + getSource().getSource().getPath() + "[" + String.join(", ", s) + "]";
-        }
+        return "struct " + getSource().getSource().getPath() + "<"
+                + String.join(", ", parameters.contents.stream().map(x -> x.format()).toList()) + ">";
     }
 
     @Override
@@ -61,30 +49,27 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
 
     public Set<String> freeVariables() {
         HashSet<String> rc = new HashSet<>();
-        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
-            rc.addAll(s.getValue().freeVariables());
-        }
+        rc.addAll(parameters.freeVariables());
         return rc;
     }
 
     public ALambdaTerm substitute(String from, ALambdaTerm to) {
-        AStructureReference rc = new AStructureReference(source);
-        rc.substitutions.putAll(substitutions);
-        rc.substitutions.put(from, to);
+        return new AStructureReference(source, (ATuple) parameters.substitute(from, to));
+    }
 
-        // handle an edge case with α-conversion where we can get t[r := r', r'
-        // = r''] - we'd like to collapse those here (i.e. to t[r := r'']) and
-        // not have to worry about it in apply()
-        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
-            if (s.getValue() instanceof AVariable) {
-                AVariable v = ((AVariable) s.getValue());
-                if (v.name.equals(from) && !v.name.equals(s.getKey())) {
-                    rc.substitutions.put(s.getKey(), to);
-                    rc.substitutions.remove(from);
-                }
-            }
+    public List<ALambdaTerm> getParameters() {
+        return parameters.contents;
+    }
+
+    ALambdaTerm applyParameters(ALambdaTerm source) {
+        int i = 0;
+
+        for (ALambdaTerm p : this.parameters.contents) {
+            AVariable v = new AVariable(this.source.getSource().getGenericNames().get(i));
+            source = new AApplication(v.lambda(source), p);
+            i++;
         }
-        return rc;
+        return source;
     }
 
     public ALambdaTerm getField(String name) {
@@ -99,62 +84,70 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         });
 
         ALambdaTerm rc = AlgebraicType.derive(src.get());
-        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
-            rc = rc.substitute(s.getKey(), s.getValue());
-        }
-        return rc;
+
+        return new ASpecify(rc, this.parameters);
     }
 
     public boolean hasField(String name) {
-        Optional<ASTElement> src = source.getSource().getField(name).map(x -> x.getOwnType());
-        src = src.or(() -> source.getSource().getMethod(name));
-        src = src.or(() -> {
-            if (source.getSource().getOverloadCandidates(name).size() > 0) {
-                return Optional.of(new Overload(source.getSource().getSpan(), name, source));
-            } else {
-                return Optional.empty();
-            }
-        });
+        throw new UnsupportedOperationException();
 
-        return src.isPresent();
+        // Optional<ASTElement> src = source.getSource().getField(name).map(x ->
+        // x.getOwnType());
+        // src = src.or(() -> source.getSource().getMethod(name));
+        // src = src.or(() -> {
+        // if (source.getSource().getOverloadCandidates(name).size() > 0) {
+        // return Optional.of(new Overload(source.getSource().getSpan(), name, source));
+        // } else {
+        // return Optional.empty();
+        // }
+        // });
+
+        // return src.isPresent();
     }
 
     public List<AFunctionReference> getMethods() {
         List<AFunctionReference> rc = new ArrayList<>();
         for (Function f : source.getSource().synthesizeMethods()) {
             AFunctionReference t = new AFunctionReference(f);
-            t.substitutions = new HashMap<>(this.substitutions);
-            rc.add(t);
+            rc.add((AFunctionReference) ALambdaTerm.evaluate(applyParameters(t)));
         }
         return rc;
     }
 
     public Map<String, ALambdaTerm> getSubstitutions() {
-        return Collections.unmodifiableMap(substitutions);
+        throw new UnsupportedOperationException();
+
+        // return Collections.unmodifiableMap(substitutions);
     }
 
     @Override
     public boolean isApplicable() {
-        boolean rc = false;
-        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
-            if (s.getValue() instanceof Applicable && ((Applicable) s.getValue()).isApplicable()) {
-                rc = true;
-            }
-        }
-        return rc;
+        return parameters.isApplicable();
+
+        // boolean rc = false;
+        // for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+        // if (s.getValue() instanceof Applicable && ((Applicable)
+        // s.getValue()).isApplicable()) {
+        // rc = true;
+        // }
+        // }
+        // return rc;
     }
 
     @Override
     public ALambdaTerm apply() {
-        AStructureReference rc = new AStructureReference(source);
-        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
-            if (s.getValue() instanceof Applicable && ((Applicable) s.getValue()).isApplicable()) {
-                rc.substitutions.put(s.getKey(), ((Applicable) s.getValue()).apply());
-            } else {
-                rc.substitutions.put(s.getKey(), s.getValue());
-            }
-        }
-        return rc;
+        return new AStructureReference(source, (ATuple) parameters.apply());
+
+        // AStructureReference rc = new AStructureReference(source);
+        // for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+        // if (s.getValue() instanceof Applicable && ((Applicable)
+        // s.getValue()).isApplicable()) {
+        // rc.substitutions.put(s.getKey(), ((Applicable) s.getValue()).apply());
+        // } else {
+        // rc.substitutions.put(s.getKey(), s.getValue());
+        // }
+        // }
+        // return rc;
     }
 
     @Override
@@ -166,13 +159,13 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             // monomorphizations of the same class to come out OK for
             // constructor overload selection. it'll make sense if you take
             // these blocks out and look at the errors
-            if (other_ref.getSource().getSource().original != null) {
-                return true;
-            }
+            // if (other_ref.getSource().getSource().original != null) {
+            // return true;
+            // }
 
-            if (this.getSource().getSource().original != null) {
-                return true;
-            }
+            // if (this.getSource().getSource().original != null) {
+            // return true;
+            // }
 
             if (other_ref.getSource().getSource() instanceof Class) {
                 Class other_class = (Class) other_ref.getSource().getSource();
@@ -185,11 +178,11 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
             }
 
             if (source.accepts(other_ref.source)) {
-                if (other_ref.substitutions.size() == substitutions.size()) {
-                    for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
+                if (other_ref.parameters.contents.size() == parameters.contents.size()) {
+                    for (int i = 0; i < parameters.contents.size(); i++) {
                         // structure types have to be equal, not just accepting
                         // to avoid generic havoc later.
-                        if (!s.getValue().equals(other_ref.substitutions.get(s.getKey()))) {
+                        if (!parameters.contents.get(i).equals(other_ref.parameters.contents.get(i))) {
                             return false;
                         }
                     }
@@ -208,18 +201,20 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
     public String mangle() {
         List<String> parts = new ArrayList<>();
 
-        if (this.substitutions.size() > 0) {
+        if (this.getParameters().size() > 0) {
             parts.add("T");
-            parts.add(Integer.toString(substitutions.size()));
+            parts.add(Integer.toString(getParameters().size()));
+        } else {
+            return getSource().getSource().getName();
         }
 
         parts.add("N");
         parts.add(Integer.toString(getSource().getSource().getPath().length()));
         parts.add(getSource().getSource().getPath().replace('.', '_'));
 
-        for (Entry<String, ALambdaTerm> s : substitutions.entrySet()) {
-            if (s.getValue() instanceof Mangle) {
-                parts.add(((Mangle) s.getValue()).mangle());
+        for (ALambdaTerm p : getParameters()) {
+            if (p instanceof Mangle) {
+                parts.add(((Mangle) p).mangle());
             } else {
                 throw new RuntimeException(this.format());
             }
@@ -228,39 +223,16 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
         return String.join("", parts);
     }
 
-    public String getSourcePath() {
-        return this.getSourceResolved().getSource().getPath();
-    }
-
-    public ObjectReferenceType getSourceResolved() {
-        if (substitutions.size() > 0) {
-            Optional<ASTElement> mmc = ((Module) getSource().getSource().getParent()).getChild(mangle());
-            if (mmc.isPresent()) {
-                AStructureReference rc = new AStructureReference(((ObjectCommon) mmc.get()).getOwnType());
-                return rc.getSourceResolved();
-            } else {
-                throw new RuntimeException();
-            }
-        }
-        return this.source;
+    public String getPathMangled() {
+        return this.getSource().getSource().getParent().getPath() + "." + mangle();
     }
 
     static Set<String> structures_generated = new HashSet<>();
 
     @Override
     public LLVMStructureType toLLVM(LLVMModule module) {
-        if (substitutions.size() > 0) {
-            Optional<ASTElement> mmc = ((Module) getSource().getSource().getParent()).getChild(mangle());
-            if (mmc.isPresent()) {
-                AStructureReference rc = new AStructureReference(((ObjectCommon) mmc.get()).getOwnType());
-                return rc.toLLVM(module);
-            } else {
-                Logger.trace("generate: " + this.format() + " " + this.mangle());
-                throw new RuntimeException();
-            }
-        }
-
-        String name = getSourcePath();
+        String name = getPathMangled();
+        Logger.info("generating: " + name);
         LLVMStructureType t;
         if (module.getContext().getStructureType(name).isPresent()) {
             t = module.getContext().getStructureType(name).get();
@@ -282,14 +254,15 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
                 static_type = new LLVMPointerType<>(new LLVMIntType(module.getContext(), 8));
                 itable_type = new LLVMPointerType<>(this.generateStaticType(module));
             }
-            t.setBody(Arrays.asList(new LLVMType[] { object_type, static_type, itable_type }), true);
+            t.setBody(Arrays.asList(new LLVMType[] { object_type, static_type,
+                    itable_type }), true);
         }
         return t;
 
     }
 
     public LLVMStructureType generateObjectType(LLVMModule module) {
-        String name = getSourcePath() + "_object";
+        String name = getPathMangled() + "_object";
         LLVMStructureType t;
         if (module.getContext().getStructureType(name).isPresent()) {
             t = module.getContext().getStructureType(name).get();
@@ -311,7 +284,7 @@ public class AStructureReference extends ALambdaTerm implements AStructureType, 
     }
 
     public LLVMStructureType generateStaticType(LLVMModule module) {
-        String name = getSourcePath() + "_static";
+        String name = getPathMangled() + "_static";
         LLVMStructureType t;
         if (module.getContext().getStructureType(name).isPresent()) {
             t = module.getContext().getStructureType(name).get();

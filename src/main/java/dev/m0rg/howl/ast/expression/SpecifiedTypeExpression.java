@@ -14,6 +14,9 @@ import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.type.TypeElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.iterative.Instantiation;
+import dev.m0rg.howl.ast.type.iterative.TypeAlias;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMGlobalVariable;
@@ -85,7 +88,7 @@ public class SpecifiedTypeExpression extends Expression {
         AStructureReference t = (AStructureReference) ALambdaTerm.evaluateFrom(this);
         LLVMType static_type = t.generateStaticType(builder.getModule());
         LLVMType object_type = t.generateObjectType(builder.getModule());
-        LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, t.getSourcePath() + "_static");
+        LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, t.getPathMangled() + "_static");
         LLVMStructureType rctype = t.toLLVM(builder.getModule());
         LLVMConstant anon_struct = rctype.createConstant(builder.getContext(), Arrays.asList(new LLVMConstant[] {
                 new LLVMPointerType<>(object_type).getNull(builder.getModule()),
@@ -98,5 +101,13 @@ public class SpecifiedTypeExpression extends Expression {
     public Map<String, FieldHandle> getUpstreamFields() {
         HashMap<String, FieldHandle> rc = new HashMap<>();
         return rc;
+    }
+
+    @Override
+    public void deriveType(Map<Expression, TypeObject> environment) {
+        source.deriveType(environment);
+        environment.put(this, new Instantiation(
+                new TypeAlias(source),
+                parameters.stream().map(x -> (TypeObject) new TypeAlias(x.deriveType(environment))).toList()));
     }
 }

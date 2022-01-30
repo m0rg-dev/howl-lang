@@ -7,6 +7,8 @@ import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Span;
+import dev.m0rg.howl.ast.type.iterative.TypeConstant;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMIntType;
 import dev.m0rg.howl.llvm.LLVMValue;
@@ -43,5 +45,10 @@ public class NumberExpression extends Expression {
     public LLVMValue generate(LLVMBuilder b) {
         // TODO
         return (new LLVMIntType(b.getContext(), 64)).getConstant(b.getModule(), Integer.parseInt(as_text, 10));
+    }
+
+    @Override
+    public void deriveType(Map<Expression, TypeObject> environment) {
+        environment.put(this, new TypeConstant("__numeric", this));
     }
 }

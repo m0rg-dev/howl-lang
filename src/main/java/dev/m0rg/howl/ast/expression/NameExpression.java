@@ -1,5 +1,6 @@
 package dev.m0rg.howl.ast.expression;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -12,10 +13,17 @@ import dev.m0rg.howl.ast.Argument;
 import dev.m0rg.howl.ast.Class;
 import dev.m0rg.howl.ast.FieldHandle;
 import dev.m0rg.howl.ast.Function;
+import dev.m0rg.howl.ast.ObjectCommon;
 import dev.m0rg.howl.ast.Span;
 import dev.m0rg.howl.ast.statement.LocalDefinitionStatement;
+import dev.m0rg.howl.ast.type.HasOwnType;
 import dev.m0rg.howl.ast.type.algebraic.AFunctionReference;
 import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
+import dev.m0rg.howl.ast.type.algebraic.ATuple;
+import dev.m0rg.howl.ast.type.iterative.ErrorType;
+import dev.m0rg.howl.ast.type.iterative.TypeAlias;
+import dev.m0rg.howl.ast.type.iterative.TypeConstant;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 import dev.m0rg.howl.llvm.LLVMBuilder;
 import dev.m0rg.howl.llvm.LLVMConstant;
 import dev.m0rg.howl.llvm.LLVMFunctionType;
@@ -25,6 +33,7 @@ import dev.m0rg.howl.llvm.LLVMPointerType;
 import dev.m0rg.howl.llvm.LLVMStructureType;
 import dev.m0rg.howl.llvm.LLVMType;
 import dev.m0rg.howl.llvm.LLVMValue;
+import dev.m0rg.howl.logger.Logger;
 
 public class NameExpression extends Expression implements Lvalue {
     String name;
@@ -43,12 +52,12 @@ public class NameExpression extends Expression implements Lvalue {
 
     @Override
     public String format() {
-        String resolution = "\u001b[31m/* = <unresolved> */\u001b[0m";
-        Optional<ASTElement> target = this.resolveName(this.name);
-        if (target.isPresent()) {
-            resolution = "\u001b[32m/* = " + target.get().getPath() + " */\u001b[0m";
-        }
-        return this.name + " " + resolution;
+        // String resolution = "\u001b[31m/* = <unresolved> */\u001b[0m";
+        // Optional<ASTElement> target = this.resolveName(this.name);
+        // if (target.isPresent()) {
+        // resolution = "\u001b[32m/* = " + target.get().getPath() + " */\u001b[0m";
+        // }
+        return this.name;
     }
 
     public void transform(ASTTransformer t) {
@@ -61,6 +70,24 @@ public class NameExpression extends Expression implements Lvalue {
 
     public String[] getSplit() {
         return split;
+    }
+
+    @Override
+    public void deriveType(Map<Expression, TypeObject> environment) {
+        Optional<ASTElement> target = this.resolveName(this.name);
+        if (target.isPresent()) {
+            if (target.get() instanceof ObjectCommon) {
+                ObjectCommon a = (ObjectCommon) target.get();
+                environment.put(this, new TypeAlias(a.getOwnType().deriveType(environment, this.getParent())));
+            } else if (target.get() instanceof HasOwnType) {
+                HasOwnType a = (HasOwnType) target.get();
+                environment.put(this, new TypeAlias(a.getOwnType().deriveType(environment)));
+            } else {
+                environment.put(this, new TypeConstant(target.get().getPath(), target.get()));
+            }
+        } else {
+            environment.put(this, new ErrorType(span, "Unresolved name"));
+        }
     }
 
     @Override
@@ -87,7 +114,7 @@ public class NameExpression extends Expression implements Lvalue {
         } else if (target instanceof Class) {
             // TODO dedupe with SpecifiedTypeExpression
             Class c = (Class) target;
-            AStructureReference t = (new AStructureReference(c.getOwnType()));
+            AStructureReference t = (new AStructureReference(c.getOwnType(), new ATuple(new ArrayList<>())));
             LLVMType static_type = t.generateStaticType(builder.getModule());
             LLVMType object_type = t.generateObjectType(builder.getModule());
             LLVMGlobalVariable g = builder.getModule().getOrInsertGlobal(static_type, c.getPath() + "_static");

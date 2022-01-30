@@ -6,6 +6,7 @@ import java.util.List;
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.statement.Annotation;
 import dev.m0rg.howl.ast.statement.CatchStatement;
 import dev.m0rg.howl.ast.statement.CompoundStatement;
 import dev.m0rg.howl.ast.statement.ElseIfStatement;
@@ -13,6 +14,7 @@ import dev.m0rg.howl.ast.statement.ElseStatement;
 import dev.m0rg.howl.ast.statement.IfStatement;
 import dev.m0rg.howl.ast.statement.Statement;
 import dev.m0rg.howl.ast.statement.TryStatement;
+import dev.m0rg.howl.logger.Logger;
 
 public class Coalesce implements ASTTransformer {
     public ASTElement transform(ASTElement e) {
@@ -23,6 +25,12 @@ public class Coalesce implements ASTTransformer {
                 return e;
             List<Statement> new_contents = new ArrayList<>();
             new_contents.add((Statement) contents.get(0).detachUnsafe());
+
+            for (int i = 1; i < contents.size(); i++) {
+                if (contents.get(i - 1) instanceof Annotation) {
+                    contents.get(i).setAnnotation((Annotation) contents.get(i - 1).detach());
+                }
+            }
 
             for (int i = 1, j = 1; i < contents.size(); i++) {
                 if (contents.get(i) instanceof ElseStatement) {

@@ -35,6 +35,7 @@ public class TryStatement extends Statement {
     @Override
     public ASTElement detach() {
         TryStatement rc = new TryStatement(span);
+        rc.setAnnotation(annotation);
         rc.setBody((CompoundStatement) this.getBody().detach());
         for (CatchStatement a : this.alternatives) {
             rc.insertAlternative((CatchStatement) a.detach());

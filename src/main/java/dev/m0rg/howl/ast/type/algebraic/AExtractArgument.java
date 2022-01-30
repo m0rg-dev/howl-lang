@@ -21,7 +21,7 @@ public class AExtractArgument extends ALambdaTerm implements Applicable {
         for (ALambdaTerm a : this.args) {
             afmt.add(a.format());
         }
-        return "arg " + index + " " + source.format() + " {" + String.join(", ", afmt) + "}";
+        return "arg " + index + " (" + source.format() + ") (" + String.join(", ", afmt) + ")";
     }
 
     @Override
@@ -32,6 +32,16 @@ public class AExtractArgument extends ALambdaTerm implements Applicable {
     @Override
     public ALambdaTerm substitute(String from, ALambdaTerm to) {
         return new AExtractArgument(source.substitute(from, to), args, index);
+    }
+
+    @Override
+    public boolean isApplicable() {
+        if (args.stream().anyMatch((a) -> a instanceof Applicable && ((Applicable) a).isApplicable())) {
+            return true;
+        }
+
+        return (source instanceof Applicable && ((Applicable) source).isApplicable())
+                || source instanceof AFunctionType;
     }
 
     @Override

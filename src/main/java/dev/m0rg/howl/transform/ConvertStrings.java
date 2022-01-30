@@ -21,7 +21,8 @@ public class ConvertStrings implements ASTTransformer {
             FunctionCallExpression fb_call = new FunctionCallExpression(e.getSpan());
             fb_call.setSource(from_bytes);
             fb_call.insertArgument((Expression) e.detach());
-            fb_call.insertArgument(new NumberExpression(e.getSpan(), "" + ((StringLiteral) e).real_string().length()));
+            fb_call.insertArgument(new NumberExpression(e.getSpan(),
+                    "" + StringLiteral.fromLiteral(((StringLiteral) e).getContents()).length()));
             return fb_call;
         } else {
             return e;

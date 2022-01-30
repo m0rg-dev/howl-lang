@@ -17,6 +17,7 @@ public class ElseIfStatement extends Statement {
     @Override
     public ASTElement detach() {
         ElseIfStatement rc = new ElseIfStatement(span);
+        rc.setAnnotation(annotation);
         rc.setBody((CompoundStatement) this.body.detach());
         rc.setCondition((Expression) this.condition.detach());
         return rc;

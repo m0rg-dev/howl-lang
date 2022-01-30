@@ -42,9 +42,9 @@ public abstract class AlgebraicType {
     static Map<ASTElement, ALambdaTerm> derive_cache = new HashMap<>();
 
     public static ALambdaTerm derive(ASTElement source) {
-        if (derive_cache.containsKey(source)) {
-            return derive_cache.get(source);
-        }
+        // if (derive_cache.containsKey(source)) {
+        // return derive_cache.get(source);
+        // }
         ALambdaTerm rc = derive_inner(source);
         derive_cache.put(source, rc);
         return rc;
@@ -74,15 +74,16 @@ public abstract class AlgebraicType {
             }
         } else if (source instanceof NewType) {
             NewType as_newtype = (NewType) source;
-            if (as_newtype.getIndex() >= 0) {
-                return new ANewtype(as_newtype, "T" + as_newtype.getIndex());
-            } else {
-                return new ANewtype(as_newtype);
-            }
+            return new ANewtype(as_newtype);
         } else if (source instanceof ObjectReferenceType) {
             // we'll need to evaluate these lazily to avoid loops
             ObjectReferenceType as_ref = (ObjectReferenceType) source;
-            return new AStructureReference(as_ref);
+            int i;
+            List<ALambdaTerm> params = new ArrayList<>();
+            for (i = 0; i < as_ref.getSource().getGenericNames().size(); i++) {
+                params.add(new AVariable());
+            }
+            return new AStructureReference(as_ref, new ATuple(params));
         } else if (source instanceof FieldReferenceExpression) {
             FieldReferenceExpression as_field_reference = (FieldReferenceExpression) source;
             ALambdaTerm field_source = derive_inner(as_field_reference.getSource());
@@ -90,27 +91,18 @@ public abstract class AlgebraicType {
             ALambda field_operation = v.lambda(new AFieldReferenceType(v, as_field_reference.getName()));
             return new AApplication(field_operation, field_source);
         } else if (source instanceof ConstructorCallExpression) {
-            // Constructor calls return their own type - i.e. (\x.x).
             ConstructorCallExpression as_constructor_call = (ConstructorCallExpression) source;
-            ALambdaTerm new_source = derive_inner(as_constructor_call.getType());
-            AVariable v = new AVariable();
-            ALambda new_operation = v.lambda(v);
-            return new AApplication(new_operation, new_source);
+            return as_constructor_call.getType();
         } else if (source instanceof SpecifiedType) {
             SpecifiedType as_specified = (SpecifiedType) source;
 
             ALambdaTerm rc = derive_inner(as_specified.getBase());
             List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
-            int i = 0;
-            List<String> vars = new ArrayList<>();
             List<ALambdaTerm> reps = new ArrayList<>();
             for (TypeElement t : parameters) {
-                vars.add("T" + i);
                 reps.add(derive_inner(t));
-                i++;
             }
-
-            rc = new AApplication(new ALambda(vars, rc), reps);
+            rc = new ASpecify(rc, new ATuple(reps));
 
             return rc;
         } else if (source instanceof Argument) {
@@ -148,13 +140,11 @@ public abstract class AlgebraicType {
 
             ALambdaTerm rc = derive_inner(as_specified.getSource());
             List<TypeElement> parameters = new ArrayList<>(as_specified.getParameters());
-            int i = 0;
+            List<ALambdaTerm> reps = new ArrayList<>();
             for (TypeElement t : parameters) {
-                AVariable v = new AVariable("T" + i);
-                ALambda spec_operation = v.lambda(rc);
-                rc = new AApplication(spec_operation, derive_inner(t));
-                i++;
+                reps.add(derive_inner(t));
             }
+            rc = new ASpecify(rc, new ATuple(reps));
 
             return rc;
         } else if (source instanceof ClassCastExpression) {

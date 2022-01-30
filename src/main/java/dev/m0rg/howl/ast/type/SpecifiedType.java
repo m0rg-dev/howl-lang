@@ -3,10 +3,16 @@ package dev.m0rg.howl.ast.type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import dev.m0rg.howl.ast.ASTElement;
 import dev.m0rg.howl.ast.ASTTransformer;
 import dev.m0rg.howl.ast.Span;
+import dev.m0rg.howl.ast.expression.Expression;
+import dev.m0rg.howl.ast.type.iterative.FreeVariable;
+import dev.m0rg.howl.ast.type.iterative.Instantiation;
+import dev.m0rg.howl.ast.type.iterative.TypeAlias;
+import dev.m0rg.howl.ast.type.iterative.TypeObject;
 
 public class SpecifiedType extends TypeElement {
     TypeElement base;
@@ -75,5 +81,14 @@ public class SpecifiedType extends TypeElement {
     @Override
     public boolean accepts(TypeElement other) {
         return false;
+    }
+
+    @Override
+    public FreeVariable deriveType(Map<Expression, TypeObject> environment) {
+        FreeVariable rc = new FreeVariable();
+        environment.put(rc, new Instantiation(
+                new TypeAlias(base.deriveType(environment)),
+                parameters.stream().map(x -> (TypeObject) new TypeAlias(x.deriveType(environment))).toList()));
+        return rc;
     }
 }

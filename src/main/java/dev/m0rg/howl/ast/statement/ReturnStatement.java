@@ -28,6 +28,7 @@ public class ReturnStatement extends Statement implements HasUpstreamFields {
         if (source.isPresent()) {
             rc.setSource((Expression) source.get().detach());
         }
+        rc.setAnnotation(annotation);
         return rc;
     }
 

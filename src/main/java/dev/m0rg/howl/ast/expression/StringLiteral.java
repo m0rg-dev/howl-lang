@@ -29,6 +29,10 @@ public class StringLiteral extends Expression {
         return rc;
     }
 
+    public String getContents() {
+        return contents;
+    }
+
     public String format() {
         return this.contents;
     }
@@ -43,9 +47,9 @@ public class StringLiteral extends Expression {
         return rc;
     }
 
-    public String real_string() {
-        return contents
-                .substring(1, contents.length() - 1)
+    public static String fromLiteral(String source) {
+        return source
+                .substring(1, source.length() - 1)
                 .replaceAll("(?<!\\\\)\\\\n", "\n")
                 .replaceAll("(?<!\\\\)\\\\r", "\r");
     }
@@ -53,7 +57,7 @@ public class StringLiteral extends Expression {
     @Override
     public LLVMValue generate(LLVMBuilder builder) {
         // TODO
-        LLVMConstant string = builder.getModule().stringConstant(this.real_string());
+        LLVMConstant string = builder.getModule().stringConstant(StringLiteral.fromLiteral(contents));
         LLVMValue temp = builder.buildAlloca(string.getType(), "");
         builder.buildStore(string, temp);
         return builder.buildBitcast(temp, new LLVMPointerType<LLVMType>(new LLVMIntType(builder.getContext(), 8)), "");

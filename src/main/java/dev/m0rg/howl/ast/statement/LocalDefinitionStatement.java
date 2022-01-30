@@ -34,6 +34,7 @@ public class LocalDefinitionStatement extends Statement implements NamedElement,
     @Override
     public ASTElement detach() {
         LocalDefinitionStatement rc = new LocalDefinitionStatement(span, name);
+        rc.setAnnotation(annotation);
         rc.setInitializer((Expression) initializer.detach());
         rc.setLocaltype((TypeElement) localtype.detach());
         return rc;

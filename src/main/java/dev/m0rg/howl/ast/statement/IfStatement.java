@@ -35,6 +35,7 @@ public class IfStatement extends Statement implements HasUpstreamFields {
     @Override
     public ASTElement detach() {
         IfStatement rc = new IfStatement(span);
+        rc.setAnnotation(annotation);
         rc.setBody((CompoundStatement) body.detach());
         rc.setCondition((Expression) condition.detach());
         if (this.alternative.isPresent()) {

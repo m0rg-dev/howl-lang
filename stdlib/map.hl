@@ -1,0 +1,25 @@
+interface Hash {
+    fn i32 hashCode();
+}
+
+interface Eq<T> {
+    fn bool equals(T other);
+}
+
+interface Map<K: Hash & Eq, V> {
+
+}
+
+class HashMap<K, V> implements Map<K, V> {
+    // TODO: This implementation stinks!
+
+    Vec<V> contents;
+    u64 table_size;
+    u64 entry_count;
+
+    fn void constructor() {
+        self.contents = new Vec<V>();
+        self.table_size = 256;
+        self.entry_count = 0;
+    }
+}

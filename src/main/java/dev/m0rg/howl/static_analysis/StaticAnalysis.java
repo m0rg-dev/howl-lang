@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Optional;
 
+import dev.m0rg.howl.ast.statement.Annotation;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.BreakContinueStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
@@ -50,7 +51,8 @@ public class StaticAnalysis {
             return head;
         } else if (s instanceof AssignmentStatement
                 || s instanceof LocalDefinitionStatement
-                || s instanceof SimpleStatement) {
+                || s instanceof SimpleStatement
+                || s instanceof Annotation) {
             CFGNode rc = new CFGNode(s);
             if (next_sibling.isPresent()) {
                 rc.addSuccessor(next_sibling.get());

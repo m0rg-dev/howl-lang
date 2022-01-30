@@ -29,25 +29,20 @@ import dev.m0rg.howl.ast.ModStatement;
 import dev.m0rg.howl.ast.Module;
 import dev.m0rg.howl.ast.NamedElement;
 import dev.m0rg.howl.ast.type.algebraic.ALambdaTerm;
-import dev.m0rg.howl.ast.type.algebraic.AStructureReference;
-import dev.m0rg.howl.ast.type.algebraic.AlgebraicType;
 import dev.m0rg.howl.cst.CSTImporter;
 import dev.m0rg.howl.lint.CheckExceptions;
 import dev.m0rg.howl.lint.CheckInterfaceImplementations;
 import dev.m0rg.howl.lint.ExternFunctionBaseTypesOnly;
-import dev.m0rg.howl.lint.StaticNonStatic;
 import dev.m0rg.howl.lint.SuperConstructorCalls;
 import dev.m0rg.howl.llvm.LLVMContext;
 import dev.m0rg.howl.llvm.LLVMModule;
 import dev.m0rg.howl.logger.Logger;
 import dev.m0rg.howl.transform.AddClassCasts;
-import dev.m0rg.howl.transform.AddGenerics;
 import dev.m0rg.howl.transform.AddInterfaceCasts;
 import dev.m0rg.howl.transform.AddInterfaceConverters;
 import dev.m0rg.howl.transform.AddNumericCasts;
 import dev.m0rg.howl.transform.AddSelfToMethods;
 import dev.m0rg.howl.transform.Coalesce;
-import dev.m0rg.howl.transform.MultiPass;
 import dev.m0rg.howl.transform.ConvertBooleans;
 import dev.m0rg.howl.transform.ConvertCustomOverloads;
 import dev.m0rg.howl.transform.ConvertFor;
@@ -58,7 +53,7 @@ import dev.m0rg.howl.transform.ConvertThrow;
 import dev.m0rg.howl.transform.ConvertTryCatch;
 import dev.m0rg.howl.transform.EnsureTypesResolve;
 import dev.m0rg.howl.transform.InferTypes;
-import dev.m0rg.howl.transform.Monomorphize2;
+import dev.m0rg.howl.transform.MultiPass;
 import dev.m0rg.howl.transform.ResolveNames;
 import dev.m0rg.howl.transform.RunStaticAnalysis;
 
@@ -215,7 +210,7 @@ public class Compiler {
 
         long parse_start = System.currentTimeMillis();
 
-        cc.ingestDirectory(stdlib_path, "lib");
+        // cc.ingestDirectory(stdlib_path, "lib");
         cc.ingest(FileSystems.getDefault().getPath(args[0]).toAbsolutePath(), "main");
 
         Logger.trace("parse complete at " + (System.currentTimeMillis() - parse_start) + " ms");
@@ -228,9 +223,6 @@ public class Compiler {
         Finder.find(cc.root_module, x -> RunStaticAnalysis.apply(x));
         Logger.trace("  => RunStaticAnalysis " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
-
-        // System.err.println(cc.root_module.getChild("main").get().format());
-        // System.exit(0);
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
                 new ConvertTryCatch(),
@@ -252,39 +244,54 @@ public class Compiler {
                 new ResolveNames(),
                 new ConvertStrings(),
                 new ConvertIndexLvalue(),
-                new AddGenerics(),
+                // new AddGenerics(),
         }));
         Logger.trace("  => Combined2 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new ConvertCustomOverloads());
-        Logger.trace("  => ConvertCustomOverloads " + (System.currentTimeMillis() -
+        // TODO figure out how this works now
+        // cc.root_module.transform(new ConvertCustomOverloads());
+        // Logger.trace(" => ConvertCustomOverloads " + (System.currentTimeMillis() -
+        // transform_start) + " ms");
+        // transform_start = System.currentTimeMillis();
+
+        cc.root_module.transform(new InferTypes());
+        Logger.trace(" => InferTypes " + (System.currentTimeMillis() -
                 transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        cc.root_module.transform(new InferTypes());
-        Logger.trace("  => InferTypes " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
+        // ########################################
+        for (CompilationError e : cc.errors) {
+            if (cc.errors_displayed.contains(e))
+                continue;
+            System.err.println(e.format());
+            cc.errors_displayed.add(e);
+        }
+        System.err.println(cc.root_module.getChild("main").get().format());
+        System.exit(0);
+        // ########################################
 
         Finder.find(cc.root_module, x -> CheckInterfaceImplementations.apply(x));
         Logger.trace("  => CheckInterfaceImplementations " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
-                new StaticNonStatic(),
+                // new StaticNonStatic(),
                 new CheckExceptions(),
         }));
         Logger.trace("  => Combined3 " + (System.currentTimeMillis() - transform_start) + " ms");
         transform_start = System.currentTimeMillis();
 
-        Monomorphize2 mc2 = new Monomorphize2();
-        cc.root_module.transform(mc2);
-        Logger.trace("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
-        for (AStructureReference r : mc2.getToGenerate()) {
-            r.getSource().getSource().monomorphize(r);
-        }
-        Logger.trace("  => Monomorphize " + (System.currentTimeMillis() - transform_start) + " ms");
-        transform_start = System.currentTimeMillis();
+        // Monomorphize2 mc2 = new Monomorphize2();
+        // cc.root_module.transform(mc2);
+        // Logger.trace(" => Monomorphize " + (System.currentTimeMillis() -
+        // transform_start) + " ms");
+        // for (AStructureReference r : mc2.getToGenerate()) {
+        // r.getSource().getSource().monomorphize(r);
+        // }
+        // Logger.trace(" => Monomorphize " + (System.currentTimeMillis() -
+        // transform_start) + " ms");
+        // transform_start = System.currentTimeMillis();
 
         cc.root_module.transform(new MultiPass(new ASTTransformer[] {
                 new EnsureTypesResolve(),
@@ -339,7 +346,7 @@ public class Compiler {
             ld_args.add(cmd.getOptionValue("output"));
             ld_args.add(stdlib_path.resolve("hrt0.c").toAbsolutePath().toString());
             for (LLVMModule module : modules) {
-                // System.err.println(module);
+                System.err.println(module);
                 Files.writeString(tmpdir.resolve(module.getName() + ".ll"),
                         module.toString());
 

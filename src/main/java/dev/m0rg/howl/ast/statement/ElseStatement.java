@@ -19,6 +19,7 @@ public class ElseStatement extends Statement {
     @Override
     public ASTElement detach() {
         ElseStatement rc = new ElseStatement(span);
+        rc.setAnnotation(annotation);
         rc.setBody((CompoundStatement) this.getBody().detach());
         return rc;
     }

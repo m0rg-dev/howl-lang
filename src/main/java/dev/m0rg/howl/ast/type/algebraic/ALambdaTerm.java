@@ -33,18 +33,32 @@ public abstract class ALambdaTerm extends AlgebraicType {
      * application.
      */
     public static ALambdaTerm evaluate(ALambdaTerm t) {
+        return evaluate(t, false);
+    }
+
+    /**
+     * Attempts to β-normalize the given {@code ALambdaTerm} by repeated
+     * application.
+     */
+    public static ALambdaTerm evaluate(ALambdaTerm t, boolean noisy) {
         evalcount++;
         long start = System.currentTimeMillis();
         String source = t.format();
-        if (evalcache.containsKey(source)) {
-            evalhit++;
-            return evalcache.get(source);
-        } else {
-            evalmiss++;
+        if (!noisy) {
+            if (evalcache.containsKey(source)) {
+                evalhit++;
+                return evalcache.get(source);
+            } else {
+                evalmiss++;
+            }
         }
 
+        if (noisy)
+            Logger.trace("   eval: " + t.format());
         while (t instanceof Applicable && ((Applicable) t).isApplicable()) {
             t = ((Applicable) t).apply();
+            if (noisy)
+                Logger.trace("  apply: " + t.format());
         }
 
         evalcache.put(source, t);
@@ -58,6 +72,13 @@ public abstract class ALambdaTerm extends AlgebraicType {
      */
     public static ALambdaTerm evaluateFrom(ASTElement t) {
         return evaluate(AlgebraicType.derive(t));
+    }
+
+    /**
+     * Convenience function to derive a type and evaluate it.
+     */
+    public static ALambdaTerm evaluateFrom(ASTElement t, boolean noisy) {
+        return evaluate(AlgebraicType.derive(t), noisy);
     }
 
     /**

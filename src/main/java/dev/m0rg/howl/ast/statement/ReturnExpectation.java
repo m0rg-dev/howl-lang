@@ -42,7 +42,9 @@ public class ReturnExpectation extends Statement {
 
     @Override
     public ASTElement detach() {
-        return new ReturnExpectation(func);
+        ReturnExpectation rc = new ReturnExpectation(func);
+        rc.setAnnotation(annotation);
+        return rc;
     }
 
     @Override

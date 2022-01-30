@@ -39,7 +39,7 @@ public class AFieldReferenceType extends ALambdaTerm implements Applicable {
             return source;
         } else {
             Logger.error(this.format());
-            throw new RuntimeException();
+            return new AErrorType(null, "h");
         }
     }
 }

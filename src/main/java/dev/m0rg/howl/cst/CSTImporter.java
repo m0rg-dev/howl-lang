@@ -3,8 +3,10 @@ package dev.m0rg.howl.cst;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -42,6 +44,7 @@ import dev.m0rg.howl.ast.expression.NameExpression;
 import dev.m0rg.howl.ast.expression.NumberExpression;
 import dev.m0rg.howl.ast.expression.SpecifiedTypeExpression;
 import dev.m0rg.howl.ast.expression.StringLiteral;
+import dev.m0rg.howl.ast.statement.Annotation;
 import dev.m0rg.howl.ast.statement.AssignmentStatement;
 import dev.m0rg.howl.ast.statement.BreakContinueStatement;
 import dev.m0rg.howl.ast.statement.CatchStatement;
@@ -64,6 +67,7 @@ import dev.m0rg.howl.ast.type.RawPointerType;
 import dev.m0rg.howl.ast.type.SpecifiedType;
 import dev.m0rg.howl.ast.type.TypeConstraint;
 import dev.m0rg.howl.ast.type.TypeElement;
+import dev.m0rg.howl.ast.type.algebraic.ADefer;
 
 public class CSTImporter {
     Path source_path;
@@ -92,6 +96,8 @@ public class CSTImporter {
         Entry<String, JsonElement> first = entries.iterator().next();
         JsonObject inner_obj = first.getValue().getAsJsonObject();
         switch (first.getKey()) {
+            case "Annotation":
+                return this.parseAnnotation(inner_obj);
             case "ArithmeticExpression":
                 return this.parseArithmeticExpression(inner_obj);
             case "AssignmentStatement":
@@ -180,6 +186,17 @@ public class CSTImporter {
             source = source.get(step).getAsJsonObject();
         }
         return source;
+    }
+
+    Annotation parseAnnotation(JsonObject source) {
+        Map<String, String> contents = new LinkedHashMap<>();
+        for (JsonElement el : source.get("contents").getAsJsonArray()) {
+            contents.put(
+                    el.getAsJsonObject().get("SubAnnotation").getAsJsonObject().get("name").getAsString(),
+                    StringLiteral.fromLiteral(
+                            el.getAsJsonObject().get("SubAnnotation").getAsJsonObject().get("value").getAsString()));
+        }
+        return new Annotation(extractSpan(source), contents);
     }
 
     ArithmeticExpression parseArithmeticExpression(JsonObject source) {
@@ -338,7 +355,7 @@ public class CSTImporter {
 
         ASTElement c_source = parseElement(source.get("source"));
         if (c_source instanceof TypeElement) {
-            rc.setSource((TypeElement) c_source);
+            rc.setSource((TypeElement) c_source.setParent(rc));
         } else {
             throw new IllegalArgumentException();
         }

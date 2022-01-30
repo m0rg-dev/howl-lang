@@ -23,6 +23,7 @@ public class CatchStatement extends Statement implements NameHolder, HasOwnType 
     @Override
     public ASTElement detach() {
         CatchStatement rc = new CatchStatement(span, excname);
+        rc.setAnnotation(annotation);
         rc.setBody((CompoundStatement) this.getBody().detach());
         rc.setType((TypeElement) this.getType().detach());
         return rc;
